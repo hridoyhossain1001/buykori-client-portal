@@ -108,7 +108,7 @@ STYLE = """
   .stat-box .num { font-size: 32px; font-weight: 700; color: var(--primary-hover); line-height: 1.2; }
   .stat-box .lbl { font-size: 13px; color: var(--text-muted); font-weight: 500; text-transform: uppercase; letter-spacing: 1px; margin-top: 4px; }
   
-  .grid { display: grid; grid-template-columns: 1fr 1.8fr; gap: 24px; align-items: start; }
+  .top-grid { display: grid; grid-template-columns: 1.2fr 1fr; gap: 24px; align-items: stretch; margin-bottom: 24px; }
   .card {
     background: var(--bg-card);
     backdrop-filter: blur(10px);
@@ -183,9 +183,18 @@ STYLE = """
   }
   .api-key-cell {
     font-family: monospace; font-size: 12px; color: #888;
-    max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-    background: rgba(0,0,0,0.3); padding: 4px 8px; border-radius: 6px;
+    background: rgba(0,0,0,0.3); padding: 6px 10px; border-radius: 6px;
+    display: inline-flex; align-items: center; justify-content: space-between; gap: 10px;
+    width: 200px;
   }
+  .api-key-text {
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .copy-icon {
+    background: none; border: none; color: var(--primary-hover); cursor: pointer;
+    font-size: 14px; transition: color 0.2s;
+  }
+  .copy-icon:hover { color: #fff; }
   
   .btn-sm {
     padding: 8px 16px; font-size: 13px; border-radius: 8px; border: none;
@@ -203,7 +212,7 @@ STYLE = """
   }
   .btn-info:hover { background: var(--primary); color: #fff; transform: translateY(-1px); box-shadow: 0 4px 10px rgba(126, 87, 194, 0.3); }
   
-  .alert { padding: 16px 20px; border-radius: 12px; margin-bottom: 24px; font-size: 14px; font-weight: 500; display: flex; align-items: center; gap: 10px; }
+  .alert { padding: 16px 20px; border-radius: 12px; margin-bottom: 24px; font-size: 14px; font-weight: 500; display: flex; align-items: center; gap: 10px; transition: opacity 0.5s ease; }
   .alert-success { background: rgba(0, 230, 118, 0.1); border: 1px solid rgba(0, 230, 118, 0.2); color: var(--accent); }
   .alert-error { background: rgba(255, 82, 82, 0.1); border: 1px solid rgba(255, 82, 82, 0.2); color: var(--danger); }
   
@@ -255,6 +264,15 @@ function copyText(id){{
   event.target.innerText = 'Copied!';
   setTimeout(()=>event.target.innerText='Copy',1500);
 }}
+</script>
+<script>
+  setTimeout(() => {
+    const alert = document.querySelector('.alert');
+    if (alert) {
+      alert.style.opacity = '0';
+      setTimeout(() => alert.style.display = 'none', 500);
+    }
+  }, 5000);
 </script>
 </body>
 </html>"""
@@ -324,26 +342,28 @@ async def admin_dashboard(
 
     # ─── Stats ─────────────────────────────────────────────────────────────
     stats = f"""
-    <h1 class="page-title">Dashboard</h1>
-    <p class="page-sub">আপনার সকল ক্লায়েন্ট এখান থেকে ম্যানেজ করুন</p>
-    <div class="stat-row">
-      <div class="stat-box"><div class="num">{len(clients)}</div><div class="lbl">Total Clients</div></div>
-      <div class="stat-box"><div class="num">{active_count}</div><div class="lbl">Active Clients</div></div>
-    </div>
-    <div class="stat-row">
-      <div class="stat-box"><div class="num" style="color:#00c853">{events_today:,}</div><div class="lbl">📊 আজকের Events</div></div>
-      <div class="stat-box"><div class="num" style="color:#ff4d4d">{failed_today}</div><div class="lbl">❌ Failed Today</div></div>
-    </div>
-    <div class="stat-row">
-      <div class="stat-box"><div class="num" style="color:#6c63ff">{success_rate}%</div><div class="lbl">✅ Success Rate</div></div>
-      <div class="stat-box"><div class="num" style="color:#ffab00">{retries}</div><div class="lbl">🔄 Pending Retries</div></div>
+    <div class="left-col">
+      <h1 class="page-title">Dashboard</h1>
+      <p class="page-sub">আপনার সকল ক্লায়েন্ট এখান থেকে ম্যানেজ করুন</p>
+      <div class="stat-row">
+        <div class="stat-box"><div class="num">{len(clients)}</div><div class="lbl">Total Clients</div></div>
+        <div class="stat-box"><div class="num">{active_count}</div><div class="lbl">Active Clients</div></div>
+      </div>
+      <div class="stat-row">
+        <div class="stat-box"><div class="num" style="color:#00c853">{events_today:,}</div><div class="lbl">📊 আজকের Events</div></div>
+        <div class="stat-box"><div class="num" style="color:#ff4d4d">{failed_today}</div><div class="lbl">❌ Failed Today</div></div>
+      </div>
+      <div class="stat-row">
+        <div class="stat-box"><div class="num" style="color:#6c63ff">{success_rate}%</div><div class="lbl">✅ Success Rate</div></div>
+        <div class="stat-box"><div class="num" style="color:#ffab00">{retries}</div><div class="lbl">🔄 Pending Retries</div></div>
+      </div>
     </div>
     """
 
     # ─── Add Client Form ───────────────────────────────────────────────────
     add_form = """
-    <div class="grid">
-      <div class="card">
+    <div class="right-col">
+      <div class="card" style="height: 100%;">
         <div class="card-title"><span class="icon">➕</span> নতুন ক্লায়েন্ট যোগ করুন</div>
         <form method="post" action="/api/v1/admin/add-client">
           <div class="form-group">
@@ -373,6 +393,7 @@ async def admin_dashboard(
           <button type="submit" class="btn">✅ ক্লায়েন্ট যোগ করুন</button>
         </form>
       </div>
+    </div>
     """
 
     # ─── Client List ───────────────────────────────────────────────────────
@@ -395,7 +416,12 @@ async def admin_dashboard(
               <td><strong>{safe_name}</strong><br><span style="color:#555;font-size:11px">{safe_pixel}</span></td>
               <td>{status_badge}</td>
               <td style="color:#00c853;font-weight:600;">{c_events:,}</td>
-              <td class="api-key-cell" title="{safe_key}">{safe_key[:24]}...</td>
+              <td>
+                <div class="api-key-cell" title="{safe_key}">
+                  <span class="api-key-text">{safe_key[:20]}...</span>
+                  <button class="copy-icon" onclick="navigator.clipboard.writeText('{safe_key}'); this.innerText='✅'; setTimeout(()=>this.innerText='📋', 2000);" title="Copy Full API Key">📋</button>
+                </div>
+              </td>
               <td>
                 <a href="/api/v1/admin/client/{c.id}/instructions" style="text-decoration:none">
                   <button class="btn-sm btn-info">📋 Instructions</button>
@@ -426,7 +452,15 @@ async def admin_dashboard(
           </div>
         </div>"""
 
-    body = stats + add_form + client_table + "</div>"
+    body = f"""
+    <div class="top-grid">
+      {stats}
+      {add_form}
+    </div>
+    <div class="bottom-section">
+      {client_table}
+    </div>
+    """
     return HTMLResponse(base_html("Dashboard", body, msg, msg_type))
 
 
