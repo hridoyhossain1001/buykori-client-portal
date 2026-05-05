@@ -266,13 +266,13 @@ function copyText(id){{
 }}
 </script>
 <script>
-  setTimeout(() => {
+  setTimeout(() => {{
     const alert = document.querySelector('.alert');
-    if (alert) {
+    if (alert) {{
       alert.style.opacity = '0';
       setTimeout(() => alert.style.display = 'none', 500);
-    }
-  }, 5000);
+    }}
+  }}, 5000);
 </script>
 </body>
 </html>"""
