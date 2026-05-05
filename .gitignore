@@ -1,0 +1,8 @@
+# Git এ .env ফাইল যেন push না হয় সেজন্য
+.env
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+venv/
+.venv/
