@@ -1,6 +1,32 @@
-from pydantic import BaseModel
+import hashlib
+import re
+from pydantic import BaseModel, model_validator
 from typing import List, Dict, Any, Optional
 
+def _clean_and_hash(val: str, field: str) -> str:
+    """Normalize and hash PII data according to Facebook CAPI rules."""
+    if not isinstance(val, str) or not val.strip():
+        return val
+        
+    val = val.strip()
+    
+    # Check if already SHA256 hashed
+    if re.match(r'^[a-f0-9]{64}$', val):
+        return val
+        
+    # Normalization
+    if field == 'ph':
+        # Remove non-numeric characters (keep '+' if exists, then remove leading zeros)
+        # FB expects: country code + number without leading zero
+        val = re.sub(r'[^0-9]', '', val)
+        val = val.lstrip('0')
+    else:
+        val = val.lower()
+        if field in ('fn', 'ln', 'ct'):
+            # Remove punctuation (keep letters and spaces)
+            val = re.sub(r'[^\w\s]', '', val)
+            
+    return hashlib.sha256(val.encode('utf-8')).hexdigest()
 
 class UserData(BaseModel):
     """Facebook CAPI User Data - সব ফিল্ড optional, যতবেশি দেওয়া যায় ততো ভালো match হয়"""
@@ -17,6 +43,33 @@ class UserData(BaseModel):
     client_user_agent: Optional[str] = None
     fbc: Optional[str] = None             # Facebook click ID (_fbc cookie)
     fbp: Optional[str] = None             # Facebook browser ID (_fbp cookie)
+
+    @model_validator(mode='before')
+    @classmethod
+    def auto_hash_pii(cls, data: Any) -> Any:
+        if not isinstance(data, dict):
+            return data
+            
+        hashable_fields = ['em', 'ph', 'fn', 'ln', 'ct', 'st', 'zp', 'country', 'external_id']
+        
+        for field in hashable_fields:
+            if field in data and data[field] is not None:
+                val = data[field]
+                # If a single string is provided, wrap it in a list
+                if isinstance(val, str):
+                    val = [val]
+                
+                # Clean and hash each item in the list
+                if isinstance(val, list):
+                    cleaned_list = []
+                    for item in val:
+                        if isinstance(item, str):
+                            cleaned_list.append(_clean_and_hash(item, field))
+                        else:
+                            cleaned_list.append(item)
+                    data[field] = cleaned_list
+                    
+        return data
 
 
 class CustomData(BaseModel):
