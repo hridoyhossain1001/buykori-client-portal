@@ -14,7 +14,27 @@ async def send_request(client, i):
             {
                 "event_name": "PageView",
                 "event_time": int(time.time()),
-                "event_id": f"test_load_{int(time.time())}_{i}",
+                "event_id": f"pv_load_{int(time.time())}_{i}",
+                "event_source_url": "http://example.com/test",
+                "user_data": {
+                    "client_ip_address": "1.2.3.4",
+                    "client_user_agent": "LoadTester"
+                }
+            },
+            {
+                "event_name": "ViewContent",
+                "event_time": int(time.time()),
+                "event_id": f"vc_load_{int(time.time())}_{i}",
+                "event_source_url": "http://example.com/test",
+                "user_data": {
+                    "client_ip_address": "1.2.3.4",
+                    "client_user_agent": "LoadTester"
+                }
+            },
+            {
+                "event_name": "AddToCart",
+                "event_time": int(time.time()),
+                "event_id": f"atc_load_{int(time.time())}_{i}",
                 "event_source_url": "http://example.com/test",
                 "user_data": {
                     "client_ip_address": "1.2.3.4",
@@ -25,7 +45,10 @@ async def send_request(client, i):
         "test_event_code": "TEST12345"
     }
     
-    headers = {"X-API-Key": API_KEY}
+    headers = {
+        "X-API-Key": API_KEY,
+        "Origin": "https://test-website-fget.vercel.app"
+    }
     
     start_time = time.time()
     try:

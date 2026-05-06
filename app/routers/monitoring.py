@@ -93,10 +93,10 @@ async def facebook_health():
                 "response_code": response.status_code,
                 "latency_ms": round(response.elapsed.total_seconds() * 1000, 1),
             }
-    except Exception as e:
+    except Exception:
         return {
             "facebook_api": "unreachable",
-            "error": str(e)[:200],
+            "error": "connection failed",
         }
 
 

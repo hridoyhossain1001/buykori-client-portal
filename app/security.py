@@ -32,5 +32,9 @@ def decrypt_token(encrypted: str) -> str:
     try:
         return _fernet.decrypt(encrypted.encode()).decode()
     except Exception:
-        # Fallback for old plaintext tokens
+        # Fallback for old plaintext tokens — log warning for debugging
+        logger.warning(
+            f"Token decryption failed — returning as-is (length={len(encrypted)}). "
+            "This may indicate a key rotation issue or a pre-encryption plaintext token."
+        )
         return encrypted

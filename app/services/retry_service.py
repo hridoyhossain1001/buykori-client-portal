@@ -4,7 +4,7 @@ Background task হিসেবে চলে, exponential backoff সহ।
 """
 import asyncio
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -62,14 +62,24 @@ async def claim_due_failed_events(db: AsyncSession, limit: int = 20) -> list[Fai
     """
     Retry করার আগে row lock করে claim করা হয়।
     একাধিক worker থাকলেও একই failed event একসাথে পাঠানো হবে না।
+    SQL-এ due-time ফিল্টার করা হয় যেন LIMIT শুধু due ইভেন্টে প্রযোজ্য হয়।
     """
+    from sqlalchemy import or_
+
     now = datetime.now(timezone.utc)
+    # SQL-level: শুধুমাত্র due হতে পারে এমন row fetch করো
+    # (last_retry_at NULL = pending, অথবা minimum 30s পার হয়ে গেছে)
+    min_delay = RETRY_DELAYS[0]  # 30 seconds
     result = await db.execute(
         select(FailedEvent)
         .where(
             and_(
                 FailedEvent.status.in_(["pending", "retrying"]),
                 FailedEvent.retry_count < FailedEvent.max_retries,
+                or_(
+                    FailedEvent.last_retry_at.is_(None),
+                    FailedEvent.last_retry_at <= now - timedelta(seconds=min_delay),
+                ),
             )
         )
         .order_by(FailedEvent.created_at.asc())
@@ -78,6 +88,7 @@ async def claim_due_failed_events(db: AsyncSession, limit: int = 20) -> list[Fai
     )
     failed_events = result.scalars().all()
 
+    # Python-level: exact RETRY_DELAYS দিয়ে precise check
     due_events: list[FailedEvent] = []
     for failed in failed_events:
         if not _retry_is_due(failed, now):

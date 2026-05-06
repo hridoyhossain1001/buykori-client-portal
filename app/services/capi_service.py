@@ -1,7 +1,6 @@
 import httpx
 import logging
 from typing import List
-from app.models.client import Client
 from app.schemas.event import EventData
 from app.security import decrypt_token
 
@@ -39,7 +38,7 @@ async def close_http_client():
         logger.info("🔒 HTTP client বন্ধ হয়েছে।")
 
 
-async def send_to_facebook(client: Client, events: List[EventData]) -> dict:
+async def send_to_facebook(client, events: List[EventData]) -> dict:
     """
     ক্লায়েন্টের Pixel ID ও Access Token ব্যবহার করে
     Facebook CAPI-তে ইভেন্ট পাঠায়।

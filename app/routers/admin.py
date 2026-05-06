@@ -11,6 +11,7 @@ from sqlalchemy import select, update
 from app.database import get_db
 from app.models.client import Client
 from app.security import encrypt_token
+from app.limiter import limiter
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -293,6 +294,7 @@ def admin_redirect(msg: str, msg_type: str = "success") -> RedirectResponse:
 # ─── ROUTES ──────────────────────────────────────────────────────────────────
 
 @router.get("/admin", response_class=HTMLResponse, include_in_schema=False)
+@limiter.limit("10/minute")
 async def admin_dashboard(
     request: Request,
     username: str = Depends(verify_admin),
@@ -328,9 +330,9 @@ async def admin_dashboard(
     )
     client_events_map = {row[0]: row[1] for row in client_events_r}
 
-    # আজকের ব্যর্থ
+    # আজকের ব্যর্থ (SUM ব্যবহার করো — একটি row-তে একাধিক ইভেন্ট থাকতে পারে)
     fail_r = await db.execute(
-        select(sql_func.count(EventLog.id)).where(
+        select(sql_func.coalesce(sql_func.sum(EventLog.event_count), 0)).where(
             and_(EventLog.status == "failed", EventLog.created_at >= today)
         )
     )
@@ -476,6 +478,7 @@ async def admin_dashboard(
 
 
 @router.post("/admin/add-client", include_in_schema=False)
+@limiter.limit("10/minute")
 async def add_client(
     request: Request,
     username: str = Depends(verify_admin),

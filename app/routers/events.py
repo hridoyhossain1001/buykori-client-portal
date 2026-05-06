@@ -1,9 +1,8 @@
 import json
 import logging
 import os
-import time
-from collections import defaultdict
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
+from urllib.parse import urlparse
 
 from fastapi import APIRouter, Depends, HTTPException, Request, BackgroundTasks
 from sqlalchemy import and_, func as sql_func, select
@@ -11,13 +10,13 @@ from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db, AsyncSessionLocal
-from app.dependencies import get_current_client
-from app.models.client import Client
+from app.dependencies import get_current_client, CachedClient
 from app.models.event_dedup import EventDedup
 from app.models.event_log import EventLog
 from app.schemas.event import EventsPayload, EventsResponse
 from app.services.capi_service import send_to_facebook
 from app.services.retry_service import save_failed_event
+from app.services.usage_service import check_usage_limits_db, increment_usage_counters_db
 
 logger = logging.getLogger(__name__)
 
@@ -25,55 +24,23 @@ router = APIRouter()
 
 MAX_EVENTS_PER_REQUEST = int(os.getenv("MAX_EVENTS_PER_REQUEST", "500"))
 
-_rate_counters: dict[int, list[float]] = defaultdict(list)
-_daily_counters: dict[int, tuple[str, int]] = {}  # (date_str, count)
-
-def enforce_usage_limits(
-    client: Client,
-    incoming_event_count: int,
-) -> None:
-    """In-memory rate limit and daily quota checks."""
-    rate_limit = client.rate_limit or 5000
-    now = time.time()
-    
-    # 60 সেকেন্ডের পুরানো এন্ট্রি মুছে ফেলো
-    _rate_counters[client.id] = [
-        t for t in _rate_counters[client.id] if now - t < 60
-    ]
-    
-    recent_count = len(_rate_counters[client.id])
-    if recent_count + incoming_event_count > rate_limit:
-        raise HTTPException(
-            status_code=429,
-            detail=f"Rate limit exceeded! {recent_count}/{rate_limit} events/min",
-        )
-    _rate_counters[client.id].extend([now] * incoming_event_count)
-
-    if client.daily_quota:
-        today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-        if client.id in _daily_counters:
-            stored_date, count = _daily_counters[client.id]
-            if stored_date != today:
-                _daily_counters[client.id] = (today, incoming_event_count)
-            else:
-                if count + incoming_event_count > client.daily_quota:
-                    raise HTTPException(
-                        status_code=429,
-                        detail=f"Daily quota exceeded! Today {count}/{client.daily_quota} events sent.",
-                    )
-                _daily_counters[client.id] = (today, count + incoming_event_count)
-        else:
-            _daily_counters[client.id] = (today, incoming_event_count)
+# ─── Domain Validation Helper ────────────────────────────────────────────────
+def _is_domain_allowed(request_host: str, allowed_domain: str) -> bool:
+    """Check if request_host is exactly allowed_domain or a real subdomain of it."""
+    if not request_host:
+        return False
+    return request_host == allowed_domain or request_host.endswith("." + allowed_domain)
 
 
 async def reserve_unique_events(
     db: AsyncSession,
-    client: Client,
+    client: CachedClient,
     events: list,
 ) -> list:
     """
     Reserve event IDs atomically before sending to Facebook.
     The unique index on (client_id, event_id) closes the concurrent duplicate race.
+    commit/rollback এখানে করা হয় না — caller নিজে transaction manage করবে।
     """
     candidate_ids: list[str] = []
     seen_ids: set[str] = set()
@@ -94,13 +61,8 @@ async def reserve_unique_events(
         .returning(EventDedup.event_id)
     )
 
-    try:
-        result = await db.execute(stmt)
-        reserved_ids = set(result.scalars().all())
-        await db.commit()
-    except Exception:
-        await db.rollback()
-        raise
+    result = await db.execute(stmt)
+    reserved_ids = set(result.scalars().all())
 
     unique_events = []
     accepted_ids: set[str] = set()
@@ -182,12 +144,25 @@ async def receive_events(
     request: Request,
     payload: EventsPayload,
     background_tasks: BackgroundTasks,
-    client: Client = Depends(get_current_client),
+    client: CachedClient = Depends(get_current_client),
     db: AsyncSession = Depends(get_db),
 ):
     """
     ক্লায়েন্টের API Key ভেরিফাই করে Facebook CAPI-তে ইভেন্ট ফরওয়ার্ড করে।
     Deduplication DB unique constraint দিয়ে atomic করা হয়েছে।
+
+    Transaction Flow (Fixed):
+    ─────────────────────────
+    1. check_usage_limits_db()  → শুধু READ করে, counter বাড়ায় না
+    2. reserve_unique_events()  → dedup entries INSERT করে (uncommitted)
+    3. db.commit()              → একটি single commit — dedup reserve confirmed
+    4. send_to_facebook()       → Facebook-এ পাঠায়
+    5. increment_usage_counters_db() → সফল হলে counter বাড়ায় (নতুন session)
+
+    এভাবে:
+    - FB fail হলে dedup committed থাকে (retry service dedup bypass করে)
+    - Usage counter শুধু successful send-এই বাড়ে
+    - কোনো partial state থাকে না
     """
     if not payload.data:
         raise HTTPException(status_code=400, detail="ইভেন্ট ডাটা খালি!")
@@ -199,14 +174,17 @@ async def receive_events(
 
     # ─── Domain Whitelisting (API Key চুরি প্রতিরোধ) ─────────────────
     # Client-এর domain সেট করা থাকলে, শুধু সেই ডোমেইন থেকে রিকোয়েস্ট নেবে
+    # urlparse দিয়ে hostname extract করে exact match বা real subdomain চেক
     if client.domain:
         origin = request.headers.get("origin", "") or ""
         referer = request.headers.get("referer", "") or ""
         allowed_domain = client.domain.lower().strip()
-        if allowed_domain not in origin.lower() and allowed_domain not in referer.lower():
+        origin_host = (urlparse(origin).hostname or "").lower()
+        referer_host = (urlparse(referer).hostname or "").lower()
+        if not (_is_domain_allowed(origin_host, allowed_domain) or _is_domain_allowed(referer_host, allowed_domain)):
             logger.warning(
                 f"[{client.name}] Domain mismatch! "
-                f"Allowed: {allowed_domain}, Origin: {origin}, Referer: {referer}"
+                f"Allowed: {allowed_domain}, Origin: {origin_host}, Referer: {referer_host}"
             )
             raise HTTPException(
                 status_code=403,
@@ -231,8 +209,17 @@ async def receive_events(
             if not event.user_data.client_user_agent:
                 event.user_data.client_user_agent = request.headers.get("user-agent")
 
-    enforce_usage_limits(client, len(payload.data))
-    unique_events = await reserve_unique_events(db, client, payload.data)
+    # ─── Step 1: Usage Limit CHECK (read-only, no counter increment) ──
+    await check_usage_limits_db(db, client, len(payload.data))
+
+    # ─── Step 2: Dedup reservation (uncommitted) ──────────────────────
+    try:
+        unique_events = await reserve_unique_events(db, client, payload.data)
+        # ─── Step 3: Single commit — dedup reservation confirmed ──────
+        await db.commit()
+    except Exception:
+        await db.rollback()
+        raise
 
     if not unique_events:
         return EventsResponse(
@@ -243,6 +230,7 @@ async def receive_events(
 
     event_names = ", ".join(sorted({event.event_name for event in unique_events}))
 
+    # ─── Step 4: Send to Facebook ─────────────────────────────────────
     try:
         result = await send_to_facebook(client, unique_events)
     except Exception as e:
@@ -263,6 +251,16 @@ async def receive_events(
             status_code=502,
             detail="Facebook API তে সমস্যা — ইভেন্ট retry queue-তে রাখা হয়েছে",
         ) from e
+
+    # ─── Step 5: Increment usage counters AFTER successful send ───────
+    # নতুন session ব্যবহার করে — main session commit ইতিমধ্যে হয়ে গেছে
+    try:
+        async with AsyncSessionLocal() as usage_db:
+            await increment_usage_counters_db(usage_db, client, len(unique_events))
+    except Exception as e:
+        # Counter increment failure should NOT fail the request
+        # — event already sent to Facebook successfully
+        logger.warning(f"[{client.name}] Usage counter increment failed (non-fatal): {e}")
 
     events_as_dicts = [event.model_dump(exclude_none=True) for event in unique_events]
     background_tasks.add_task(

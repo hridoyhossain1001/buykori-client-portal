@@ -1,130 +1,34 @@
-from fastapi import APIRouter, Depends, Request, Form, Response, HTTPException
-from fastapi.responses import HTMLResponse, RedirectResponse
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.future import select
-from sqlalchemy import func
-import html
-import datetime
-from typing import Optional
+"""Replace client_instructions body in admin.py with final version."""
+import re
 
-from app.database import get_db
-from app.models.client import Client
-from app.models.event_log import EventLog
-from app.routers.admin import STYLE, base_html
-from app.security import encrypt_token, decrypt_token
+filepath = r"app\routers\admin.py"
 
-router = APIRouter(tags=["Client Portal"])
+with open(filepath, "r", encoding="utf-8") as f:
+    content = f.read()
 
-def get_client_from_cookie(request: Request) -> Optional[str]:
-    """Cookie থেকে encrypted session token পড়ে decrypt করে API key রিটার্ন করে।"""
-    encrypted = request.cookies.get("client_session")
-    if not encrypted:
-        return None
-    try:
-        return decrypt_token(encrypted)
-    except Exception:
-        return None
+# Find the body = f""" ... """ block inside client_instructions
+# We replace from '    body = f"""' to the closing '    """' before return HTMLResponse
+old_start = '    body = f"""\n    <h1 class="page-title">\U0001f4cb Client Instructions</h1>'
+old_end = '    """\n    return HTMLResponse(base_html(f"Instructions — {client.name}", body))'
 
-@router.get("/client", response_class=HTMLResponse, include_in_schema=False)
-async def client_login_page(request: Request):
-    api_key = get_client_from_cookie(request)
-    if api_key:
-        return RedirectResponse(url="/client/dashboard", status_code=303)
-        
-    body = """
-    <div class="container" style="max-width: 400px; margin-top: 100px;">
-        <h1 class="page-title" style="text-align:center;">Client Portal</h1>
-        <p class="page-sub" style="text-align:center;">লগিন করতে আপনার API Key ব্যবহার করুন</p>
-        
-        <div class="card">
-            <form action="/client/login" method="post">
-                <div class="form-group">
-                    <label>API Key</label>
-                    <input type="password" name="api_key" required placeholder="Paste your API Key here..." autocomplete="off">
-                </div>
-                <button type="submit" class="btn">Login to Dashboard</button>
-            </form>
-        </div>
-    </div>
-    """
-    return HTMLResponse(base_html("Client Login", body))
+start_idx = content.find(old_start)
+end_idx = content.find(old_end)
 
-@router.post("/client/login", include_in_schema=False)
-async def client_login(response: Response, api_key: str = Form(...), db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(Client).where(Client.api_key == api_key))
-    client = result.scalar_one_or_none()
-    
-    if not client or not client.is_active:
-        body = """
-        <div class="container" style="max-width: 400px; margin-top: 100px;">
-            <div class="alert alert-error" style="justify-content:center;">Invalid or Inactive API Key</div>
-            <a href="/client" class="btn" style="text-align:center; display:block; text-decoration:none;">Try Again</a>
-        </div>
-        """
-        return HTMLResponse(base_html("Login Failed", body), status_code=401)
-        
-    redirect = RedirectResponse(url="/client/dashboard", status_code=303)
-    redirect.set_cookie(
-        key="client_session",
-        value=encrypt_token(api_key),
-        httponly=True,
-        secure=True,
-        samesite="lax",
-        max_age=86400 * 7,  # 7 days
-    )
-    return redirect
+if start_idx == -1 or end_idx == -1:
+    print("ERROR: Could not find markers!")
+    print(f"start found: {start_idx != -1}")
+    print(f"end found: {end_idx != -1}")
+    # Debug
+    for i, line in enumerate(content.split('\n')[544:550], start=545):
+        print(f"  L{i}: {repr(line[:80])}")
+    exit(1)
 
-@router.get("/client/logout", include_in_schema=False)
-async def client_logout():
-    redirect = RedirectResponse(url="/client", status_code=303)
-    redirect.delete_cookie("client_session")
-    return redirect
+end_idx += len(old_end)
 
-@router.get("/client/dashboard", response_class=HTMLResponse, include_in_schema=False)
-async def client_dashboard(request: Request, db: AsyncSession = Depends(get_db)):
-    api_key = get_client_from_cookie(request)
-    if not api_key:
-        return RedirectResponse(url="/client", status_code=303)
-        
-    result = await db.execute(select(Client).where(Client.api_key == api_key))
-    client = result.scalar_one_or_none()
-    if not client or not client.is_active:
-        redirect = RedirectResponse(url="/client", status_code=303)
-        redirect.delete_cookie("client_session")
-        return redirect
+NEW_BODY = r'''    body = f"""
+    <h1 class="page-title">📋 Client Instructions</h1>
+    <p class="page-sub">এই পেজটি <strong>{safe_client_name}</strong>-কে পাঠিয়ে দিন অথবা নিজেই সেটআপ করুন</p>
 
-    # Get today's stats
-    today_start = datetime.datetime.now(datetime.timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
-    
-    events_result = await db.execute(
-        select(EventLog.status, func.count(EventLog.id))
-        .where(EventLog.client_id == client.id)
-        .where(EventLog.created_at >= today_start)
-        .group_by(EventLog.status)
-    )
-    
-    success_count = 0
-    failed_count = 0
-    
-    for row in events_result:
-        status, count = row
-        if status == "success":
-            success_count = count
-        elif status == "failed":
-            failed_count = count
-            
-    total = success_count + failed_count
-    success_rate = round((success_count / total * 100) if total > 0 else 0, 1)
-
-    # Base URL detection
-    base_url = str(request.base_url).rstrip("/")
-    endpoint = f"{base_url}/api/v1/events"
-    safe_client_name = html.escape(client.name, quote=True)
-    safe_api_key = html.escape(client.api_key, quote=True)
-    safe_endpoint = html.escape(endpoint, quote=True)
-
-    # Instructions body (Reused from admin.py)
-    instructions_html = f"""
     <div class="card" style="margin-bottom:20px">
       <div class="card-title"><span class="icon">🔑</span> আপনার API Key</div>
       <p style="color:#888;font-size:13px;margin-bottom:10px">এই Key-টি গোপন রাখুন। কখনো Browser/JS-এ পাবলিকলি রাখবেন না। শুধু সার্ভার বা GTM থেকে ব্যবহার করুন।</p>
@@ -342,34 +246,9 @@ function send_capi_purchase($order_id) {{
         <li>লাইভের আগে <strong>Test Event Code</strong> দিয়ে ভেরিফাই করুন</li>
       </ul>
     </div>
-    """
 
-    body = f"""
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-        <div>
-            <h1 class="page-title">👋 Welcome, {safe_client_name}</h1>
-            <p class="page-sub">আপনার CAPI Dashboard এবং Setup Instructions</p>
-        </div>
-        <a href="/client/logout" class="btn-sm btn-danger" style="text-decoration:none;">Logout</a>
-    </div>
-
-    <!-- STATS -->
-    <h3 style="color:#fff; margin-bottom:12px; font-weight:600;">📊 Today's Statistics</h3>
-    <div class="stat-row">
-      <div class="stat-box">
-        <div class="num">{success_count}</div>
-        <div class="lbl">Successful Events</div>
-      </div>
-      <div class="stat-box">
-        <div class="num" style="color: {'var(--accent)' if success_rate > 90 else 'var(--primary-hover)'};">{success_rate}%</div>
-        <div class="lbl">Success Rate</div>
-      </div>
-    </div>
-    
-    <div style="margin-top:40px;">
-        <h3 style="color:#fff; margin-bottom:16px; font-weight:600;">📋 Setup Instructions</h3>
-        {instructions_html}
-    </div>
+    <br>
+    <a href="/api/v1/admin" style="color:#6c63ff;font-size:14px">← Dashboard-এ ফিরে যান</a>
 
     <script>
     function openTab(evt, tabId) {{
@@ -383,5 +262,12 @@ function send_capi_purchase($order_id) {{
     }}
     </script>
     """
-    
-    return HTMLResponse(base_html(f"Dashboard — {client.name}", body))
+    return HTMLResponse(base_html(f"Instructions — {client.name}", body))'''
+
+content = content[:start_idx] + NEW_BODY + content[end_idx:]
+
+with open(filepath, "w", encoding="utf-8") as f:
+    f.write(content)
+
+print("✅ Successfully updated client_instructions!")
+print(f"  Replaced {end_idx - start_idx} chars with {len(NEW_BODY)} chars")

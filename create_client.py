@@ -17,8 +17,8 @@ async def run():
             name=os.getenv("CAPI_CLIENT_NAME", "Load Test"),
             pixel_id=os.getenv("CAPI_PIXEL_ID", "1234"),
             access_token=encrypt_token(access_token),
-            rate_limit=int(os.getenv("CAPI_RATE_LIMIT", "100000")),
-            daily_quota=int(os.getenv("CAPI_DAILY_QUOTA", "1000000")),
+            rate_limit=int(os.getenv("CAPI_RATE_LIMIT", "5000")),
+            daily_quota=int(os.getenv("CAPI_DAILY_QUOTA", "100000")),
         )
         db.add(c)
         await db.commit()
@@ -26,4 +26,5 @@ async def run():
         print("API_KEY_MASKED:" + mask_key(c.api_key))
         print("Open the admin instructions page to copy the full key securely.")
 
-asyncio.run(run())
+if __name__ == "__main__":
+    asyncio.run(run())
