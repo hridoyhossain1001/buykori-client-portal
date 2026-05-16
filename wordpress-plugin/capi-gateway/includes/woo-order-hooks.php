@@ -95,7 +95,7 @@ function capigw_confirm_order( $order_id ) {
             'X-API-Key'    => $settings['api_key'],
         ),
         'body'      => wp_json_encode( array(
-            'order_id' => 'wc_purchase_' . $order_id,
+            'order_id' => (string) $order_id,
         ) ),
     ) );
 

@@ -44,7 +44,7 @@ function capigw_inject_tracker() {
     // Add product data if on a WooCommerce product page
     if ( function_exists( 'is_product' ) && is_product() && $settings['enable_viewcontent'] ) {
         global $product;
-        if ( $product ) {
+        if ( $product && is_a( $product, 'WC_Product' ) ) {
             $tracker_data['product'] = array(
                 'id'       => $product->get_id(),
                 'name'     => $product->get_name(),
