@@ -1,12 +1,13 @@
 import httpx
 import logging
+import os
 from typing import List
 from app.schemas.event import EventData
 from app.security import decrypt_token
 
 logger = logging.getLogger(__name__)
 
-FACEBOOK_API_VERSION = "v20.0"
+FACEBOOK_API_VERSION = os.getenv("FACEBOOK_API_VERSION", "v21.0")
 
 # ─── Global Persistent HTTP Client ─────────────────────────────────────────
 # TCP connection reuse + HTTP/2 multiplexing = 3-5x faster Facebook API calls

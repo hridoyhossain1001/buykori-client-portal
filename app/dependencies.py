@@ -1,11 +1,12 @@
 import time
 import logging
 from dataclasses import dataclass
-from fastapi import Header, HTTPException, Depends
+from fastapi import Header, HTTPException, Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from app.database import get_db
 from app.models.client import Client
+from app.security import decrypt_token
 
 logger = logging.getLogger(__name__)
 
@@ -21,6 +22,7 @@ class CachedClient:
     id: int
     name: str
     api_key: str
+    public_key: str | None
     pixel_id: str
     access_token: str
     test_event_code: str | None
@@ -28,6 +30,7 @@ class CachedClient:
     domain: str | None
     rate_limit: int
     daily_quota: int
+    monthly_limit: int | None
     tiktok_pixel_id: str | None
     tiktok_access_token: str | None
     ga4_measurement_id: str | None
@@ -41,8 +44,9 @@ CACHE_TTL = 60  # 60 সেকেন্ড — client info cache করে র�
 
 def clear_client_cache(api_key: str):
     """Admin update-এর পর cache ক্লিয়ার করতে ব্যবহৃত হয়"""
-    if api_key in _client_cache:
-        del _client_cache[api_key]
+    for cache_key, (cached, _) in list(_client_cache.items()):
+        if cache_key == api_key or cached.api_key == api_key:
+            del _client_cache[cache_key]
 
 def _snapshot(client: Client) -> CachedClient:
     """ORM object থেকে plain dataclass তৈরি করো — session-independent।"""
@@ -50,6 +54,7 @@ def _snapshot(client: Client) -> CachedClient:
         id=client.id,
         name=client.name,
         api_key=client.api_key,
+        public_key=getattr(client, 'public_key', None),
         pixel_id=client.pixel_id,
         access_token=client.access_token,
         test_event_code=client.test_event_code,
@@ -57,6 +62,7 @@ def _snapshot(client: Client) -> CachedClient:
         domain=client.domain,
         rate_limit=client.rate_limit or 5000,
         daily_quota=client.daily_quota or 100000,
+        monthly_limit=getattr(client, 'monthly_limit', None),
         tiktok_pixel_id=getattr(client, 'tiktok_pixel_id', None),
         tiktok_access_token=getattr(client, 'tiktok_access_token', None),
         ga4_measurement_id=getattr(client, 'ga4_measurement_id', None),
@@ -67,6 +73,7 @@ def _snapshot(client: Client) -> CachedClient:
 
 
 async def get_current_client(
+    request: Request,
     x_api_key: str = Header(None, alias="X-API-Key"),
     db: AsyncSession = Depends(get_db),
 ) -> CachedClient:
@@ -76,6 +83,11 @@ async def get_current_client(
     In-memory cache দিয়ে DB query minimize করে (60s TTL)।
     CachedClient রিটার্ন করে — SQLAlchemy session-এ নির্ভর করে না।
     """
+    if not x_api_key:
+        encrypted_session = request.cookies.get("client_session")
+        if encrypted_session:
+            x_api_key = decrypt_token(encrypted_session)
+
     if not x_api_key:
         raise HTTPException(
             status_code=401,

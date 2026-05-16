@@ -33,7 +33,7 @@ from app.services.geoip_service import get_location_data
 from app.services.ga4_service import send_to_ga4
 from app.services.retry_service import save_failed_event
 from app.services.tracker_sdk import generate_tracker_js
-from app.services.usage_service import check_usage_limits_db, increment_usage_counters_db
+from app.services.usage_service import check_and_reserve_usage, rollback_usage_reservation
 
 from sqlalchemy import select
 
@@ -43,18 +43,19 @@ router = APIRouter()
 
 
 # ─── Helper: API Key থেকে Client লোড (Query param version) ──────────────────
-async def _get_client_by_key(api_key: str, db: AsyncSession) -> CachedClient:
+async def _get_client_by_key(public_key: str, db: AsyncSession) -> CachedClient:
     """
     Query parameter থেকে আসা API Key দিয়ে ক্লায়েন্ট খোঁজে।
     In-memory cache ব্যবহার করে — dependencies.py-এর সাথে cache শেয়ার করে।
     """
-    if not api_key:
+    if not public_key:
         raise HTTPException(status_code=401, detail="API Key প্রয়োজন।")
 
     # Cache check
     now = time.time()
-    if api_key in _client_cache:
-        cached, cached_at = _client_cache[api_key]
+    cache_key = f"public:{public_key}"
+    if cache_key in _client_cache:
+        cached, cached_at = _client_cache[cache_key]
         if now - cached_at < CACHE_TTL:
             if cached.is_active:
                 return cached
@@ -62,14 +63,14 @@ async def _get_client_by_key(api_key: str, db: AsyncSession) -> CachedClient:
 
     # DB lookup
     result = await db.execute(
-        select(Client).where(Client.api_key == api_key, Client.is_active == True)
+        select(Client).where(Client.public_key == public_key, Client.is_active == True)
     )
     client = result.scalar_one_or_none()
     if not client:
         raise HTTPException(status_code=401, detail="Invalid API Key।")
 
     cached = _snapshot(client)
-    _client_cache[api_key] = (cached, now)
+    _client_cache[cache_key] = (cached, now)
     return cached
 
 
@@ -293,9 +294,10 @@ async def collect_event(
     if not parsed_events:
         return {"status": "ok", "events_received": 0, "message": "no valid events"}
 
-    # ─── Usage Limit Check ────────────────────────────────────────────
+    # ─── Usage Limit — Atomic Check + Reserve ─────────────────────────
+    reserved_keys = {}
     try:
-        await check_usage_limits_db(db, client, len(parsed_events))
+        reserved_keys = await check_and_reserve_usage(db, client, len(parsed_events))
     except HTTPException:
         raise
     except Exception as e:
@@ -346,16 +348,17 @@ async def collect_event(
     except Exception as e:
         error_msg = str(e)
         logger.error(f"[{client.name}] Tracker → FB Error: {error_msg}")
-        background_tasks.add_task(_save_failure_logs, client.id, events_as_dicts, error_msg, client_ip)
+        # Usage reservation rollback — ফেইল হওয়া ইভেন্ট count হবে না
+        try:
+            async with AsyncSessionLocal() as rollback_db:
+                await rollback_usage_reservation(rollback_db, client, reserved_keys)
+        except Exception as rb_err:
+            logger.warning(f"[{client.name}] Usage rollback failed (non-fatal): {rb_err}")
+        await _save_failure_logs(client.id, events_as_dicts, error_msg, client_ip)
         # Return 200 to browser (don't expose server errors to frontend)
         return {"status": "ok", "events_received": len(unique_events), "message": "queued for retry"}
 
-    # ─── Increment Usage ──────────────────────────────────────────────
-    try:
-        async with AsyncSessionLocal() as usage_db:
-            await increment_usage_counters_db(usage_db, client, len(unique_events))
-    except Exception as e:
-        logger.warning(f"[{client.name}] Usage counter error (non-fatal): {e}")
+    # Usage counters already incremented by check_and_reserve_usage()
 
     # ─── Success Logs ───────────────────────────────────────────────────────
     background_tasks.add_task(_save_success_logs, client.id, events_as_dicts, result, client_ip)

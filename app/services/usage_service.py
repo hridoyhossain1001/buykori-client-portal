@@ -1,12 +1,17 @@
 """
-Usage Service — PostgreSQL-backed rate limit ও daily quota enforcement।
+Usage Service — PostgreSQL-backed rate limit ও daily/monthly quota enforcement।
 
-দুইটি আলাদা function:
-  - check_usage_limits_db()   → শুধু READ করে, limit ছাড়ালে 429 দেয়
-  - increment_usage_counters_db() → সফল send-এর পরে counter বাড়ায়
+Architecture:
+  - check_and_reserve_usage()      → Atomic: check + reserve (counter increment) একসাথে
+  - rollback_usage_reservation()   → Send ফেইল হলে reservation undo করে
+  - increment_usage_counters_db()  → Legacy: শুধু increment (backward compatibility)
 
-In-memory counter-এর বদলে DB-তে atomic INSERT ... ON CONFLICT DO UPDATE
-ব্যবহার করে। সকল uvicorn worker একই counter শেয়ার করে।
+Atomic reserve approach:
+  1. Counter atomically increment করে (INSERT ... ON CONFLICT DO UPDATE ... RETURNING)
+  2. নতুন count limit-এর বেশি হলে → rollback + 429 error
+  3. Facebook send ফেইল হলে → rollback_usage_reservation() দিয়ে counter কমায়
+
+এই approach race condition বন্ধ করে — কারণ increment নিজেই atomic (PostgreSQL guarantee)।
 """
 import logging
 from datetime import datetime, timezone
@@ -14,12 +19,154 @@ from datetime import datetime, timezone
 from fastapi import HTTPException
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, update
 
 from app.models.usage_counter import UsageCounter
 
 logger = logging.getLogger(__name__)
 
+
+async def _atomic_reserve(
+    db: AsyncSession,
+    client_id: int,
+    window_key: str,
+    event_count: int,
+) -> int:
+    """
+    Atomically increment a usage counter and return the NEW count.
+    PostgreSQL INSERT ... ON CONFLICT DO UPDATE ... RETURNING guarantees atomicity.
+    """
+    stmt = (
+        pg_insert(UsageCounter)
+        .values(
+            client_id=client_id,
+            window_key=window_key,
+            count=event_count,
+        )
+        .on_conflict_do_update(
+            constraint="uq_client_window",
+            set_={"count": UsageCounter.count + event_count},
+        )
+        .returning(UsageCounter.count)
+    )
+    result = await db.execute(stmt)
+    return result.scalar()
+
+
+async def _atomic_rollback(
+    db: AsyncSession,
+    client_id: int,
+    window_key: str,
+    event_count: int,
+) -> None:
+    """
+    Counter থেকে event_count বাদ দাও (send ফেইল হলে)।
+    """
+    stmt = (
+        update(UsageCounter)
+        .where(
+            UsageCounter.client_id == client_id,
+            UsageCounter.window_key == window_key,
+        )
+        .values(count=UsageCounter.count - event_count)
+    )
+    await db.execute(stmt)
+
+
+async def check_and_reserve_usage(
+    db: AsyncSession,
+    client,
+    incoming_event_count: int,
+) -> dict:
+    """
+    Atomic check + reserve — race condition মুক্ত!
+
+    Flow:
+    1. Counter atomically বাড়ায়
+    2. নতুন count > limit হলে rollback + 429
+    3. সফল হলে reserved keys dict return করে (rollback-এর জন্য)
+
+    Returns: dict of {window_key: event_count} — rollback-এ ব্যবহার হবে
+    """
+    now = datetime.now(timezone.utc)
+    rate_limit = client.rate_limit or 5000
+    reserved_keys: dict[str, int] = {}
+
+    # ─── Per-Minute Rate Limit ─────────────────────────────────────────
+    minute_key = f"rate:{now.strftime('%Y-%m-%dT%H:%M')}"
+    new_rate = await _atomic_reserve(db, client.id, minute_key, incoming_event_count)
+    reserved_keys[minute_key] = incoming_event_count
+
+    if new_rate > rate_limit:
+        # Rollback this reservation
+        await _atomic_rollback(db, client.id, minute_key, incoming_event_count)
+        await db.commit()
+        reserved_keys.pop(minute_key, None)
+        raise HTTPException(
+            status_code=429,
+            detail=f"Rate limit exceeded! {new_rate}/{rate_limit} events/min",
+        )
+
+    # ─── Daily Quota Check ─────────────────────────────────────────────
+    if client.daily_quota:
+        daily_key = f"daily:{now.strftime('%Y-%m-%d')}"
+        new_daily = await _atomic_reserve(db, client.id, daily_key, incoming_event_count)
+        reserved_keys[daily_key] = incoming_event_count
+
+        if new_daily > client.daily_quota:
+            # Rollback all reservations
+            for rk, rc in reserved_keys.items():
+                await _atomic_rollback(db, client.id, rk, rc)
+            await db.commit()
+            raise HTTPException(
+                status_code=429,
+                detail=f"Daily quota exceeded! Today {new_daily}/{client.daily_quota} events.",
+            )
+
+    # ─── Monthly Quota Check ───────────────────────────────────────────
+    monthly_limit = getattr(client, "monthly_limit", None)
+    if monthly_limit and monthly_limit > 0:
+        monthly_key = f"monthly:{now.strftime('%Y-%m')}"
+        new_monthly = await _atomic_reserve(db, client.id, monthly_key, incoming_event_count)
+        reserved_keys[monthly_key] = incoming_event_count
+
+        if new_monthly > monthly_limit:
+            # Rollback all reservations
+            for rk, rc in reserved_keys.items():
+                await _atomic_rollback(db, client.id, rk, rc)
+            await db.commit()
+            raise HTTPException(
+                status_code=429,
+                detail=f"Monthly quota exceeded! This month {new_monthly}/{monthly_limit} events.",
+            )
+
+    # সব limit pass — commit reservations
+    await db.flush()
+    return reserved_keys
+
+
+async def rollback_usage_reservation(
+    db: AsyncSession,
+    client,
+    reserved_keys: dict[str, int],
+) -> None:
+    """
+    Facebook send ফেইল হলে reserved counters rollback করো।
+    এটি কল না করলেও system চলবে — শুধু count সামান্য বেশি দেখাবে।
+    """
+    if not reserved_keys:
+        return
+
+    try:
+        for window_key, event_count in reserved_keys.items():
+            await _atomic_rollback(db, client.id, window_key, event_count)
+        await db.commit()
+        logger.info(f"[{client.name}] Usage reservation rolled back: {len(reserved_keys)} windows")
+    except Exception as e:
+        logger.warning(f"[{client.name}] Usage rollback failed (non-fatal): {e}")
+
+
+# ─── Legacy Functions (backward compatibility) ──────────────────────────────
 
 async def check_usage_limits_db(
     db: AsyncSession,
@@ -29,7 +176,9 @@ async def check_usage_limits_db(
     """
     Usage limits READ-ONLY check — counter বাড়ায় না।
     Limit ছাড়ালে HTTPException(429) raise করে।
-    Counter increment আলাদা function-এ করা হয়, শুধু successful send-এর পরে।
+
+    ⚠️ Legacy: এই function-এ race condition আছে (read-then-check gap)।
+    নতুন কোডে check_and_reserve_usage() ব্যবহার করুন।
     """
     now = datetime.now(timezone.utc)
     rate_limit = client.rate_limit or 5000
@@ -69,6 +218,23 @@ async def check_usage_limits_db(
                 detail=f"Daily quota exceeded! Today {current_daily + incoming_event_count}/{client.daily_quota} events sent.",
             )
 
+    monthly_limit = getattr(client, "monthly_limit", None)
+    if monthly_limit and monthly_limit > 0:
+        monthly_key = f"monthly:{now.strftime('%Y-%m')}"
+        monthly_result = await db.execute(
+            select(UsageCounter.count).where(
+                UsageCounter.client_id == client.id,
+                UsageCounter.window_key == monthly_key,
+            )
+        )
+        current_monthly = monthly_result.scalar() or 0
+
+        if current_monthly + incoming_event_count > monthly_limit:
+            raise HTTPException(
+                status_code=429,
+                detail=f"Monthly quota exceeded! This month {current_monthly + incoming_event_count}/{monthly_limit} events sent.",
+            )
+
 
 async def increment_usage_counters_db(
     db: AsyncSession,
@@ -78,6 +244,9 @@ async def increment_usage_counters_db(
     """
     Usage counters atomic increment — শুধু সফল Facebook send-এর পরে কল করো।
     Atomic upsert দিয়ে counter increment করে — সব worker জুড়ে accurate।
+
+    ⚠️ check_and_reserve_usage() ব্যবহার করলে এই function-এর দরকার নেই —
+    কারণ reserve-এই counter বেড়ে গেছে। শুধু legacy call-এর জন্য রাখা হয়েছে।
     """
     now = datetime.now(timezone.utc)
 
@@ -113,5 +282,22 @@ async def increment_usage_counters_db(
             )
         )
         await db.execute(daily_stmt)
+
+    monthly_limit = getattr(client, "monthly_limit", None)
+    if monthly_limit and monthly_limit > 0:
+        monthly_key = f"monthly:{now.strftime('%Y-%m')}"
+        monthly_stmt = (
+            pg_insert(UsageCounter)
+            .values(
+                client_id=client.id,
+                window_key=monthly_key,
+                count=event_count,
+            )
+            .on_conflict_do_update(
+                constraint="uq_client_window",
+                set_={"count": UsageCounter.count + event_count},
+            )
+        )
+        await db.execute(monthly_stmt)
 
     await db.commit()

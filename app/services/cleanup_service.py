@@ -17,7 +17,7 @@ async def auto_cleanup_database():
     Runs once every 24 hours.
     """
     retention_days = 30
-    usage_retention_days = 7  # Usage counters শুধু ৭ দিন রাখা যথেষ্ট
+    usage_retention_days = 400  # Keep monthly quota counters long enough for audits.
     sleep_duration = 86400  # 24 hours in seconds
 
     while True:

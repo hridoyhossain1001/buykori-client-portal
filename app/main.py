@@ -30,9 +30,16 @@ logger = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("🚀 CAPI Gateway স্টার্ট হচ্ছে...")
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-    logger.info("✅ ডাটাবেস সংযোগ সফল।")
+
+    # ─── Database Schema ──────────────────────────────────────────────────
+    # Production-এ Alembic migration ব্যবহার করুন। create_all শুধু dev/initial
+    # setup-এর জন্য। SKIP_CREATE_ALL=true সেট করলে এটি স্কিপ হবে।
+    if os.getenv("SKIP_CREATE_ALL", "").lower() in ("true", "1", "yes"):
+        logger.info("ℹ️  create_all স্কিপ — Alembic migration ব্যবহার করুন।")
+    else:
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+        logger.info("✅ ডাটাবেস টেবিল তৈরি/যাচাই সফল।")
 
     # 🔄 Retry Service — শুধুমাত্র ENABLE_RETRY_IN_WEB=true হলে এই process-এ চলবে
     # Worker dyno না থাকলে Procfile-এ: web: ENABLE_RETRY_IN_WEB=true uvicorn ... --workers 1
@@ -85,10 +92,14 @@ app = FastAPI(
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
-# ─── CORS — ক্লায়েন্ট ওয়েবসাইট থেকে ইভেন্ট পাঠাতে দরকার ─────────────────
+# ─── CORS — Multi-Tenant Tracker: allow_origins=["*"] ইচ্ছাকৃত ─────────────
+# ব্রাউজার ট্র্যাকার (t.js) যেকোনো ক্লায়েন্ট ওয়েবসাইট থেকে cross-origin request পাঠায়।
+# Deploy-time-এ সব ক্লায়েন্ট ডোমেইন জানা সম্ভব নয়, তাই CORS open রাখা হয়েছে।
+# প্রকৃত নিরাপত্তা → per-client domain whitelisting (events.py ও tracker.py-তে enforce হয়)।
+# allow_credentials=False রাখা হয়েছে যাতে cookie-based CSRF সম্ভব না হয়।
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],          # যেকোনো ক্লায়েন্ট ওয়েবসাইট থেকে রিকোয়েস্ট আসতে পারে
+    allow_origins=["*"],
     allow_credentials=False,
     allow_methods=["GET", "POST"],
     allow_headers=["X-API-Key", "Content-Type"],
@@ -103,6 +114,15 @@ app.include_router(tracker_router, tags=["Tracker"])  # /t.js, /c — root level
 app.include_router(deferred_events_router, prefix="/api/v1", tags=["Deferred Events"])
 app.include_router(analytics_router, prefix="/api/v1", tags=["Analytics"])
 app.include_router(debug_router, prefix="/api/v1", tags=["Debug & Testing"])
+
+from app.routers.plugin import router as plugin_router
+app.include_router(plugin_router, prefix="/api/v1", tags=["Plugin"])
+
+from app.routers.webhook import router as webhook_router
+app.include_router(webhook_router, prefix="/api/v1", tags=["Webhook"])
+
+from app.routers.client_health import router as client_health_router
+app.include_router(client_health_router, prefix="/api/v1", tags=["Client Health"])
 
 
 # ─── Health Check ─────────────────────────────────────────────────────────────

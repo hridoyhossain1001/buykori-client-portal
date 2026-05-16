@@ -174,11 +174,26 @@ async def confirm_event(
                 PendingEvent.order_id == payload.order_id,
                 PendingEvent.status == "pending",
             )
-        )
+        ).with_for_update()
     )
     pending = result.scalar_one_or_none()
 
     if not pending:
+        confirmed_result = await db.execute(
+            select(PendingEvent).where(
+                and_(
+                    PendingEvent.client_id == client.id,
+                    PendingEvent.order_id == payload.order_id,
+                    PendingEvent.status == "confirmed",
+                )
+            )
+        )
+        if confirmed_result.scalar_one_or_none():
+            return ConfirmResponse(
+                status="success",
+                order_id=payload.order_id,
+                message="Purchase event was already confirmed.",
+            )
         raise HTTPException(
             status_code=404,
             detail=f"Pending event not found: {payload.order_id}",
@@ -188,6 +203,7 @@ async def confirm_event(
     try:
         await _send_confirmed_event(client, pending, background_tasks)
     except Exception as e:
+        await db.rollback()
         logger.error(f"[{client.name}] Confirm send failed ({payload.order_id}): {e}")
         raise HTTPException(
             status_code=502,
@@ -239,7 +255,7 @@ async def bulk_confirm_events(
                 PendingEvent.order_id.in_(payload.order_ids),
                 PendingEvent.status == "pending",
             )
-        )
+        ).with_for_update()
     )
     pending_events = result.scalars().all()
 

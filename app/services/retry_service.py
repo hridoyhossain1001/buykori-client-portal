@@ -3,6 +3,7 @@ Retry Service — ব্যর্থ ইভেন্ট পুনরায় Fa
 Background task হিসেবে চলে, exponential backoff সহ।
 """
 import asyncio
+import json
 import logging
 from datetime import datetime, timedelta, timezone
 
@@ -11,9 +12,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import AsyncSessionLocal
 from app.models.client import Client
+from app.models.event_log import EventLog
 from app.models.failed_event import FailedEvent
 from app.schemas.event import EventData
 from app.services.capi_service import send_to_facebook
+from app.services.usage_service import increment_usage_counters_db
 
 logger = logging.getLogger(__name__)
 
@@ -137,7 +140,23 @@ async def retry_failed_events():
                         # সফল! স্ট্যাটাস আপডেট করো
                         failed.status = "success"
                         failed.last_retry_at = datetime.now(timezone.utc)
+                        event_names = ", ".join(sorted({event.event_name for event in events}))
+                        db.add(EventLog(
+                            client_id=client.id,
+                            event_name=event_names,
+                            event_count=len(events),
+                            status="success",
+                            fb_response=json.dumps(result) if result else None,
+                        ))
                         await db.commit()
+
+                        try:
+                            await increment_usage_counters_db(db, client, len(events))
+                        except Exception as usage_error:
+                            await db.rollback()
+                            logger.warning(
+                                f"[{client.name}] Retry usage counter failed (non-fatal): {usage_error}"
+                            )
 
                         logger.info(
                             f"[{client.name}] Retry #{failed.retry_count + 1} সফল! "

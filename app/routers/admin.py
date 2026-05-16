@@ -3,6 +3,7 @@ import html
 import secrets
 import logging
 from urllib.parse import urlencode
+from urllib.parse import urlparse
 from fastapi import APIRouter, Depends, HTTPException, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
@@ -11,6 +12,7 @@ from sqlalchemy import select, update
 from app.database import get_db
 from app.models.client import Client
 from app.security import encrypt_token
+from app.services.webhook_service import _webhook_url_allowed
 from app.limiter import limiter
 
 logger = logging.getLogger(__name__)
@@ -561,6 +563,14 @@ async def add_client(
         error_msg = " | ".join(errors)
         return admin_redirect(error_msg, "error")
 
+    clean_webhook_url = webhook_url.strip() if webhook_url and webhook_url.strip() else None
+    if clean_webhook_url:
+        parsed_webhook = urlparse(clean_webhook_url)
+        if parsed_webhook.scheme not in ("https", "http") or not parsed_webhook.netloc:
+            return admin_redirect("Webhook URL must be a valid http(s) URL.", "error")
+        if not _webhook_url_allowed(clean_webhook_url):
+            return admin_redirect("Webhook URL is not allowed. Use a public http(s) endpoint.", "error")
+
     # Domain sanitize — https://, http://, trailing slash সরাও
     clean_domain = None
     if domain and domain.strip():
@@ -576,12 +586,13 @@ async def add_client(
         test_event_code=test_event_code.strip() if test_event_code else None,
         domain=clean_domain,
         api_key=secrets.token_urlsafe(32),
+        public_key=secrets.token_urlsafe(24),
         tiktok_pixel_id=tiktok_pixel_id.strip() if tiktok_pixel_id and tiktok_pixel_id.strip() else None,
         tiktok_access_token=encrypt_token(tiktok_access_token.strip()) if tiktok_access_token and tiktok_access_token.strip() else None,
         ga4_measurement_id=ga4_measurement_id.strip() if ga4_measurement_id and ga4_measurement_id.strip() else None,
         ga4_api_secret=encrypt_token(ga4_api_secret.strip()) if ga4_api_secret and ga4_api_secret.strip() else None,
         deferred_purchase=deferred_purchase == "1",
-        webhook_url=webhook_url.strip() if webhook_url and webhook_url.strip() else None,
+        webhook_url=clean_webhook_url,
     )
     db.add(new_client)
     await db.commit()
@@ -607,9 +618,12 @@ async def client_instructions(
     base_url = str(request.base_url).rstrip("/")
 
     endpoint = f"{base_url}/api/v1/events"
+    tracker_key = getattr(client, "public_key", None) or client.api_key
+    tracker_url = f"{base_url}/t.js?key={tracker_key}"
     safe_client_name = html.escape(client.name, quote=True)
     safe_api_key = html.escape(client.api_key, quote=True)
     safe_endpoint = html.escape(endpoint, quote=True)
+    safe_tracker_url = html.escape(tracker_url, quote=True)
 
     body = f"""
     <h1 class="page-title">📋 Client Instructions</h1>
@@ -733,10 +747,10 @@ Body (JSON):
         <p><strong style="color:#fff">ধাপ ৩:</strong> WPCode থেকে "Header & Footer" অপশনে যান।</p>
         <p><strong style="color:#fff">ধাপ ৪:</strong> "Header" বক্সে নিচের কোডটি কপি করে পেস্ট করুন এবং Save দিন:</p>
         <button class="copy-btn" onclick="copyText('wp_pv_easy')" style="margin-bottom:4px">Copy</button>
-        <div class="instr-box" id="wp_pv_easy">&lt;script src="{safe_endpoint}".replace('/api/v1/events', '/t.js?key={safe_api_key}') defer&gt;&lt;/script&gt;
+        <div class="instr-box" id="wp_pv_easy">&lt;script src="{safe_tracker_url}" defer&gt;&lt;/script&gt;
 
 &lt;!-- অথবা সরাসরি: --&gt;
-&lt;script src="{safe_endpoint.replace('/api/v1/events', '/t.js?key=')}{safe_api_key}" defer&gt;&lt;/script&gt;</div>
+&lt;script src="{safe_tracker_url}" defer&gt;&lt;/script&gt;</div>
         
         <div style="margin-top:16px;padding:14px;background:rgba(0,230,118,0.05);border:1px solid rgba(0,230,118,0.15);border-radius:8px;font-size:13px;color:#aaa;line-height:1.9">
           <strong style="color:#00e676">🎉 অভিনন্দন!</strong><br>
@@ -920,7 +934,7 @@ function send_capi_event($event_name, $url, $value, $event_id, $product_id) {{
             case 'api_call': fbEvent = 'API_Call'; params = ", {{endpoint: '/pay'}}"; break;
         }}
         
-        code = "<script>\\n  // Event: " + ev + "\\n  tracker('track', '" + fbEvent + "'" + params + ");\\n</scr" + "ipt>";
+        code = "<script>\\n  // Event: " + ev + "\\n  capi('track', '" + fbEvent + "'" + params + ");\\n</scr" + "ipt>";
         
         document.getElementById('generated_code_box').innerText = code;
         document.getElementById('code_result_area').style.display = 'block';

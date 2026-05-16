@@ -333,7 +333,8 @@ async def client_dashboard(request: Request, db: AsyncSession = Depends(get_db))
     host = request.headers.get("host", "localhost")
     gateway_origin = f"{scheme}://{host}"
     endpoint = f"{base_url}/api/v1/events"
-    tracker_url = f"{gateway_origin}/t.js?key={client.api_key}"
+    tracker_key = getattr(client, "public_key", None) or client.api_key
+    tracker_url = f"{gateway_origin}/t.js?key={tracker_key}"
     safe_client_name = html.escape(client.name, quote=True)
     safe_api_key = html.escape(client.api_key, quote=True)
     safe_endpoint = html.escape(endpoint, quote=True)
@@ -772,7 +773,7 @@ function send_capi_event($event_name, $url, $value, $event_id, $product_id) {{
             case 'api_call': fbEvent = 'API_Call'; params = ", {{endpoint: '/pay'}}"; break;
         }}
         
-        code = "<script>\\n  // Event: " + ev + "\\n  tracker('track', '" + fbEvent + "'" + params + ");\\n</scr" + "ipt>";
+        code = "<script>\\n  // Event: " + ev + "\\n  capi('track', '" + fbEvent + "'" + params + ");\\n</scr" + "ipt>";
         
         document.getElementById('generated_code_box').innerText = code;
         document.getElementById('code_result_area').style.display = 'block';
@@ -781,7 +782,6 @@ function send_capi_event($event_name, $url, $value, $event_id, $product_id) {{
 
     <script>
     // ─── Pending Orders AJAX Functions ─────────────────────────────────
-    var API_KEY = '{safe_api_key}';
     var BASE_API = '{safe_endpoint}'.replace('/events', '');
 
     function showStatus(msg, type) {{
@@ -800,7 +800,7 @@ function send_capi_event($event_name, $url, $value, $event_id, $product_id) {{
       try {{
         var res = await fetch(BASE_API + '/events/confirm', {{
           method: 'POST',
-          headers: {{ 'Content-Type': 'application/json', 'X-API-Key': API_KEY }},
+          headers: {{ 'Content-Type': 'application/json' }},
           body: JSON.stringify({{ order_id: orderId }})
         }});
         var data = await res.json();
@@ -822,7 +822,7 @@ function send_capi_event($event_name, $url, $value, $event_id, $product_id) {{
       try {{
         var res = await fetch(BASE_API + '/events/cancel', {{
           method: 'POST',
-          headers: {{ 'Content-Type': 'application/json', 'X-API-Key': API_KEY }},
+          headers: {{ 'Content-Type': 'application/json' }},
           body: JSON.stringify({{ order_id: orderId }})
         }});
         var data = await res.json();
@@ -854,7 +854,7 @@ function send_capi_event($event_name, $url, $value, $event_id, $product_id) {{
       try {{
         var res = await fetch(BASE_API + '/events/confirm/bulk', {{
           method: 'POST',
-          headers: {{ 'Content-Type': 'application/json', 'X-API-Key': API_KEY }},
+          headers: {{ 'Content-Type': 'application/json' }},
           body: JSON.stringify({{ order_ids: orderIds }})
         }});
         var data = await res.json();
@@ -879,7 +879,7 @@ function send_capi_event($event_name, $url, $value, $event_id, $product_id) {{
       try {{
         // Fetch overview data
         var res = await fetch(BASE_API + '/analytics/overview?days=7', {{
-          headers: {{ 'X-API-Key': API_KEY }}
+          headers: {{}}
         }});
         if (!res.ok) return;
         var data = await res.json();
@@ -931,7 +931,7 @@ function send_capi_event($event_name, $url, $value, $event_id, $product_id) {{
 
         // Hourly Heatmap
         var hRes = await fetch(BASE_API + '/analytics/hourly?days=7', {{
-          headers: {{ 'X-API-Key': API_KEY }}
+          headers: {{}}
         }});
         if (hRes.ok) {{
           var hData = await hRes.json();
@@ -978,7 +978,7 @@ function send_capi_event($event_name, $url, $value, $event_id, $product_id) {{
       try {{
         var res = await fetch(BASE_API + '/debug/test-event', {{
           method: 'POST',
-          headers: {{ 'Content-Type': 'application/json', 'X-API-Key': API_KEY }},
+          headers: {{ 'Content-Type': 'application/json' }},
           body: JSON.stringify({{ event_name: evName }})
         }});
         var data = await res.json();
@@ -1000,7 +1000,7 @@ function send_capi_event($event_name, $url, $value, $event_id, $product_id) {{
         var payload = JSON.parse(raw);
         var res = await fetch(BASE_API + '/debug/validate', {{
           method: 'POST',
-          headers: {{ 'Content-Type': 'application/json', 'X-API-Key': API_KEY }},
+          headers: {{ 'Content-Type': 'application/json' }},
           body: raw
         }});
         var data = await res.json();
@@ -1023,7 +1023,7 @@ function send_capi_event($event_name, $url, $value, $event_id, $product_id) {{
       el.innerHTML = '<span style="color:#ffab00">Loading...</span>';
       try {{
         var res = await fetch(BASE_API + '/debug/recent?limit=20&minutes=60', {{
-          headers: {{ 'X-API-Key': API_KEY }}
+          headers: {{}}
         }});
         if (!res.ok) {{ el.innerHTML = '<span style="color:#ff5252">Error loading events</span>'; return; }}
         var data = await res.json();

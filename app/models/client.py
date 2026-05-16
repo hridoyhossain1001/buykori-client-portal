@@ -11,6 +11,8 @@ class Client(Base):
     name = Column(String, nullable=False)                         # ক্লায়েন্টের নাম
     api_key = Column(String, unique=True, nullable=False,          # অটো-জেনারেটেড API Key
                      default=lambda: secrets.token_urlsafe(32))
+    public_key = Column(String, unique=True, nullable=False,       # Browser-safe tracker key
+                        default=lambda: secrets.token_urlsafe(24))
     pixel_id = Column(String, nullable=False)                      # Facebook Pixel ID
     access_token = Column(String, nullable=False)                  # CAPI Access Token (encrypted)
     test_event_code = Column(String, nullable=True)               # FB Test Event Code (optional)
@@ -28,5 +30,6 @@ class Client(Base):
     deferred_purchase = Column(Boolean, default=False)             # ON হলে Purchase event হোল্ড হবে
     # ─── Webhook (Outbound) ────────────────────────────────────────────
     webhook_url = Column(String, nullable=True)                    # Custom Webhook URL (outbound)
+    # ─── Monthly Usage Limit (Rate Limiting Per-Client) ───────────────
+    monthly_limit = Column(Integer, default=50000)                  # মাসিক সর্বোচ্চ ইভেন্ট (0 = unlimited)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
-

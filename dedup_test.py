@@ -3,8 +3,8 @@ import httpx
 import time
 import os
 
-API_KEY = os.getenv("CAPI_LOAD_TEST_API_KEY", "8ywUZzNpEaZA2_lOVTgHKU5H5DGz-1UVAbEuKvnY9uo")
-URL = "https://still-stream-48626-bb0ac4cda957.herokuapp.com/api/v1/events"
+API_KEY = os.getenv("CAPI_LOAD_TEST_API_KEY", "")
+URL = os.getenv("CAPI_LOAD_TEST_URL", "https://still-stream-48626-bb0ac4cda957.herokuapp.com/api/v1/events")
 
 async def send_duplicate(client, event_id):
     payload = {
@@ -23,6 +23,9 @@ async def send_duplicate(client, event_id):
     return await client.post(URL, json=payload, headers=headers)
 
 async def main():
+    if not API_KEY:
+        raise SystemExit("Set CAPI_LOAD_TEST_API_KEY before running the dedup test.")
+
     event_id = f"unique_test_{int(time.time())}"
     print(f"Sending 10 concurrent requests for event_id: {event_id}")
     

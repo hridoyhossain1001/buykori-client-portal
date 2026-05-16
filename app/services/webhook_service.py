@@ -4,16 +4,35 @@ Webhook Service — Custom outbound webhook sender.
 """
 
 import logging
+import ipaddress
 from datetime import datetime, timezone
+from urllib.parse import urlparse
 
 from app.services.capi_service import get_http_client
 
 logger = logging.getLogger(__name__)
 
 
+def _webhook_url_allowed(webhook_url: str) -> bool:
+    parsed = urlparse(webhook_url)
+    if parsed.scheme not in {"https", "http"} or not parsed.hostname:
+        return False
+    host = parsed.hostname.lower()
+    if host in {"localhost", "127.0.0.1", "::1"} or host.endswith(".local"):
+        return False
+    try:
+        ip = ipaddress.ip_address(host)
+        return ip.is_global
+    except ValueError:
+        return True
+
+
 async def send_webhook(webhook_url: str, event_type: str, data: dict) -> bool:
     """Custom webhook URL-এ event data পাঠায়। Shared HTTP client ব্যবহার করে।"""
     if not webhook_url:
+        return False
+    if not _webhook_url_allowed(webhook_url):
+        logger.warning("Rejected unsafe webhook URL")
         return False
 
     payload = {

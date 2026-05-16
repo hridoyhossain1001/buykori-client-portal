@@ -6,11 +6,6 @@ import os
 API_KEY = os.getenv("TEST_API_KEY", "")
 URL = os.getenv("TEST_URL", "http://localhost:8000/api/v1/events")
 
-if not API_KEY:
-    print("❌ ERROR: TEST_API_KEY environment variable সেট করুন!")
-    print("   Example: set TEST_API_KEY=your_api_key_here")
-    exit(1)
-
 async def send_request(client, i):
     payload = {
         "data": [{
@@ -24,6 +19,9 @@ async def send_request(client, i):
     return await client.post(URL, json=payload, headers=headers)
 
 async def main():
+    if not API_KEY:
+        raise SystemExit("Set TEST_API_KEY before running the rate test.")
+
     print("Firing 50 rapid requests to test rate limit (set to 5 per worker)...")
     async with httpx.AsyncClient() as client:
         tasks = [send_request(client, i) for i in range(50)]

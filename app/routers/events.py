@@ -19,7 +19,7 @@ from app.services.tiktok_service import send_to_tiktok
 from app.services.geoip_service import get_location_data
 from app.services.ga4_service import send_to_ga4
 from app.services.retry_service import save_failed_event
-from app.services.usage_service import check_usage_limits_db, increment_usage_counters_db
+from app.services.usage_service import check_and_reserve_usage, rollback_usage_reservation
 from app.models.pending_event import PendingEvent
 
 logger = logging.getLogger(__name__)
@@ -156,17 +156,17 @@ async def receive_events(
     ক্লায়েন্টের API Key ভেরিফাই করে Facebook CAPI-তে ইভেন্ট ফরওয়ার্ড করে।
     Deduplication DB unique constraint দিয়ে atomic করা হয়েছে।
 
-    Transaction Flow (Fixed):
-    ─────────────────────────
-    1. check_usage_limits_db()  → শুধু READ করে, counter বাড়ায় না
-    2. reserve_unique_events()  → dedup entries INSERT করে (uncommitted)
-    3. db.commit()              → একটি single commit — dedup reserve confirmed
-    4. send_to_facebook()       → Facebook-এ পাঠায়
-    5. increment_usage_counters_db() → সফল হলে counter বাড়ায় (নতুন session)
+    Transaction Flow (Atomic Usage):
+    ────────────────────────────────
+    1. check_and_reserve_usage()  → Atomic: check + counter increment একসাথে
+    2. reserve_unique_events()    → dedup entries INSERT করে (uncommitted)
+    3. db.commit()                → একটি single commit — dedup + usage reserve confirmed
+    4. send_to_facebook()         → Facebook-এ পাঠায়
+    5. FB fail হলে → rollback_usage_reservation() দিয়ে counter কমায়
 
     এভাবে:
-    - FB fail হলে dedup committed থাকে (retry service dedup bypass করে)
-    - Usage counter শুধু successful send-এই বাড়ে
+    - Race condition নেই — atomic INSERT...RETURNING দিয়ে check+reserve
+    - FB fail হলে counter rollback হয় (retry service dedup bypass করে)
     - কোনো partial state থাকে না
     """
     if not payload.data:
@@ -186,7 +186,10 @@ async def receive_events(
         allowed_domain = client.domain.lower().strip()
         origin_host = (urlparse(origin).hostname or "").lower()
         referer_host = (urlparse(referer).hostname or "").lower()
-        if not (_is_domain_allowed(origin_host, allowed_domain) or _is_domain_allowed(referer_host, allowed_domain)):
+        if (origin_host or referer_host) and not (
+            _is_domain_allowed(origin_host, allowed_domain)
+            or _is_domain_allowed(referer_host, allowed_domain)
+        ):
             logger.warning(
                 f"[{client.name}] Domain mismatch! "
                 f"Allowed: {allowed_domain}, Origin: {origin_host}, Referer: {referer_host}"
@@ -231,8 +234,9 @@ async def receive_events(
                 if loc_data.get("zp") and not event.user_data.zp:
                     event.user_data.zp = [_clean_and_hash(loc_data["zp"], "zp")]
 
-    # ─── Step 1: Usage Limit CHECK (read-only, no counter increment) ──
-    await check_usage_limits_db(db, client, len(payload.data))
+    # ─── Step 1: Usage Limit — Atomic Check + Reserve ─────────────────
+    # Counter atomically বাড়ায় + limit check করে। Race condition মুক্ত!
+    reserved_keys = await check_and_reserve_usage(db, client, len(payload.data))
 
     # ─── Step 2: Dedup reservation (uncommitted) ──────────────────────
     try:
@@ -317,9 +321,15 @@ async def receive_events(
         error_msg = str(e)
         logger.error(f"Client {client.name} | Error: {error_msg}")
 
+        # ─── Usage reservation rollback — ফেইল হওয়া ইভেন্ট count হবে না ──
+        try:
+            async with AsyncSessionLocal() as rollback_db:
+                await rollback_usage_reservation(rollback_db, client, reserved_keys)
+        except Exception as rb_err:
+            logger.warning(f"[{client.name}] Usage rollback failed (non-fatal): {rb_err}")
+
         events_as_dicts = [event.model_dump(exclude_none=True) for event in unique_events]
-        background_tasks.add_task(
-            save_failure_log_and_retry_bg,
+        await save_failure_log_and_retry_bg(
             client.id,
             event_names,
             events_as_dicts,
@@ -332,15 +342,9 @@ async def receive_events(
             detail="Facebook API তে সমস্যা — ইভেন্ট retry queue-তে রাখা হয়েছে",
         ) from e
 
-    # ─── Step 5: Increment usage counters AFTER successful send ───────
-    # নতুন session ব্যবহার করে — main session commit ইতিমধ্যে হয়ে গেছে
-    try:
-        async with AsyncSessionLocal() as usage_db:
-            await increment_usage_counters_db(usage_db, client, len(unique_events))
-    except Exception as e:
-        # Counter increment failure should NOT fail the request
-        # — event already sent to Facebook successfully
-        logger.warning(f"[{client.name}] Usage counter increment failed (non-fatal): {e}")
+    # ─── Step 5: Usage counters already incremented by reserve step ────
+    # check_and_reserve_usage() এ counter atomic ভাবে বেড়ে গেছে।
+    # আলাদা increment দরকার নেই!
 
     events_as_dicts = [event.model_dump(exclude_none=True) for event in unique_events]
     background_tasks.add_task(
