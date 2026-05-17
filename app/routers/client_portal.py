@@ -915,7 +915,7 @@ function send_capi_event($event_name, $url, $value, $event_id, $product_id) {{
 
             <div style="background:rgba(255,255,255,0.02);border:1px solid var(--border);border-radius:12px;padding:20px;">
               <h4 style="color:#fff;margin:0 0 12px 0;font-size:14px;">🔍 Validate Event Payload</h4>
-              <textarea id="validate-payload" style="width:100%;height:120px;padding:10px;background:#111827;color:var(--accent);border:1px solid var(--border);border-radius:8px;font-family:monospace;font-size:11px;resize:vertical;" placeholder='{"event_name":"Purchase","event_time":1234567890,"user_data":{"em":["test@example.com"]},"custom_data":{"value":1500,"currency":"BDT"}}'></textarea>
+              <textarea id="validate-payload" style="width:100%;height:120px;padding:10px;background:#111827;color:var(--accent);border:1px solid var(--border);border-radius:8px;font-family:monospace;font-size:11px;resize:vertical;" placeholder='{{"event_name":"Purchase","event_time":1234567890,"user_data":{{"em":["test@example.com"]}},"custom_data":{{"value":1500,"currency":"BDT"}}}}'></textarea>
               <button class="btn-sm btn-info" onclick="validatePayload()" style="width:100%;padding:10px;font-size:13px;margin-top:8px;">🔍 Validate</button>
               <div id="validate-result" style="margin-top:10px;font-size:12px;"></div>
             </div>
