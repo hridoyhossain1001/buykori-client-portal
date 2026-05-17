@@ -1510,9 +1510,17 @@ async def admin_clients(
                     <input type="hidden" name="csrf_token" value="{csrf_token}">
                     <button type="submit" class="btn-sm btn-danger">{toggle_label}</button>
                   </form>
-                  <form method="post" action="/api/v1/admin/client/{c.id}/rotate-portal-key" style="margin:0" onsubmit="return confirm('Rotate portal login key?')">
+                  <form method="post" action="/api/v1/admin/client/{c.id}/rotate-api-key" style="margin:0" onsubmit="return confirm('Rotate server API key? Plugin/server integrations must be updated.')">
                     <input type="hidden" name="csrf_token" value="{csrf_token}">
-                    <button type="submit" class="btn-sm btn-info">Rotate Portal</button>
+                    <button type="submit" class="btn-sm btn-danger">Rotate API Key</button>
+                  </form>
+                  <form method="post" action="/api/v1/admin/client/{c.id}/rotate-public-key" style="margin:0" onsubmit="return confirm('Rotate browser tracker public key? t.js URLs must be updated.')">
+                    <input type="hidden" name="csrf_token" value="{csrf_token}">
+                    <button type="submit" class="btn-sm btn-info">Rotate Public Key</button>
+                  </form>
+                  <form method="post" action="/api/v1/admin/client/{c.id}/rotate-portal-key" style="margin:0" onsubmit="return confirm('Rotate client portal login key?')">
+                    <input type="hidden" name="csrf_token" value="{csrf_token}">
+                    <button type="submit" class="btn-sm btn-info">Rotate Portal Key</button>
                   </form>
                 </div>
               </div>
