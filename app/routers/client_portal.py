@@ -769,6 +769,221 @@ function send_capi_event($event_name, $url, $value, $event_id, $product_id) {{
       </div>
     """
 
+    instructions_html = f"""
+    <div class="card" style="margin-bottom:20px">
+      <div class="card-title"><span class="icon">🔑</span> আপনার API Key</div>
+      <p style="color:#888;font-size:13px;margin-bottom:10px">এই Key-টি গোপন রাখুন। কখনো Browser/JS-এ পাবলিকলি রাখবেন না। শুধু সার্ভার বা GTM থেকে ব্যবহার করুন।</p>
+      <button class="copy-btn" onclick="copyText('api_key')">Copy</button>
+      <div class="instr-box" id="api_key">{safe_api_key}</div>
+    </div>
+
+    <div class="card" style="margin-bottom:20px">
+      <div class="card-title"><span class="icon">🌐</span> CAPI Endpoint URL</div>
+      <p style="color:#888;font-size:13px;margin-bottom:6px">সব ইভেন্ট এই URL-এ POST করতে হবে।</p>
+      <button class="copy-btn" onclick="copyText('endpoint')">Copy</button>
+      <div class="instr-box" id="endpoint">{safe_endpoint}</div>
+      <div style="margin-top:12px;padding:10px 14px;background:rgba(126,87,194,0.08);border:1px solid rgba(126,87,194,0.2);border-radius:8px;font-size:12px;color:#9575cd;">
+        💡 <strong>Custom Domain:</strong> আপনার নিজের ডোমেইন থাকলে (যেমন: <code>ss.yourdomain.com</code>) Heroku URL-এর বদলে সেটি ব্যবহার করুন।
+      </div>
+    </div>
+
+    <div class="tabs">
+      <button class="tab-btn active" onclick="openTab(event, 'tab-easy')">🚀 Easy Setup</button>
+      <button class="tab-btn" onclick="openTab(event, 'tab-generator')">🛠️ Event Generator</button>
+      <button class="tab-btn" onclick="openTab(event, 'tab-gtm')">⚙️ GTM Server</button>
+      <button class="tab-btn" onclick="openTab(event, 'tab-wp')">📝 WordPress</button>
+      <button class="tab-btn" onclick="openTab(event, 'tab-custom')">💻 Custom</button>
+      <button class="tab-btn" onclick="openTab(event, 'tab-test')">🧪 Testing</button>
+    </div>
+
+    <!-- GENERATOR TAB -->
+    <div id="tab-generator" class="tab-content card" style="margin-bottom:20px">
+      <div class="card-title"><span class="icon">🛠️</span> Event Code Generator</div>
+      
+      <div style="margin-bottom:20px;padding:14px;background:rgba(255,82,82,0.1);border:1px solid rgba(255,82,82,0.3);border-radius:8px;font-size:13px;color:#ff5252;line-height:1.6">
+        <strong>⚠️ সতর্কতা (Warning):</strong><br>
+        দয়া করে শুধুমাত্র সেই ইভেন্টগুলোই ওয়েবসাইটে যুক্ত করুন যেগুলো আপনার ব্যবসার জন্য সত্যিই প্রয়োজন (যেমন: Purchase, AddToCart, Lead)। অপ্রয়োজনীয় ইভেন্ট যোগ করলে আপনার প্রতিদিনের ইভেন্ট লিমিট খুব দ্রুত শেষ হয়ে যাবে!
+      </div>
+
+      <div class="form-group" style="margin-bottom: 16px;">
+        <label style="color:#fff; font-size:14px; margin-bottom:8px; display:block;">Select an Event to Generate Code:</label>
+        <select id="event_selector" style="width:100%; padding:12px; background:rgba(0,0,0,0.4); border:1px solid var(--border); color:#fff; border-radius:8px; font-size:14px; outline:none;">
+          <option value="page_view">page_view (পেজ ভিউ)</option>
+          <option value="session_start">session_start (সেশন শুরু)</option>
+          <option value="user_signup">user_signup / register (অ্যাকাউন্ট তৈরি)</option>
+          <option value="user_login">user_login (লগইন)</option>
+          <option value="user_logout">user_logout (লগআউট)</option>
+          <option value="view_item">view_item (প্রোডাক্ট দেখা)</option>
+          <option value="add_to_cart">add_to_cart (কার্টে যোগ করা)</option>
+          <option value="remove_from_cart">remove_from_cart (কার্ট থেকে বাদ দেওয়া)</option>
+          <option value="view_cart">view_cart (কার্ট দেখা)</option>
+          <option value="begin_checkout">begin_checkout (চেকআউট শুরু)</option>
+          <option value="purchase">purchase / order_completed (ক্রয় সম্পন্ন)</option>
+          <option value="search">search (সার্চ)</option>
+          <option value="form_submit">form_submit (ফর্ম জমা)</option>
+          <option value="lead">lead (লিড জেনারেট)</option>
+          <option value="subscription">subscription (সাবস্ক্রিপশন)</option>
+          <option value="refund">refund (রিফান্ড)</option>
+          <option value="error">error (এরর)</option>
+          <option value="api_call">api_call (API কল)</option>
+        </select>
+      </div>
+
+      <button class="btn" onclick="generateEventCode()" style="background:#00e676; color:#000; margin-bottom:20px;">⚡ Generate Code</button>
+
+      <div id="code_result_area" style="display:none;">
+        <p style="color:#00e676; font-size:13px; margin-bottom:8px;">✅ আপনার কোড রেডি! এটি ওয়েবসাইটের Header-এ বা বাটনের ক্লিকের সাথে বসান:</p>
+        <button class="copy-btn" onclick="copyText('generated_code_box')" style="margin-bottom:4px">Copy</button>
+        <div class="instr-box" id="generated_code_box" style="min-height:80px;"></div>
+      </div>
+    </div>
+
+    <!-- EASY SETUP TAB (1-LINE TRACKER) -->
+    <div id="tab-easy" class="tab-content active card" style="margin-bottom:20px">
+      <div class="card-title"><span class="icon">🚀</span> Easy Setup — মাত্র ১ লাইন কোড! <span style="font-size:12px;color:#00e676;margin-left:8px;">✅ সবচেয়ে সহজ</span></div>
+      <div style="color:#aaa;font-size:14px;line-height:1.8">
+        <p style="color:#ccc;margin-bottom:12px;">আপনার ওয়েবসাইটের <code>&lt;head&gt;</code> বা <code>&lt;body&gt;</code>-র শেষে নিচের ১ লাইন কোড বসান। ব্যস, PageView অটো ট্র্যাক হবে!</p>
+        <button class="copy-btn" onclick="copyText('easy_script')" style="margin-bottom:4px">Copy</button>
+        <div class="instr-box" id="easy_script">&lt;script src="{safe_tracker_url}" defer&gt;&lt;/script&gt;</div>
+        
+        <div style="margin-top:16px;padding:14px;background:rgba(0,230,118,0.05);border:1px solid rgba(0,230,118,0.15);border-radius:8px;font-size:13px;color:#aaa;line-height:1.9">
+          <strong style="color:#00e676">✨ এই ১ লাইনেই যা হবে:</strong><br>
+          ✅ স্বয়ংক্রিয় <strong style="color:#fff">PageView</strong> ট্র্যাকিং<br>
+          ✅ <code>_fbc</code> ও <code>_fbp</code> কুকি অটো ক্যাপচার<br>
+          ✅ ইমেইল/ফোন SHA-256 হ্যাশিং (ব্রাউজারেই)<br>
+          ✅ SPA (React/Next.js) সাপোর্ট<br>
+          ✅ বট ট্রাফিক অটো ফিল্টার<br>
+          ✅ অ্যাড ব্লকার বাইপাস (Custom Domain ব্যবহার করলে)<br>
+          ✅ Safari ITP Cookie Extension (৬ মাস)
+        </div>
+
+        <br>
+        <p><strong style="color:#fff">কাস্টম ইভেন্ট পাঠানো:</strong></p>
+        <p style="color:#888;font-size:13px;margin-bottom:8px">Purchase, AddToCart, Lead ইত্যাদি ইভেন্ট পাঠাতে:</p>
+        <button class="copy-btn" onclick="copyText('easy_purchase')" style="margin-bottom:4px">Copy</button>
+        <div class="instr-box" id="easy_purchase">// Purchase event
+capi('track', 'Purchase', {{
+  value: 1500,
+  currency: 'BDT',
+  content_ids: ['SKU-123'],
+  content_type: 'product'
+}});
+
+// AddToCart event
+capi('track', 'AddToCart', {{
+  value: 500,
+  currency: 'BDT',
+  content_ids: ['SKU-456']
+}});
+
+// Lead / Contact Form
+capi('track', 'Lead');</div>
+
+        <br>
+        <p><strong style="color:#fff">ইউজারের তথ্য সেট করা (অপশনাল — Match Rate বাড়ায়):</strong></p>
+        <button class="copy-btn" onclick="copyText('easy_user')" style="margin-bottom:4px">Copy</button>
+        <div class="instr-box" id="easy_user">// ইউজারের তথ্য সেট করুন (অটো SHA-256 হ্যাশ হবে)
+capi('setUser', {{
+  email: 'user@example.com',
+  phone: '+8801XXXXXXXXX',
+  first_name: 'Rahim',
+  city: 'Dhaka',
+  country: 'BD'
+}});</div>
+
+        <div style="margin-top:16px;padding:14px;background:rgba(255,171,0,0.06);border:1px solid rgba(255,171,0,0.2);border-radius:8px;font-size:13px;color:#ffab00;line-height:1.9">
+          <strong>⚡ Pro Tip — Custom Domain:</strong><br>
+          অ্যাড ব্লকার ১০০% বাইপাস করতে আপনার নিজের সাবডোমেইন ব্যবহার করুন:<br>
+          <code style="color:#fff">ss.yourdomain.com</code> → CNAME → <code>আপনার-heroku-app.herokuapp.com</code><br>
+          তারপর স্ক্রিপ্ট ট্যাগে Heroku URL-এর বদলে <code>https://ss.yourdomain.com/t.js?key=...</code> ব্যবহার করুন।
+        </div>
+      </div>
+    </div>
+
+    <!-- WORDPRESS TAB (AS EASY AS 5 YEARS OLD) -->
+    <div id="tab-wp" class="tab-content card" style="margin-bottom:20px">
+      <div class="card-title"><span class="icon">📝</span> WordPress Setup (সবচেয়ে সহজ নিয়ম)</div>
+      <div style="color:#aaa;font-size:14px;line-height:1.8">
+        <p><strong style="color:#fff">ধাপ ১:</strong> আপনার WordPress ওয়েবসাইটে লগিন করুন।</p>
+        <p><strong style="color:#fff">ধাপ ২:</strong> <code>WPCode</code> নামের ফ্রি প্লাগিনটি ইনস্টল এবং এক্টিভেট করুন।</p>
+        <p><strong style="color:#fff">ধাপ ৩:</strong> WPCode থেকে "Header & Footer" অপশনে যান।</p>
+        <p><strong style="color:#fff">ধাপ ৪:</strong> "Header" বক্সে নিচের কোডটি কপি করে পেস্ট করুন এবং Save দিন:</p>
+        <button class="copy-btn" onclick="copyText('wp_pv_easy')" style="margin-bottom:4px">Copy</button>
+        <div class="instr-box" id="wp_pv_easy">&lt;script src="{safe_tracker_url}" defer&gt;&lt;/script&gt;</div>
+        
+        <div style="margin-top:16px;padding:14px;background:rgba(0,230,118,0.05);border:1px solid rgba(0,230,118,0.15);border-radius:8px;font-size:13px;color:#aaa;line-height:1.9">
+          <strong style="color:#00e676">🎉 অভিনন্দন!</strong><br>
+          আপনার ওয়েবসাইটে পেজ-ভিউ ট্র্যাকিং চালু হয়ে গেছে! এখন কেউ আপনার ওয়েবসাইটে আসলে আপনি তা দেখতে পাবেন।
+        </div>
+        
+        <br><br>
+        <p><strong style="color:#fff">ধাপ ৫ (সবগুলো ইকমার্স ইভেন্ট একসাথে ট্র্যাক করতে):</strong></p>
+        <p>Purchase, AddToCart, ViewContent (প্রোডাক্ট দেখা) এবং Checkout ট্র্যাক করতে WPCode-এর "Add Snippet"-এ গিয়ে "Add Your Custom Code" সিলেক্ট করুন। Code Type দিন "PHP Snippet" এবং নিচের ম্যাজিক কোডটি পেস্ট করে "Active" করে সেভ দিন। ব্যাস, আপনার পুরো স্টোর ট্র্যাকিং শুরু হয়ে যাবে!</p>
+        <button class="copy-btn" onclick="copyText('wp_all_easy')" style="margin-bottom:4px">Copy</button>
+        <div class="instr-box" id="wp_all_easy">&lt;?php
+// ১. Purchase Event
+add_action('woocommerce_thankyou', 'send_capi_purchase_easy');
+function send_capi_purchase_easy($order_id) {{
+    $order = wc_get_order($order_id);
+    send_capi_event('Purchase', $order-&gt;get_checkout_url(), $order-&gt;get_total(), "order-" . $order_id, null);
+}}
+
+// ২. ViewContent (Product View)
+add_action('woocommerce_after_single_product', 'send_capi_view_content');
+function send_capi_view_content() {{
+    global $product;
+    send_capi_event('ViewContent', get_permalink(), $product-&gt;get_price(), 'view-' . $product-&gt;get_id(), $product-&gt;get_id());
+}}
+
+// ৩. AddToCart
+add_action('woocommerce_add_to_cart', 'send_capi_add_to_cart', 10, 2);
+function send_capi_add_to_cart($cart_item_key, $product_id) {{
+    $product = wc_get_product($product_id);
+    send_capi_event('AddToCart', wc_get_cart_url(), $product-&gt;get_price(), 'cart-' . $product_id, $product_id);
+}}
+
+// ৪. InitiateCheckout
+add_action('woocommerce_before_checkout_form', 'send_capi_checkout');
+function send_capi_checkout() {{
+    send_capi_event('InitiateCheckout', wc_get_checkout_url(), WC()-&gt;cart-&gt;get_cart_contents_total(), 'chk-' . time(), null);
+}}
+
+// Main Function to Send Data
+function send_capi_event($event_name, $url, $value, $event_id, $product_id) {{
+    $data = ['data' =&gt; [[
+        'event_name' =&gt; $event_name,
+        'event_time' =&gt; time(),
+        'event_id' =&gt; $event_id,
+        'event_source_url' =&gt; $url,
+        'action_source' =&gt; 'website',
+        'user_data' =&gt; [
+            'client_ip_address' =&gt; $_SERVER['REMOTE_ADDR'] ?? '',
+            'client_user_agent' =&gt; $_SERVER['HTTP_USER_AGENT'] ?? ''
+        ],
+        'custom_data' =&gt; [
+            'value' =&gt; (float) $value,
+            'currency' =&gt; get_woocommerce_currency()
+        ]
+    ]]];
+    
+    if ($product_id) {{
+        $data['data'][0]['custom_data']['content_ids'] = [$product_id];
+        $data['data'][0]['custom_data']['content_type'] = 'product';
+    }}
+
+    wp_remote_post('{safe_endpoint}', [
+        'body' => json_encode($data),
+        'headers' => [
+            'Content-Type' => 'application/json',
+            'X-API-Key' => '{safe_api_key}'
+        ],
+        'blocking' => false
+    ]);
+}}
+?&gt;</div>
+      </div>
+    """
+
     body = f"""
     <div class="header">
         <div>
@@ -890,9 +1105,9 @@ function send_capi_event($event_name, $url, $value, $event_id, $product_id) {{
 
     <!-- TAB: SETTINGS & SETUP -->
     <div id="tab-settings" class="tab-pane">
+        {instructions_html}
         
 
-        
         <div class="card" style="margin-bottom:24px;border:1px solid rgba(16,185,129,0.2);margin-top:24px;">
           <div class="card-title">🧪 Event Testing & Debug</div>
           
