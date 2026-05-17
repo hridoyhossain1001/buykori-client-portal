@@ -308,13 +308,16 @@ STYLE = """
 
 
 
-def base_html(title: str, body: str, msg: str = "", msg_type: str = "success") -> str:
+def base_html(title: str, body: str, msg: str = "", msg_type: str = "success", active_page: str = "dashboard") -> str:
     alert_html = ""
     safe_title = html.escape(title, quote=True)
     if msg:
         safe_msg = html.escape(msg)
         safe_type = "error" if msg_type == "error" else "success"
         alert_html = f'<div class="alert alert-{safe_type}"><span>{safe_msg}</span></div>'
+
+    def nav_active(page):
+        return "active" if active_page == page else ""
     
     return f'''<!DOCTYPE html>
 <html lang="en">
@@ -333,16 +336,16 @@ def base_html(title: str, body: str, msg: str = "", msg_type: str = "success") -
       <span>Enterprise Admin</span>
     </div>
     <div class="nav-menu">
-      <a href="/api/v1/admin" class="nav-item active">
+      <a href="/api/v1/admin" class="nav-item {nav_active("dashboard")}">
         <span style="font-size:16px">🎛️</span> Dashboard
       </a>
-      <a href="#" class="nav-item" onclick="alert('Navigate to Clients view')">
+      <a href="/api/v1/admin/clients" class="nav-item {nav_active("clients")}">
         <span style="font-size:16px">👥</span> Clients
       </a>
-      <a href="#" class="nav-item" onclick="alert('Navigate to API Logs')">
+      <a href="/api/v1/admin/logs" class="nav-item {nav_active("logs")}">
         <span style="font-size:16px">📡</span> API Logs
       </a>
-      <a href="#" class="nav-item" onclick="alert('Navigate to Settings')">
+      <a href="/api/v1/admin/settings" class="nav-item {nav_active("settings")}">
         <span style="font-size:16px">⚙️</span> Settings
       </a>
     </div>
@@ -1371,3 +1374,412 @@ async def activate_client(
         clear_client_cache(api_key)
         
     return admin_redirect("ক্লায়েন্ট Activate করা হয়েছে")
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# CLIENTS PAGE
+# ═══════════════════════════════════════════════════════════════════════════════
+
+@router.get("/admin/clients", response_class=HTMLResponse, include_in_schema=False)
+@limiter.limit("10/minute")
+async def admin_clients(
+    request: Request,
+    username: str = Depends(verify_admin),
+    db: AsyncSession = Depends(get_db),
+    msg: str = "",
+    msg_type: str = "success",
+):
+    csrf_token = create_admin_csrf_token(username)
+    result = await db.execute(select(Client).order_by(Client.created_at.desc()))
+    clients = result.scalars().all()
+    active_count = sum(1 for c in clients if c.is_active)
+    inactive_count = len(clients) - active_count
+
+    from datetime import datetime, timezone
+    from sqlalchemy import func as sql_func, and_
+    from app.models.event_log import EventLog
+    today = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+
+    client_events_r = await db.execute(
+        select(EventLog.client_id, sql_func.coalesce(sql_func.sum(EventLog.event_count), 0))
+        .where(and_(EventLog.status == "success", EventLog.created_at >= today))
+        .group_by(EventLog.client_id)
+    )
+    client_events_map = {row[0]: row[1] for row in client_events_r}
+
+    # Stats bar
+    stats_html = f"""
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">Client Management</h1>
+        <p class="page-sub">Manage all CAPI client integrations.</p>
+      </div>
+    </div>
+    <div class="metrics-grid" style="grid-template-columns: repeat(3, 1fr); margin-bottom: 24px;">
+      <div class="metric-card">
+        <div class="metric-header"><span class="metric-title">Total Clients</span><span class="metric-icon">👥</span></div>
+        <div class="metric-value">{len(clients)}</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-header"><span class="metric-title">Active</span><span class="metric-icon">✅</span></div>
+        <div class="metric-value" style="color:#34d399">{active_count}</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-header"><span class="metric-title">Inactive</span><span class="metric-icon">⛔</span></div>
+        <div class="metric-value" style="color:#f87171">{inactive_count}</div>
+      </div>
+    </div>
+    """
+
+    # Client cards
+    if clients:
+        cards = ""
+        for c in clients:
+            safe_name = html.escape(c.name)
+            safe_pixel = html.escape(c.pixel_id)
+            safe_key = html.escape(c.api_key, quote=True)
+            safe_key_masked = html.escape(mask_secret(c.api_key))
+            c_events = client_events_map.get(c.id, 0)
+            status_badge = '<span class="badge badge-healthy">Active</span>' if c.is_active else '<span class="badge badge-degraded">Inactive</span>'
+            toggle_action = "deactivate" if c.is_active else "activate"
+            toggle_label = "Deactivate" if c.is_active else "Activate"
+            toggle_class = "btn-danger" if c.is_active else "btn-sm" 
+            domain_text = html.escape(c.domain) if c.domain else "<span style=\"color:var(--text-muted)\">—</span>"
+            created = c.created_at.strftime("%Y-%m-%d") if c.created_at else "—"
+            deferred = "Yes" if getattr(c, 'deferred_purchase', False) else "No"
+
+            cards += f"""
+            <div class="card" style="margin-bottom:16px;">
+              <div class="card-header">
+                <div>
+                  <h2 class="card-title" style="margin-bottom:4px">{safe_name}</h2>
+                  <span style="font-size:12px;color:var(--text-muted)">Pixel: {safe_pixel} · Created: {created}</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px">{status_badge}</div>
+              </div>
+              <div style="padding:20px;">
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:16px;">
+                  <div><div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;margin-bottom:4px">Events (24h)</div><div style="font-size:18px;font-weight:700;color:#34d399">{c_events:,}</div></div>
+                  <div><div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;margin-bottom:4px">Domain</div><div style="font-size:13px;color:#fff">{domain_text}</div></div>
+                  <div><div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;margin-bottom:4px">Deferred Purchase</div><div style="font-size:13px;color:#fff">{deferred}</div></div>
+                </div>
+                <div style="margin-bottom:16px;">
+                  <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;margin-bottom:4px">API Key</div>
+                  <div class="api-key-cell" style="max-width:100%">
+                    <span id="ck_{c.id}" data-secret="{safe_key}" data-masked="{safe_key_masked}" data-hidden="1">{safe_key_masked}</span>
+                    <button class="copy-icon" onclick="copyText('ck_{c.id}')" title="Copy">📋</button>
+                  </div>
+                </div>
+                <div style="display:flex;gap:8px;flex-wrap:wrap;border-top:1px solid var(--border);padding-top:16px">
+                  <a href="/api/v1/admin/client/{c.id}/instructions" class="btn-sm btn-info" style="text-decoration:none">📋 Instructions</a>
+                  <form method="post" action="/api/v1/admin/client/{c.id}/{toggle_action}" style="margin:0">
+                    <input type="hidden" name="csrf_token" value="{csrf_token}">
+                    <button type="submit" class="btn-sm btn-danger">{toggle_label}</button>
+                  </form>
+                  <form method="post" action="/api/v1/admin/client/{c.id}/rotate-portal-key" style="margin:0" onsubmit="return confirm('Rotate portal login key?')">
+                    <input type="hidden" name="csrf_token" value="{csrf_token}">
+                    <button type="submit" class="btn-sm btn-info">Rotate Portal</button>
+                  </form>
+                </div>
+              </div>
+            </div>"""
+        client_html = cards
+    else:
+        client_html = """
+        <div class="card">
+          <div style="padding:40px 20px;text-align:center;color:var(--text-muted)">
+            <div style="font-size:32px;margin-bottom:12px">📭</div>
+            <p>No clients found. Add one from the Dashboard.</p>
+          </div>
+        </div>"""
+
+    body = f"""
+    {stats_html}
+    {client_html}
+    """
+    return HTMLResponse(base_html("Clients", body, msg, msg_type, active_page="clients"))
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# API LOGS PAGE
+# ═══════════════════════════════════════════════════════════════════════════════
+
+@router.get("/admin/logs", response_class=HTMLResponse, include_in_schema=False)
+@limiter.limit("10/minute")
+async def admin_logs(
+    request: Request,
+    username: str = Depends(verify_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    from datetime import datetime, timezone
+    from sqlalchemy import func as sql_func, and_
+    from app.models.event_log import EventLog
+    from app.models.failed_event import FailedEvent
+
+    today = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+
+    success_r = await db.execute(
+        select(sql_func.coalesce(sql_func.sum(EventLog.event_count), 0)).where(
+            and_(EventLog.status == "success", EventLog.created_at >= today)
+        )
+    )
+    events_today = success_r.scalar() or 0
+
+    fail_r = await db.execute(
+        select(sql_func.coalesce(sql_func.sum(EventLog.event_count), 0)).where(
+            and_(EventLog.status == "failed", EventLog.created_at >= today)
+        )
+    )
+    failed_today = fail_r.scalar() or 0
+
+    retry_r = await db.execute(
+        select(sql_func.count(FailedEvent.id)).where(
+            FailedEvent.status.in_(["pending", "retrying"])
+        )
+    )
+    retries = retry_r.scalar() or 0
+
+    total = events_today + failed_today
+
+    # Recent event logs (last 100)
+    from sqlalchemy.orm import selectinload
+    logs_r = await db.execute(
+        select(EventLog).order_by(EventLog.created_at.desc()).limit(100)
+    )
+    event_logs = logs_r.scalars().all()
+
+    # Client name map
+    clients_r = await db.execute(select(Client.id, Client.name))
+    client_map = {row[0]: row[1] for row in clients_r}
+
+    # Failed events (last 50)
+    failed_r = await db.execute(
+        select(FailedEvent).order_by(FailedEvent.created_at.desc()).limit(50)
+    )
+    failed_events = failed_r.scalars().all()
+
+    # Stats
+    header_html = f"""
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">API Event Logs</h1>
+        <p class="page-sub">Real-time event processing history and error tracking.</p>
+      </div>
+    </div>
+    <div class="metrics-grid" style="margin-bottom:24px">
+      <div class="metric-card">
+        <div class="metric-header"><span class="metric-title">Success (24h)</span><span class="metric-icon">✅</span></div>
+        <div class="metric-value" style="color:#34d399">{events_today:,}</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-header"><span class="metric-title">Failed (24h)</span><span class="metric-icon">❌</span></div>
+        <div class="metric-value" style="color:#f87171">{failed_today:,}</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-header"><span class="metric-title">Total (24h)</span><span class="metric-icon">📊</span></div>
+        <div class="metric-value">{total:,}</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-header"><span class="metric-title">Pending Retries</span><span class="metric-icon">🔄</span></div>
+        <div class="metric-value" style="color:#facc15">{retries}</div>
+      </div>
+    </div>
+    """
+
+    # Event log table
+    if event_logs:
+        rows = ""
+        for log in event_logs:
+            c_name = html.escape(client_map.get(log.client_id, f"#{log.client_id}"))
+            e_name = html.escape(log.event_name or "—")
+            e_count = log.event_count or 1
+            status_cls = "badge-healthy" if log.status == "success" else "badge-degraded"
+            status_text = log.status or "unknown"
+            ip = html.escape(log.ip_address or "—")
+            emq = f"{log.emq_score:.1f}" if log.emq_score else "—"
+            created = log.created_at.strftime("%H:%M:%S") if log.created_at else "—"
+            rows += f"""
+            <tr>
+              <td class="code-text">{created}</td>
+              <td>{c_name}</td>
+              <td><span style="color:#818cf8;font-weight:600">{e_name}</span></td>
+              <td class="code-text" style="text-align:center">{e_count}</td>
+              <td><span class="badge {status_cls}">{status_text}</span></td>
+              <td class="code-text">{ip}</td>
+              <td class="code-text">{emq}</td>
+            </tr>"""
+        event_table = f"""
+        <div class="card" style="margin-bottom:24px">
+          <div class="card-header"><h2 class="card-title">📡 Recent Events (Last 100)</h2></div>
+          <div class="table-responsive">
+            <table>
+              <thead><tr>
+                <th>Time</th><th>Client</th><th>Event</th><th style="text-align:center">Count</th><th>Status</th><th>IP</th><th>EMQ</th>
+              </tr></thead>
+              <tbody>{rows}</tbody>
+            </table>
+          </div>
+        </div>"""
+    else:
+        event_table = """
+        <div class="card" style="margin-bottom:24px">
+          <div class="card-header"><h2 class="card-title">📡 Recent Events</h2></div>
+          <div style="padding:30px;text-align:center;color:var(--text-muted)">No event logs recorded yet.</div>
+        </div>"""
+
+    # Failed events table
+    if failed_events:
+        fail_rows = ""
+        for fe in failed_events:
+            c_name = html.escape(client_map.get(fe.client_id, f"#{fe.client_id}"))
+            err = html.escape((fe.error_message or "—")[:80])
+            retries_c = fe.retry_count or 0
+            max_r = fe.max_retries or 5
+            st = fe.status or "pending"
+            st_color = "#facc15" if st == "pending" else ("#818cf8" if st == "retrying" else "#f87171")
+            created = fe.created_at.strftime("%Y-%m-%d %H:%M") if fe.created_at else "—"
+            fail_rows += f"""
+            <tr>
+              <td class="code-text">{created}</td>
+              <td>{c_name}</td>
+              <td style="color:var(--text-muted);font-size:12px;max-width:300px;overflow:hidden;text-overflow:ellipsis">{err}</td>
+              <td class="code-text" style="text-align:center">{retries_c}/{max_r}</td>
+              <td><span style="color:{st_color};font-weight:600;font-size:12px">{st.upper()}</span></td>
+            </tr>"""
+        failed_table = f"""
+        <div class="card">
+          <div class="card-header"><h2 class="card-title">⚠️ Failed Events (Last 50)</h2></div>
+          <div class="table-responsive">
+            <table>
+              <thead><tr>
+                <th>Time</th><th>Client</th><th>Error</th><th style="text-align:center">Retries</th><th>Status</th>
+              </tr></thead>
+              <tbody>{fail_rows}</tbody>
+            </table>
+          </div>
+        </div>"""
+    else:
+        failed_table = """
+        <div class="card">
+          <div class="card-header"><h2 class="card-title">⚠️ Failed Events</h2></div>
+          <div style="padding:30px;text-align:center;color:var(--text-muted)">No failed events. Everything is running smoothly! 🎉</div>
+        </div>"""
+
+    body = f"""
+    {header_html}
+    {event_table}
+    {failed_table}
+    """
+    return HTMLResponse(base_html("API Logs", body, active_page="logs"))
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# SETTINGS PAGE
+# ═══════════════════════════════════════════════════════════════════════════════
+
+@router.get("/admin/settings", response_class=HTMLResponse, include_in_schema=False)
+@limiter.limit("10/minute")
+async def admin_settings(
+    request: Request,
+    username: str = Depends(verify_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    import sys
+
+    # Environment checks
+    env_checks = {
+        "ADMIN_PASSWORD": bool(os.getenv("ADMIN_PASSWORD")),
+        "ENCRYPTION_KEY": bool(os.getenv("ENCRYPTION_KEY")),
+        "ADMIN_API_KEY": bool(os.getenv("ADMIN_API_KEY")),
+        "DATABASE_URL": bool(os.getenv("DATABASE_URL")),
+    }
+
+    env_rows = ""
+    for key, configured in env_checks.items():
+        badge = '<span class="badge badge-healthy">Configured</span>' if configured else '<span class="badge badge-degraded">Missing</span>'
+        env_rows += f"""
+        <tr>
+          <td style="font-weight:600">{key}</td>
+          <td>{badge}</td>
+        </tr>"""
+
+    # System info
+    python_ver = f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
+    admin_user = html.escape(ADMIN_USERNAME)
+
+    # Audit logs (last 50)
+    audit_r = await db.execute(select(AuditLog).order_by(AuditLog.created_at.desc()).limit(50))
+    audit_logs = audit_r.scalars().all()
+
+    if audit_logs:
+        audit_rows = ""
+        for log in audit_logs:
+            safe_actor = html.escape(log.actor or "system")
+            safe_action = html.escape(log.action or "—")
+            safe_details = html.escape((log.details or "—")[:60])
+            safe_ip = html.escape(log.ip_address or "—")
+            created = log.created_at.strftime("%Y-%m-%d %H:%M") if log.created_at else "—"
+            audit_rows += f"""
+            <tr>
+              <td class="code-text">{created}</td>
+              <td>{safe_actor}</td>
+              <td><span style="color:#818cf8">{safe_action}</span></td>
+              <td class="code-text">{log.client_id or '—'}</td>
+              <td class="code-text">{safe_ip}</td>
+              <td style="color:var(--text-muted);font-size:12px">{safe_details}</td>
+            </tr>"""
+        audit_table = f"""
+        <div class="card">
+          <div class="card-header"><h2 class="card-title">📋 Full Audit Log (Last 50)</h2></div>
+          <div class="table-responsive">
+            <table>
+              <thead><tr>
+                <th>Time</th><th>Actor</th><th>Action</th><th>Client</th><th>IP</th><th>Details</th>
+              </tr></thead>
+              <tbody>{audit_rows}</tbody>
+            </table>
+          </div>
+        </div>"""
+    else:
+        audit_table = """
+        <div class="card">
+          <div class="card-header"><h2 class="card-title">📋 Audit Log</h2></div>
+          <div style="padding:30px;text-align:center;color:var(--text-muted)">No audit entries yet.</div>
+        </div>"""
+
+    body = f"""
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">System Settings</h1>
+        <p class="page-sub">Server configuration, environment status, and admin activity.</p>
+      </div>
+    </div>
+
+    <div class="layout-grid" style="margin-bottom:24px">
+      <div class="card">
+        <div class="card-header"><h2 class="card-title">🖥️ System Information</h2></div>
+        <div style="padding:20px">
+          <table style="width:100%">
+            <tr><td style="color:var(--text-muted);padding:8px 0;font-size:13px;width:40%">Python Version</td><td style="padding:8px 0;font-weight:600">{python_ver}</td></tr>
+            <tr><td style="color:var(--text-muted);padding:8px 0;font-size:13px">Admin Username</td><td style="padding:8px 0;font-weight:600">{admin_user}</td></tr>
+            <tr><td style="color:var(--text-muted);padding:8px 0;font-size:13px">Environment</td><td style="padding:8px 0"><span class="env-badge">PRODUCTION</span></td></tr>
+            <tr><td style="color:var(--text-muted);padding:8px 0;font-size:13px">Default Rate Limit</td><td style="padding:8px 0;font-weight:600">5,000 req/min</td></tr>
+            <tr><td style="color:var(--text-muted);padding:8px 0;font-size:13px">Default Daily Quota</td><td style="padding:8px 0;font-weight:600">100,000 events</td></tr>
+            <tr><td style="color:var(--text-muted);padding:8px 0;font-size:13px">Default Monthly Limit</td><td style="padding:8px 0;font-weight:600">50,000 events</td></tr>
+          </table>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><h2 class="card-title">🔐 Environment Variables</h2></div>
+        <div class="table-responsive">
+          <table>
+            <thead><tr><th>Variable</th><th>Status</th></tr></thead>
+            <tbody>{env_rows}</tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    {audit_table}
+    """
+    return HTMLResponse(base_html("Settings", body, active_page="settings"))
