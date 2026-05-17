@@ -159,8 +159,12 @@ CLIENT_STYLE = """
   .btn-info { background: rgba(99,102,241,0.14); color: #dbe4ff; border-color: rgba(99,102,241,0.24); }
   .btn-info:hover { background: rgba(99,102,241,0.22); }
   
-  .copy-btn { background: rgba(99,102,241,0.16); color: #fff; border: 1px solid rgba(99,102,241,0.24); border-radius: 7px; padding: 5px 9px; font-size: 11px; cursor: pointer; float: right; margin-top: -4px;}
-  .copy-btn:hover { background: var(--primary); }
+  .copy-btn {
+    background: #4f46e5; color: #fff; border: 1px solid #6366f1; border-radius: 6px;
+    padding: 6px 12px; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s ease;
+    float: right; margin-top: 18px; margin-right: 8px; position: relative; z-index: 10;
+  }
+  .copy-btn:hover { background: #6366f1; transform: translateY(-1px); }
   .instr-box { background: #0b1220; border: 1px solid rgba(148,163,184,0.18); border-radius: 8px; padding: 12px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; color: #dbeafe; white-space: pre-wrap; word-break: break-all; margin-top: 8px; }
   
   .tabs { display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 1px solid var(--border); padding-bottom: 10px; overflow-x: auto; }

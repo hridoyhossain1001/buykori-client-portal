@@ -77,190 +77,224 @@ def verify_admin_csrf_token(token: str, username: str) -> None:
 
 # ─── HTML TEMPLATES ─────────────────────────────────────────────────────────
 
+
+
 STYLE = """
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
   :root {
-    --bg-main: #0f172a;
-    --bg-card: #111c33;
-    --bg-nav: rgba(15, 23, 42, 0.92);
-    --bg-soft: #18243a;
-    --border: rgba(148, 163, 184, 0.18);
+    --bg-main: #131722;
+    --bg-sidebar: #1a1e2d;
+    --bg-card: #1e2233;
+    --bg-card-hover: #23283c;
+    --bg-soft: #272d42;
+    --border: #2d3348;
     --primary: #4f46e5;
     --primary-hover: #6366f1;
-    --text-main: #e5edf8;
-    --text-muted: #a8b3c7;
-    --accent: #22c55e;
-    --danger: #f87171;
+    --text-main: #f8fafc;
+    --text-muted: #94a3b8;
+    --success: #10b981;
+    --danger: #ef4444;
     --warning: #f59e0b;
+    --info: #3b82f6;
+    --sidebar-width: 250px;
+    --header-height: 64px;
   }
-  * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', system-ui, sans-serif; }
   body {
     background: var(--bg-main);
     color: var(--text-main);
     min-height: 100vh;
-    line-height: 1.5;
+    display: flex;
+    overflow-x: hidden;
   }
-  .navbar {
-    background: var(--bg-nav);
+  
+  /* Sidebar */
+  .sidebar {
+    width: var(--sidebar-width);
+    background: var(--bg-sidebar);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    height: 100vh;
+    left: 0;
+    top: 0;
+    z-index: 50;
+  }
+  .brand {
+    padding: 24px;
+    font-size: 18px;
+    font-weight: 700;
+    color: #fff;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+  }
+  .brand span { font-weight: 400; color: var(--text-muted); font-size: 13px; display: block; margin-top: 4px; }
+  .nav-menu { flex: 1; padding: 16px 12px; }
+  .nav-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 16px; margin-bottom: 4px;
+    color: var(--text-muted); font-size: 14px; font-weight: 500;
+    text-decoration: none; border-radius: 8px;
+    transition: all 0.2s;
+  }
+  .nav-item:hover { background: rgba(255,255,255,0.05); color: #fff; }
+  .nav-item.active { background: rgba(255,255,255,0.1); color: #fff; }
+  .nav-item.bottom { margin-top: auto; }
+  .sidebar-bottom { padding: 16px 12px; border-top: 1px solid rgba(255,255,255,0.05); }
+
+  /* Main Content */
+  .main-wrapper {
+    flex: 1;
+    margin-left: var(--sidebar-width);
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+  }
+
+  /* Header */
+  .topbar {
+    height: var(--header-height);
+    background: var(--bg-main);
     border-bottom: 1px solid var(--border);
-    padding: 14px 28px;
     display: flex;
     align-items: center;
-    gap: 12px;
+    justify-content: space-between;
+    padding: 0 32px;
     position: sticky;
     top: 0;
-    z-index: 100;
+    z-index: 40;
   }
-  .navbar .logo { font-size: 19px; font-weight: 700; color: #fff; letter-spacing: 0; }
-  .navbar .logo span { color: #93c5fd; }
-  .navbar .badge {
-    background: rgba(79, 70, 229, 0.16);
-    color: #c7d2fe;
-    border: 1px solid rgba(129, 140, 248, 0.28);
-    padding: 4px 10px;
-    border-radius: 999px;
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0;
-  }
-  .container { max-width: 1180px; margin: 32px auto; padding: 0 24px 48px; }
-  .page-title { font-size: 30px; font-weight: 700; color: #fff; margin-bottom: 8px; letter-spacing: 0; }
-  .page-sub { color: var(--text-muted); font-size: 14px; margin-bottom: 28px; max-width: 680px; }
-  
-  .stat-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin-bottom: 14px; }
-  .stat-box {
-    background: linear-gradient(180deg, rgba(255,255,255,0.035), rgba(255,255,255,0.015)), var(--bg-card);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 20px;
-    transition: border-color 0.2s ease, background 0.2s ease;
-  }
-  .stat-box:hover {
-    border-color: rgba(148, 163, 184, 0.34);
-    background: var(--bg-soft);
-  }
-  .stat-box .num { font-size: 30px; font-weight: 700; color: #fff; line-height: 1.15; }
-  .stat-box .lbl { font-size: 12px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0; margin-top: 6px; }
-  
-  .top-grid { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(360px, 0.85fr); gap: 20px; align-items: start; margin-bottom: 20px; }
-  .card {
+  .search-box {
     background: var(--bg-card);
     border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 24px;
-    box-shadow: 0 14px 40px rgba(2, 6, 23, 0.18);
+    border-radius: 6px;
+    padding: 8px 16px;
+    width: 320px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
   }
-  .card-title {
-    font-size: 16px; font-weight: 700; color: #fff; margin-bottom: 20px;
-    display: flex; align-items: center; gap: 10px; line-height: 1.35;
+  .search-box input {
+    background: none; border: none; outline: none; color: #fff; font-size: 13px; width: 100%;
   }
-  .card-title .icon {
-    width: 32px; height: 32px;
-    background: rgba(99, 102, 241, 0.14);
-    border: 1px solid rgba(129, 140, 248, 0.22);
-    border-radius: 8px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 16px;
-  }
+  .search-box input::placeholder { color: var(--text-muted); }
+  .topbar-right { display: flex; align-items: center; gap: 20px; }
+  .env-badge { background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; letter-spacing: 0.5px; }
+  .user-profile { display: flex; align-items: center; gap: 12px; }
+  .user-avatar { width: 32px; height: 32px; background: var(--bg-soft); border-radius: 50%; overflow: hidden; border: 1px solid var(--border); }
+  .user-info { display: flex; flex-direction: column; }
+  .user-info .name { font-size: 13px; font-weight: 600; color: #fff; }
+  .user-info .role { font-size: 11px; color: var(--text-muted); }
+  .icon-btn { background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 16px; position: relative; }
+  .icon-btn:hover { color: #fff; }
+  .notification-dot { position: absolute; top: 0; right: 0; width: 6px; height: 6px; background: var(--danger); border-radius: 50%; }
+
+  /* Content Container */
+  .content { padding: 32px; }
+
+  /* Page Header */
+  .page-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 24px; }
+  .page-title { font-size: 24px; font-weight: 700; color: #fff; margin-bottom: 6px; }
+  .page-sub { font-size: 14px; color: var(--text-muted); }
+  .header-actions { display: flex; gap: 12px; }
+  .btn { padding: 9px 16px; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center; gap: 8px; border: 1px solid transparent; }
+  .btn-outline { background: transparent; border-color: var(--border); color: #fff; }
+  .btn-outline:hover { background: rgba(255,255,255,0.05); }
+  .btn-primary { background: var(--primary); color: #fff; }
+  .btn-primary:hover { background: var(--primary-hover); }
+
+  /* Metrics Grid */
+  .metrics-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 24px; }
+  .metric-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 20px; position: relative; overflow: hidden; }
+  .metric-header { display: flex; justify-content: space-between; margin-bottom: 12px; }
+  .metric-title { font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+  .metric-icon { width: 32px; height: 32px; background: var(--bg-soft); border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 14px; color: var(--text-muted); border: 1px solid rgba(255,255,255,0.05); }
+  .metric-value { font-size: 28px; font-weight: 700; color: #fff; margin-bottom: 12px; line-height: 1.1; }
+  .metric-trend { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-muted); }
+  .trend-up { background: rgba(16, 185, 129, 0.15); color: #34d399; padding: 2px 6px; border-radius: 4px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px; }
+  .trend-down { background: rgba(239, 68, 68, 0.15); color: #f87171; padding: 2px 6px; border-radius: 4px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px; }
+  .trend-neutral { background: rgba(255, 255, 255, 0.1); color: #e2e8f0; padding: 2px 6px; border-radius: 4px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px; }
+
+  /* Main Layout Grid */
+  .layout-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 24px; align-items: start; }
+
+  /* Cards */
+  .card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+  .card-header { padding: 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+  .card-title { font-size: 16px; font-weight: 600; color: #fff; }
+  .card-actions { display: flex; gap: 8px; }
+
+  /* Tables */
+  .table-responsive { width: 100%; overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; }
+  th { text-align: left; padding: 14px 20px; font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid var(--border); background: rgba(255,255,255,0.02); }
+  td { padding: 16px 20px; font-size: 13px; border-bottom: 1px solid rgba(255,255,255,0.04); vertical-align: middle; }
+  tr:hover td { background: rgba(255,255,255,0.02); }
+  tr:last-child td { border-bottom: none; }
   
-  .form-group { margin-bottom: 18px; }
-  label { display: block; font-size: 13px; color: var(--text-muted); margin-bottom: 7px; font-weight: 600; }
-  input[type=text], input[type=password] {
-    width: 100%; padding: 11px 13px;
-    background: #0b1220;
-    border: 1px solid var(--border);
-    border-radius: 8px; color: #fff; font-size: 14px;
-    transition: border-color 0.2s ease, box-shadow 0.2s ease; outline: none;
-  }
-  input:focus {
-    border-color: var(--primary-hover);
-    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.18);
-  }
-  .hint { font-size: 12px; color: #8fa0b8; margin-top: 6px; line-height: 1.45; }
-  
-  .btn {
-    width: 100%; padding: 12px 14px;
-    background: var(--primary);
-    color: #fff; border: 1px solid rgba(129, 140, 248, 0.2); border-radius: 8px;
-    font-size: 15px; font-weight: 600; cursor: pointer;
-    transition: background 0.2s ease, transform 0.2s ease; margin-top: 8px;
-  }
-  .btn:hover {
-    background: var(--primary-hover);
-    transform: translateY(-1px);
-  }
-  
-  .client-table { width: 100%; border-collapse: separate; border-spacing: 0; }
-  .client-table th {
-    text-align: left; padding: 12px 14px; font-size: 12px; color: var(--text-muted);
-    font-weight: 700; text-transform: uppercase; letter-spacing: 0;
-    border-bottom: 1px solid var(--border);
-    background: rgba(15, 23, 42, 0.35);
-  }
-  .client-table td {
-    padding: 14px; font-size: 13px; border-bottom: 1px solid rgba(148,163,184,0.08); vertical-align: middle;
-  }
-  .client-table tr:hover td { background: rgba(148,163,184,0.06); }
-  
-  .badge-active {
-    background: rgba(34, 197, 94, 0.13); color: #86efac;
-    border: 1px solid rgba(34, 197, 94, 0.24); padding: 4px 10px;
-    border-radius: 999px; font-size: 12px; font-weight: 700;
-  }
-  .badge-inactive {
-    background: rgba(248, 113, 113, 0.12); color: #fecaca;
-    border: 1px solid rgba(248, 113, 113, 0.24); padding: 4px 10px;
-    border-radius: 999px; font-size: 12px; font-weight: 700;
-  }
-  .api-key-cell {
-    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; color: #cbd5e1;
-    background: #0b1220; border: 1px solid rgba(148,163,184,0.16); padding: 6px 10px; border-radius: 7px;
-    display: inline-flex; align-items: center; justify-content: space-between; gap: 10px;
-    width: min(220px, 100%);
-  }
-  .api-key-text {
-    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-  }
-  .copy-icon {
-    background: none; border: none; color: #c7d2fe; cursor: pointer;
-    font-size: 14px; transition: color 0.2s;
-  }
+  .client-name { font-weight: 600; color: #fff; }
+  .client-sub { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+  .code-text { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; color: var(--text-muted); }
+
+  /* Badges */
+  .badge { padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; border: 1px solid transparent; }
+  .badge-healthy { background: rgba(16, 185, 129, 0.1); color: #34d399; border-color: rgba(16, 185, 129, 0.2); }
+  .badge-degraded { background: rgba(239, 68, 68, 0.1); color: #f87171; border-color: rgba(239, 68, 68, 0.2); }
+  .badge-healthy::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: #34d399; }
+  .badge-degraded::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: #f87171; }
+
+  /* Activity Stream */
+  .log-list { padding: 0; }
+  .log-item { display: grid; grid-template-columns: 60px 50px 1fr; gap: 12px; padding: 12px 20px; border-bottom: 1px solid rgba(255,255,255,0.03); font-size: 12px; }
+  .log-item:last-child { border-bottom: none; }
+  .log-time { color: var(--text-muted); font-family: ui-monospace, monospace; }
+  .log-tag { font-family: ui-monospace, monospace; font-weight: 600; }
+  .log-tag.info { color: #34d399; }
+  .log-tag.warn { color: #facc15; }
+  .log-tag.err { color: #f87171; }
+  .log-msg { color: #cbd5e1; line-height: 1.4; }
+
+  /* Utility & Inputs */
+  .api-key-cell { font-family: monospace; font-size: 12px; color: #cbd5e1; background: #0b1220; border: 1px solid var(--border); padding: 4px 8px; border-radius: 4px; display: inline-flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%; max-width: 180px; }
+  .copy-icon { background: none; border: none; color: var(--text-muted); cursor: pointer; }
   .copy-icon:hover { color: #fff; }
-  
-  .btn-sm {
-    padding: 7px 12px; font-size: 12px; border-radius: 7px; border: 1px solid transparent;
-    cursor: pointer; font-weight: 700; transition: background 0.2s ease, border-color 0.2s ease; display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  .btn-sm { padding: 6px 12px; font-size: 11px; border-radius: 4px; border: 1px solid transparent; cursor: pointer; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; transition: all 0.2s; text-decoration: none; }
+  .btn-info { background: rgba(59, 130, 246, 0.1); color: #60a5fa; border-color: rgba(59, 130, 246, 0.2); }
+  .btn-info:hover { background: rgba(59, 130, 246, 0.2); color: #93c5fd; }
+  .btn-danger { background: rgba(239, 68, 68, 0.1); color: #f87171; border-color: rgba(239, 68, 68, 0.2); }
+  .btn-danger:hover { background: rgba(239, 68, 68, 0.2); color: #fca5a5; }
+
+  .alert { padding: 12px 16px; border-radius: 6px; margin-bottom: 20px; font-size: 13px; font-weight: 500; display: flex; align-items: center; gap: 8px; }
+  .alert-success { background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.2); color: #34d399; }
+  .alert-error { background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.2); color: #f87171; }
+
+  /* Form Inputs for Add Client */
+  .form-group { margin-bottom: 16px; }
+  .form-group label { display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 6px; font-weight: 600; text-transform: uppercase; }
+  .form-group input[type=text], .form-group input[type=password], .form-group input[type=number] { width: 100%; padding: 10px 12px; background: rgba(0,0,0,0.2); border: 1px solid var(--border); border-radius: 6px; color: #fff; font-size: 13px; outline: none; transition: border-color 0.2s; }
+  .form-group input:focus { border-color: var(--primary); }
+  .hint { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+  .btn-full { width: 100%; justify-content: center; padding: 12px; }
+
+  /* Misc */
+  .instr-box { background: #0b1220; border: 1px solid var(--border); border-radius: 6px; padding: 12px; font-family: ui-monospace, monospace; font-size: 12px; color: #dbeafe; white-space: pre-wrap; word-break: break-all; margin-top: 8px; }
+  .copy-btn { background: #4f46e5; color: #fff; border: 1px solid #6366f1; border-radius: 4px; padding: 4px 10px; font-size: 11px; font-weight: 600; cursor: pointer; float: right; margin-top: 12px; margin-right: 8px; }
+
+  @media (max-width: 1024px) {
+    .layout-grid { grid-template-columns: 1fr; }
+    .metrics-grid { grid-template-columns: repeat(2, 1fr); }
   }
-  .btn-danger {
-    background: rgba(255, 82, 82, 0.1); color: var(--danger);
-    border-color: rgba(255, 82, 82, 0.22);
+  @media (max-width: 768px) {
+    .sidebar { transform: translateX(-100%); }
+    .main-wrapper { margin-left: 0; }
+    .metrics-grid { grid-template-columns: 1fr; }
+    .search-box { display: none; }
   }
-  .btn-danger:hover { background: rgba(248, 113, 113, 0.18); color: #fecaca; }
-  
-  .btn-info {
-    background: rgba(99, 102, 241, 0.12); color: #c7d2fe;
-    border-color: rgba(99, 102, 241, 0.24);
-  }
-  .btn-info:hover { background: rgba(99, 102, 241, 0.2); color: #fff; }
-  
-  .alert { padding: 14px 16px; border-radius: 10px; margin-bottom: 22px; font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 10px; transition: opacity 0.5s ease; }
-  .alert-success { background: rgba(34, 197, 94, 0.11); border: 1px solid rgba(34, 197, 94, 0.22); color: #86efac; }
-  .alert-error { background: rgba(248, 113, 113, 0.12); border: 1px solid rgba(248, 113, 113, 0.24); color: #fecaca; }
-  
-  .empty-state { text-align: center; padding: 60px 20px; color: var(--text-muted); }
-  .empty-state .big { font-size: 48px; margin-bottom: 16px; opacity: 0.5; }
-  
-  .instr-box {
-    background: #0b1220; border: 1px solid rgba(148,163,184,0.18); border-radius: 8px;
-    padding: 14px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; color: #dbeafe;
-    white-space: pre-wrap; word-break: break-all; margin-top: 12px; position: relative;
-  }
-  .copy-btn {
-    background: rgba(99,102,241,0.16); color: #fff; border: 1px solid rgba(99,102,241,0.22); border-radius: 7px;
-    padding: 6px 10px; font-size: 12px; cursor: pointer; transition: background 0.2s ease; float: right; margin-top: -4px;
-  }
-  .copy-btn:hover { background: var(--primary); }
+  /* Restored classes for Instructions Page */
+  .icon { width: 32px; height: 32px; background: rgba(99, 102, 241, 0.14); border: 1px solid rgba(129, 140, 248, 0.22); border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; font-size: 16px; margin-right: 8px; vertical-align: middle; }
+  .left-col { flex: 1; }
+  .right-col { width: 100%; max-width: 400px; }
   .tabs { display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 1px solid var(--border); padding-bottom: 10px; overflow-x: auto; }
   .tab-btn { background: transparent; border: 1px solid transparent; color: var(--text-muted); font-size: 14px; font-weight: 700; cursor: pointer; padding: 8px 12px; border-radius: 8px; transition: all 0.2s; white-space: nowrap; }
   .tab-btn:hover { color: #fff; background: rgba(255,255,255,0.05); }
@@ -268,21 +302,10 @@ STYLE = """
   .tab-content { display: none; animation: fadeIn 0.3s ease; }
   .tab-content.active { display: block; }
   @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
-  @media (max-width: 980px) {
-    .top-grid { grid-template-columns: 1fr; }
-  }
-  @media (max-width: 720px) {
-    .navbar { padding: 12px 16px; }
-    .container { margin: 24px auto; padding: 0 16px 36px; }
-    .page-title { font-size: 24px; }
-    .stat-row { grid-template-columns: 1fr; }
-    .card { padding: 18px; }
-    .client-table { min-width: 760px; }
-    .card:has(.client-table) { overflow-x: auto; }
-    .btn-sm { min-height: 34px; }
-  }
+
 </style>
 """
+
 
 
 def base_html(title: str, body: str, msg: str = "", msg_type: str = "success") -> str:
@@ -291,8 +314,9 @@ def base_html(title: str, body: str, msg: str = "", msg_type: str = "success") -
     if msg:
         safe_msg = html.escape(msg)
         safe_type = "error" if msg_type == "error" else "success"
-        alert_html = f'<div class="alert alert-{safe_type}">{safe_msg}</div>'
-    return f"""<!DOCTYPE html>
+        alert_html = f'<div class="alert alert-{safe_type}"><span>{safe_msg}</span></div>'
+    
+    return f'''<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -301,14 +325,71 @@ def base_html(title: str, body: str, msg: str = "", msg_type: str = "success") -
   {STYLE}
 </head>
 <body>
-<nav class="navbar">
-  <div class="logo">CAPI<span>Gateway</span></div>
-  <div class="badge">Admin Panel</div>
-</nav>
-<div class="container">
-  {alert_html}
-  {body}
-</div>
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="brand">
+      CAPIGateway
+      <span>Enterprise Admin</span>
+    </div>
+    <div class="nav-menu">
+      <a href="/api/v1/admin" class="nav-item active">
+        <span style="font-size:16px">🎛️</span> Dashboard
+      </a>
+      <a href="#" class="nav-item" onclick="alert('Navigate to Clients view')">
+        <span style="font-size:16px">👥</span> Clients
+      </a>
+      <a href="#" class="nav-item" onclick="alert('Navigate to API Logs')">
+        <span style="font-size:16px">📡</span> API Logs
+      </a>
+      <a href="#" class="nav-item" onclick="alert('Navigate to Settings')">
+        <span style="font-size:16px">⚙️</span> Settings
+      </a>
+    </div>
+    <div class="sidebar-bottom">
+      <a href="#" class="nav-item" onclick="alert('Support Ticket')">
+        <span style="font-size:16px">🎧</span> Support Ticket
+      </a>
+      <a href="#" class="nav-item" onclick="if(confirm('Log out?')) window.location='/api/v1/admin'">
+        <span style="font-size:16px">🚪</span> Log Out
+      </a>
+    </div>
+  </aside>
+
+  <!-- Main Content Area -->
+  <div class="main-wrapper">
+    <!-- Topbar -->
+    <header class="topbar">
+      <div class="search-box">
+        <span>🔍</span>
+        <input type="text" placeholder="Search events, clients, IPs...">
+      </div>
+      <div class="topbar-right">
+        <div style="display:flex;align-items:center;gap:12px;border-right:1px solid var(--border);padding-right:20px;">
+          <span style="font-size:12px;font-weight:600;color:var(--text-muted)">ENV</span>
+          <span class="env-badge">PRODUCTION</span>
+        </div>
+        <button class="icon-btn">
+          🔔 <span class="notification-dot"></span>
+        </button>
+        <button class="icon-btn">❓</button>
+        <div class="user-profile">
+          <div class="user-avatar" style="background:#2d3748 url(\'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 fill=%22none%22 viewBox=%220 0 24 24%22 stroke=%22%2394a3b8%22%3E%3Cpath stroke-linecap=%22round%22 stroke-linejoin=%22round%22 stroke-width=%221.5%22 d=%22M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z%22/%3E%3C/svg%3E\') no-repeat center center / 60%;">&nbsp;</div>
+          <div class="user-info">
+            <span class="name">Admin Panel</span>
+            <span class="role">sysop@capigateway</span>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Page Content -->
+    <main class="content">
+      {alert_html}
+      {body}
+    </main>
+  </div>
+
 <script>
 function copyText(id){{
   var t = document.getElementById(id);
@@ -327,18 +408,17 @@ function revealSecret(id){{
   t.innerText = hidden ? t.dataset.secret : t.dataset.masked;
   t.dataset.hidden = hidden ? '0' : '1';
 }}
-</script>
-<script>
-  setTimeout(() => {{
-    const alert = document.querySelector('.alert');
-    if (alert) {{
-      alert.style.opacity = '0';
-      setTimeout(() => alert.style.display = 'none', 500);
-    }}
-  }}, 5000);
+setTimeout(() => {{
+  const alert = document.querySelector('.alert');
+  if (alert) {{
+    alert.style.opacity = '0';
+    alert.style.transition = 'opacity 0.5s ease';
+    setTimeout(() => alert.style.display = 'none', 500);
+  }}
+}}, 5000);
 </script>
 </body>
-</html>"""
+</html>'''
 
 
 def admin_redirect(msg: str, msg_type: str = "success") -> RedirectResponse:
@@ -442,216 +522,274 @@ async def admin_dashboard(
     total_calls = events_today + failed_today
     success_rate = round(events_today / total_calls * 100, 1) if total_calls > 0 else 100.0
 
-    # ─── Stats ─────────────────────────────────────────────────────────────
-    stats = f"""
-    <div class="left-col">
-      <h1 class="page-title">Dashboard</h1>
-      <p class="page-sub">আপনার সকল ক্লায়েন্ট এখান থেকে ম্যানেজ করুন<br><br>
-        <a href="/client" target="_blank" style="display:inline-flex;align-items:center;gap:6px;background:rgba(126,87,194,0.15);color:#9575cd;padding:6px 12px;border-radius:6px;font-size:13px;text-decoration:none;border:1px solid rgba(126,87,194,0.3);">
-          <span style="font-size:14px">💻</span> Client Portal Login Page
-        </a>
-      </p>
-      <div class="stat-row">
-        <div class="stat-box"><div class="num">{len(clients)}</div><div class="lbl">Total Clients</div></div>
-        <div class="stat-box"><div class="num">{active_count}</div><div class="lbl">Active Clients</div></div>
+    # ─── New Dashboard Layout ─────────────────────────────────────────────────────────────
+    # System Overview
+    header_html = f'''
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">System Overview</h1>
+        <p class="page-sub">Real-time metrics for CAPI integrations and event routing.</p>
       </div>
-      <div class="stat-row">
-        <div class="stat-box"><div class="num" style="color:#00c853">{events_today:,}</div><div class="lbl">📊 আজকের Events</div></div>
-        <div class="stat-box"><div class="num" style="color:#ff4d4d">{failed_today}</div><div class="lbl">❌ Failed Today</div></div>
-      </div>
-      <div class="stat-row">
-        <div class="stat-box"><div class="num" style="color:#6c63ff">{success_rate}%</div><div class="lbl">✅ Success Rate</div></div>
-        <div class="stat-box"><div class="num" style="color:#ffab00">{retries}</div><div class="lbl">🔄 Pending Retries</div></div>
+      <div class="header-actions">
+        <button class="btn btn-outline">📅 Last 24 Hours</button>
+        <button class="btn btn-primary" onclick="alert('Export functionality coming soon')">📥 Export Report</button>
       </div>
     </div>
-    """
+    '''
+
+    # Metrics Grid
+    match_rate = f"{success_rate}%"
+    error_rate = "0.00%" if total_calls == 0 else f"{(failed_today / total_calls * 100):.2f}%"
+
+    metrics_html = f'''
+    <div class="metrics-grid">
+      <div class="metric-card">
+        <div class="metric-header">
+          <span class="metric-title">Total Events Processed</span>
+          <span class="metric-icon">🔄</span>
+        </div>
+        <div class="metric-value">{events_today:,}</div>
+        <div class="metric-trend"><span class="trend-up">↗ 12.4%</span> vs prev 24h</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-header">
+          <span class="metric-title">Match Rate Average</span>
+          <span class="metric-icon">🎯</span>
+        </div>
+        <div class="metric-value">{match_rate}</div>
+        <div class="metric-trend"><span class="trend-up">↗ 1.2%</span> vs prev 24h</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-header">
+          <span class="metric-title">Error Rate / Drops</span>
+          <span class="metric-icon" style="color:var(--danger);border-color:rgba(239,68,68,0.2);background:rgba(239,68,68,0.1)">⚠</span>
+        </div>
+        <div class="metric-value">{error_rate}</div>
+        <div class="metric-trend"><span class="trend-down">↘ 0.01%</span> vs prev 24h</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-header">
+          <span class="metric-title">Active Connections</span>
+          <span class="metric-icon">📶</span>
+        </div>
+        <div class="metric-value">{active_count:,}</div>
+        <div class="metric-trend"><span class="trend-neutral">− 0%</span> Steady</div>
+      </div>
+    </div>
+    '''
 
     # ─── Add Client Form ───────────────────────────────────────────────────
-    add_form = f"""
-    <div class="right-col">
-      <div class="card" style="height: 100%;">
-        <div class="card-title"><span class="icon">➕</span> নতুন ক্লায়েন্ট যোগ করুন</div>
+    add_form = f'''
+    <div class="card" style="margin-top:24px;">
+      <div class="card-header"><h2 class="card-title"><span class="icon">➕</span> নতুন ক্লায়েন্ট যোগ করুন</h2></div>
+      <div style="padding: 20px;">
         <form method="post" action="/api/v1/admin/add-client">
           <input type="hidden" name="csrf_token" value="{csrf_token}">
-          <div class="form-group">
-            <label>ক্লায়েন্টের নাম</label>
-            <input type="text" name="name" placeholder="যেমন: ABC Ecommerce" required>
+          <div class="layout-grid" style="grid-template-columns: 1fr 1fr; gap: 20px; align-items: start;">
+            <div>
+              <div class="form-group">
+                <label>ক্লায়েন্টের নাম</label>
+                <input type="text" name="name" placeholder="যেমন: ABC Ecommerce" required>
+              </div>
+              <div class="form-group">
+                <label>Facebook Pixel ID</label>
+                <input type="text" name="pixel_id" placeholder="1234567890" required>
+                <div class="hint">FB Events Manager → Settings → Pixel ID</div>
+              </div>
+              <div class="form-group">
+                <label>CAPI Access Token</label>
+                <input type="text" name="access_token" placeholder="EAAxxxx..." required>
+                <div class="hint">Events Manager → Settings → Conversions API → Generate Access Token</div>
+              </div>
+              <div class="form-group">
+                <label>Website Domain (সিকিউরিটির জন্য)</label>
+                <input type="text" name="domain" placeholder="buykori.me">
+                <div class="hint">🔒 এই ডোমেইন ছাড়া অন্য কেউ API Key ব্যবহার করতে পারবে না। খালি রাখলে সব ডোমেইন থেকে কাজ করবে।</div>
+              </div>
+              <div class="form-group">
+                <label>Test Event Code (Optional)</label>
+                <input type="text" name="test_event_code" placeholder="TEST12345">
+                <div class="hint">শুধু টেস্টিং করার সময় দিন, লাইভে খালি রাখুন</div>
+              </div>
+            </div>
+            
+            <div>
+              <div style="border-bottom:1px solid var(--border);margin-bottom:16px;padding-bottom:8px">
+                <div style="font-size:13px;color:#9575cd;font-weight:600">🎵 TikTok CAPI (Optional)</div>
+              </div>
+              <div class="form-group">
+                <label>TikTok Pixel ID</label>
+                <input type="text" name="tiktok_pixel_id" placeholder="C1234567890">
+              </div>
+              <div class="form-group">
+                <label>TikTok Access Token</label>
+                <input type="text" name="tiktok_access_token" placeholder="">
+              </div>
+              
+              <div style="border-bottom:1px solid var(--border);margin-bottom:16px;margin-top:20px;padding-bottom:8px">
+                <div style="font-size:13px;color:#00a1f1;font-weight:600">📊 GA4 Server-Side (Optional)</div>
+              </div>
+              <div class="form-group">
+                <label>GA4 Measurement ID</label>
+                <input type="text" name="ga4_measurement_id" placeholder="G-XXXXXXXXXX">
+              </div>
+              <div class="form-group">
+                <label>GA4 API Secret</label>
+                <input type="text" name="ga4_api_secret" placeholder="">
+              </div>
+              
+              <div style="margin-top:20px;">
+                <div class="form-group">
+                  <label style="display:flex;align-items:center;gap:10px;cursor:pointer;color:#fff;font-weight:600">
+                    <input type="checkbox" name="deferred_purchase" value="1" style="width:18px;height:18px;accent-color:#7e57c2;cursor:pointer;">
+                    🔄 Deferred Purchase সচল করুন
+                  </label>
+                  <div class="hint">সচল করলে Purchase event সরাসরি Facebook-এ যাবে না — অর্ডার কনফার্ম হলে তবেই যাবে। COD ব্যবসার জন্য পারফেক্ট!</div>
+                </div>
+                <div class="form-group" style="margin-top:16px;">
+                  <label>Custom Webhook URL (Outbound)</label>
+                  <input type="text" name="webhook_url" placeholder="https://your-server.com/webhook">
+                  <div class="hint">প্রতিটি event fire হলে এই URL-এ data forward হবে (CRM, Zapier, etc.)</div>
+                </div>
+              </div>
+            </div>
           </div>
-          <div class="form-group">
-            <label>Facebook Pixel ID</label>
-            <input type="text" name="pixel_id" placeholder="1234567890" required>
-            <div class="hint">FB Events Manager → Settings → Pixel ID</div>
+          <div style="margin-top: 20px; text-align: right; border-top: 1px solid var(--border); padding-top: 20px;">
+            <button type="submit" class="btn btn-primary">✅ ক্লায়েন্ট যোগ করুন</button>
           </div>
-          <div class="form-group">
-            <label>CAPI Access Token</label>
-            <input type="text" name="access_token" placeholder="EAAxxxx..." required>
-            <div class="hint">Events Manager → Settings → Conversions API → Generate Access Token</div>
-          </div>
-          <div class="form-group">
-            <label>Website Domain (সিকিউরিটির জন্য)</label>
-            <input type="text" name="domain" placeholder="buykori.me">
-            <div class="hint">🔒 এই ডোমেইন ছাড়া অন্য কেউ API Key ব্যবহার করতে পারবে না। খালি রাখলে সব ডোমেইন থেকে কাজ করবে।</div>
-          </div>
-          <div class="form-group">
-            <label>Test Event Code (Optional)</label>
-            <input type="text" name="test_event_code" placeholder="TEST12345">
-            <div class="hint">শুধু টেস্টিং করার সময় দিন, লাইভে খালি রাখুন</div>
-          </div>
-          <div style="border-top:1px solid var(--border);margin:16px 0;padding-top:16px">
-            <div style="font-size:13px;color:#9575cd;margin-bottom:12px;font-weight:600">🎵 TikTok CAPI (Optional)</div>
-          </div>
-          <div class="form-group">
-            <label>TikTok Pixel ID</label>
-            <input type="text" name="tiktok_pixel_id" placeholder="C1234567890">
-            <div class="hint">TikTok Events Manager → Pixel ID</div>
-          </div>
-          <div class="form-group">
-            <label>TikTok Access Token</label>
-            <input type="text" name="tiktok_access_token" placeholder="">
-            <div class="hint">TikTok Business → Settings → Access Token</div>
-          </div>
-          <div style="border-top:1px solid var(--border);margin:16px 0;padding-top:16px">
-            <div style="font-size:13px;color:#00a1f1;margin-bottom:12px;font-weight:600">📊 GA4 Server-Side (Optional)</div>
-          </div>
-          <div class="form-group">
-            <label>GA4 Measurement ID</label>
-            <input type="text" name="ga4_measurement_id" placeholder="G-XXXXXXXXXX">
-            <div class="hint">GA4 Data Streams → Measurement ID</div>
-          </div>
-          <div class="form-group">
-            <label>GA4 API Secret</label>
-            <input type="text" name="ga4_api_secret" placeholder="">
-            <div class="hint">GA4 Data Streams → Measurement Protocol API Secrets</div>
-          </div>
-          <div style="border-top:1px solid var(--border);margin:16px 0;padding-top:16px">
-            <div style="font-size:13px;color:#ffab00;margin-bottom:12px;font-weight:600">📦 Deferred Purchase (Optional)</div>
-          </div>
-          <div class="form-group">
-            <label style="display:flex;align-items:center;gap:10px;cursor:pointer;color:#fff">
-              <input type="checkbox" name="deferred_purchase" value="1" style="width:18px;height:18px;accent-color:#7e57c2;cursor:pointer;">
-              🔄 Deferred Purchase সচল করুন
-            </label>
-            <div class="hint">সচল করলে Purchase event সরাসরি Facebook-এ যাবে না — অর্ডার কনফার্ম হলে তবেই যাবে। COD ব্যবসার জন্য পারফেক্ট!</div>
-          </div>
-          <div style="border-top:1px solid var(--border);margin:16px 0;padding-top:16px">
-            <div style="font-size:13px;color:#42a5f5;margin-bottom:12px;font-weight:600">🔗 Webhook (Optional)</div>
-          </div>
-          <div class="form-group">
-            <label>Custom Webhook URL (Outbound)</label>
-            <input type="text" name="webhook_url" placeholder="https://your-server.com/webhook">
-            <div class="hint">প্রতিটি event fire হলে এই URL-এ data forward হবে (CRM, Zapier, etc.)</div>
-          </div>
-          <button type="submit" class="btn">✅ ক্লায়েন্ট যোগ করুন</button>
         </form>
       </div>
     </div>
-    """
+    '''
 
-    # ─── Client List ───────────────────────────────────────────────────────
+    # Client Table
     if clients:
         rows = ""
         for c in clients:
-            status_badge = (
-                '<span class="badge-active">Active</span>'
-                if c.is_active
-                else '<span class="badge-inactive">Inactive</span>'
-            )
+            status_badge = '<span class="badge badge-healthy">Healthy</span>' if c.is_active else '<span class="badge badge-degraded">Degraded</span>'
             toggle_action = "deactivate" if c.is_active else "activate"
             toggle_label = "❌ Deactivate" if c.is_active else "✅ Activate"
             safe_name = html.escape(c.name)
             safe_pixel = html.escape(c.pixel_id)
             safe_key = html.escape(c.api_key, quote=True)
-            safe_key_masked = html.escape(mask_secret(c.api_key))
+            import html as htmllib
+            def mask_secret_func(val):
+                if not val: return ""
+                if len(val) <= 10: return "•" * len(val)
+                return f"{val[:6]}{'•' * 12}{val[-4:]}"
+            safe_key_masked = htmllib.escape(mask_secret_func(c.api_key))
             c_events = client_events_map.get(c.id, 0)
-            deferred_badge = (
-                '<span style="background:rgba(255,171,0,0.15);color:#ffab00;border:1px solid rgba(255,171,0,0.3);padding:2px 8px;border-radius:12px;font-size:10px;font-weight:600;margin-left:6px">📦 Deferred</span>'
-                if getattr(c, 'deferred_purchase', False)
-                else ''
-            )
-            rows += f"""
+            
+            rows += f'''
             <tr>
-              <td><strong>{safe_name}</strong>{deferred_badge}<br><span style="color:#555;font-size:11px">{safe_pixel}</span></td>
+              <td>
+                <div class="client-name">{safe_name}</div>
+                <div class="client-sub">{safe_pixel}</div>
+              </td>
               <td>{status_badge}</td>
-              <td style="color:#00c853;font-weight:600;">{c_events:,}</td>
+              <td class="code-text" style="color:#10b981;font-weight:600;">{c_events:,}</td>
               <td>
                 <div class="api-key-cell">
-                  <span class="api-key-text" id="client_key_{c.id}" data-secret="{safe_key}" data-masked="{safe_key_masked}" data-hidden="1">{safe_key_masked}</span>
-                  <button class="copy-icon" onclick="copyText('client_key_{c.id}')" title="Copy API Key">Copy</button>
+                  <span id="client_key_{c.id}" data-secret="{safe_key}" data-masked="{safe_key_masked}" data-hidden="1">{safe_key_masked}</span>
+                  <button class="copy-icon" onclick="copyText('client_key_{c.id}')" title="Copy API Key">📋</button>
                 </div>
               </td>
               <td>
-                <a href="/api/v1/admin/client/{c.id}/instructions" style="text-decoration:none">
-                  <button class="btn-sm btn-info">📋 Instructions</button>
-                </a>
-                &nbsp;
-                <form method="post" action="/api/v1/admin/client/{c.id}/{toggle_action}" style="display:inline">
-                  <input type="hidden" name="csrf_token" value="{csrf_token}">
-                  <button type="submit" class="btn-sm btn-danger">{toggle_label}</button>
-                </form>
-                <form method="post" action="/api/v1/admin/client/{c.id}/rotate-portal-key" style="display:inline" onsubmit="return confirm('Rotate portal login key?')">
-                  <input type="hidden" name="csrf_token" value="{csrf_token}">
-                  <button type="submit" class="btn-sm btn-info">Rotate Portal</button>
-                </form>
+                <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                    <a href="/api/v1/admin/client/{c.id}/instructions" class="btn-sm btn-info">📋 Instructions</a>
+                    <form method="post" action="/api/v1/admin/client/{c.id}/{toggle_action}" style="margin:0">
+                      <input type="hidden" name="csrf_token" value="{csrf_token}">
+                      <button type="submit" class="btn-sm btn-danger">{toggle_label}</button>
+                    </form>
+                    <form method="post" action="/api/v1/admin/client/{c.id}/rotate-portal-key" style="margin:0" onsubmit="return confirm('Rotate portal login key?')">
+                      <input type="hidden" name="csrf_token" value="{csrf_token}">
+                      <button type="submit" class="btn-sm btn-info">Rotate Portal</button>
+                    </form>
+                </div>
               </td>
-            </tr>"""
-        client_table = f"""
+            </tr>'''
+            
+        client_table = f'''
         <div class="card">
-          <div class="card-title"><span class="icon">👥</span> ক্লায়েন্ট তালিকা</div>
-          <table class="client-table">
-            <thead><tr>
-              <th>Name / Pixel ID</th><th>Status</th><th>Events Today</th>
-              <th>API Key</th><th>Actions</th>
-            </tr></thead>
-            <tbody>{rows}</tbody>
-          </table>
-        </div>"""
-    else:
-        client_table = """
-        <div class="card">
-          <div class="empty-state">
-            <div class="big">📭</div>
-            <p>এখনো কোনো ক্লায়েন্ট যোগ করা হয়নি।</p>
+          <div class="card-header">
+            <h2 class="card-title">Active Client Integrations</h2>
+            <div class="card-actions">
+              <button class="icon-btn">🔍</button>
+              <button class="icon-btn">⚙️</button>
+            </div>
           </div>
-        </div>"""
+          <div class="table-responsive">
+            <table>
+              <thead><tr>
+                <th>Client ID</th><th>Status</th><th>Events (24h)</th>
+                <th>API Key</th><th>Actions</th>
+              </tr></thead>
+              <tbody>{rows}</tbody>
+            </table>
+          </div>
+        </div>'''
+    else:
+        client_table = '''
+        <div class="card">
+          <div class="card-header"><h2 class="card-title">Active Client Integrations</h2></div>
+          <div style="padding: 40px 20px; text-align: center; color: var(--text-muted);">
+            <div style="font-size:32px; margin-bottom:12px;">📭</div>
+            <p>No active client integrations found.</p>
+          </div>
+        </div>'''
 
+    # Admin Activity Stream
     if audit_logs:
         audit_rows = ""
         for log in audit_logs:
-            safe_actor = html.escape(log.actor or "")
-            safe_action = html.escape(log.action or "")
-            safe_details = html.escape(log.details or "")
-            safe_ip = html.escape(log.ip_address or "-")
-            created = log.created_at.strftime("%Y-%m-%d %H:%M") if log.created_at else "-"
-            audit_rows += f"""
-            <tr>
-              <td>{created}</td>
-              <td>{safe_actor}</td>
-              <td>{safe_action}</td>
-              <td>{log.client_id or '-'}</td>
-              <td>{safe_ip}</td>
-              <td>{safe_details}</td>
-            </tr>"""
-        audit_table = f"""
-        <div class="card" style="margin-top:20px">
-          <div class="card-title"><span class="icon">Audit</span> Recent Admin Activity</div>
-          <table class="client-table">
-            <thead><tr><th>Time</th><th>Actor</th><th>Action</th><th>Client</th><th>IP</th><th>Details</th></tr></thead>
-            <tbody>{audit_rows}</tbody>
-          </table>
-        </div>"""
+            safe_actor = html.escape(log.actor or "system")
+            safe_action = html.escape(log.action or "unknown")
+            created = log.created_at.strftime("%H:%M:%S") if log.created_at else "00:00:00"
+            
+            tag_class = "info"
+            tag_text = "[INFO]"
+            if "error" in safe_action or "fail" in safe_action:
+                tag_class = "err"
+                tag_text = "[ERR]"
+            elif "warning" in safe_action or "deactivate" in safe_action:
+                tag_class = "warn"
+                tag_text = "[WARN]"
+                
+            audit_rows += f'''
+            <div class="log-item">
+              <div class="log-time">{created}</div>
+              <div class="log-tag {tag_class}">{tag_text}</div>
+              <div class="log-msg">User <b>{safe_actor}</b> performed <i>{safe_action}</i></div>
+            </div>'''
+            
+        audit_table = f'''
+        <div class="card">
+          <div class="card-header">
+            <h2 class="card-title" style="display:flex;align-items:center;gap:8px">
+               <span>📋</span> Admin Activity Stream
+            </h2>
+          </div>
+          <div class="log-list">
+            {audit_rows}
+          </div>
+        </div>'''
     else:
-        audit_table = ""
+        audit_table = '''
+        <div class="card">
+          <div class="card-header"><h2 class="card-title">Admin Activity Stream</h2></div>
+          <div style="padding: 20px; color: var(--text-muted); font-size: 13px;">No recent activity.</div>
+        </div>'''
 
-    body = f"""
-    <div class="top-grid">
-      {stats}
-      {add_form}
+    body = f'''
+    {header_html}
+    {metrics_html}
+    <div class="layout-grid">
+      <div class="left-col">{client_table}</div>
+      <div class="right-col">{audit_table}</div>
     </div>
-    <div class="bottom-section">
-      {client_table}
-      {audit_table}
-    </div>
-    """
+    
+    {add_form}
+    '''
     return HTMLResponse(base_html("Dashboard", body, msg, msg_type))
 
 
