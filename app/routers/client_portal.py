@@ -62,12 +62,62 @@ CLIENT_STYLE = """
   
   /* Main Content */
   .main-content {
-    flex: 1; height: 100vh; overflow-y: auto; padding: 32px;
+    flex: 1; height: 100vh; overflow-y: auto; padding: 32px 24px;
     background-image: radial-gradient(circle at top right, rgba(99,102,241,0.05), transparent 40%);
+  }
+  .content-wrapper {
+    max-width: 1100px;
+    margin: 0 auto;
+    width: 100%;
   }
   .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px; }
   .page-title { font-size: 28px; font-weight: 700; color: #fff; letter-spacing: -0.5px; }
   .page-sub { color: var(--text-muted); font-size: 14px; margin-top: 4px; }
+
+  /* Hamburger for mobile */
+  .hamburger {
+    display: none; flex-direction: column; justify-content: center; gap: 5px;
+    background: none; border: none; cursor: pointer; padding: 8px;
+    position: fixed; top: 16px; left: 16px; z-index: 200;
+  }
+  .hamburger span {
+    display: block; width: 22px; height: 2px;
+    background: #fff; border-radius: 2px; transition: all 0.3s;
+  }
+  .sidebar-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.6); z-index: 99;
+  }
+  .sidebar-overlay.open { display: block; }
+
+  /* Mobile */
+  @media (max-width: 768px) {
+    body { overflow: auto; }
+    .hamburger { display: flex; }
+    .sidebar {
+      position: fixed; left: -280px; top: 0; height: 100vh;
+      width: 260px; z-index: 100;
+      transition: left 0.3s ease; overflow-y: auto;
+    }
+    .sidebar.open { left: 0; box-shadow: 4px 0 24px rgba(0,0,0,0.5); }
+    .main-content {
+      height: auto; min-height: 100vh;
+      padding: 72px 16px 24px 16px;
+    }
+    .content-wrapper { max-width: 100%; }
+    .header { margin-bottom: 20px; }
+    .page-title { font-size: 22px; }
+    .stat-row { grid-template-columns: 1fr 1fr; gap: 12px; }
+    .stat-box .num { font-size: 22px; }
+    .card { padding: 16px; border-radius: 12px; }
+    .client-table td, .client-table th { padding: 10px 8px; font-size: 12px; }
+    .tabs { gap: 6px; }
+    .tab-btn { font-size: 12px; padding: 6px 10px; }
+  }
+  @media (max-width: 480px) {
+    .stat-row { grid-template-columns: 1fr; }
+    .main-content { padding: 68px 12px 20px 12px; }
+  }
   
   /* Tabs */
   .tab-pane { display: none; animation: fadeIn 0.3s ease; }
@@ -129,8 +179,15 @@ def client_html(title: str, body: str) -> str:
   {CLIENT_STYLE}
 </head>
 <body>
+  <!-- Mobile Hamburger Button -->
+  <button class="hamburger" id="hamburger" onclick="toggleSidebar()" aria-label="Menu">
+    <span></span><span></span><span></span>
+  </button>
+  <!-- Overlay -->
+  <div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleSidebar()"></div>
+
   <!-- Sidebar Navigation -->
-  <aside class="sidebar">
+  <aside class="sidebar" id="sidebar">
     <div class="sidebar-logo">CAPI<span>Gateway</span></div>
     <nav class="sidebar-menu">
       <a class="nav-item active" onclick="switchTab('tab-dashboard', this)"><span class="nav-icon">📊</span> Dashboard</a>
@@ -147,7 +204,9 @@ def client_html(title: str, body: str) -> str:
 
   <!-- Main Content Area -->
   <main class="main-content">
-    {body}
+    <div class="content-wrapper">
+      {body}
+    </div>
   </main>
   
   <script>
@@ -156,9 +215,18 @@ def client_html(title: str, body: str) -> str:
       for (var i = 0; i < tabs.length; i++) {{ tabs[i].classList.remove('active'); }}
       var navs = document.getElementsByClassName('nav-item');
       for (var i = 0; i < navs.length; i++) {{ navs[i].classList.remove('active'); }}
-      
       document.getElementById(tabId).classList.add('active');
       if (el) el.classList.add('active');
+      // Close sidebar on mobile after clicking
+      var sidebar = document.getElementById('sidebar');
+      if (sidebar && sidebar.classList.contains('open')) {{ toggleSidebar(); }}
+    }}
+
+    function toggleSidebar() {{
+      var sidebar = document.getElementById('sidebar');
+      var overlay = document.getElementById('sidebar-overlay');
+      sidebar.classList.toggle('open');
+      overlay.classList.toggle('open');
     }}
     
     function copyText(id) {{
