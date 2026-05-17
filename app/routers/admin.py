@@ -1398,8 +1398,12 @@ async def admin_clients(
     from datetime import datetime, timezone
     from sqlalchemy import func as sql_func, and_
     from app.models.event_log import EventLog
+    from app.models.usage_counter import UsageCounter
     today = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+    now = datetime.now(timezone.utc)
+    monthly_key_prefix = f"monthly:{now.strftime('%Y-%m')}"
 
+    # Per-client events today
     client_events_r = await db.execute(
         select(EventLog.client_id, sql_func.coalesce(sql_func.sum(EventLog.event_count), 0))
         .where(and_(EventLog.status == "success", EventLog.created_at >= today))
@@ -1407,12 +1411,19 @@ async def admin_clients(
     )
     client_events_map = {row[0]: row[1] for row in client_events_r}
 
+    # Per-client monthly usage
+    monthly_usage_r = await db.execute(
+        select(UsageCounter.client_id, UsageCounter.count)
+        .where(UsageCounter.window_key == monthly_key_prefix)
+    )
+    monthly_usage_map = {row[0]: row[1] for row in monthly_usage_r}
+
     # Stats bar
     stats_html = f"""
     <div class="page-header">
       <div>
         <h1 class="page-title">Client Management</h1>
-        <p class="page-sub">Manage all CAPI client integrations.</p>
+        <p class="page-sub">Manage all CAPI client integrations and monthly quotas.</p>
       </div>
     </div>
     <div class="metrics-grid" style="grid-template-columns: repeat(3, 1fr); margin-bottom: 24px;">
@@ -1431,7 +1442,7 @@ async def admin_clients(
     </div>
     """
 
-    # Client cards
+    # Client cards with monthly usage
     if clients:
         cards = ""
         for c in clients:
@@ -1440,13 +1451,18 @@ async def admin_clients(
             safe_key = html.escape(c.api_key, quote=True)
             safe_key_masked = html.escape(mask_secret(c.api_key))
             c_events = client_events_map.get(c.id, 0)
+            m_usage = monthly_usage_map.get(c.id, 0)
+            m_limit = c.monthly_limit or 50000
+            usage_pct = min(round(m_usage / m_limit * 100, 1), 100) if m_limit > 0 else 0
             status_badge = '<span class="badge badge-healthy">Active</span>' if c.is_active else '<span class="badge badge-degraded">Inactive</span>'
             toggle_action = "deactivate" if c.is_active else "activate"
             toggle_label = "Deactivate" if c.is_active else "Activate"
-            toggle_class = "btn-danger" if c.is_active else "btn-sm" 
-            domain_text = html.escape(c.domain) if c.domain else "<span style=\"color:var(--text-muted)\">—</span>"
+            domain_text = html.escape(c.domain) if c.domain else "—"
             created = c.created_at.strftime("%Y-%m-%d") if c.created_at else "—"
-            deferred = "Yes" if getattr(c, 'deferred_purchase', False) else "No"
+
+            # Usage bar color
+            bar_color = "#34d399" if usage_pct < 70 else ("#facc15" if usage_pct < 90 else "#ef4444")
+            usage_label_color = bar_color
 
             cards += f"""
             <div class="card" style="margin-bottom:16px;">
@@ -1458,18 +1474,36 @@ async def admin_clients(
                 <div style="display:flex;align-items:center;gap:8px">{status_badge}</div>
               </div>
               <div style="padding:20px;">
-                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:16px;">
-                  <div><div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;margin-bottom:4px">Events (24h)</div><div style="font-size:18px;font-weight:700;color:#34d399">{c_events:,}</div></div>
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:20px;">
+                  <div><div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;margin-bottom:4px">Events Today</div><div style="font-size:18px;font-weight:700;color:#34d399">{c_events:,}</div></div>
                   <div><div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;margin-bottom:4px">Domain</div><div style="font-size:13px;color:#fff">{domain_text}</div></div>
-                  <div><div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;margin-bottom:4px">Deferred Purchase</div><div style="font-size:13px;color:#fff">{deferred}</div></div>
-                </div>
-                <div style="margin-bottom:16px;">
-                  <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;margin-bottom:4px">API Key</div>
-                  <div class="api-key-cell" style="max-width:100%">
-                    <span id="ck_{c.id}" data-secret="{safe_key}" data-masked="{safe_key_masked}" data-hidden="1">{safe_key_masked}</span>
-                    <button class="copy-icon" onclick="copyText('ck_{c.id}')" title="Copy">📋</button>
+                  <div><div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;margin-bottom:4px">API Key</div>
+                    <div class="api-key-cell" style="max-width:100%">
+                      <span id="ck_{c.id}" data-secret="{safe_key}" data-masked="{safe_key_masked}" data-hidden="1">{safe_key_masked}</span>
+                      <button class="copy-icon" onclick="copyText('ck_{c.id}')" title="Copy">📋</button>
+                    </div>
                   </div>
                 </div>
+
+                <!-- Monthly Usage Section -->
+                <div style="background:rgba(0,0,0,0.2);border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:16px;">
+                  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+                    <span style="font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase">📊 Monthly Usage</span>
+                    <span style="font-size:13px;font-weight:700;color:{usage_label_color}">{m_usage:,} / {m_limit:,} <span style="font-size:11px;color:var(--text-muted)">({usage_pct}%)</span></span>
+                  </div>
+                  <div style="width:100%;height:8px;background:rgba(255,255,255,0.06);border-radius:4px;overflow:hidden">
+                    <div style="width:{usage_pct}%;height:100%;background:{bar_color};border-radius:4px;transition:width 0.5s ease"></div>
+                  </div>
+                  <div style="display:flex;justify-content:space-between;margin-top:10px;align-items:center">
+                    <span style="font-size:11px;color:var(--text-muted)">Resets on 1st of next month</span>
+                    <form method="post" action="/api/v1/admin/client/{c.id}/update-monthly-limit" style="display:flex;gap:6px;align-items:center;margin:0">
+                      <input type="hidden" name="csrf_token" value="{csrf_token}">
+                      <input type="number" name="monthly_limit" value="{m_limit}" min="0" step="1000" style="width:100px;padding:4px 8px;background:rgba(0,0,0,0.3);border:1px solid var(--border);border-radius:4px;color:#fff;font-size:12px;text-align:right">
+                      <button type="submit" class="btn-sm btn-info" style="font-size:11px;padding:4px 10px">Update</button>
+                    </form>
+                  </div>
+                </div>
+
                 <div style="display:flex;gap:8px;flex-wrap:wrap;border-top:1px solid var(--border);padding-top:16px">
                   <a href="/api/v1/admin/client/{c.id}/instructions" class="btn-sm btn-info" style="text-decoration:none">📋 Instructions</a>
                   <form method="post" action="/api/v1/admin/client/{c.id}/{toggle_action}" style="margin:0">
@@ -1499,6 +1533,44 @@ async def admin_clients(
     """
     return HTMLResponse(base_html("Clients", body, msg, msg_type, active_page="clients"))
 
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# UPDATE MONTHLY LIMIT
+# ═══════════════════════════════════════════════════════════════════════════════
+
+@router.post("/admin/client/{client_id}/update-monthly-limit", include_in_schema=False)
+async def update_monthly_limit(
+    client_id: int,
+    request: Request,
+    username: str = Depends(verify_admin),
+    csrf_token: str = Form(...),
+    monthly_limit: int = Form(...),
+    db: AsyncSession = Depends(get_db),
+):
+    verify_admin_csrf_token(csrf_token, username)
+
+    if monthly_limit < 0:
+        from urllib.parse import urlencode
+        query = urlencode({"msg": "Monthly limit must be >= 0", "msg_type": "error"})
+        return RedirectResponse(url=f"/api/v1/admin/clients?{query}", status_code=303)
+
+    await db.execute(
+        update(Client).where(Client.id == client_id).values(monthly_limit=monthly_limit)
+    )
+    await log_admin_action(db, request, username, "client.monthly_limit_updated", client_id, f"New limit: {monthly_limit:,}")
+    await db.commit()
+
+    # Clear cache
+    result = await db.execute(select(Client.api_key).where(Client.id == client_id))
+    api_key = result.scalar()
+    if api_key:
+        from app.dependencies import clear_client_cache
+        clear_client_cache(api_key)
+
+    from urllib.parse import urlencode
+    query = urlencode({"msg": f"Monthly limit updated to {monthly_limit:,} events", "msg_type": "success"})
+    return RedirectResponse(url=f"/api/v1/admin/clients?{query}", status_code=303)
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # API LOGS PAGE
