@@ -33,11 +33,16 @@ function capigw_inject_tracker() {
         'ajax_url'    => admin_url( 'admin-ajax.php' ),
         'nonce'       => wp_create_nonce( 'capigw_track_nonce' ),
         'events'      => array(
-            'pageview'    => (bool) $settings['enable_pageview'],
-            'viewcontent' => (bool) $settings['enable_viewcontent'],
-            'addtocart'   => (bool) $settings['enable_addtocart'],
-            'checkout'    => (bool) $settings['enable_checkout'],
-            'purchase'    => (bool) $settings['enable_purchase'],
+            'pageview'       => (bool) $settings['enable_pageview'],
+            'lead'           => (bool) $settings['enable_lead'],
+            'search'         => (bool) $settings['enable_search'],
+            'viewcontent'    => (bool) $settings['enable_viewcontent'],
+            'addtocart'      => (bool) $settings['enable_addtocart'],
+            'viewcart'       => (bool) $settings['enable_viewcart'],
+            'removefromcart' => (bool) $settings['enable_removefromcart'],
+            'checkout'       => (bool) $settings['enable_checkout'],
+            'addpaymentinfo' => (bool) $settings['enable_addpaymentinfo'],
+            'purchase'       => (bool) $settings['enable_purchase'],
         ),
     );
 
@@ -59,10 +64,15 @@ function capigw_inject_tracker() {
     $tracker_data['page_type'] = 'other';
     if ( function_exists( 'is_product' ) && is_product() ) {
         $tracker_data['page_type'] = 'product';
+    } elseif ( function_exists( 'is_cart' ) && is_cart() ) {
+        $tracker_data['page_type'] = 'cart';
     } elseif ( function_exists( 'is_checkout' ) && is_checkout() && ! is_order_received_page() ) {
         $tracker_data['page_type'] = 'checkout';
     } elseif ( function_exists( 'is_order_received_page' ) && is_order_received_page() ) {
         $tracker_data['page_type'] = 'thankyou';
+    } elseif ( is_search() ) {
+        $tracker_data['page_type'] = 'search';
+        $tracker_data['search_string'] = get_search_query();
     }
 
     echo "<script id='capigw-tracker-config'>\n";
@@ -177,6 +187,67 @@ function capigw_get_tracker_js() {
         sendEvent('InitiateCheckout', {});
     }
 
+    // ─── 5. ViewCart (WooCommerce Cart Page) ───────────────────────────
+    if (cfg.events && cfg.events.viewcart && cfg.page_type === 'cart') {
+        sendEvent('ViewCart', {});
+    }
+
+    // ─── 6. RemoveFromCart (WooCommerce AJAX) ──────────────────────────
+    if (cfg.events && cfg.events.removefromcart) {
+        // WooCommerce remove-from-cart click
+        document.addEventListener('click', function(e) {
+            var btn = e.target.closest('.remove_from_cart_button, a.remove');
+            if (!btn) return;
+            var pid = btn.getAttribute('data-product_id') || '';
+            sendEvent('RemoveFromCart', {
+                content_ids: [pid],
+                content_type: 'product'
+            });
+        });
+
+        // jQuery event fired by WooCommerce after cart item removal
+        if (typeof jQuery !== 'undefined') {
+            jQuery(document.body).on('removed_from_cart', function() {
+                sendEvent('RemoveFromCart', { content_type: 'product' });
+            });
+        }
+    }
+
+    // ─── 7. AddPaymentInfo (Checkout payment method selection) ─────────
+    if (cfg.events && cfg.events.addpaymentinfo && cfg.page_type === 'checkout') {
+        var paymentFired = false;
+        document.addEventListener('change', function(e) {
+            if (paymentFired) return;
+            if (e.target.name === 'payment_method' || e.target.closest('.wc_payment_methods')) {
+                paymentFired = true;
+                sendEvent('AddPaymentInfo', {
+                    payment_method: e.target.value || ''
+                });
+            }
+        });
+    }
+
+    // ─── 8. Lead (Form Submissions — Contact Forms, Newsletters) ──────
+    if (cfg.events && cfg.events.lead) {
+        document.addEventListener('submit', function(e) {
+            var form = e.target;
+            // Skip WooCommerce checkout/cart/search forms
+            if (form.classList.contains('woocommerce-checkout') ||
+                form.classList.contains('woocommerce-cart-form') ||
+                form.getAttribute('role') === 'search') return;
+            // Skip WP login/register forms
+            if (form.id === 'loginform' || form.id === 'registerform') return;
+            sendEvent('Lead', {});
+        });
+    }
+
+    // ─── 9. Search (WordPress Site Search) ─────────────────────────────
+    if (cfg.events && cfg.events.search && cfg.page_type === 'search' && cfg.search_string) {
+        sendEvent('Search', {
+            search_string: cfg.search_string
+        });
+    }
+
 })();
 JS;
 }
@@ -223,7 +294,7 @@ function capigw_ajax_track_event() {
     }
 
     // ─── Whitelist allowed event names ──────────────────────────────────
-    $allowed_events = array( 'PageView', 'ViewContent', 'AddToCart', 'InitiateCheckout', 'Purchase' );
+    $allowed_events = array( 'PageView', 'ViewContent', 'AddToCart', 'ViewCart', 'RemoveFromCart', 'InitiateCheckout', 'AddPaymentInfo', 'Purchase', 'Lead', 'Search' );
 
     // Also allow user-defined custom events from the Custom Event Builder
     if ( defined( 'CAPIGW_CUSTOM_EVENTS_KEY' ) ) {

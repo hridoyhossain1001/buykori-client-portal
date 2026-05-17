@@ -48,16 +48,24 @@ function capigw_activate() {
     // Set default options if not already set
     if ( ! get_option( CAPIGW_OPTION_KEY ) ) {
         $defaults = array(
-            'api_key'           => '',
-            'gateway_url'       => CAPIGW_DEFAULT_GATEWAY_URL,
-            'enable_pageview'   => 1,
-            'enable_viewcontent'=> 1,
-            'enable_addtocart'  => 1,
-            'enable_checkout'   => 1,
-            'enable_purchase'   => 1,
-            'deferred_purchase' => 0,  // 1 = hold purchase until order completed
-            'auto_confirm_status' => 'completed', // wc status that triggers confirm
-            'debug_mode'        => 0,
+            'api_key'              => '',
+            'gateway_url'          => CAPIGW_DEFAULT_GATEWAY_URL,
+            // Core Events
+            'enable_pageview'      => 1,
+            'enable_lead'          => 0,
+            'enable_search'        => 0,
+            // WooCommerce Events
+            'enable_viewcontent'   => 1,
+            'enable_addtocart'     => 1,
+            'enable_viewcart'      => 0,
+            'enable_removefromcart' => 0,
+            'enable_checkout'      => 1,
+            'enable_addpaymentinfo'=> 0,
+            'enable_purchase'      => 1,
+            // Advanced
+            'deferred_purchase'    => 0,  // 1 = hold purchase until order completed
+            'auto_confirm_status'  => 'completed', // wc status that triggers confirm
+            'debug_mode'           => 0,
         );
         update_option( CAPIGW_OPTION_KEY, $defaults );
     }
@@ -77,16 +85,24 @@ function capigw_deactivate() {
 function capigw_get_settings() {
     $settings = get_option( CAPIGW_OPTION_KEY, array() );
     return wp_parse_args( $settings, array(
-        'api_key'           => '',
-        'gateway_url'       => CAPIGW_DEFAULT_GATEWAY_URL,
-        'enable_pageview'   => 1,
-        'enable_viewcontent'=> 1,
-        'enable_addtocart'  => 1,
-        'enable_checkout'   => 1,
-        'enable_purchase'   => 1,
-        'deferred_purchase' => 0,
-        'auto_confirm_status' => 'completed',
-        'debug_mode'        => 0,
+        'api_key'              => '',
+        'gateway_url'          => CAPIGW_DEFAULT_GATEWAY_URL,
+        // Core Events
+        'enable_pageview'      => 1,
+        'enable_lead'          => 0,
+        'enable_search'        => 0,
+        // WooCommerce Events
+        'enable_viewcontent'   => 1,
+        'enable_addtocart'     => 1,
+        'enable_viewcart'      => 0,
+        'enable_removefromcart' => 0,
+        'enable_checkout'      => 1,
+        'enable_addpaymentinfo'=> 0,
+        'enable_purchase'      => 1,
+        // Advanced
+        'deferred_purchase'    => 0,
+        'auto_confirm_status'  => 'completed',
+        'debug_mode'           => 0,
     ) );
 }
 

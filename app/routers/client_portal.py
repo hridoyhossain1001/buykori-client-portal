@@ -822,6 +822,40 @@ capi('setUser', {{
     <div id="tab-wp" class="inner-tab-content card" style="margin-bottom:20px">
       <div class="card-title"><span class="icon">📝</span> WordPress Setup (সবচেয়ে সহজ নিয়ম)</div>
       <div style="color:#aaa;font-size:14px;line-height:1.8">
+                <!-- ★ Plugin Download Section ★ -->
+        <div style="margin-bottom:24px;padding:20px;background:linear-gradient(135deg,rgba(79,70,229,0.12),rgba(0,230,118,0.08));border:1px solid rgba(79,70,229,0.3);border-radius:12px;">
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
+            <span style="font-size:28px;">🔌</span>
+            <div>
+              <strong style="color:#fff;font-size:16px;">CAPI Gateway WordPress Plugin</strong><br>
+              <span style="color:#aaa;font-size:13px;">সবচেয়ে সহজ পদ্ধতি — ইন্সটল করুন, API Key বসান, ব্যাস!</span>
+            </div>
+          </div>
+          <a href="/api/v1/plugin/download" class="btn" style="display:inline-flex;align-items:center;gap:8px;background:#4f46e5;color:#fff;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:600;font-size:14px;border:none;cursor:pointer;transition:background 0.2s;" onmouseover="this.style.background='#4338ca'" onmouseout="this.style.background='#4f46e5'">
+            ⬇️ Download Plugin (.zip)
+          </a>
+          <div style="margin-top:14px;font-size:13px;color:#aaa;line-height:1.8">
+            <strong style="color:#00e676">ইন্সটল করার ধাপ:</strong><br>
+            <strong style="color:#fff">১.</strong> উপরের বাটনে ক্লিক করে ZIP ফাইলটি ডাউনলোড করুন।<br>
+            <strong style="color:#fff">২.</strong> WordPress Admin → <code>Plugins → Add New → Upload Plugin</code> এ যান।<br>
+            <strong style="color:#fff">৩.</strong> ডাউনলোড করা ZIP ফাইলটি আপলোড করুন এবং <strong style="color:#fff">Activate</strong> দিন।<br>
+            <strong style="color:#fff">৪.</strong> বাম মেনু থেকে <code>CAPI Gateway</code> এ গিয়ে আপনার <strong style="color:#4f46e5">API Key</strong> পেস্ট করে Save দিন।<br>
+            <strong style="color:#00e676">🎉 ব্যাস! সব ইভেন্ট অটোমেটিক ট্র্যাক হওয়া শুরু হবে!</strong>
+          </div>
+          <div style="margin-top:12px;padding:10px 14px;background:rgba(0,230,118,0.06);border:1px solid rgba(0,230,118,0.15);border-radius:8px;font-size:12px;color:#aaa;line-height:1.8">
+            ✅ PageView, ViewContent, AddToCart, Checkout, Purchase — সব অটো ট্র্যাক<br>
+            ✅ Lead, Search, ViewCart, RemoveFromCart, AddPaymentInfo সাপোর্ট<br>
+            ✅ SHA-256 PII হ্যাশিং ও কুকি ক্যাপচার বিল্ট-ইন<br>
+            ✅ Deferred Purchase (COD) সাপোর্ট<br>
+            ✅ Custom Event Builder বিল্ট-ইন
+          </div>
+        </div>
+
+        <div style="margin-bottom:20px;padding:12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:8px;text-align:center;font-size:13px;color:#888;">
+          <span style="color:#555;font-size:18px;">── অথবা ──</span><br>
+          <span style="color:#aaa">প্লাগইন ছাড়া ম্যানুয়ালি সেটআপ করতে চাইলে নিচের পদ্ধতি ফলো করুন</span>
+        </div>
+
         <p><strong style="color:#fff">ধাপ ১:</strong> আপনার WordPress ওয়েবসাইটে লগিন করুন।</p>
         <p><strong style="color:#fff">ধাপ ২:</strong> <code>WPCode</code> নামের ফ্রি প্লাগিনটি ইনস্টল এবং এক্টিভেট করুন।</p>
         <p><strong style="color:#fff">ধাপ ৩:</strong> WPCode থেকে "Header & Footer" অপশনে যান।</p>
@@ -1038,6 +1072,40 @@ capi('setUser', {{
     <div id="tab-wp" class="inner-tab-content card" style="margin-bottom:20px">
       <div class="card-title"><span class="icon">📝</span> WordPress Setup (সবচেয়ে সহজ নিয়ম)</div>
       <div style="color:#aaa;font-size:14px;line-height:1.8">
+                <!-- ★ Plugin Download Section ★ -->
+        <div style="margin-bottom:24px;padding:20px;background:linear-gradient(135deg,rgba(79,70,229,0.12),rgba(0,230,118,0.08));border:1px solid rgba(79,70,229,0.3);border-radius:12px;">
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
+            <span style="font-size:28px;">🔌</span>
+            <div>
+              <strong style="color:#fff;font-size:16px;">CAPI Gateway WordPress Plugin</strong><br>
+              <span style="color:#aaa;font-size:13px;">সবচেয়ে সহজ পদ্ধতি — ইন্সটল করুন, API Key বসান, ব্যাস!</span>
+            </div>
+          </div>
+          <a href="/api/v1/plugin/download" class="btn" style="display:inline-flex;align-items:center;gap:8px;background:#4f46e5;color:#fff;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:600;font-size:14px;border:none;cursor:pointer;transition:background 0.2s;" onmouseover="this.style.background='#4338ca'" onmouseout="this.style.background='#4f46e5'">
+            ⬇️ Download Plugin (.zip)
+          </a>
+          <div style="margin-top:14px;font-size:13px;color:#aaa;line-height:1.8">
+            <strong style="color:#00e676">ইন্সটল করার ধাপ:</strong><br>
+            <strong style="color:#fff">১.</strong> উপরের বাটনে ক্লিক করে ZIP ফাইলটি ডাউনলোড করুন।<br>
+            <strong style="color:#fff">২.</strong> WordPress Admin → <code>Plugins → Add New → Upload Plugin</code> এ যান।<br>
+            <strong style="color:#fff">৩.</strong> ডাউনলোড করা ZIP ফাইলটি আপলোড করুন এবং <strong style="color:#fff">Activate</strong> দিন।<br>
+            <strong style="color:#fff">৪.</strong> বাম মেনু থেকে <code>CAPI Gateway</code> এ গিয়ে আপনার <strong style="color:#4f46e5">API Key</strong> পেস্ট করে Save দিন।<br>
+            <strong style="color:#00e676">🎉 ব্যাস! সব ইভেন্ট অটোমেটিক ট্র্যাক হওয়া শুরু হবে!</strong>
+          </div>
+          <div style="margin-top:12px;padding:10px 14px;background:rgba(0,230,118,0.06);border:1px solid rgba(0,230,118,0.15);border-radius:8px;font-size:12px;color:#aaa;line-height:1.8">
+            ✅ PageView, ViewContent, AddToCart, Checkout, Purchase — সব অটো ট্র্যাক<br>
+            ✅ Lead, Search, ViewCart, RemoveFromCart, AddPaymentInfo সাপোর্ট<br>
+            ✅ SHA-256 PII হ্যাশিং ও কুকি ক্যাপচার বিল্ট-ইন<br>
+            ✅ Deferred Purchase (COD) সাপোর্ট<br>
+            ✅ Custom Event Builder বিল্ট-ইন
+          </div>
+        </div>
+
+        <div style="margin-bottom:20px;padding:12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:8px;text-align:center;font-size:13px;color:#888;">
+          <span style="color:#555;font-size:18px;">── অথবা ──</span><br>
+          <span style="color:#aaa">প্লাগইন ছাড়া ম্যানুয়ালি সেটআপ করতে চাইলে নিচের পদ্ধতি ফলো করুন</span>
+        </div>
+
         <p><strong style="color:#fff">ধাপ ১:</strong> আপনার WordPress ওয়েবসাইটে লগিন করুন।</p>
         <p><strong style="color:#fff">ধাপ ২:</strong> <code>WPCode</code> নামের ফ্রি প্লাগিনটি ইনস্টল এবং এক্টিভেট করুন।</p>
         <p><strong style="color:#fff">ধাপ ৩:</strong> WPCode থেকে "Header & Footer" অপশনে যান।</p>
