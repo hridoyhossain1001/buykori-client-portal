@@ -49,7 +49,6 @@ def _event_names(events: list[EventData]) -> str:
 
 
 async def _log_secondary_failure(
-    db,
     client_id: int,
     channel: str,
     event_names: str,
@@ -58,17 +57,17 @@ async def _log_secondary_failure(
     ip_address: str | None,
 ) -> None:
     try:
-        db.add(EventLog(
-            client_id=client_id,
-            event_name=f"{channel}:{event_names}"[:255],
-            event_count=event_count,
-            status="failed",
-            error_message=str(error_message)[:500],
-            ip_address=ip_address,
-        ))
-        await db.commit()
+        async with AsyncSessionLocal() as db:
+            db.add(EventLog(
+                client_id=client_id,
+                event_name=f"{channel}:{event_names}"[:255],
+                event_count=event_count,
+                status="failed",
+                error_message=str(error_message)[:500],
+                ip_address=ip_address,
+            ))
+            await db.commit()
     except Exception as log_error:
-        await db.rollback()
         logger.warning(f"Secondary failure logging failed: {log_error}")
 
 
@@ -139,6 +138,100 @@ async def _mark_dead(db, row: EventOutbox, client, error_message: str) -> None:
     await db.commit()
 
 
+async def _send_tiktok_secondary(client, events: list[EventData], event_names: str, ip_address: str | None) -> None:
+    try:
+        tiktok_result = await send_to_tiktok(client, events)
+        if not tiktok_result or tiktok_result.get("code") not in (0, None):
+            await _log_secondary_failure(
+                client.id,
+                "TikTok",
+                event_names,
+                len(events),
+                tiktok_result or "TikTok send failed",
+                ip_address,
+            )
+    except Exception as secondary_error:
+        logger.warning(f"[{client.name}] TikTok secondary send failed: {secondary_error}")
+        await _log_secondary_failure(
+            client.id,
+            "TikTok",
+            event_names,
+            len(events),
+            str(secondary_error),
+            ip_address,
+        )
+
+
+async def _send_ga4_secondary(
+    client,
+    events_data: list[dict],
+    event_names: str,
+    context: dict,
+) -> None:
+    try:
+        ga4_result = await send_to_ga4(
+            events=events_data,
+            measurement_id=client.ga4_measurement_id,
+            api_secret=client.ga4_api_secret,
+            cookies=context.get("cookies") or {},
+            ip_address=context.get("ip_address"),
+            user_agent=context.get("user_agent") or "",
+        )
+        if ga4_result and not ga4_result.get("ok", True):
+            await _log_secondary_failure(
+                client.id,
+                "GA4",
+                event_names,
+                len(events_data),
+                ga4_result.get("error") or ga4_result,
+                context.get("ip_address"),
+            )
+    except Exception as secondary_error:
+        logger.warning(f"[{client.name}] GA4 secondary send failed: {secondary_error}")
+        await _log_secondary_failure(
+            client.id,
+            "GA4",
+            event_names,
+            len(events_data),
+            str(secondary_error),
+            context.get("ip_address"),
+        )
+
+
+async def _send_webhook_secondary(client, events_data: list[dict], context: dict) -> None:
+    for event_data in events_data:
+        try:
+            sent = await send_webhook(
+                client.webhook_url,
+                "event.sent",
+                {
+                    "client_name": client.name,
+                    "event_name": event_data.get("event_name"),
+                    "event_id": event_data.get("event_id"),
+                    "custom_data": event_data.get("custom_data", {}),
+                },
+            )
+            if not sent:
+                await _log_secondary_failure(
+                    client.id,
+                    "Webhook",
+                    event_data.get("event_name") or "unknown",
+                    1,
+                    "Webhook send failed",
+                    context.get("ip_address"),
+                )
+        except Exception as secondary_error:
+            logger.warning(f"[{client.name}] Outbound webhook failed: {secondary_error}")
+            await _log_secondary_failure(
+                client.id,
+                "Webhook",
+                event_data.get("event_name") or "unknown",
+                1,
+                str(secondary_error),
+                context.get("ip_address"),
+            )
+
+
 async def process_outbox_row(row_id: int) -> None:
     async with AsyncSessionLocal() as db:
         row = await db.get(EventOutbox, row_id)
@@ -179,87 +272,22 @@ async def process_outbox_row(row_id: int) -> None:
                 ))
             await db.commit()
 
+            secondary_tasks = []
             if client.tiktok_pixel_id and client.tiktok_access_token:
-                try:
-                    tiktok_result = await send_to_tiktok(client, events)
-                    if not tiktok_result or tiktok_result.get("code") not in (0, None):
-                        await _log_secondary_failure(
-                            db,
-                            client.id,
-                            "TikTok",
-                            event_names,
-                            len(events),
-                            tiktok_result or "TikTok send failed",
-                            context.get("ip_address"),
-                        )
-                except Exception as secondary_error:
-                    logger.warning(f"[{client.name}] TikTok secondary send failed: {secondary_error}")
-                    await _log_secondary_failure(
-                        db,
-                        client.id,
-                        "TikTok",
-                        event_names,
-                        len(events),
-                        str(secondary_error),
-                        context.get("ip_address"),
-                    )
+                secondary_tasks.append(
+                    _send_tiktok_secondary(client, events, event_names, context.get("ip_address"))
+                )
 
             if client.ga4_measurement_id and client.ga4_api_secret:
-                try:
-                    ga4_result = await send_to_ga4(
-                        events=events_data,
-                        measurement_id=client.ga4_measurement_id,
-                        api_secret=client.ga4_api_secret,
-                        cookies=context.get("cookies") or {},
-                        ip_address=context.get("ip_address"),
-                        user_agent=context.get("user_agent") or "",
-                    )
-                    if ga4_result and not ga4_result.get("ok", True):
-                        await _log_secondary_failure(
-                            db,
-                            client.id,
-                            "GA4",
-                            event_names,
-                            len(events),
-                            ga4_result.get("error") or ga4_result,
-                            context.get("ip_address"),
-                        )
-                except Exception as secondary_error:
-                    logger.warning(f"[{client.name}] GA4 secondary send failed: {secondary_error}")
-                    await _log_secondary_failure(
-                        db,
-                        client.id,
-                        "GA4",
-                        event_names,
-                        len(events),
-                        str(secondary_error),
-                        context.get("ip_address"),
-                    )
+                secondary_tasks.append(
+                    _send_ga4_secondary(client, events_data, event_names, context)
+                )
 
             if client.webhook_url:
-                for event_data in events_data:
-                    try:
-                        await send_webhook(
-                            client.webhook_url,
-                            "event.sent",
-                            {
-                                "client_name": client.name,
-                                "event_name": event_data.get("event_name"),
-                                "event_id": event_data.get("event_id"),
-                                "custom_data": event_data.get("custom_data", {}),
-                            },
-                        )
-                    except Exception as secondary_error:
-                        logger.warning(f"[{client.name}] Outbound webhook failed: {secondary_error}")
-                        await _log_secondary_failure(
-                            db,
-                            client.id,
-                            "Webhook",
-                            event_data.get("event_name") or "unknown",
-                            1,
-                            str(secondary_error),
-                            context.get("ip_address"),
-                        )
+                secondary_tasks.append(_send_webhook_secondary(client, events_data, context))
+
+            if secondary_tasks:
+                await asyncio.gather(*secondary_tasks)
 
             logger.info(f"[{client.name}] Outbox row {row.id} sent ({len(events)} events).")
 
