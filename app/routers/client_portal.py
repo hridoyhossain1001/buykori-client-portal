@@ -1324,17 +1324,17 @@ function send_capi_event($event_name, $url, $value, $event_id, $product_id) {{
         <!-- UPDATE CONFIGURATION FORM -->
         <div class="card" style="margin-bottom:24px;border:1px solid rgba(79,70,229,0.3);">
           <div class="card-title"><span class="icon">⚙️</span> আপনার Integration Settings আপডেট করুন</div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;">
 
-            <!-- LEFT: All form fields -->
-            <div>
-              <form action="/client/settings/update" method="post">
+          <form action="/client/settings/update" method="post">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;">
 
+              <!-- LEFT: Facebook & General -->
+              <div>
                 <div style="font-size:12px;color:#7e57c2;font-weight:700;text-transform:uppercase;border-bottom:1px solid rgba(255,255,255,0.06);padding-bottom:8px;margin-bottom:16px;">🔵 Facebook CAPI</div>
 
                 <div style="margin-bottom:14px;">
                   <label style="display:block;font-size:13px;color:#a8b3c7;margin-bottom:6px;">Facebook Pixel ID</label>
-                  <input type="text" name="pixel_id" value="{{client.pixel_id or ''}}" style="width:100%;padding:10px 12px;background:rgba(0,0,0,0.35);border:1px solid rgba(148,163,184,0.18);border-radius:8px;color:#fff;font-size:13px;outline:none;">
+                  <input type="text" name="pixel_id" value="{html.escape(client.pixel_id or '', quote=True)}" style="width:100%;padding:10px 12px;background:rgba(0,0,0,0.35);border:1px solid rgba(148,163,184,0.18);border-radius:8px;color:#fff;font-size:13px;outline:none;">
                 </div>
 
                 <div style="margin-bottom:14px;">
@@ -1344,19 +1344,22 @@ function send_capi_event($event_name, $url, $value, $event_id, $product_id) {{
                 </div>
 
                 <div style="margin-bottom:14px;">
-                  <label style="display:block;font-size:13px;color:#a8b3c7;margin-bottom:6px;">Test Event Code (FB &amp; TikTok Testing)</label>
-                  <input type="text" name="test_event_code" value="{{client.test_event_code or ''}}" placeholder="TEST12345" style="width:100%;padding:10px 12px;background:rgba(0,0,0,0.35);border:1px solid rgba(148,163,184,0.18);border-radius:8px;color:#fff;font-size:13px;outline:none;">
-                  <div style="font-size:11px;color:#94a3b8;margin-top:4px;">লাইভ ট্র্যাকিংয়ে খালি রাখুন।</div>
+                  <label style="display:block;font-size:13px;color:#a8b3c7;margin-bottom:6px;">Test Event Code (FB Testing)</label>
+                  <input type="text" name="test_event_code" value="{html.escape(client.test_event_code or '', quote=True)}" placeholder="TEST12345" style="width:100%;padding:10px 12px;background:rgba(0,0,0,0.35);border:1px solid rgba(148,163,184,0.18);border-radius:8px;color:#fff;font-size:13px;outline:none;">
+                  <div style="font-size:11px;color:#94a3b8;margin-top:4px;">FB Events Manager থেকে কোড নিয়ে এখানে দিন। লাইভে খালি রাখুন।</div>
                 </div>
+              </div>
 
-                <div style="font-size:12px;color:#9575cd;font-weight:700;text-transform:uppercase;border-bottom:1px solid rgba(255,255,255,0.06);padding-bottom:8px;margin-bottom:16px;margin-top:20px;">🎵 TikTok CAPI</div>
+              <!-- RIGHT: TikTok & GA4 -->
+              <div>
+                <div style="font-size:12px;color:#9575cd;font-weight:700;text-transform:uppercase;border-bottom:1px solid rgba(255,255,255,0.06);padding-bottom:8px;margin-bottom:16px;">🎵 TikTok CAPI</div>
 
                 <div style="margin-bottom:14px;">
                   <label style="display:block;font-size:13px;color:#a8b3c7;margin-bottom:6px;">TikTok Pixel ID</label>
-                  <input type="text" name="tiktok_pixel_id" value="{{client.tiktok_pixel_id or ''}}" placeholder="C1234567890" style="width:100%;padding:10px 12px;background:rgba(0,0,0,0.35);border:1px solid rgba(148,163,184,0.18);border-radius:8px;color:#fff;font-size:13px;outline:none;">
+                  <input type="text" name="tiktok_pixel_id" value="{html.escape(client.tiktok_pixel_id or '', quote=True)}" placeholder="C1234567890" style="width:100%;padding:10px 12px;background:rgba(0,0,0,0.35);border:1px solid rgba(148,163,184,0.18);border-radius:8px;color:#fff;font-size:13px;outline:none;">
                 </div>
 
-                <div style="margin-bottom:14px;">
+                <div style="margin-bottom:20px;">
                   <label style="display:block;font-size:13px;color:#a8b3c7;margin-bottom:6px;">TikTok Access Token</label>
                   <input type="text" name="tiktok_access_token" placeholder="{'[Encrypted — paste new to update]' if client.tiktok_access_token else 'Paste TikTok token...'}" style="width:100%;padding:10px 12px;background:rgba(0,0,0,0.35);border:1px solid rgba(148,163,184,0.18);border-radius:8px;color:#fff;font-size:13px;outline:none;">
                   <div style="font-size:11px;color:#facc15;margin-top:4px;">⚠️ খালি রাখলে আগের টোকেন থাকবে।</div>
