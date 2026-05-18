@@ -1,10 +1,12 @@
+import hashlib
+import hmac
 import json
 import logging
 import os
 from datetime import datetime, timezone
 from urllib.parse import urlparse
 
-from fastapi import APIRouter, Depends, HTTPException, Request, BackgroundTasks, Query
+from fastapi import APIRouter, Depends, HTTPException, Request, Query, status
 from sqlalchemy import and_, func as sql_func, select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -14,12 +16,10 @@ from app.dependencies import get_current_client, CachedClient
 from app.models.event_dedup import EventDedup
 from app.models.event_log import EventLog
 from app.schemas.event import EventsPayload, EventsResponse
-from app.services.capi_service import send_to_facebook
-from app.services.tiktok_service import send_to_tiktok
 from app.services.geoip_service import get_location_data
-from app.services.ga4_service import send_to_ga4
+from app.services.event_worker import enqueue_events
 from app.services.retry_service import save_failed_event
-from app.services.usage_service import check_and_reserve_usage, rollback_usage_reservation
+from app.services.usage_service import check_and_reserve_usage
 from app.models.pending_event import PendingEvent
 
 logger = logging.getLogger(__name__)
@@ -27,6 +27,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 MAX_EVENTS_PER_REQUEST = int(os.getenv("MAX_EVENTS_PER_REQUEST", "500"))
+CAPI_SIGNATURE_WINDOW_SECONDS = int(os.getenv("CAPI_SIGNATURE_WINDOW_SECONDS", "300"))
 
 # ─── Domain Validation Helper ────────────────────────────────────────────────
 def _is_domain_allowed(request_host: str, allowed_domain: str) -> bool:
@@ -34,6 +35,33 @@ def _is_domain_allowed(request_host: str, allowed_domain: str) -> bool:
     if not request_host:
         return False
     return request_host == allowed_domain or request_host.endswith("." + allowed_domain)
+
+
+def _verify_capi_signature(
+    raw_body: bytes,
+    api_key: str,
+    timestamp: str,
+    signature: str,
+) -> bool:
+    """Verify signed X-CAPI-Origin proof without trusting a spoofable header alone."""
+    if not raw_body or not api_key or not timestamp or not signature:
+        return False
+    try:
+        issued_at = int(timestamp)
+    except (TypeError, ValueError):
+        return False
+
+    now = int(datetime.now(timezone.utc).timestamp())
+    if abs(now - issued_at) > CAPI_SIGNATURE_WINDOW_SECONDS:
+        return False
+
+    signed_payload = timestamp.encode("utf-8") + b"." + raw_body
+    expected = hmac.new(
+        api_key.encode("utf-8"),
+        signed_payload,
+        hashlib.sha256,
+    ).hexdigest()
+    return hmac.compare_digest(expected, signature)
 
 
 async def reserve_unique_events(
@@ -142,32 +170,27 @@ async def save_failure_log_and_retry_bg(
 @router.post(
     "/events",
     response_model=EventsResponse,
+    status_code=status.HTTP_202_ACCEPTED,
     summary="Facebook CAPI Events Endpoint",
 )
 async def receive_events(
     request: Request,
     payload: EventsPayload,
-    background_tasks: BackgroundTasks,
     client: CachedClient = Depends(get_current_client),
     db: AsyncSession = Depends(get_db),
     hold: bool = Query(False, description="True হলে Purchase event hold হবে"),
 ):
     """
-    ক্লায়েন্টের API Key ভেরিফাই করে Facebook CAPI-তে ইভেন্ট ফরওয়ার্ড করে।
+    ক্লায়েন্টের API Key ভেরিফাই করে ইভেন্ট durable outbox queue-তে জমা করে।
     Deduplication DB unique constraint দিয়ে atomic করা হয়েছে।
 
-    Transaction Flow (Atomic Usage):
-    ────────────────────────────────
-    1. check_and_reserve_usage()  → Atomic: check + counter increment একসাথে
-    2. reserve_unique_events()    → dedup entries INSERT করে (uncommitted)
-    3. db.commit()                → একটি single commit — dedup + usage reserve confirmed
-    4. send_to_facebook()         → Facebook-এ পাঠায়
-    5. FB fail হলে → rollback_usage_reservation() দিয়ে counter কমায়
-
-    এভাবে:
-    - Race condition নেই — atomic INSERT...RETURNING দিয়ে check+reserve
-    - FB fail হলে counter rollback হয় (retry service dedup bypass করে)
-    - কোনো partial state থাকে না
+    Transaction Flow:
+    ─────────────────
+    1. reserve_unique_events()       → dedup entries INSERT করে
+    2. check_and_reserve_usage()     → non-held events quota reserve করে
+    3. enqueue_events()              → outbox row একই transaction-এ save করে
+    4. db.commit()                   → dedup + usage + outbox durable
+    5. worker                        → পরে Facebook/TikTok/GA4/Webhook delivery করে
     """
     if not payload.data:
         raise HTTPException(status_code=400, detail="ইভেন্ট ডাটা খালি!")
@@ -188,16 +211,28 @@ async def receive_events(
         origin_host = (urlparse(origin).hostname or "").lower()
         referer_host = (urlparse(referer).hostname or "").lower()
         declared_host = (urlparse(declared_origin).hostname or declared_origin).lower().strip()
-        if not (origin_host or referer_host or declared_host):
+        signed_declared_origin_ok = False
+        if declared_host:
+            signed_declared_origin_ok = (
+                _is_domain_allowed(declared_host, allowed_domain)
+                and _verify_capi_signature(
+                    await request.body(),
+                    client.api_key,
+                    request.headers.get("x-capi-timestamp", ""),
+                    request.headers.get("x-capi-signature", ""),
+                )
+            )
+
+        if not (origin_host or referer_host or signed_declared_origin_ok):
             logger.warning(f"[{client.name}] Domain header missing for locked domain: {allowed_domain}")
             raise HTTPException(
                 status_code=403,
-                detail="Missing domain proof. Send Origin, Referer, or X-CAPI-Origin for this API Key.",
+                detail="Missing domain proof. Send Origin, Referer, or signed X-CAPI-Origin for this API Key.",
             )
         if not (
             _is_domain_allowed(origin_host, allowed_domain)
             or _is_domain_allowed(referer_host, allowed_domain)
-            or _is_domain_allowed(declared_host, allowed_domain)
+            or signed_declared_origin_ok
         ):
             logger.warning(
                 f"[{client.name}] Domain mismatch! "
@@ -243,49 +278,37 @@ async def receive_events(
                 if loc_data.get("zp") and not event.user_data.zp:
                     event.user_data.zp = [_clean_and_hash(loc_data["zp"], "zp")]
 
-    # ─── Step 1: Usage Limit — Atomic Check + Reserve ─────────────────
-    # Counter atomically বাড়ায় + limit check করে। Race condition মুক্ত!
-    reserved_keys = await check_and_reserve_usage(db, client, len(payload.data))
-
-    # ─── Step 2: Dedup reservation (uncommitted) ──────────────────────
+    # ─── Durable Outbox Transaction ───────────────────────────────────
+    # Dedup + usage reserve + queue insert একই transaction-এ commit হবে।
+    should_hold = hold or client.deferred_purchase
+    deferred_count = 0
+    queued_count = 0
     try:
         unique_events = await reserve_unique_events(db, client, payload.data)
-        # ─── Step 3: Single commit — dedup reservation confirmed ──────
-        await db.commit()
-    except Exception:
-        await db.rollback()
-        raise
+        if not unique_events:
+            await db.commit()
+            return EventsResponse(
+                status="accepted",
+                events_received=0,
+                message="All events were already received earlier (deduplicated).",
+            )
 
-    if not unique_events:
-        return EventsResponse(
-            status="success",
-            events_received=0,
-            message="সব ইভেন্ট আগেই পাঠানো হয়েছে (deduplicated)",
-        )
-
-    # ─── Step 3.5: Deferred Purchase — Purchase events হোল্ড করো ──────
-    # ক্লায়েন্টের deferred_purchase ON থাকলে বা hold=true query param থাকলে
-    # Purchase events pending_events টেবিলে সেভ হবে, Facebook-এ যাবে না
-    should_hold = hold or client.deferred_purchase
-    deferred_count = 0  # default — no deferred events
-
-    if should_hold:
         deferred_events = []
-        immediate_events = []
-
+        queue_events = []
         for event in unique_events:
-            if event.event_name == "Purchase":
+            if should_hold and event.event_name == "Purchase":
                 deferred_events.append(event)
             else:
-                immediate_events.append(event)
+                queue_events.append(event)
 
-        # Purchase events → pending_events টেবিলে সেভ
-        deferred_count = 0
+        reserved_keys = {}
+        if queue_events:
+            reserved_keys = await check_and_reserve_usage(db, client, len(queue_events))
+
+        # Purchase events → pending_events table; confirm flow sends these later.
         for event in deferred_events:
             event_dict = event.model_dump(exclude_none=True)
-            # order_id বের করো: custom_data.order_id বা event_id থেকে
-            order_id = None
-            if event.custom_data and hasattr(event.custom_data, 'order_id') and event.custom_data.order_id:
+            if event.custom_data and getattr(event.custom_data, "order_id", None):
                 order_id = event.custom_data.order_id
             elif event.event_id:
                 order_id = event.event_id
@@ -303,111 +326,48 @@ async def receive_events(
                     db.add(pending)
                     await db.flush()  # unique constraint check
                 deferred_count += 1
-                logger.info(f"[{client.name}] 📦 Purchase hold: {order_id}")
-            except Exception as e:
+                logger.info(f"[{client.name}] Purchase hold: {order_id}")
+            except Exception:
                 logger.warning(f"[{client.name}] Duplicate pending order: {order_id}")
 
-        if deferred_count > 0:
-            await db.commit()
-
-        # immediate_events (non-Purchase) না থাকলে return
-        if not immediate_events:
-            return EventsResponse(
-                status="success",
-                events_received=deferred_count,
-                message=f"📦 {deferred_count}টি Purchase event হোল্ড করা হয়েছে — কনফার্ম করলে Facebook-এ যাবে",
-            )
-
-        # বাকি events (PageView, AddToCart etc.) Facebook-এ পাঠাও
-        unique_events = immediate_events
-
-    event_names = ", ".join(sorted({event.event_name for event in unique_events}))
-
-    # ─── Step 4: Send to Facebook ─────────────────────────────────────
-    try:
-        result = await send_to_facebook(client, unique_events)
-    except Exception as e:
-        error_msg = str(e)
-        logger.error(f"Client {client.name} | Error: {error_msg}")
-
-        # ─── Usage reservation rollback — ফেইল হওয়া ইভেন্ট count হবে না ──
-        try:
-            async with AsyncSessionLocal() as rollback_db:
-                await rollback_usage_reservation(rollback_db, client, reserved_keys)
-        except Exception as rb_err:
-            logger.warning(f"[{client.name}] Usage rollback failed (non-fatal): {rb_err}")
-
-        events_as_dicts = [event.model_dump(exclude_none=True) for event in unique_events]
-        await save_failure_log_and_retry_bg(
-            client.id,
-            event_names,
-            events_as_dicts,
-            error_msg,
-            client_ip,
-        )
-
-        raise HTTPException(
-            status_code=502,
-            detail="Facebook API তে সমস্যা — ইভেন্ট retry queue-তে রাখা হয়েছে",
-        ) from e
-
-    # ─── Step 5: Usage counters already incremented by reserve step ────
-    # check_and_reserve_usage() এ counter atomic ভাবে বেড়ে গেছে।
-    # আলাদা increment দরকার নেই!
-
-    events_as_dicts = [event.model_dump(exclude_none=True) for event in unique_events]
-    background_tasks.add_task(
-        save_success_logs_bg,
-        client.id,
-        events_as_dicts,
-        result,
-        client_ip,
-    )
-
-    # ─── Step 5.5: TikTok CAPI (parallel, non-blocking) ───────────────
-    if client.tiktok_pixel_id and client.tiktok_access_token:
-        background_tasks.add_task(send_to_tiktok, client, unique_events)
-
-    # ─── Step 5.6: GA4 Server-Side (parallel, non-blocking) ───────────
-    if client.ga4_measurement_id and client.ga4_api_secret:
-        # Dictify events for GA4 to extract standard params
-        ga4_events = [evt.model_dump(exclude_none=True) for evt in unique_events]
-        background_tasks.add_task(
-            send_to_ga4,
-            events=ga4_events,
-            measurement_id=client.ga4_measurement_id,
-            api_secret=client.ga4_api_secret,
-            cookies=request.cookies,
-            ip_address=client_ip,
-            user_agent=request.headers.get("user-agent", "")
-        )
-
-    # ─── Step 5.7: Outbound Webhook (parallel, non-blocking) ──────────
-    if client.webhook_url:
-        from app.services.webhook_service import send_webhook
-        for evt in unique_events:
-            evt_dict = evt.model_dump(exclude_none=True)
-            background_tasks.add_task(
-                send_webhook,
-                client.webhook_url,
-                "event.sent",
-                {
-                    "client_name": client.name,
-                    "event_name": evt_dict.get("event_name"),
-                    "event_id": evt_dict.get("event_id"),
-                    "custom_data": evt_dict.get("custom_data", {}),
+        if queue_events:
+            events_as_dicts = [event.model_dump(exclude_none=True) for event in queue_events]
+            request_context = {
+                "ip_address": client_ip,
+                "user_agent": request.headers.get("user-agent", ""),
+                "cookies": {
+                    key: value
+                    for key, value in request.cookies.items()
+                    if key in {"_ga", "_fbp", "_fbc"}
                 },
+            }
+            await enqueue_events(
+                db,
+                client_id=client.id,
+                events_data=events_as_dicts,
+                request_context=request_context,
+                usage_reserved=reserved_keys,
             )
+            queued_count = len(queue_events)
 
-    # Response message adjust করো — deferred events থাকলে
-    total_received = len(unique_events)
-    msg = "সফলভাবে Facebook-এ পাঠানো হয়েছে"
-    if should_hold and deferred_count > 0:
-        total_received += deferred_count
-        msg = f"✅ {len(unique_events)}টি event Facebook-এ পাঠানো হয়েছে, 📦 {deferred_count}টি Purchase hold আছে"
+        await db.commit()
+    except HTTPException:
+        await db.rollback()
+        raise
+    except Exception:
+        await db.rollback()
+        logger.exception(f"[{client.name}] Event enqueue failed")
+        raise HTTPException(status_code=500, detail="Failed to enqueue events") from None
+
+    total_received = queued_count + deferred_count
+    message_parts = []
+    if queued_count:
+        message_parts.append(f"{queued_count} event(s) queued for delivery")
+    if deferred_count:
+        message_parts.append(f"{deferred_count} Purchase event(s) held for confirmation")
 
     return EventsResponse(
-        status="success",
+        status="accepted",
         events_received=total_received,
-        message=msg,
+        message="; ".join(message_parts) if message_parts else "No new events accepted.",
     )

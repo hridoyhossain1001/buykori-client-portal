@@ -98,9 +98,9 @@ async def check_and_reserve_usage(
     reserved_keys[minute_key] = incoming_event_count
 
     if new_rate > rate_limit:
-        # Rollback this reservation
+        # Undo inside the current transaction; caller owns commit/rollback.
         await _atomic_rollback(db, client.id, minute_key, incoming_event_count)
-        await db.commit()
+        await db.flush()
         reserved_keys.pop(minute_key, None)
         raise HTTPException(
             status_code=429,
@@ -114,10 +114,10 @@ async def check_and_reserve_usage(
         reserved_keys[daily_key] = incoming_event_count
 
         if new_daily > client.daily_quota:
-            # Rollback all reservations
+            # Undo inside the current transaction; caller owns commit/rollback.
             for rk, rc in reserved_keys.items():
                 await _atomic_rollback(db, client.id, rk, rc)
-            await db.commit()
+            await db.flush()
             raise HTTPException(
                 status_code=429,
                 detail=f"Daily quota exceeded! Today {new_daily}/{client.daily_quota} events.",
@@ -131,10 +131,10 @@ async def check_and_reserve_usage(
         reserved_keys[monthly_key] = incoming_event_count
 
         if new_monthly > monthly_limit:
-            # Rollback all reservations
+            # Undo inside the current transaction; caller owns commit/rollback.
             for rk, rc in reserved_keys.items():
                 await _atomic_rollback(db, client.id, rk, rc)
-            await db.commit()
+            await db.flush()
             raise HTTPException(
                 status_code=429,
                 detail=f"Monthly quota exceeded! This month {new_monthly}/{monthly_limit} events.",

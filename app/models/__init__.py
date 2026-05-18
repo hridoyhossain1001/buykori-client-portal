@@ -6,3 +6,4 @@ from app.models.failed_event import FailedEvent  # noqa: F401
 from app.models.usage_counter import UsageCounter  # noqa: F401
 from app.models.pending_event import PendingEvent  # noqa: F401
 from app.models.audit_log import AuditLog  # noqa: F401
+from app.models.event_outbox import EventOutbox  # noqa: F401

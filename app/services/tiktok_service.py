@@ -93,12 +93,17 @@ def _build_tiktok_payload(client, events: List[EventData]) -> dict:
 
         tiktok_events.append(tt_event)
 
-    return {
+    payload = {
         "pixel_code": client.tiktok_pixel_id,
         "event_source": "web",
         "event_source_id": client.tiktok_pixel_id,
         "data": tiktok_events,
     }
+    
+    if client.test_event_code:
+        payload["test_event_code"] = client.test_event_code
+        
+    return payload
 
 
 async def send_to_tiktok(client, events: List[EventData]) -> dict | None:

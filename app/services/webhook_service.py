@@ -5,6 +5,7 @@ Webhook Service — Custom outbound webhook sender.
 
 import logging
 import ipaddress
+import socket
 from datetime import datetime, timezone
 from urllib.parse import urlparse
 
@@ -13,9 +14,30 @@ from app.services.capi_service import get_http_client
 logger = logging.getLogger(__name__)
 
 
+def _hostname_is_global(host: str) -> bool:
+    try:
+        addrinfos = socket.getaddrinfo(host, None, type=socket.SOCK_STREAM)
+    except socket.gaierror:
+        return False
+
+    addresses = {info[4][0] for info in addrinfos}
+    if not addresses:
+        return False
+
+    for address in addresses:
+        try:
+            if not ipaddress.ip_address(address).is_global:
+                return False
+        except ValueError:
+            return False
+    return True
+
+
 def _webhook_url_allowed(webhook_url: str) -> bool:
     parsed = urlparse(webhook_url)
     if parsed.scheme not in {"https", "http"} or not parsed.hostname:
+        return False
+    if parsed.username or parsed.password:
         return False
     host = parsed.hostname.lower()
     if host in {"localhost", "127.0.0.1", "::1"} or host.endswith(".local"):
@@ -24,7 +46,7 @@ def _webhook_url_allowed(webhook_url: str) -> bool:
         ip = ipaddress.ip_address(host)
         return ip.is_global
     except ValueError:
-        return True
+        return _hostname_is_global(host)
 
 
 async def send_webhook(webhook_url: str, event_type: str, data: dict) -> bool:
@@ -49,6 +71,7 @@ async def send_webhook(webhook_url: str, event_type: str, data: dict) -> bool:
             json=payload,
             headers={"Content-Type": "application/json"},
             timeout=10.0,
+            follow_redirects=False,
         )
         logger.info(f"🔗 Webhook sent to {webhook_url[:40]}... status={resp.status_code}")
         return resp.status_code < 400

@@ -487,6 +487,7 @@ async def admin_dashboard(
     from sqlalchemy import func as sql_func, and_
     from app.models.event_log import EventLog
     from app.models.failed_event import FailedEvent
+    from app.models.event_outbox import EventOutbox
 
     today = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
 
@@ -521,6 +522,13 @@ async def admin_dashboard(
         )
     )
     retries = retry_r.scalar() or 0
+
+    outbox_r = await db.execute(
+        select(sql_func.count(EventOutbox.id)).where(
+            EventOutbox.status.in_(["queued", "processing"])
+        )
+    )
+    queued_events = outbox_r.scalar() or 0
 
     total_calls = events_today + failed_today
     success_rate = round(events_today / total_calls * 100, 1) if total_calls > 0 else 100.0
@@ -572,11 +580,11 @@ async def admin_dashboard(
       </div>
       <div class="metric-card">
         <div class="metric-header">
-          <span class="metric-title">Active Connections</span>
+          <span class="metric-title">Queued Outbox</span>
           <span class="metric-icon">📶</span>
         </div>
-        <div class="metric-value">{active_count:,}</div>
-        <div class="metric-trend"><span class="trend-neutral">− 0%</span> Steady</div>
+        <div class="metric-value">{queued_events:,}</div>
+        <div class="metric-trend"><span class="trend-neutral">{retries:,}</span> legacy retries</div>
       </div>
     </div>
     '''

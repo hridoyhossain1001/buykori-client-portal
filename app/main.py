@@ -2,6 +2,7 @@ import logging
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import ORJSONResponse
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
@@ -23,6 +24,17 @@ if not ADMIN_API_KEY:
     raise RuntimeError("ADMIN_API_KEY environment variable is required.")
 
 ENABLE_DOCS = os.getenv("ENABLE_DOCS", "").lower() in ("true", "1", "yes")
+
+
+def _csv_env(name: str, default: str) -> list[str]:
+    values = os.getenv(name, default)
+    return [value.strip() for value in values.split(",") if value.strip()]
+
+
+ALLOWED_HOSTS = _csv_env(
+    "ALLOWED_HOSTS",
+    "localhost,127.0.0.1,testserver,*.herokuapp.com",
+)
 
 # ─── Logging Setup ───────────────────────────────────────────────────────────
 logging.basicConfig(
@@ -98,6 +110,11 @@ app = FastAPI(
 
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+app.add_middleware(
+    TrustedHostMiddleware,
+    allowed_hosts=ALLOWED_HOSTS,
+)
 
 # ─── CORS — Multi-Tenant Tracker: allow_origins=["*"] ইচ্ছাকৃত ─────────────
 # ব্রাউজার ট্র্যাকার (t.js) যেকোনো ক্লায়েন্ট ওয়েবসাইট থেকে cross-origin request পাঠায়।

@@ -1,40 +1,53 @@
 """
-Access Token Encryption — Fernet symmetric encryption ব্যবহার করে
-DB-তে Facebook Access Token encrypted রাখে।
+Token encryption helpers.
 
-ENCRYPTION_KEY env var সেট করতে হবে। জেনারেট করতে:
+ENCRYPTION_KEY must be a valid Fernet key. Generate one with:
     python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
 """
-import os
 import logging
+import os
+
 from cryptography.fernet import Fernet, InvalidToken
 
 logger = logging.getLogger(__name__)
 
 ENCRYPTION_KEY = os.getenv("ENCRYPTION_KEY")
+ALLOW_LEGACY_PLAINTEXT_TOKENS = os.getenv(
+    "ALLOW_LEGACY_PLAINTEXT_TOKENS",
+    "",
+).lower() in ("true", "1", "yes")
 
 if not ENCRYPTION_KEY:
     raise RuntimeError("ENCRYPTION_KEY environment variable is required.")
-else:
-    try:
-        _fernet = Fernet(ENCRYPTION_KEY.encode())
-    except ValueError as exc:
-        raise RuntimeError("ENCRYPTION_KEY must be a valid Fernet key.") from exc
+
+try:
+    _fernet = Fernet(ENCRYPTION_KEY.encode())
+except ValueError as exc:
+    raise RuntimeError("ENCRYPTION_KEY must be a valid Fernet key.") from exc
 
 
 def encrypt_token(plaintext: str) -> str:
-    """Token encrypt করে।"""
+    """Encrypt a token for storage or a signed session cookie."""
     return _fernet.encrypt(plaintext.encode()).decode()
 
 
-def decrypt_token(encrypted: str) -> str:
-    """Token decrypt করে।"""
+def decrypt_token(encrypted: str, *, allow_legacy_plaintext: bool | None = None) -> str:
+    """Decrypt a token and fail closed unless legacy fallback is explicitly enabled."""
     try:
         return _fernet.decrypt(encrypted.encode()).decode()
-    except Exception:
-        # Fallback for old plaintext tokens — log warning for debugging
-        logger.warning(
-            f"Token decryption failed — returning as-is (length={len(encrypted)}). "
-            "This may indicate a key rotation issue or a pre-encryption plaintext token."
+    except InvalidToken:
+        allow_fallback = (
+            ALLOW_LEGACY_PLAINTEXT_TOKENS
+            if allow_legacy_plaintext is None
+            else allow_legacy_plaintext
         )
-        return encrypted
+        if allow_fallback:
+            logger.warning(
+                f"Token decryption failed; using legacy plaintext fallback (length={len(encrypted)}). "
+                "Disable ALLOW_LEGACY_PLAINTEXT_TOKENS after migration."
+            )
+            return encrypted
+        raise
+    except Exception:
+        logger.warning("Token decryption failed because the encrypted value is malformed.")
+        raise

@@ -115,6 +115,17 @@ function capigw_site_origin() {
     return $scheme . '://' . strtolower( $parts['host'] );
 }
 
+function capigw_signed_headers( $api_key, $body ) {
+    $timestamp = (string) time();
+    $signature = hash_hmac( 'sha256', $timestamp . '.' . $body, $api_key );
+
+    return array(
+        'X-CAPI-Origin'    => capigw_site_origin(),
+        'X-CAPI-Timestamp' => $timestamp,
+        'X-CAPI-Signature' => $signature,
+    );
+}
+
 function capigw_normalize_host( $host ) {
     $host = strtolower( trim( (string) $host ) );
     if ( strpos( $host, 'www.' ) === 0 ) {
@@ -154,17 +165,18 @@ function capigw_send_event( $event_data, $blocking = true ) {
 
     $body = wp_json_encode( array( 'data' => array( $event_data ) ) );
 
+    $headers = array_merge( array(
+        'Content-Type' => 'application/json',
+        'X-API-Key'    => $settings['api_key'],
+    ), capigw_signed_headers( $settings['api_key'], $body ) );
+
     $response = wp_remote_post( $url, array(
         'timeout'     => 10,
         'redirection' => 0,
         'httpversion' => '1.1',
         'blocking'    => (bool) $blocking,
         'sslverify'   => true,
-        'headers'     => array(
-            'Content-Type' => 'application/json',
-            'X-API-Key'    => $settings['api_key'],
-            'X-CAPI-Origin'=> capigw_site_origin(),
-        ),
+        'headers'     => $headers,
         'body'        => $body,
     ) );
 

@@ -474,16 +474,17 @@ function capigw_track_purchase( $order_id ) {
     // If deferred_purchase is ON, send with hold=true query param
     if ( $settings['deferred_purchase'] ) {
         $url = rtrim( $settings['gateway_url'], '/' ) . '/events?hold=true';
+        $body = wp_json_encode( array( 'data' => array( $event_payload ) ) );
+        $headers = array_merge( array(
+            'Content-Type' => 'application/json',
+            'X-API-Key'    => $settings['api_key'],
+        ), capigw_signed_headers( $settings['api_key'], $body ) );
 
         $response = wp_remote_post( $url, array(
             'timeout'   => 10,
             'sslverify' => true,
-            'headers'   => array(
-                'Content-Type' => 'application/json',
-                'X-API-Key'    => $settings['api_key'],
-                'X-CAPI-Origin'=> capigw_site_origin(),
-            ),
-            'body'      => wp_json_encode( array( 'data' => array( $event_payload ) ) ),
+            'headers'   => $headers,
+            'body'      => $body,
         ) );
 
         if ( is_wp_error( $response ) ) {

@@ -8,6 +8,9 @@ from app.security import decrypt_token
 logger = logging.getLogger(__name__)
 
 FACEBOOK_API_VERSION = os.getenv("FACEBOOK_API_VERSION", "v21.0")
+HTTP_MAX_CONNECTIONS = int(os.getenv("HTTP_MAX_CONNECTIONS", "100"))
+HTTP_MAX_KEEPALIVE_CONNECTIONS = int(os.getenv("HTTP_MAX_KEEPALIVE_CONNECTIONS", "40"))
+HTTP_TIMEOUT_SECONDS = float(os.getenv("HTTP_TIMEOUT_SECONDS", "15.0"))
 
 # ─── Global Persistent HTTP Client ─────────────────────────────────────────
 # TCP connection reuse + HTTP/2 multiplexing = 3-5x faster Facebook API calls
@@ -20,10 +23,10 @@ async def get_http_client() -> httpx.AsyncClient:
     global _http_client
     if _http_client is None or _http_client.is_closed:
         _http_client = httpx.AsyncClient(
-            timeout=15.0,
+            timeout=HTTP_TIMEOUT_SECONDS,
             limits=httpx.Limits(
-                max_connections=50,           # সর্বোচ্চ 50 concurrent connections
-                max_keepalive_connections=20,  # 20 connections alive রাখো
+                max_connections=HTTP_MAX_CONNECTIONS,
+                max_keepalive_connections=HTTP_MAX_KEEPALIVE_CONNECTIONS,
             ),
             http2=True,  # HTTP/2 multiplexing — একটা connection-এ multiple request!
         )

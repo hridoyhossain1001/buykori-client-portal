@@ -88,7 +88,10 @@ async def get_current_client(
     if not x_api_key:
         encrypted_session = request.cookies.get("client_session")
         if encrypted_session:
-            decrypted = decrypt_token(encrypted_session)
+            try:
+                decrypted = decrypt_token(encrypted_session, allow_legacy_plaintext=False)
+            except Exception:
+                decrypted = None
             if decrypted and decrypted.startswith("client:"):
                 import secrets
                 try:

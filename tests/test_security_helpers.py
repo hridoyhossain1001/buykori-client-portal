@@ -1,6 +1,7 @@
 import hashlib
 import hmac
 import os
+from datetime import datetime, timezone
 
 os.environ.setdefault("ADMIN_PASSWORD", "test-admin-password")
 os.environ.setdefault("ADMIN_API_KEY", "test-admin-api-key")
@@ -8,7 +9,7 @@ os.environ.setdefault("DATABASE_URL", "postgresql://user:pass@localhost:5432/tes
 os.environ.setdefault("ENCRYPTION_KEY", "ZFhnf1szwemka8kBbH9jPTC7oKBRTEv0EqWt1J8AD0M=")
 
 from app.routers.admin import create_admin_csrf_token, mask_secret, verify_admin_csrf_token
-from app.routers.events import _is_domain_allowed
+from app.routers.events import _is_domain_allowed, _verify_capi_signature
 
 
 def test_admin_csrf_token_round_trip():
@@ -33,6 +34,19 @@ def test_domain_matching_is_exact_or_real_subdomain():
     assert _is_domain_allowed("shop.example.com", "example.com")
     assert not _is_domain_allowed("badexample.com", "example.com")
     assert not _is_domain_allowed("example.com.attacker.test", "example.com")
+
+
+def test_capi_signature_contract():
+    body = b'{"data":[]}'
+    api_key = "client-secret"
+    timestamp = str(int(datetime.now(timezone.utc).timestamp()))
+    signature = hmac.new(
+        api_key.encode(),
+        timestamp.encode() + b"." + body,
+        hashlib.sha256,
+    ).hexdigest()
+
+    assert _verify_capi_signature(body, api_key, timestamp, signature)
 
 
 def test_mask_secret_keeps_edges_only():

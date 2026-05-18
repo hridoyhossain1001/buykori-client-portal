@@ -9,7 +9,10 @@ class CapiUser(HttpUser):
         self.api_key = os.getenv("CAPI_LOAD_TEST_API_KEY")
         if not self.api_key:
             raise RuntimeError("Set CAPI_LOAD_TEST_API_KEY before running Locust.")
-        self.headers = {"X-API-Key": self.api_key}
+        self.headers = {
+            "X-API-Key": self.api_key,
+            "Origin": "https://novamartbd.me"
+        }
 
     @task
     def send_event(self):

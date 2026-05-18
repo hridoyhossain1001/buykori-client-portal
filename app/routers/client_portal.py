@@ -248,6 +248,18 @@ def client_html(title: str, body: str) -> str:
       setTimeout(() => eventTarget.innerText = origText, 1500);
     }}
 
+    function escapeHtml(value) {{
+      return String(value == null ? '' : value).replace(/[&<>"']/g, function(ch) {{
+        return {{
+          '&': '&amp;',
+          '<': '&lt;',
+          '>': '&gt;',
+          '"': '&quot;',
+          "'": '&#39;'
+        }}[ch];
+      }});
+    }}
+
     function revealSecret(id) {{
       var t = document.getElementById(id);
       if (!t || !t.dataset.secret) return;
@@ -292,7 +304,7 @@ def get_client_from_cookie(request: Request) -> Optional[str]:
     if not encrypted:
         return None
     try:
-        return decrypt_token(encrypted)
+        return decrypt_token(encrypted, allow_legacy_plaintext=False)
     except Exception:
         return None
 
@@ -1555,12 +1567,12 @@ function send_capi_event($event_name, $url, $value, $event_id, $product_id) {{
           var maxCount = Math.max(...data.funnel.map(function(f) {{ return f.count; }}), 1);
           var fhtml = '';
           data.funnel.forEach(function(step, i) {{
-            var width = Math.max((step.count / maxCount) * 100, 5);
-            var dropText = i > 0 && step.drop_off > 0 ? '<span style="color:#ff5252;font-size:11px;margin-left:8px;">↓' + step.drop_off.toFixed(1) + '%</span>' : '';
+            var width = Math.max((Number(step.count || 0) / maxCount) * 100, 5);
+            var dropText = i > 0 && step.drop_off > 0 ? '<span style="color:#ff5252;font-size:11px;margin-left:8px;">↓' + Number(step.drop_off).toFixed(1) + '%</span>' : '';
             fhtml += '<div style="margin-bottom:10px;">' +
               '<div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;">' +
-                '<span style="color:#ccc">' + step.step + dropText + '</span>' +
-                '<span style="color:#fff;font-weight:600">' + step.count.toLocaleString() + '</span>' +
+                '<span style="color:#ccc">' + escapeHtml(step.step) + dropText + '</span>' +
+                '<span style="color:#fff;font-weight:600">' + Number(step.count || 0).toLocaleString() + '</span>' +
               '</div>' +
               '<div style="background:rgba(255,255,255,0.05);border-radius:6px;height:8px;overflow:hidden;">' +
                 '<div style="width:' + width + '%;height:100%;background:' + funnelColors[i % 5] + ';border-radius:6px;transition:width 0.8s ease;"></div>' +
@@ -1648,9 +1660,9 @@ function send_capi_event($event_name, $url, $value, $event_id, $product_id) {{
         }});
         var data = await res.json();
         if (res.ok) {{
-          el.innerHTML = '<span style="color:#00e676">✅ ' + evName + ' event পাঠানো হয়েছে!</span><br><span style="color:#666">ID: ' + data.event_id + '</span>';
+          el.innerHTML = '<span style="color:#00e676">✅ ' + escapeHtml(evName) + ' event পাঠানো হয়েছে!</span><br><span style="color:#666">ID: ' + escapeHtml(data.event_id) + '</span>';
         }} else {{
-          el.innerHTML = '<span style="color:#ff5252">❌ ' + (data.detail || 'Error') + '</span>';
+          el.innerHTML = '<span style="color:#ff5252">❌ ' + escapeHtml(data.detail || 'Error') + '</span>';
         }}
       }} catch(e) {{
         el.innerHTML = '<span style="color:#ff5252">❌ Network error</span>';
@@ -1676,11 +1688,11 @@ function send_capi_event($event_name, $url, $value, $event_id, $product_id) {{
         html += '</div>';
         data.issues.forEach(function(i) {{
           var c = i.status === 'ok' ? '#00e676' : i.status === 'warning' ? '#ffab00' : '#ff5252';
-          html += '<div style="color:' + c + ';margin:2px 0;">' + i.message + '</div>';
+          html += '<div style="color:' + c + ';margin:2px 0;">' + escapeHtml(i.message) + '</div>';
         }});
         el.innerHTML = html;
       }} catch(e) {{
-        el.innerHTML = '<span style="color:#ff5252">❌ Invalid JSON: ' + e.message + '</span>';
+        el.innerHTML = '<span style="color:#ff5252">❌ Invalid JSON: ' + escapeHtml(e.message) + '</span>';
       }}
     }}
 
@@ -1704,13 +1716,13 @@ function send_capi_event($event_name, $url, $value, $event_id, $product_id) {{
           html += '<div style="padding:6px 8px;border-bottom:1px solid rgba(255,255,255,0.03);display:flex;gap:12px;align-items:center;">';
           html += '<span style="color:#555;min-width:55px;">' + ageStr + '</span>';
           html += '<span style="color:' + statusColor + ';min-width:12px;">' + (ev.status === 'success' ? '●' : '○') + '</span>';
-          html += '<span style="color:#ccc;min-width:120px;font-weight:600;">' + ev.event_name + '</span>';
-          html += '<span style="color:#555;font-size:10px;">' + (ev.event_id || '') + '</span>';
+          html += '<span style="color:#ccc;min-width:120px;font-weight:600;">' + escapeHtml(ev.event_name) + '</span>';
+          html += '<span style="color:#555;font-size:10px;">' + escapeHtml(ev.event_id || '') + '</span>';
           html += '</div>';
         }});
         el.innerHTML = html;
       }} catch(e) {{
-        el.innerHTML = '<span style="color:#ff5252">Error: ' + e.message + '</span>';
+        el.innerHTML = '<span style="color:#ff5252">Error: ' + escapeHtml(e.message) + '</span>';
       }}
     }}
     // Auto-load live events
