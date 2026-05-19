@@ -26,6 +26,7 @@ from app.models.client import Client
 from app.models.event_dedup import EventDedup
 from app.schemas.event import EventData, UserData, CustomData
 from app.services.bot_detector import is_bot
+from app.services.event_quality import boost_event_quality
 from app.services.geoip_service import get_location_data
 from app.services.event_worker import enqueue_events
 from app.services.tracker_sdk import generate_tracker_js
@@ -238,6 +239,12 @@ async def collect_event(
                 custom_data=custom_data,
                 emq_score=emq,
             )
+            boost_event_quality(
+                event,
+                cookies=dict(request.cookies),
+                ip_address=client_ip,
+                user_agent=user_agent,
+            )
             parsed_events.append(event)
         except Exception as e:
             logger.warning(f"[{client.name}] Tracker event parse error: {e}")
@@ -292,7 +299,7 @@ async def collect_event(
                     "cookies": {
                         key: value
                         for key, value in request.cookies.items()
-                        if key in {"_ga", "_fbp", "_fbc"}
+                        if key in {"_ga", "_fbp", "_fbc", "_ttp", "_ttclid"}
                     },
                 },
                 usage_reserved=reserved_keys,

@@ -17,6 +17,7 @@ from app.models.event_dedup import EventDedup
 from app.models.event_log import EventLog
 from app.schemas.event import EventsPayload, EventsResponse
 from app.services.geoip_service import get_location_data
+from app.services.event_quality import boost_event_quality, event_signal_flags
 from app.services.event_worker import enqueue_events
 from app.services.retry_service import save_failed_event
 from app.services.usage_service import check_and_reserve_usage
@@ -28,6 +29,33 @@ router = APIRouter()
 
 MAX_EVENTS_PER_REQUEST = int(os.getenv("MAX_EVENTS_PER_REQUEST", "500"))
 CAPI_SIGNATURE_WINDOW_SECONDS = int(os.getenv("CAPI_SIGNATURE_WINDOW_SECONDS", "300"))
+
+
+def _event_log_kwargs(client_id: int, event: dict, status: str, client_ip: str | None, **extra) -> dict:
+    custom_data = event.get("custom_data") or {}
+    utm_source = custom_data.get("utm_source")
+    try:
+        value = float(custom_data.get("value")) if custom_data.get("value") is not None else None
+    except (TypeError, ValueError):
+        value = None
+    return {
+        "client_id": client_id,
+        "event_name": event.get("event_name") or "unknown",
+        "event_id": event.get("event_id"),
+        "event_count": 1,
+        "status": status,
+        "ip_address": client_ip,
+        "value": value,
+        "currency": custom_data.get("currency"),
+        "campaign_source": custom_data.get("campaign_source") or utm_source,
+        "utm_source": utm_source,
+        "utm_medium": custom_data.get("utm_medium"),
+        "utm_campaign": custom_data.get("utm_campaign"),
+        "utm_content": custom_data.get("utm_content"),
+        "utm_term": custom_data.get("utm_term"),
+        **event_signal_flags(event),
+        **extra,
+    }
 
 # ─── Domain Validation Helper ────────────────────────────────────────────────
 def _is_domain_allowed(request_host: str, allowed_domain: str) -> bool:
@@ -123,15 +151,13 @@ async def save_success_logs_bg(
     try:
         async with AsyncSessionLocal() as db:
             log_entries = [
-                EventLog(
-                    client_id=client_id,
-                    event_name=event.get("event_name") or "unknown",
-                    event_id=event.get("event_id"),
-                    event_count=1,
-                    status="success",
+                EventLog(**_event_log_kwargs(
+                    client_id,
+                    event,
+                    "success",
+                    client_ip,
                     fb_response=json.dumps(fb_result) if fb_result else None,
-                    ip_address=client_ip,
-                )
+                ))
                 for event in events_data
             ]
             db.add_all(log_entries)
@@ -277,6 +303,12 @@ async def receive_events(
                     event.user_data.country = [_clean_and_hash(loc_data["country"], "country")]
                 if loc_data.get("zp") and not event.user_data.zp:
                     event.user_data.zp = [_clean_and_hash(loc_data["zp"], "zp")]
+        boost_event_quality(
+            event,
+            cookies=dict(request.cookies),
+            ip_address=client_ip,
+            user_agent=request.headers.get("user-agent"),
+        )
 
     # ─── Durable Outbox Transaction ───────────────────────────────────
     # Dedup + usage reserve + queue insert একই transaction-এ commit হবে।
@@ -338,7 +370,7 @@ async def receive_events(
                 "cookies": {
                     key: value
                     for key, value in request.cookies.items()
-                    if key in {"_ga", "_fbp", "_fbc"}
+                    if key in {"_ga", "_fbp", "_fbc", "_ttp", "_ttclid"}
                 },
             }
             await enqueue_events(

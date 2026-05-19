@@ -33,6 +33,9 @@ class CachedClient:
     rate_limit: int
     daily_quota: int
     monthly_limit: int | None
+    enable_facebook: bool
+    enable_tiktok: bool
+    enable_ga4: bool
     tiktok_pixel_id: str | None
     tiktok_access_token: str | None
     ga4_measurement_id: str | None
@@ -67,6 +70,9 @@ def _snapshot(client: Client) -> CachedClient:
         rate_limit=client.rate_limit or 5000,
         daily_quota=client.daily_quota or 100000,
         monthly_limit=getattr(client, 'monthly_limit', None),
+        enable_facebook=getattr(client, 'enable_facebook', True),
+        enable_tiktok=getattr(client, 'enable_tiktok', True),
+        enable_ga4=getattr(client, 'enable_ga4', True),
         tiktok_pixel_id=getattr(client, 'tiktok_pixel_id', None),
         tiktok_access_token=getattr(client, 'tiktok_access_token', None),
         ga4_measurement_id=getattr(client, 'ga4_measurement_id', None),

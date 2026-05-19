@@ -11,10 +11,16 @@ from fastapi import APIRouter, Depends, HTTPException, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, update
+from sqlalchemy import delete as sql_delete, select, update
 from app.database import get_db
 from app.models.client import Client
 from app.models.audit_log import AuditLog
+from app.models.event_dedup import EventDedup
+from app.models.event_log import EventLog
+from app.models.event_outbox import EventOutbox
+from app.models.failed_event import FailedEvent
+from app.models.pending_event import PendingEvent
+from app.models.usage_counter import UsageCounter
 from app.security import encrypt_token
 from app.services.webhook_service import _webhook_url_allowed
 from app.limiter import limiter
@@ -664,6 +670,7 @@ async def admin_dashboard(
               <div class="form-group">
                 <label>CAPI Access Token</label>
                 <input type="text" name="access_token" placeholder="EAAxxxx..." required>
+                <label style="display:flex;align-items:center;gap:8px;margin-top:10px;color:#fff"><input type="checkbox" name="enable_facebook" value="1" checked> Facebook CAPI delivery ON</label>
                 <div class="hint">Events Manager → Settings → Conversions API → Generate Access Token</div>
               </div>
               <div class="form-group">
@@ -693,6 +700,7 @@ async def admin_dashboard(
               <div class="form-group">
                 <label>TikTok Test Event Code (Optional)</label>
                 <input type="text" name="tiktok_test_event_code" placeholder="TEST38483">
+                <label style="display:flex;align-items:center;gap:8px;margin-top:10px;color:#fff"><input type="checkbox" name="enable_tiktok" value="1" checked> TikTok CAPI delivery ON</label>
                 <div class="hint">TikTok Events Manager → Test Events থেকে কোড দিন। লাইভে খালি রাখুন।</div>
               </div>
               
@@ -706,6 +714,7 @@ async def admin_dashboard(
               <div class="form-group">
                 <label>GA4 API Secret</label>
                 <input type="text" name="ga4_api_secret" placeholder="">
+                <label style="display:flex;align-items:center;gap:8px;margin-top:10px;color:#fff"><input type="checkbox" name="enable_ga4" value="1" checked> GA4 server-side delivery ON</label>
               </div>
               
               <div style="margin-top:20px;">
@@ -774,6 +783,10 @@ async def admin_dashboard(
                     <form method="post" action="/api/v1/admin/client/{c.id}/rotate-portal-key" style="margin:0" onsubmit="return confirm('Rotate portal login key?')">
                       <input type="hidden" name="csrf_token" value="{csrf_token}">
                       <button type="submit" class="btn-sm btn-info">Rotate Portal</button>
+                    </form>
+                    <form method="post" action="/api/v1/admin/client/{c.id}/delete" style="margin:0" onsubmit="return confirm('Permanently delete this client? This will remove logs, outbox, pending orders and usage data for this client.')">
+                      <input type="hidden" name="csrf_token" value="{csrf_token}">
+                      <button type="submit" class="btn-sm btn-danger">Delete</button>
                     </form>
                 </div>
               </td>
@@ -879,6 +892,9 @@ async def add_client(
     tiktok_test_event_code: str = Form(None),
     ga4_measurement_id: str = Form(None),
     ga4_api_secret: str = Form(None),
+    enable_facebook: str = Form(None),
+    enable_tiktok: str = Form(None),
+    enable_ga4: str = Form(None),
     deferred_purchase: str = Form(None),
     webhook_url: str = Form(None),
     db: AsyncSession = Depends(get_db),
@@ -921,6 +937,9 @@ async def add_client(
         api_key=secrets.token_urlsafe(32),
         public_key=secrets.token_urlsafe(24),
         portal_key=secrets.token_urlsafe(24),
+        enable_facebook=enable_facebook == "1",
+        enable_tiktok=enable_tiktok == "1",
+        enable_ga4=enable_ga4 == "1",
         tiktok_pixel_id=tiktok_pixel_id.strip() if tiktok_pixel_id and tiktok_pixel_id.strip() else None,
         tiktok_access_token=encrypt_token(tiktok_access_token.strip()) if tiktok_access_token and tiktok_access_token.strip() else None,
         tiktok_test_event_code=tiktok_test_event_code.strip() if tiktok_test_event_code and tiktok_test_event_code.strip() else None,
@@ -1459,6 +1478,41 @@ async def activate_client(
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
+@router.post("/admin/client/{client_id}/delete", include_in_schema=False)
+async def delete_client(
+    client_id: int,
+    request: Request,
+    username: str = Depends(verify_admin),
+    csrf_token: str = Form(...),
+    db: AsyncSession = Depends(get_db),
+):
+    verify_admin_csrf_token(csrf_token, username)
+
+    result = await db.execute(select(Client).where(Client.id == client_id))
+    client = result.scalar_one_or_none()
+    if not client:
+        return admin_redirect("Client not found", "error")
+
+    client_name = client.name
+    api_key = client.api_key
+
+    await db.execute(sql_delete(EventOutbox).where(EventOutbox.client_id == client_id))
+    await db.execute(sql_delete(FailedEvent).where(FailedEvent.client_id == client_id))
+    await db.execute(sql_delete(PendingEvent).where(PendingEvent.client_id == client_id))
+    await db.execute(sql_delete(EventDedup).where(EventDedup.client_id == client_id))
+    await db.execute(sql_delete(UsageCounter).where(UsageCounter.client_id == client_id))
+    await db.execute(sql_delete(EventLog).where(EventLog.client_id == client_id))
+    await db.delete(client)
+    await log_admin_action(db, request, username, "client.deleted", client_id, f"Deleted client: {client_name}")
+    await db.commit()
+
+    if api_key:
+        from app.dependencies import clear_client_cache
+        clear_client_cache(api_key)
+
+    return admin_redirect(f"Client deleted: {client_name}")
+
+
 # CLIENTS PAGE
 # ═══════════════════════════════════════════════════════════════════════════════
 
@@ -1605,6 +1659,10 @@ async def admin_clients(
                     <input type="hidden" name="csrf_token" value="{csrf_token}">
                     <button type="submit" class="btn-sm btn-info">Rotate Portal Key</button>
                   </form>
+                  <form method="post" action="/api/v1/admin/client/{c.id}/delete" style="margin:0" onsubmit="return confirm('Permanently delete this client? This will remove logs, outbox, pending orders and usage data for this client.')">
+                    <input type="hidden" name="csrf_token" value="{csrf_token}">
+                    <button type="submit" class="btn-sm btn-danger">Delete Client</button>
+                  </form>
                 </div>
               </div>
             </div>"""
@@ -1655,6 +1713,9 @@ async def edit_client_form(
     has_access_token = bool(client.access_token)
     has_tiktok_token = bool(client.tiktok_access_token)
     has_ga4_secret = bool(client.ga4_api_secret)
+    fb_enabled_checked = 'checked' if getattr(client, 'enable_facebook', True) else ''
+    tiktok_enabled_checked = 'checked' if getattr(client, 'enable_tiktok', True) else ''
+    ga4_enabled_checked = 'checked' if getattr(client, 'enable_ga4', True) else ''
     deferred_checked = 'checked' if getattr(client, 'deferred_purchase', False) else ''
 
     body = f"""
@@ -1694,6 +1755,7 @@ async def edit_client_form(
               <div class="form-group">
                 <label>CAPI Access Token</label>
                 <input type="text" name="access_token" placeholder="{'[Encrypted — paste new to update]' if has_access_token else 'EAAxxxx...'}">
+                <label style="display:flex;align-items:center;gap:8px;margin-top:10px;color:#fff"><input type="checkbox" name="enable_facebook" value="1" {fb_enabled_checked}> Facebook CAPI delivery ON</label>
                 <div class="hint" style="color:#facc15">⚠️ খালি রাখলে বর্তমান টোকেন রাখা থাকবে।</div>
               </div>
 
@@ -1742,6 +1804,7 @@ async def edit_client_form(
               <div class="form-group">
                 <label>TikTok Test Event Code (Optional)</label>
                 <input type="text" name="tiktok_test_event_code" value="{safe_tiktok_test_code}" placeholder="TEST38483">
+                <label style="display:flex;align-items:center;gap:8px;margin-top:10px;color:#fff"><input type="checkbox" name="enable_tiktok" value="1" {tiktok_enabled_checked}> TikTok CAPI delivery ON</label>
                 <div class="hint">TikTok Events Manager → Test Events থেকে কোড দিন। লাইভে খালি রাখুন।</div>
               </div>
 
@@ -1755,6 +1818,7 @@ async def edit_client_form(
               <div class="form-group">
                 <label>GA4 API Secret</label>
                 <input type="text" name="ga4_api_secret" placeholder="{'[Encrypted — paste new to update]' if has_ga4_secret else 'Paste GA4 API Secret...'}">
+                <label style="display:flex;align-items:center;gap:8px;margin-top:10px;color:#fff"><input type="checkbox" name="enable_ga4" value="1" {ga4_enabled_checked}> GA4 server-side delivery ON</label>
                 <div class="hint" style="color:#facc15">⚠️ খালি রাখলে বর্তমান secret রাখা থাকবে।</div>
               </div>
             </div>
@@ -1788,6 +1852,9 @@ async def edit_client_submit(
     tiktok_test_event_code: str = Form(""),
     ga4_measurement_id: str = Form(""),
     ga4_api_secret: str = Form(""),
+    enable_facebook: str = Form(None),
+    enable_tiktok: str = Form(None),
+    enable_ga4: str = Form(None),
     deferred_purchase: str = Form(None),
     webhook_url: str = Form(""),
     db: AsyncSession = Depends(get_db),
@@ -1832,6 +1899,9 @@ async def edit_client_submit(
     client.pixel_id = pixel_id
     client.domain = clean_domain
     client.test_event_code = test_event_code.strip() if test_event_code and test_event_code.strip() else None
+    client.enable_facebook = (enable_facebook == "1")
+    client.enable_tiktok = (enable_tiktok == "1")
+    client.enable_ga4 = (enable_ga4 == "1")
     client.deferred_purchase = (deferred_purchase == "1")
     client.webhook_url = clean_webhook
     client.tiktok_pixel_id = tiktok_pixel_id.strip() if tiktok_pixel_id and tiktok_pixel_id.strip() else None

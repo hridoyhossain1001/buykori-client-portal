@@ -132,6 +132,7 @@ function capigw_get_tracker_js() {
 
     var cfg = window.capigw_config || {};
     if (!cfg.ajax_url) return;
+    persistMarketingParams();
     persistTikTokClickId();
 
     // ─── Helper: Send event via AJAX (cache-safe) ──────────────────────
@@ -195,6 +196,11 @@ function capigw_get_tracker_js() {
             if (!out.contents.length) delete out.contents;
         }
 
+        var marketing = getMarketingParams();
+        Object.keys(marketing).forEach(function(key) {
+            if (!out[key] && marketing[key]) out[key] = marketing[key];
+        });
+
         return out;
     }
 
@@ -232,6 +238,31 @@ function capigw_get_tracker_js() {
         } catch(e) {
             return '';
         }
+    }
+
+    function persistMarketingParams() {
+        var keys = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term', 'campaign_source'];
+        keys.forEach(function(key) {
+            var value = getQueryParam(key);
+            if (value) {
+                document.cookie = '_capigw_' + key + '=' + encodeURIComponent(value) + '; path=/; max-age=' + (30 * 24 * 60 * 60) + '; SameSite=Lax';
+            }
+        });
+    }
+
+    function getMarketingParams() {
+        var out = {};
+        ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term', 'campaign_source'].forEach(function(key) {
+            out[key] = getQueryParam(key) || getCookie('_capigw_' + key) || '';
+        });
+        if (!out.campaign_source && out.utm_source) out.campaign_source = out.utm_source;
+        if (!out.utm_source && getTikTokClickId()) out.utm_source = 'tiktok';
+        if (!out.campaign_source && out.utm_source) out.campaign_source = out.utm_source;
+        if (!out.utm_source && getCookie('_fbc')) {
+            out.utm_source = 'facebook';
+            out.campaign_source = 'facebook';
+        }
+        return out;
     }
 
     function persistTikTokClickId() {
@@ -588,6 +619,8 @@ function capigw_ajax_track_event() {
         $custom_data = array();
     }
 
+    $custom_data = capigw_add_marketing_params( $custom_data );
+
     // Build user_data with PII hashing
     $user_data = array(
         'client_ip_address' => capigw_get_real_ip(),
@@ -660,6 +693,27 @@ function capigw_ajax_track_event() {
     capigw_send_event( $event_payload, false );
 
     wp_send_json_success( 'Event tracked' );
+}
+
+
+function capigw_add_marketing_params( $custom_data ) {
+    $keys = array( 'utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term', 'campaign_source' );
+    foreach ( $keys as $key ) {
+        if ( empty( $custom_data[ $key ] ) && ! empty( $_COOKIE[ '_capigw_' . $key ] ) ) {
+            $custom_data[ $key ] = sanitize_text_field( wp_unslash( $_COOKIE[ '_capigw_' . $key ] ) );
+        }
+    }
+    if ( empty( $custom_data['campaign_source'] ) && ! empty( $custom_data['utm_source'] ) ) {
+        $custom_data['campaign_source'] = $custom_data['utm_source'];
+    }
+    if ( empty( $custom_data['utm_source'] ) && ! empty( $_COOKIE['_ttclid'] ) ) {
+        $custom_data['utm_source'] = 'tiktok';
+        $custom_data['campaign_source'] = 'tiktok';
+    } elseif ( empty( $custom_data['utm_source'] ) && ! empty( $_COOKIE['_fbc'] ) ) {
+        $custom_data['utm_source'] = 'facebook';
+        $custom_data['campaign_source'] = 'facebook';
+    }
+    return $custom_data;
 }
 
 
@@ -784,6 +838,8 @@ function capigw_track_purchase( $order_id ) {
             'order_id'     => (string) $order_id,
         ),
     );
+
+    $event_payload['custom_data'] = capigw_add_marketing_params( $event_payload['custom_data'] );
 
     $sent = false;
 

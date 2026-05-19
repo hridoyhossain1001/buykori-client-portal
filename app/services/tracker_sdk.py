@@ -30,6 +30,7 @@ var E="{gateway_origin}/c";
 var U={{}};  // user identity store
 var Q=[];   // event queue (before DOM ready)
 var R=false; // ready flag
+persistMarketing();
 persistTtclid();
 
 /* ─── Helpers ──────────────────────────────────────────────────── */
@@ -56,6 +57,24 @@ function qp(n){{
 function persistTtclid(){{
   var id=qp('ttclid');
   if(id)document.cookie='_ttclid='+encodeURIComponent(id)+'; path=/; max-age='+(90*24*60*60)+'; SameSite=Lax';
+}}
+
+function persistMarketing(){{
+  ['utm_source','utm_medium','utm_campaign','utm_content','utm_term','campaign_source'].forEach(function(k){{
+    var v=qp(k);
+    if(v)document.cookie='_capigw_'+k+'='+encodeURIComponent(v)+'; path=/; max-age='+(30*24*60*60)+'; SameSite=Lax';
+  }});
+}}
+
+function marketing(){{
+  var out={{}};
+  ['utm_source','utm_medium','utm_campaign','utm_content','utm_term','campaign_source'].forEach(function(k){{
+    out[k]=qp(k)||gc('_capigw_'+k)||'';
+  }});
+  if(!out.campaign_source&&out.utm_source)out.campaign_source=out.utm_source;
+  if(!out.utm_source&&(qp('ttclid')||gc('_ttclid'))){{out.utm_source='tiktok';out.campaign_source='tiktok';}}
+  if(!out.utm_source&&gc('_fbc')){{out.utm_source='facebook';out.campaign_source='facebook';}}
+  return out;
 }}
 
 // SHA-256 hash (returns promise)
@@ -127,7 +146,7 @@ function send(eventName, customData, userData){{
     }};
 
     if(customData){{
-      var cd={{}};
+      var cd=marketing();
       if(customData.value!=null)cd.value=Number(customData.value);
       if(customData.currency)cd.currency=customData.currency;
       if(customData.content_ids)cd.content_ids=customData.content_ids;
@@ -135,6 +154,8 @@ function send(eventName, customData, userData){{
       if(customData.order_id)cd.order_id=customData.order_id;
       if(customData.num_items!=null)cd.num_items=Number(customData.num_items);
       evt.custom_data=cd;
+    }}else{{
+      evt.custom_data=marketing();
     }}
 
     var body=JSON.stringify({{data:[evt]}});

@@ -20,6 +20,7 @@ from app.models.event_log import EventLog
 from app.models.event_outbox import EventOutbox
 from app.schemas.event import EventData
 from app.services.capi_service import send_to_facebook
+from app.services.event_quality import event_signal_flags
 from app.services.ga4_service import send_to_ga4
 from app.services.tiktok_service import send_to_tiktok
 from app.services.usage_service import rollback_usage_reservation
@@ -46,6 +47,34 @@ def _next_attempt_after(attempts: int) -> datetime:
 
 def _event_names(events: list[EventData]) -> str:
     return ", ".join(sorted({event.event_name for event in events}))
+
+
+def _event_log_kwargs(client_id: int, event_data: dict, status: str, ip_address: str | None, **extra) -> dict:
+    custom_data = event_data.get("custom_data") or {}
+    utm_source = custom_data.get("utm_source")
+    try:
+        value = float(custom_data.get("value")) if custom_data.get("value") is not None else None
+    except (TypeError, ValueError):
+        value = None
+    campaign_source = custom_data.get("campaign_source") or utm_source
+    return {
+        "client_id": client_id,
+        "event_name": event_data.get("event_name") or "unknown",
+        "event_id": event_data.get("event_id"),
+        "event_count": 1,
+        "status": status,
+        "ip_address": ip_address,
+        "value": value,
+        "currency": custom_data.get("currency"),
+        "campaign_source": campaign_source,
+        "utm_source": utm_source,
+        "utm_medium": custom_data.get("utm_medium"),
+        "utm_campaign": custom_data.get("utm_campaign"),
+        "utm_content": custom_data.get("utm_content"),
+        "utm_term": custom_data.get("utm_term"),
+        **event_signal_flags(event_data),
+        **extra,
+    }
 
 
 async def _log_secondary_failure(
@@ -251,7 +280,39 @@ async def process_outbox_row(row_id: int) -> None:
         event_names = _event_names(events)
 
         try:
-            result = await send_to_facebook(client, events)
+            facebook_enabled = bool(getattr(client, "enable_facebook", True) and client.pixel_id and client.access_token)
+            tiktok_enabled = bool(getattr(client, "enable_tiktok", True) and client.tiktok_pixel_id and client.tiktok_access_token)
+            ga4_enabled = bool(getattr(client, "enable_ga4", True) and client.ga4_measurement_id and client.ga4_api_secret)
+            webhook_enabled = bool(client.webhook_url)
+
+            if not any([facebook_enabled, tiktok_enabled, ga4_enabled, webhook_enabled]):
+                raise RuntimeError("No delivery platform enabled for this client")
+
+            result = None
+            if facebook_enabled:
+                result = await send_to_facebook(client, events)
+
+            events_data = [event.model_dump(exclude_none=True) for event in events]
+            primary_tiktok_sent = False
+            primary_ga4_sent = False
+            if not facebook_enabled and tiktok_enabled:
+                tiktok_result = await send_to_tiktok(client, events)
+                if not tiktok_result or tiktok_result.get("code") not in (0, None):
+                    raise RuntimeError(f"TikTok send failed: {tiktok_result}")
+                primary_tiktok_sent = True
+
+            if not facebook_enabled and not tiktok_enabled and ga4_enabled:
+                ga4_result = await send_to_ga4(
+                    events=events_data,
+                    measurement_id=client.ga4_measurement_id,
+                    api_secret=client.ga4_api_secret,
+                    cookies=context.get("cookies") or {},
+                    ip_address=context.get("ip_address"),
+                    user_agent=context.get("user_agent") or "",
+                )
+                if ga4_result and not ga4_result.get("ok", True):
+                    raise RuntimeError(f"GA4 send failed: {ga4_result.get('error') or ga4_result}")
+                primary_ga4_sent = True
 
             row.status = "sent"
             row.sent_at = _now()
@@ -259,31 +320,28 @@ async def process_outbox_row(row_id: int) -> None:
             row.locked_by = None
             row.last_error = None
 
-            events_data = [event.model_dump(exclude_none=True) for event in events]
             for event_data in events_data:
-                db.add(EventLog(
-                    client_id=client.id,
-                    event_name=event_data.get("event_name") or "unknown",
-                    event_id=event_data.get("event_id"),
-                    event_count=1,
-                    status="success",
+                db.add(EventLog(**_event_log_kwargs(
+                    client.id,
+                    event_data,
+                    "success",
+                    context.get("ip_address"),
                     fb_response=json.dumps(result) if result else None,
-                    ip_address=context.get("ip_address"),
-                ))
+                )))
             await db.commit()
 
             secondary_tasks = []
-            if client.tiktok_pixel_id and client.tiktok_access_token:
+            if tiktok_enabled and not primary_tiktok_sent:
                 secondary_tasks.append(
                     _send_tiktok_secondary(client, events, event_names, context.get("ip_address"))
                 )
 
-            if client.ga4_measurement_id and client.ga4_api_secret:
+            if ga4_enabled and not primary_ga4_sent:
                 secondary_tasks.append(
                     _send_ga4_secondary(client, events_data, event_names, context)
                 )
 
-            if client.webhook_url:
+            if webhook_enabled:
                 secondary_tasks.append(_send_webhook_secondary(client, events_data, context))
 
             if secondary_tasks:

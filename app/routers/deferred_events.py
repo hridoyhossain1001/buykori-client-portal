@@ -24,6 +24,7 @@ from app.database import get_db
 from app.dependencies import get_current_client, CachedClient
 from app.models.pending_event import PendingEvent
 from app.schemas.event import EventData
+from app.services.event_quality import boost_event_quality
 from app.services.event_worker import enqueue_events
 from app.services.usage_service import check_and_reserve_usage
 
@@ -68,6 +69,13 @@ class BulkConfirmResponse(BaseModel):
     details: list
 
 
+class BulkCancelResponse(BaseModel):
+    status: str
+    cancelled: int
+    failed: int
+    details: list
+
+
 class PendingListResponse(BaseModel):
     status: str
     total: int
@@ -97,9 +105,14 @@ async def _queue_confirmed_event(
         logger.error(f"[{client.name}] Pending event parse error (order: {pending.order_id}): {e}")
         raise HTTPException(status_code=500, detail=f"Event data parse error: {e}")
 
+    user_data = event_dict.get("user_data", {}) or {}
+    boost_event_quality(
+        event,
+        ip_address=user_data.get("client_ip_address"),
+        user_agent=user_data.get("client_user_agent") or "",
+    )
     events_data = [event.model_dump(exclude_none=True)]
     reserved_keys = await check_and_reserve_usage(db, client, 1)
-    user_data = event_dict.get("user_data", {}) or {}
     await enqueue_events(
         db,
         client_id=client.id,
@@ -304,6 +317,69 @@ async def cancel_event(
         status="success",
         order_id=payload.order_id,
         message="❌ Purchase event ক্যান্সেল হয়েছে। Facebook-এ কিছু পাঠানো হয়নি।",
+    )
+
+
+# ─── POST /events/cancel/bulk — Bulk Cancel ─────────────────────────────────
+
+@router.post(
+    "/events/cancel/bulk",
+    response_model=BulkCancelResponse,
+    summary="Cancel multiple pending Purchase events",
+)
+async def bulk_cancel_events(
+    payload: BulkConfirmRequest,
+    client: CachedClient = Depends(get_current_client),
+    db: AsyncSession = Depends(get_db),
+):
+    """Cancel multiple pending Purchase events without sending anything to ad platforms."""
+    order_ids = list(dict.fromkeys(payload.order_ids))
+    if not order_ids:
+        raise HTTPException(status_code=400, detail="order_ids খালি!")
+
+    if len(order_ids) > 5000:
+        raise HTTPException(status_code=400, detail="একবারে সর্বোচ্চ 5000টি অর্ডার cancel করা যাবে।")
+
+    result = await db.execute(
+        select(PendingEvent.order_id).where(
+            and_(
+                PendingEvent.client_id == client.id,
+                PendingEvent.order_id.in_(order_ids),
+                PendingEvent.status == "pending",
+            )
+        )
+    )
+    found_ids = set(result.scalars().all())
+
+    if found_ids:
+        await db.execute(
+            update(PendingEvent)
+            .where(
+                and_(
+                    PendingEvent.client_id == client.id,
+                    PendingEvent.order_id.in_(found_ids),
+                    PendingEvent.status == "pending",
+                )
+            )
+            .values(status="cancelled")
+        )
+
+    await db.commit()
+
+    details = [
+        {"order_id": oid, "status": "cancelled" if oid in found_ids else "not_found"}
+        for oid in order_ids
+    ]
+    cancelled = len(found_ids)
+    failed = len(order_ids) - cancelled
+
+    logger.info(f"[{client.name}] Bulk cancel completed: {cancelled} cancelled, {failed} failed")
+
+    return BulkCancelResponse(
+        status="success",
+        cancelled=cancelled,
+        failed=failed,
+        details=details,
     )
 
 

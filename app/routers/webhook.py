@@ -25,6 +25,7 @@ from app.database import get_db
 from app.models.client import Client
 from app.models.pending_event import PendingEvent
 from app.schemas.event import EventData
+from app.services.event_quality import boost_event_quality
 from app.services.event_worker import enqueue_events
 from app.services.usage_service import check_and_reserve_usage
 from app.dependencies import CachedClient, _snapshot
@@ -154,9 +155,14 @@ async def woocommerce_webhook(
 
     try:
         event = EventData(**event_dict)
+        user_data = event_dict.get("user_data", {}) or {}
+        boost_event_quality(
+            event,
+            ip_address=user_data.get("client_ip_address"),
+            user_agent=user_data.get("client_user_agent") or "",
+        )
         events_data = [event.model_dump(exclude_none=True)]
         reserved_keys = await check_and_reserve_usage(db, client, 1)
-        user_data = event_dict.get("user_data", {}) or {}
         await enqueue_events(
             db,
             client_id=client.id,

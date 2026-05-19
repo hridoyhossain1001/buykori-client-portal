@@ -655,6 +655,7 @@ async def client_dashboard(request: Request, db: AsyncSession = Depends(get_db))
       <div style="display:flex;gap:10px;margin-bottom:16px;">
         <button class="btn-sm btn-info" onclick="selectAllPending()" style="font-size:12px;">☑️ Select All</button>
         <button class="btn-sm btn-info" onclick="confirmSelected()" style="font-size:12px;background:rgba(0,230,118,0.1);color:#00e676;border-color:rgba(0,230,118,0.3);">✅ Confirm Selected</button>
+        <button class="btn-sm btn-danger" onclick="cancelSelected()" style="font-size:12px;">❌ Cancel Selected</button>
       </div>
 
       <div id="pending-status" style="display:none;padding:10px 14px;border-radius:8px;margin-bottom:12px;font-size:13px;"></div>
@@ -1191,6 +1192,11 @@ capi('track', 'ViewContent', {{
           </div>
         </div>
 
+        <div class="card" style="margin-bottom:24px;border:1px solid rgba(0,230,118,0.22);">
+          <div class="card-title">Signal Health Doctor</div>
+          <div id="signal-doctor-panel" style="color:var(--text-muted);font-size:13px;">Loading signal health...</div>
+        </div>
+
         <div class="card" style="margin-bottom:24px;">
           <div class="card-title">📈 গত ৭ দিনের ইভেন্ট</div>
           <canvas id="eventsChart" height="120"></canvas>
@@ -1238,6 +1244,17 @@ capi('track', 'ViewContent', {{
           <div style="background:rgba(255,255,255,0.02);border:1px solid var(--border);border-radius:12px;padding:20px;">
             <h4 style="color:#fff;margin:0 0 16px 0;font-size:14px;">🕐 Hourly Distribution (Last 7 Days)</h4>
             <canvas id="hourlyChart" height="80"></canvas>
+          </div>
+          <div style="background:rgba(255,255,255,0.02);border:1px solid var(--border);border-radius:12px;padding:20px;margin-top:20px;">
+            <h4 style="color:#fff;margin:0 0 16px 0;font-size:14px;">Campaign Performance (UTM)</h4>
+            <div style="overflow-x:auto;">
+              <table class="client-table">
+                <thead><tr><th>Source</th><th>Campaign</th><th>View</th><th>Cart</th><th>Checkout</th><th>Purchase</th><th>Revenue</th></tr></thead>
+                <tbody id="campaign-performance-body">
+                  <tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:20px">Loading...</td></tr>
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
     </div>
@@ -1291,6 +1308,60 @@ capi('track', 'ViewContent', {{
     <!-- TAB: SETTINGS & SETUP -->
     <div id="tab-settings" class="tab-pane">
 
+        <!-- CAMPAIGN URL BUILDER -->
+        <div class="card" style="margin-bottom:24px;border:1px solid rgba(0,230,118,0.22);">
+          <div class="card-title"><span class="icon">🔗</span> Campaign URL Builder</div>
+
+          <div style="display:grid;grid-template-columns:1.2fr 0.8fr;gap:20px;">
+            <div>
+              <label style="display:block;font-size:13px;color:#a8b3c7;margin-bottom:6px;">Landing/Product URL</label>
+              <input type="text" id="campaign-url-base" value="{safe_capi_origin}" placeholder="https://your-site.com/product/item" style="width:100%;padding:10px 12px;background:rgba(0,0,0,0.35);border:1px solid rgba(148,163,184,0.18);border-radius:8px;color:#fff;font-size:13px;outline:none;margin-bottom:12px;">
+
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                <div>
+                  <label style="display:block;font-size:13px;color:#a8b3c7;margin-bottom:6px;">Platform</label>
+                  <select id="campaign-platform" onchange="updateCampaignMedium()" style="width:100%;padding:10px 12px;background:#111827;border:1px solid rgba(148,163,184,0.18);border-radius:8px;color:#fff;font-size:13px;outline:none;">
+                    <option value="facebook">Facebook</option>
+                    <option value="tiktok">TikTok</option>
+                    <option value="google">Google</option>
+                    <option value="instagram">Instagram</option>
+                    <option value="youtube">YouTube</option>
+                    <option value="email">Email</option>
+                    <option value="whatsapp">WhatsApp</option>
+                  </select>
+                </div>
+                <div>
+                  <label style="display:block;font-size:13px;color:#a8b3c7;margin-bottom:6px;">Medium</label>
+                  <input type="text" id="campaign-medium" value="paid_social" style="width:100%;padding:10px 12px;background:rgba(0,0,0,0.35);border:1px solid rgba(148,163,184,0.18);border-radius:8px;color:#fff;font-size:13px;outline:none;">
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <label style="display:block;font-size:13px;color:#a8b3c7;margin-bottom:6px;">Campaign Name</label>
+              <input type="text" id="campaign-name" placeholder="eid_sale_tshirt" style="width:100%;padding:10px 12px;background:rgba(0,0,0,0.35);border:1px solid rgba(148,163,184,0.18);border-radius:8px;color:#fff;font-size:13px;outline:none;margin-bottom:12px;">
+
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                <div>
+                  <label style="display:block;font-size:13px;color:#a8b3c7;margin-bottom:6px;">Content</label>
+                  <input type="text" id="campaign-content" placeholder="video_1" style="width:100%;padding:10px 12px;background:rgba(0,0,0,0.35);border:1px solid rgba(148,163,184,0.18);border-radius:8px;color:#fff;font-size:13px;outline:none;">
+                </div>
+                <div>
+                  <label style="display:block;font-size:13px;color:#a8b3c7;margin-bottom:6px;">Term</label>
+                  <input type="text" id="campaign-term" placeholder="optional" style="width:100%;padding:10px 12px;background:rgba(0,0,0,0.35);border:1px solid rgba(148,163,184,0.18);border-radius:8px;color:#fff;font-size:13px;outline:none;">
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div id="campaign-builder-output" class="instr-box" style="margin-top:14px;word-break:break-all;color:#cbd5e1;">Generated campaign URL will appear here</div>
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:10px;">
+            <button type="button" class="btn-sm btn-primary" onclick="generateCampaignUrl()" style="font-size:12px;">Generate URL</button>
+            <button type="button" class="copy-btn" onclick="copyText('campaign-builder-output')">Copy</button>
+            <span id="campaign-builder-status" style="font-size:12px;color:#94a3b8;"></span>
+          </div>
+        </div>
+
         <!-- UPDATE CONFIGURATION FORM -->
         <div class="card" style="margin-bottom:24px;border:1px solid rgba(79,70,229,0.3);">
           <div class="card-title"><span class="icon">⚙️</span> আপনার Integration Settings আপডেট করুন</div>
@@ -1310,6 +1381,7 @@ capi('track', 'ViewContent', {{
                 <div style="margin-bottom:14px;">
                   <label style="display:block;font-size:13px;color:#a8b3c7;margin-bottom:6px;">CAPI Access Token</label>
                   <input type="text" name="access_token" placeholder="{'[Encrypted — paste new to update]' if client.access_token else 'Paste token...'}" style="width:100%;padding:10px 12px;background:rgba(0,0,0,0.35);border:1px solid rgba(148,163,184,0.18);border-radius:8px;color:#fff;font-size:13px;outline:none;">
+                  <label style="display:flex;align-items:center;gap:8px;margin-top:10px;color:#cbd5e1;font-size:13px;"><input type="checkbox" name="enable_facebook" value="1" {'checked' if getattr(client, 'enable_facebook', True) else ''}> Facebook CAPI delivery ON</label>
                   <div style="font-size:11px;color:#facc15;margin-top:4px;">⚠️ খালি রাখলে আগের টোকেন থাকবে।</div>
                 </div>
 
@@ -1332,6 +1404,7 @@ capi('track', 'ViewContent', {{
                 <div style="margin-bottom:20px;">
                   <label style="display:block;font-size:13px;color:#a8b3c7;margin-bottom:6px;">TikTok Access Token</label>
                   <input type="text" name="tiktok_access_token" placeholder="{'[Encrypted — paste new to update]' if client.tiktok_access_token else 'Paste TikTok token...'}" style="width:100%;padding:10px 12px;background:rgba(0,0,0,0.35);border:1px solid rgba(148,163,184,0.18);border-radius:8px;color:#fff;font-size:13px;outline:none;">
+                  <label style="display:flex;align-items:center;gap:8px;margin-top:10px;color:#cbd5e1;font-size:13px;"><input type="checkbox" name="enable_tiktok" value="1" {'checked' if getattr(client, 'enable_tiktok', True) else ''}> TikTok CAPI delivery ON</label>
                   <div style="font-size:11px;color:#facc15;margin-top:4px;">⚠️ খালি রাখলে আগের টোকেন থাকবে।</div>
                 </div>
 
@@ -1351,6 +1424,7 @@ capi('track', 'ViewContent', {{
                 <div style="margin-bottom:20px;">
                   <label style="display:block;font-size:13px;color:#a8b3c7;margin-bottom:6px;">GA4 API Secret</label>
                   <input type="text" name="ga4_api_secret" placeholder="{'[Encrypted — paste new to update]' if client.ga4_api_secret else 'Paste GA4 API Secret...'}" style="width:100%;padding:10px 12px;background:rgba(0,0,0,0.35);border:1px solid rgba(148,163,184,0.18);border-radius:8px;color:#fff;font-size:13px;outline:none;">
+                  <label style="display:flex;align-items:center;gap:8px;margin-top:10px;color:#cbd5e1;font-size:13px;"><input type="checkbox" name="enable_ga4" value="1" {'checked' if getattr(client, 'enable_ga4', True) else ''}> GA4 server-side delivery ON</label>
                   <div style="font-size:11px;color:#facc15;margin-top:4px;">⚠️ খালি রাখলে আগের secret থাকবে।</div>
                 </div>
 
@@ -1432,6 +1506,79 @@ capi('track', 'ViewContent', {{
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
 
 <script>
+    function slugifyUtm(value) {{
+      return String(value || '')
+        .trim()
+        .toLowerCase()
+        .replace(/\\s+/g, '_')
+        .replace(/[^a-z0-9_.-]/g, '')
+        .replace(/_+/g, '_')
+        .replace(/^_+|_+$/g, '');
+    }}
+
+    function updateCampaignMedium() {{
+      var platformEl = document.getElementById('campaign-platform');
+      var mediumEl = document.getElementById('campaign-medium');
+      if (!platformEl || !mediumEl) return;
+      if (platformEl.value === 'google' || platformEl.value === 'youtube') {{
+        mediumEl.value = 'cpc';
+      }} else if (platformEl.value === 'email') {{
+        mediumEl.value = 'email';
+      }} else if (platformEl.value === 'whatsapp') {{
+        mediumEl.value = 'message';
+      }} else {{
+        mediumEl.value = 'paid_social';
+      }}
+    }}
+
+    function generateCampaignUrl() {{
+      var baseEl = document.getElementById('campaign-url-base');
+      var platformEl = document.getElementById('campaign-platform');
+      var mediumEl = document.getElementById('campaign-medium');
+      var campaignEl = document.getElementById('campaign-name');
+      var contentEl = document.getElementById('campaign-content');
+      var termEl = document.getElementById('campaign-term');
+      var outputEl = document.getElementById('campaign-builder-output');
+      var statusEl = document.getElementById('campaign-builder-status');
+      if (!baseEl || !platformEl || !mediumEl || !campaignEl || !outputEl || !statusEl) return;
+
+      var rawUrl = baseEl.value.trim();
+      if (!rawUrl) {{
+        statusEl.style.color = '#ff8a80';
+        statusEl.innerText = 'Landing URL দিন।';
+        return;
+      }}
+      if (!/^https?:\\/\\//i.test(rawUrl)) {{
+        rawUrl = 'https://' + rawUrl;
+      }}
+
+      var source = slugifyUtm(platformEl.value);
+      var medium = slugifyUtm(mediumEl.value);
+      var campaign = slugifyUtm(campaignEl.value);
+      var content = slugifyUtm(contentEl ? contentEl.value : '');
+      var term = slugifyUtm(termEl ? termEl.value : '');
+      if (!campaign) {{
+        statusEl.style.color = '#ff8a80';
+        statusEl.innerText = 'Campaign name দিন।';
+        return;
+      }}
+
+      try {{
+        var url = new URL(rawUrl);
+        url.searchParams.set('utm_source', source || 'unknown');
+        url.searchParams.set('utm_medium', medium || 'paid_social');
+        url.searchParams.set('utm_campaign', campaign);
+        if (content) url.searchParams.set('utm_content', content);
+        if (term) url.searchParams.set('utm_term', term);
+        outputEl.innerText = url.toString();
+        statusEl.style.color = '#00e676';
+        statusEl.innerText = 'Ready. এই link campaign/ad destination URL হিসেবে ব্যবহার করুন।';
+      }} catch (e) {{
+        statusEl.style.color = '#ff8a80';
+        statusEl.innerText = 'Valid URL দিন, যেমন https://example.com/product/item';
+      }}
+    }}
+
     var ctx = document.getElementById('eventsChart').getContext('2d');
     new Chart(ctx, {{
       type: 'line',
@@ -1482,6 +1629,33 @@ capi('track', 'ViewContent', {{
         }}
       }}
     }});
+    async function cancelSelected() {{
+      var cbs = document.querySelectorAll('.pending-cb:checked');
+      if (cbs.length === 0) {{ showStatus('⚠️ কোনো অর্ডার সিলেক্ট করা হয়নি!', 'error'); return; }}
+      if (!confirm(cbs.length + 'টি অর্ডার cancel করবেন? Facebook/TikTok/GA4-এ কিছু পাঠানো হবে না।')) return;
+
+      var orderIds = Array.from(cbs).map(function(cb) {{ return cb.value; }});
+      try {{
+        var res = await fetch(BASE_API + '/events/cancel/bulk', {{
+          method: 'POST',
+          headers: {{ 'Content-Type': 'application/json' }},
+          credentials: 'include',
+          body: JSON.stringify({{ order_ids: orderIds }})
+        }});
+        var data = await res.json();
+        if (res.ok) {{
+          showStatus('❌ ' + data.cancelled + 'টি cancel হয়েছে, ' + data.failed + 'টি ব্যর্থ।', 'success');
+          orderIds.forEach(function(oid) {{
+            var row = document.getElementById('row-' + oid);
+            if (row) {{ row.style.opacity = '0.3'; setTimeout(function() {{ row.remove(); }}, 1200); }}
+          }});
+        }} else {{
+          showStatus('❌ Error: ' + (data.detail || 'Unknown error'), 'error');
+        }}
+      }} catch(e) {{
+        showStatus('❌ Network error: ' + e.message, 'error');
+      }}
+    }}
     </script>
 
 <script>
@@ -1617,8 +1791,45 @@ capi('track', 'ViewContent', {{
 
 <script>
     // ─── Analytics Charts ─────────────────────────────────────────────────
+    function renderSignalDoctor(data) {{
+      var panel = document.getElementById('signal-doctor-panel');
+      if (!panel || !data) return;
+      var readiness = data.platform_readiness || {{}};
+      var issues = data.issues || [];
+      var scoreColor = data.score >= 90 ? '#00e676' : data.score >= 75 ? '#42a5f5' : data.score >= 55 ? '#ffab00' : '#ff5252';
+      var html = '<div style="display:grid;grid-template-columns:180px 1fr;gap:18px;align-items:start;">' +
+        '<div style="background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:10px;padding:18px;text-align:center;">' +
+          '<div style="font-size:42px;line-height:1;color:' + scoreColor + ';font-weight:800;">' + Number(data.score || 0) + '</div>' +
+          '<div style="font-size:12px;color:#cbd5e1;margin-top:6px;">' + escapeHtml(data.grade || '') + '</div>' +
+          '<div style="font-size:11px;color:#64748b;margin-top:6px;">' + Number(data.total_events || 0).toLocaleString() + ' events checked</div>' +
+        '</div>' +
+        '<div>' +
+          '<div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:12px;">' +
+            '<div style="padding:10px;border:1px solid rgba(59,130,246,0.18);border-radius:8px;background:rgba(59,130,246,0.05);"><div style="font-size:11px;color:#93c5fd;">Facebook Ready</div><div style="font-size:20px;color:#fff;font-weight:700;">' + Number(readiness.facebook || 0) + '%</div></div>' +
+            '<div style="padding:10px;border:1px solid rgba(236,72,153,0.18);border-radius:8px;background:rgba(236,72,153,0.05);"><div style="font-size:11px;color:#f9a8d4;">TikTok Ready</div><div style="font-size:20px;color:#fff;font-weight:700;">' + Number(readiness.tiktok || 0) + '%</div></div>' +
+            '<div style="padding:10px;border:1px solid rgba(34,197,94,0.18);border-radius:8px;background:rgba(34,197,94,0.05);"><div style="font-size:11px;color:#86efac;">GA4 Ready</div><div style="font-size:20px;color:#fff;font-weight:700;">' + Number(readiness.ga4 || 0) + '%</div></div>' +
+          '</div>';
+      html += issues.slice(0, 5).map(function(issue) {{
+        var color = issue.severity === 'high' || issue.severity === 'critical' ? '#ff5252' : issue.severity === 'medium' ? '#ffab00' : issue.severity === 'ok' ? '#00e676' : '#94a3b8';
+        return '<div style="padding:10px 12px;border-left:3px solid ' + color + ';background:rgba(255,255,255,0.025);border-radius:8px;margin-bottom:8px;">' +
+          '<div style="display:flex;justify-content:space-between;gap:12px;"><strong style="color:#fff;">' + escapeHtml(issue.title || '') + '</strong><span style="color:' + color + ';font-size:12px;">' + escapeHtml(issue.metric || '') + '</span></div>' +
+          '<div style="color:#94a3b8;font-size:12px;margin-top:4px;">' + escapeHtml(issue.impact || '') + '</div>' +
+          '<div style="color:#cbd5e1;font-size:12px;margin-top:4px;">Fix: ' + escapeHtml(issue.fix || '') + '</div>' +
+        '</div>';
+      }}).join('');
+      html += '</div></div>';
+      panel.innerHTML = html;
+    }}
+
     (async function loadAnalytics() {{
       try {{
+        var doctorRes = await fetch(BASE_API + '/analytics/signal-doctor?days=7', {{
+          credentials: 'include'
+        }});
+        if (doctorRes.ok) {{
+          renderSignalDoctor(await doctorRes.json());
+        }}
+
         // Fetch overview data
         var res = await fetch(BASE_API + '/analytics/overview?days=7', {{
           credentials: 'include'
@@ -1704,6 +1915,29 @@ capi('track', 'ViewContent', {{
               }}
             }}
           }});
+        }}
+
+        var cRes = await fetch(BASE_API + '/analytics/campaigns?days=30', {{
+          credentials: 'include'
+        }});
+        var cBody = document.getElementById('campaign-performance-body');
+        if (cBody && cRes.ok) {{
+          var cData = await cRes.json();
+          if (!cData.campaigns || cData.campaigns.length === 0) {{
+            cBody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:20px">No UTM campaign data yet</td></tr>';
+          }} else {{
+            cBody.innerHTML = cData.campaigns.map(function(row) {{
+              return '<tr>' +
+                '<td>' + escapeHtml(row.source || 'direct') + '</td>' +
+                '<td>' + escapeHtml(row.campaign || '(not set)') + '</td>' +
+                '<td>' + Number(row.view_content || 0).toLocaleString() + '</td>' +
+                '<td>' + Number(row.add_to_cart || 0).toLocaleString() + '</td>' +
+                '<td>' + Number(row.initiate_checkout || 0).toLocaleString() + '</td>' +
+                '<td style="color:var(--accent);font-weight:600">' + Number(row.purchase || 0).toLocaleString() + '</td>' +
+                '<td style="color:var(--accent);font-weight:600">৳' + Number(row.revenue || 0).toLocaleString() + '</td>' +
+              '</tr>';
+            }}).join('');
+          }}
         }}
       }} catch(e) {{
         console.log('Analytics load error:', e);
@@ -1811,6 +2045,9 @@ async def client_settings_update(
     tiktok_test_event_code: str = Form(""),
     ga4_measurement_id: str = Form(""),
     ga4_api_secret: str = Form(""),
+    enable_facebook: str = Form(None),
+    enable_tiktok: str = Form(None),
+    enable_ga4: str = Form(None),
     db: AsyncSession = Depends(get_db),
 ):
     client = await get_client_from_portal_session(request, db)
@@ -1827,6 +2064,9 @@ async def client_settings_update(
 
     # ─── Update non-sensitive fields always ─────────────────────────────────
     client.test_event_code = test_event_code.strip() if test_event_code and test_event_code.strip() else None
+    client.enable_facebook = (enable_facebook == "1")
+    client.enable_tiktok = (enable_tiktok == "1")
+    client.enable_ga4 = (enable_ga4 == "1")
     client.tiktok_pixel_id = tiktok_pixel_id.strip() if tiktok_pixel_id and tiktok_pixel_id.strip() else None
     client.tiktok_test_event_code = tiktok_test_event_code.strip() if tiktok_test_event_code and tiktok_test_event_code.strip() else None
     client.ga4_measurement_id = ga4_measurement_id.strip() if ga4_measurement_id and ga4_measurement_id.strip() else None

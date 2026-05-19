@@ -21,6 +21,9 @@ class Client(Base):
     domain = Column(String, nullable=True)                         # ক্লায়েন্টের ওয়েবসাইট ডোমেইন
     rate_limit = Column(Integer, default=5000)                     # প্রতি মিনিটে সর্বোচ্চ রিকোয়েস্ট
     daily_quota = Column(Integer, default=100000)                  # প্রতিদিন সর্বোচ্চ ইভেন্ট
+    enable_facebook = Column(Boolean, default=True, nullable=False)
+    enable_tiktok = Column(Boolean, default=True, nullable=False)
+    enable_ga4 = Column(Boolean, default=True, nullable=False)
     # ─── TikTok CAPI Integration ──────────────────────────────────────────
     tiktok_pixel_id = Column(String, nullable=True)               # TikTok Pixel ID (optional)
     tiktok_access_token = Column(String, nullable=True)           # TikTok Access Token (encrypted, optional)

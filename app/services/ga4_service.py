@@ -36,6 +36,35 @@ def map_event_to_ga4(event_name: str) -> str:
     }
     return mapping.get(event_name, event_name.lower().replace(' ', '_'))
 
+
+def _ga4_items(custom_data: Dict[str, Any]) -> list[dict]:
+    items = []
+    raw_contents = custom_data.get("contents") or []
+    for item in raw_contents:
+        if not isinstance(item, dict):
+            continue
+        item_id = item.get("content_id") or item.get("id") or item.get("item_id")
+        if not item_id:
+            continue
+        ga_item = {"item_id": str(item_id)}
+        if item.get("content_name"):
+            ga_item["item_name"] = item["content_name"]
+        if item.get("content_category"):
+            ga_item["item_category"] = item["content_category"]
+        if item.get("quantity") is not None:
+            ga_item["quantity"] = item["quantity"]
+        if item.get("price") is not None:
+            ga_item["price"] = item["price"]
+        elif item.get("item_price") is not None:
+            ga_item["price"] = item["item_price"]
+        items.append(ga_item)
+
+    if items:
+        return items
+
+    return [{"item_id": str(item_id)} for item_id in custom_data.get("content_ids") or [] if item_id]
+
+
 async def send_to_ga4(events: List[Dict[str, Any]], measurement_id: str, api_secret: str, cookies: dict, ip_address: str, user_agent: str):
     """
     Send events to GA4 via Measurement Protocol.
@@ -67,8 +96,12 @@ async def send_to_ga4(events: List[Dict[str, Any]], measurement_id: str, api_sec
                 params["value"] = float(custom_data["value"])
             if "currency" in custom_data:
                 params["currency"] = custom_data["currency"]
-            if "content_ids" in custom_data:
-                params["items"] = [{"item_id": i} for i in custom_data["content_ids"]]
+            items = _ga4_items(custom_data)
+            if items:
+                params["items"] = items
+            for utm_key in ["utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term"]:
+                if custom_data.get(utm_key):
+                    params[utm_key] = custom_data[utm_key]
                 
         # Handle User Data for User Properties
         user_data = evt.get("user_data", {})
@@ -79,8 +112,10 @@ async def send_to_ga4(events: List[Dict[str, Any]], measurement_id: str, api_sec
             user_properties["country"] = {"value": user_data["country"]}
             
         # Optional: transaction_id for Purchase
-        if ga4_event_name == "purchase" and evt.get("event_id"):
-            params["transaction_id"] = evt["event_id"]
+        if ga4_event_name == "purchase":
+            order_id = custom_data.get("order_id") or evt.get("event_id")
+            if order_id:
+                params["transaction_id"] = order_id
             
         ga4_event = {
             "name": ga4_event_name,
