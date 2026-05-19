@@ -3,7 +3,8 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
-from fastapi.responses import ORJSONResponse
+from fastapi.responses import ORJSONResponse, RedirectResponse
+from starlette.middleware.base import BaseHTTPMiddleware
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 
@@ -127,6 +128,18 @@ app.add_middleware(
     TrustedHostMiddleware,
     allowed_hosts=ALLOWED_HOSTS,
 )
+
+# ─── Redirect Middleware (Heroku -> Custom Domain) ───────────────────────────
+class HerokuRedirectMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request, call_next):
+        host = request.url.hostname or ""
+        if host.endswith(".herokuapp.com"):
+            target_domain = os.getenv("PRIMARY_DOMAIN", "www.buykori.me")
+            url = request.url.replace(hostname=target_domain)
+            return RedirectResponse(url=str(url), status_code=301)
+        return await call_next(request)
+
+app.add_middleware(HerokuRedirectMiddleware)
 
 # ─── CORS — Multi-Tenant Tracker: allow_origins=["*"] ইচ্ছাকৃত ─────────────
 # ব্রাউজার ট্র্যাকার (t.js) যেকোনো ক্লায়েন্ট ওয়েবসাইট থেকে cross-origin request পাঠায়।
