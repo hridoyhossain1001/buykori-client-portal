@@ -82,18 +82,33 @@ function capigw_inject_tracker() {
         ( ( function_exists( 'is_cart' ) && is_cart() ) || ( function_exists( 'is_checkout' ) && is_checkout() && ( ! function_exists( 'is_order_received_page' ) || ! is_order_received_page() ) ) )
     ) {
         $cart_ids  = array();
+        $contents  = array();
         $num_items = 0;
 
         foreach ( WC()->cart->get_cart() as $cart_item ) {
             $product_id = isset( $cart_item['product_id'] ) ? (int) $cart_item['product_id'] : 0;
+            $product    = $product_id ? wc_get_product( $product_id ) : null;
+            $quantity   = isset( $cart_item['quantity'] ) ? (int) $cart_item['quantity'] : 0;
             if ( $product_id > 0 ) {
                 $cart_ids[] = (string) $product_id;
+                $item_price = $product ? (float) wc_get_price_to_display( $product ) : 0;
+                $contents[] = array(
+                    'id'               => (string) $product_id,
+                    'content_id'       => (string) $product_id,
+                    'content_type'     => 'product',
+                    'content_name'     => $product ? $product->get_name() : '',
+                    'content_category' => implode( ', ', wp_list_pluck( wc_get_product_terms( $product_id, 'product_cat' ), 'name' ) ),
+                    'quantity'         => $quantity,
+                    'item_price'       => $item_price,
+                    'price'            => $item_price,
+                );
             }
-            $num_items += isset( $cart_item['quantity'] ) ? (int) $cart_item['quantity'] : 0;
+            $num_items += $quantity;
         }
 
         $tracker_data['cart'] = array(
             'content_ids' => array_values( array_unique( $cart_ids ) ),
+            'contents'    => $contents,
             'value'       => (float) WC()->cart->get_cart_contents_total(),
             'currency'    => get_woocommerce_currency(),
             'num_items'   => $num_items,
@@ -121,17 +136,20 @@ function capigw_get_tracker_js() {
 
     // ─── Helper: Send event via AJAX (cache-safe) ──────────────────────
     function sendEvent(eventName, eventData, synchronous) {
+        eventData = normalizeEventData(eventData || {});
+
         var formData = new FormData();
         formData.append('action', 'capigw_track_event');
         formData.append('nonce', cfg.nonce);
         formData.append('event_name', eventName);
-        formData.append('event_data', JSON.stringify(eventData || {}));
+        formData.append('event_data', JSON.stringify(eventData));
         formData.append('page_url', window.location.href);
         formData.append('page_title', document.title);
         formData.append('fbp', getCookie('_fbp') || '');
         formData.append('fbc', getCookie('_fbc') || '');
         formData.append('ttp', getCookie('_ttp') || '');
         formData.append('ttclid', getTikTokClickId());
+        appendCustomerData(formData);
 
         // synchronous=true — পেজ নেভিগেট হওয়ার আগে নিশ্চিত পাঠাতে
         if (synchronous) {
@@ -153,6 +171,59 @@ function capigw_get_tracker_js() {
     function getCookie(name) {
         var match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
         return match ? decodeURIComponent(match[2]) : '';
+    }
+
+    function normalizeEventData(data) {
+        var out = {};
+        Object.keys(data || {}).forEach(function(key) {
+            if (data[key] !== undefined && data[key] !== null && data[key] !== '') {
+                out[key] = data[key];
+            }
+        });
+
+        if (out.content_ids) {
+            out.content_ids = (Array.isArray(out.content_ids) ? out.content_ids : [out.content_ids])
+                .map(function(id) { return String(id || '').trim(); })
+                .filter(Boolean);
+            if (!out.content_ids.length) delete out.content_ids;
+        }
+
+        if (out.contents && Array.isArray(out.contents)) {
+            out.contents = out.contents.filter(function(item) {
+                return item && (item.content_id || item.id);
+            });
+            if (!out.contents.length) delete out.contents;
+        }
+
+        return out;
+    }
+
+    function getFieldValue(selectors) {
+        for (var i = 0; i < selectors.length; i++) {
+            var el = document.querySelector(selectors[i]);
+            if (el && el.value && String(el.value).trim()) {
+                return String(el.value).trim();
+            }
+        }
+        return '';
+    }
+
+    function appendCustomerData(formData) {
+        var fields = {
+            em: ['#billing_email', 'input[name="billing_email"]', 'input[type="email"]'],
+            ph: ['#billing_phone', 'input[name="billing_phone"]', 'input[type="tel"]'],
+            fn: ['#billing_first_name', 'input[name="billing_first_name"]'],
+            ln: ['#billing_last_name', 'input[name="billing_last_name"]'],
+            ct: ['#billing_city', 'input[name="billing_city"]'],
+            st: ['#billing_state', 'select[name="billing_state"], input[name="billing_state"]'],
+            zp: ['#billing_postcode', 'input[name="billing_postcode"]'],
+            country: ['#billing_country', 'select[name="billing_country"], input[name="billing_country"]']
+        };
+
+        Object.keys(fields).forEach(function(key) {
+            var value = getFieldValue(fields[key]);
+            if (value) formData.append(key, value);
+        });
     }
 
     function getQueryParam(name) {
@@ -182,6 +253,16 @@ function capigw_get_tracker_js() {
     if (cfg.events && cfg.events.viewcontent && cfg.page_type === 'product' && cfg.product) {
         sendEvent('ViewContent', {
             content_ids: [String(cfg.product.id)],
+            contents: [{
+                id: String(cfg.product.id),
+                content_id: String(cfg.product.id),
+                content_type: 'product',
+                content_name: cfg.product.name,
+                content_category: cfg.product.category || '',
+                quantity: 1,
+                item_price: cfg.product.price,
+                price: cfg.product.price
+            }],
             content_name: cfg.product.name,
             content_type: 'product',
             content_category: cfg.product.category || '',
@@ -204,7 +285,16 @@ function capigw_get_tracker_js() {
                 var pname = $btn ? $btn.attr('data-product_name') : '';
                 var pprice = $btn ? parseFloat($btn.attr('data-product_price') || 0) : 0;
                 sendEvent('AddToCart', {
-                    content_ids: [pid || ''],
+                    content_ids: pid ? [pid] : [],
+                    contents: pid ? [{
+                        id: String(pid),
+                        content_id: String(pid),
+                        content_type: 'product',
+                        content_name: pname || '',
+                        quantity: 1,
+                        item_price: pprice,
+                        price: pprice
+                    }] : [],
                     content_name: pname || '',
                     content_type: 'product',
                     value: pprice,
@@ -226,6 +316,16 @@ function capigw_get_tracker_js() {
             if (cfg.product) {
                 productData = {
                     content_ids: [String(cfg.product.id)],
+                    contents: [{
+                        id: String(cfg.product.id),
+                        content_id: String(cfg.product.id),
+                        content_type: 'product',
+                        content_name: cfg.product.name,
+                        content_category: cfg.product.category || '',
+                        quantity: 1,
+                        item_price: cfg.product.price,
+                        price: cfg.product.price
+                    }],
                     content_name: cfg.product.name,
                     content_type: 'product',
                     value: cfg.product.price,
@@ -234,7 +334,16 @@ function capigw_get_tracker_js() {
             } else {
                 var pid = btn.getAttribute('data-product_id') || '';
                 productData = {
-                    content_ids: [pid],
+                    content_ids: pid ? [pid] : [],
+                    contents: pid ? [{
+                        id: String(pid),
+                        content_id: String(pid),
+                        content_type: 'product',
+                        content_name: btn.getAttribute('data-product_name') || '',
+                        quantity: 1,
+                        item_price: parseFloat(btn.getAttribute('data-product_price') || 0),
+                        price: parseFloat(btn.getAttribute('data-product_price') || 0)
+                    }] : [],
                     content_name: btn.getAttribute('data-product_name') || '',
                     content_type: 'product',
                     value: parseFloat(btn.getAttribute('data-product_price') || 0),
@@ -250,6 +359,7 @@ function capigw_get_tracker_js() {
         var checkoutData = cfg.cart || {};
         sendEvent('InitiateCheckout', {
             content_ids: checkoutData.content_ids || [],
+            contents: checkoutData.contents || [],
             content_type: 'product',
             value: checkoutData.value || 0,
             currency: checkoutData.currency || 'BDT',
@@ -262,6 +372,7 @@ function capigw_get_tracker_js() {
         var cartData = cfg.cart || {};
         sendEvent('ViewCart', {
             content_ids: cartData.content_ids || [],
+            contents: cartData.contents || [],
             content_type: 'product',
             value: cartData.value || 0,
             currency: cartData.currency || 'BDT',
@@ -336,7 +447,16 @@ function capigw_get_tracker_js() {
         function fireAddPaymentInfo(method) {
             if (paymentFired) return;
             paymentFired = true;
-            sendEvent('AddPaymentInfo', { payment_method: method || '' });
+            var paymentData = cfg.cart || {};
+            sendEvent('AddPaymentInfo', {
+                payment_method: method || '',
+                content_ids: paymentData.content_ids || [],
+                contents: paymentData.contents || [],
+                content_type: 'product',
+                value: paymentData.value || 0,
+                currency: paymentData.currency || 'BDT',
+                num_items: paymentData.num_items || 0
+            });
         }
 
         // Classic WooCommerce checkout — radio button change
@@ -457,6 +577,7 @@ function capigw_ajax_track_event() {
     $fbc        = isset( $_POST['fbc'] ) ? sanitize_text_field( wp_unslash( $_POST['fbc'] ) ) : '';
     $ttp        = isset( $_POST['ttp'] ) ? sanitize_text_field( wp_unslash( $_POST['ttp'] ) ) : '';
     $ttclid     = isset( $_POST['ttclid'] ) ? sanitize_text_field( wp_unslash( $_POST['ttclid'] ) ) : '';
+    $pii_fields = array( 'em', 'ph', 'fn', 'ln', 'ct', 'st', 'zp', 'country' );
 
     if ( empty( $event_name ) || ! in_array( $event_name, $allowed_events, true ) ) {
         wp_send_json_error( 'Invalid event name' );
@@ -485,6 +606,23 @@ function capigw_ajax_track_event() {
     }
     if ( ! empty( $ttclid ) ) {
         $user_data['ttclid'] = $ttclid;
+    }
+
+    foreach ( $pii_fields as $field ) {
+        if ( empty( $_POST[ $field ] ) ) {
+            continue;
+        }
+
+        $raw_value = sanitize_text_field( wp_unslash( $_POST[ $field ] ) );
+        if ( $field === 'ph' ) {
+            $hashed_value = capigw_hash_phone( $raw_value );
+        } else {
+            $hashed_value = capigw_hash( $raw_value );
+        }
+
+        if ( $hashed_value ) {
+            $user_data[ $field ] = array( $hashed_value );
+        }
     }
 
     // If user is logged in, hash their email and name

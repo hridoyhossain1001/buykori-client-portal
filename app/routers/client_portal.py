@@ -13,7 +13,7 @@ from app.database import get_db
 from app.models.client import Client
 from app.models.event_log import EventLog
 from app.models.pending_event import PendingEvent
-from app.routers.admin import STYLE, base_html, mask_secret
+from app.routers.admin import STYLE, base_html, display_domain_url, mask_secret
 from app.security import encrypt_token, decrypt_token
 from app.limiter import limiter
 
@@ -692,10 +692,7 @@ async def client_dashboard(request: Request, db: AsyncSession = Depends(get_db))
     masked_api_key = html.escape(mask_secret(client.api_key))
     safe_endpoint = html.escape(endpoint, quote=True)
     safe_tracker_url = html.escape(tracker_url, quote=True)
-    safe_capi_origin = html.escape(
-        f"https://{client.domain}" if client.domain else "https://your-domain.com",
-        quote=True,
-    )
+    safe_capi_origin = html.escape(display_domain_url(client.domain) or "https://www.your-domain.com", quote=True)
 
     # Instructions body (Reused from admin.py)
     instructions_html = f"""
@@ -878,6 +875,7 @@ capi('setUser', {{
           WooCommerce tracking = official plugin. Custom/non-Woo page tracking = site JS. Old ecommerce snippet আর দরকার নেই।
         </div>
       </div>
+    </div>
     """
 
     instructions_html = f"""
@@ -1059,6 +1057,116 @@ capi('setUser', {{
           WooCommerce tracking = official plugin. Custom/non-Woo page tracking = site JS. Old ecommerce snippet আর দরকার নেই।
         </div>
       </div>
+    </div>
+
+    <!-- CUSTOM TAB -->
+    <div id="tab-custom" class="inner-tab-content card" style="margin-bottom:20px">
+      <div class="card-title"><span class="icon">💻</span> Custom Website Integration Guide</div>
+      <div style="color:#aaa;font-size:14px;line-height:1.8">
+        <div style="margin-bottom:16px;padding:14px;background:rgba(0,230,118,0.06);border:1px solid rgba(0,230,118,0.18);border-radius:8px;color:#b7f7cf;">
+          <strong style="color:#00e676">Recommended:</strong> Purchase, Lead, registration, confirmed order backend/server থেকে পাঠান। PageView, ViewContent, AddToCart browser tracker দিয়েও পাঠানো যায়।
+        </div>
+
+        <p><strong style="color:#fff">১. Backend API endpoint</strong></p>
+        <p style="color:#888;font-size:13px;margin-bottom:8px">যেকোনো custom website backend থেকে নিচের endpoint-এ JSON POST করুন। Server API key কখনো frontend JavaScript-এ রাখবেন না।</p>
+        <button class="copy-btn" onclick="copyText('custom_endpoint_contract')" style="margin-bottom:4px">Copy</button>
+        <div class="instr-box" id="custom_endpoint_contract">POST {safe_endpoint}
+Headers:
+  Content-Type: application/json
+  X-API-Key: {safe_api_key}
+  X-CAPI-Origin: {safe_capi_origin}
+  X-CAPI-Timestamp: UNIX_TIMESTAMP
+  X-CAPI-Signature: HMAC_SHA256(timestamp + "." + raw_body, api_key)</div>
+
+        <br>
+        <p><strong style="color:#fff">২. Purchase payload example</strong></p>
+        <button class="copy-btn" onclick="copyText('custom_purchase_payload')" style="margin-bottom:4px">Copy</button>
+        <div class="instr-box" id="custom_purchase_payload">{{
+  "data": [{{
+    "event_name": "Purchase",
+    "event_time": 1715000000,
+    "event_id": "order_1001",
+    "event_source_url": "https://example.com/thank-you/1001",
+    "action_source": "website",
+    "user_data": {{
+      "em": ["customer@example.com"],
+      "ph": ["017xxxxxxxx"],
+      "client_ip_address": "USER_IP",
+      "client_user_agent": "USER_BROWSER_USER_AGENT",
+      "fbp": "fb.1.xxxxx",
+      "fbc": "fb.1.xxxxx",
+      "ttp": "tiktok_browser_id",
+      "ttclid": "tiktok_click_id"
+    }},
+    "custom_data": {{
+      "value": 1500,
+      "currency": "BDT",
+      "content_ids": ["PRODUCT_ID_123"],
+      "content_type": "product",
+      "num_items": 1,
+      "order_id": "1001"
+    }}
+  }}]
+}}</div>
+
+        <br>
+        <p><strong style="color:#fff">৩. cURL test</strong></p>
+        <button class="copy-btn" onclick="copyText('custom_curl')" style="margin-bottom:4px">Copy</button>
+        <div class="instr-box" id="custom_curl">curl -X POST "{safe_endpoint}" \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: {safe_api_key}" \
+  -d '{{
+    "data": [{{
+      "event_name": "Purchase",
+      "event_time": 1715000000,
+      "event_id": "order_1001",
+      "event_source_url": "https://example.com/thank-you/1001",
+      "action_source": "website",
+      "user_data": {{
+        "em": ["customer@example.com"],
+        "ph": ["017xxxxxxxx"],
+        "client_ip_address": "203.0.113.10",
+        "client_user_agent": "Mozilla/5.0"
+      }},
+      "custom_data": {{
+        "value": 1500,
+        "currency": "BDT",
+        "content_ids": ["123"],
+        "content_type": "product",
+        "order_id": "1001"
+      }}
+    }}]
+  }}'</div>
+
+        <br>
+        <p><strong style="color:#fff">৪. Browser tracker option</strong></p>
+        <p style="color:#888;font-size:13px;margin-bottom:8px">Backend না থাকলে public tracker key দিয়ে browser script ব্যবহার করা যাবে।</p>
+        <button class="copy-btn" onclick="copyText('custom_browser_script')" style="margin-bottom:4px">Copy</button>
+        <div class="instr-box" id="custom_browser_script">&lt;script src="{safe_tracker_url}" defer&gt;&lt;/script&gt;
+
+&lt;script&gt;
+capi('setUser', {{
+  email: 'customer@example.com',
+  phone: '+8801XXXXXXXXX'
+}});
+
+capi('track', 'ViewContent', {{
+  content_ids: ['123'],
+  content_type: 'product',
+  value: 1200,
+  currency: 'BDT'
+}});
+&lt;/script&gt;</div>
+
+        <div style="margin-top:16px;padding:14px;background:rgba(255,171,0,0.06);border:1px solid rgba(255,171,0,0.2);border-radius:8px;font-size:13px;color:#ffda7a;line-height:1.9">
+          <strong>Must-follow rules:</strong><br>
+          • <code>event_id</code> unique রাখুন। Purchase হলে order ID ব্যবহার করুন।<br>
+          • <code>content_ids</code> Facebook/TikTok catalog product ID-এর সাথে exact match করতে হবে।<br>
+          • Email/phone raw দিলেও server auto SHA-256 hash করবে।<br>
+          • Same event browser + server দুদিক থেকে পাঠালে same <code>event_id</code> দিন।
+        </div>
+      </div>
+    </div>
     """
 
     body = f"""

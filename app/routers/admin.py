@@ -75,6 +75,25 @@ def verify_admin_csrf_token(token: str, username: str) -> None:
         raise HTTPException(status_code=403, detail="Invalid CSRF token")
 
 
+def normalize_domain_input(domain: str | None) -> str | None:
+    if not domain or not domain.strip():
+        return None
+
+    raw = domain.strip().lower()
+    parsed = urlparse(raw if "://" in raw else f"https://{raw}")
+    host = (parsed.hostname or raw).strip().rstrip(".")
+    if host.startswith("www."):
+        host = host[4:]
+    return host or None
+
+
+def display_domain_url(domain: str | None) -> str:
+    clean_domain = normalize_domain_input(domain)
+    if not clean_domain:
+        return ""
+    return f"https://www.{clean_domain}"
+
+
 # ─── HTML TEMPLATES ─────────────────────────────────────────────────────────
 
 
@@ -648,9 +667,9 @@ async def admin_dashboard(
                 <div class="hint">Events Manager → Settings → Conversions API → Generate Access Token</div>
               </div>
               <div class="form-group">
-                <label>Website Domain (সিকিউরিটির জন্য)</label>
-                <input type="text" name="domain" placeholder="buykori.me">
-                <div class="hint">🔒 এই ডোমেইন ছাড়া অন্য কেউ API Key ব্যবহার করতে পারবে না। খালি রাখলে সব ডোমেইন থেকে কাজ করবে।</div>
+                <label>Website URL / Domain (সিকিউরিটির জন্য)</label>
+                <input type="text" name="domain" placeholder="https://www.buykori.me">
+                <div class="hint">🔒 https://, www, বা path দিলেও system clean domain save করবে। খালি রাখলে সব ডোমেইন থেকে কাজ করবে।</div>
               </div>
               <div class="form-group">
                 <label>Test Event Code (Optional)</label>
@@ -891,13 +910,7 @@ async def add_client(
         if not _webhook_url_allowed(clean_webhook_url):
             return admin_redirect("Webhook URL is not allowed. Use a public http(s) endpoint.", "error")
 
-    # Domain sanitize — https://, http://, trailing slash সরাও
-    clean_domain = None
-    if domain and domain.strip():
-        clean_domain = domain.strip().lower()
-        for prefix in ["https://", "http://", "www."]:
-            clean_domain = clean_domain.removeprefix(prefix)
-        clean_domain = clean_domain.rstrip("/")
+    clean_domain = normalize_domain_input(domain)
 
     new_client = Client(
         name=name,
@@ -953,10 +966,7 @@ async def client_instructions(
     masked_public_key = html.escape(mask_secret(getattr(client, "public_key", None) or ""))
     safe_endpoint = html.escape(endpoint, quote=True)
     safe_tracker_url = html.escape(tracker_url, quote=True)
-    safe_capi_origin = html.escape(
-        f"https://{client.domain}" if client.domain else "https://your-domain.com",
-        quote=True,
-    )
+    safe_capi_origin = html.escape(display_domain_url(client.domain) or "https://www.your-domain.com", quote=True)
 
     body = f"""
     <div class="page-header" style="margin-bottom:24px;">
@@ -1157,36 +1167,122 @@ Body (JSON):
     <!-- CUSTOM TAB -->
     <div id="tab-custom" class="tab-content card" style="margin-bottom:20px">
       <div class="card-header">
-        <div class="card-title">Custom Backend (cURL / Node / PHP)</div>
+        <div class="card-title">Custom Website Integration Guide <span class="badge badge-warning" style="margin-left:8px;">Bangla</span></div>
       </div>
-      <div style="padding:24px;color:var(--text-muted);font-size:14px;line-height:1.6;">
-        <div style="position:relative;">
-          <strong style="color:#fff;display:block;margin-bottom:12px;">cURL Example (Purchase Event):</strong>
-          <button class="btn-sm btn-outline" onclick="copyText('curl_ex')" style="position:absolute;top:32px;right:12px;">Copy</button>
+      <div style="padding:24px;color:var(--text-muted);font-size:14px;line-height:1.7;">
+        <div class="alert alert-success" style="margin:0 0 18px 0;"><span style="font-size:16px">✅</span><div><strong>Recommended flow:</strong> Purchase, Lead, registration, confirmed order backend/server থেকে পাঠান। PageView, ViewContent, AddToCart browser tracker দিয়েও পাঠানো যায়।</div></div>
+
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px;margin-bottom:22px;">
+          <div style="padding:14px;background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:8px;"><strong style="color:#fff;display:block;margin-bottom:6px;">Server Endpoint</strong><code>{safe_endpoint}</code></div>
+          <div style="padding:14px;background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:8px;"><strong style="color:#fff;display:block;margin-bottom:6px;">Auth Header</strong><code>X-API-Key</code> দিয়ে server API key পাঠাতে হবে।</div>
+          <div style="padding:14px;background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:8px;"><strong style="color:#fff;display:block;margin-bottom:6px;">Browser Script</strong><code>{safe_tracker_url}</code></div>
+        </div>
+
+        <h3 style="color:#fff;font-size:16px;margin:0 0 10px 0;">১. Backend থেকে event পাঠানোর নিয়ম</h3>
+        <p>যেকোনো custom website, যেমন Laravel, PHP, Node.js, Next.js, Django, Flask, ASP.NET বা অন্য backend থেকে JSON payload পাঠানো যাবে। Server API key কখনো frontend JavaScript-এ রাখবেন না।</p>
+        <div style="position:relative;margin:14px 0 22px;">
+          <button class="btn-sm btn-outline" onclick="copyText('custom_payload_contract')" style="position:absolute;top:12px;right:12px;">Copy</button>
+          <pre class="instr-box" id="custom_payload_contract" style="padding:16px;background:rgba(0,0,0,0.4);border:1px solid rgba(255,255,255,0.05);color:#e2e8f0;font-size:13px;margin:0;">POST {safe_endpoint}
+Headers:
+  Content-Type: application/json
+  X-API-Key: {safe_api_key}
+  X-CAPI-Origin: {safe_capi_origin}
+  X-CAPI-Timestamp: UNIX_TIMESTAMP
+  X-CAPI-Signature: HMAC_SHA256(timestamp + "." + raw_body, api_key)</pre>
+        </div>
+
+        <h3 style="color:#fff;font-size:16px;margin:0 0 10px 0;">২. Purchase payload example</h3>
+        <div style="position:relative;margin-bottom:22px;">
+          <button class="btn-sm btn-outline" onclick="copyText('custom_purchase_payload')" style="position:absolute;top:12px;right:12px;">Copy</button>
+          <pre class="instr-box" id="custom_purchase_payload" style="padding:16px;background:rgba(0,0,0,0.4);border:1px solid rgba(255,255,255,0.05);color:#93c5fd;font-size:13px;margin:0;">{{
+  "data": [{{
+    "event_name": "Purchase",
+    "event_time": 1715000000,
+    "event_id": "order_1001",
+    "event_source_url": "https://example.com/thank-you/1001",
+    "action_source": "website",
+    "user_data": {{
+      "em": ["customer@example.com"],
+      "ph": ["017xxxxxxxx"],
+      "client_ip_address": "USER_IP",
+      "client_user_agent": "USER_BROWSER_USER_AGENT",
+      "fbp": "fb.1.xxxxx",
+      "fbc": "fb.1.xxxxx",
+      "ttp": "tiktok_browser_id",
+      "ttclid": "tiktok_click_id"
+    }},
+    "custom_data": {{
+      "value": 1500,
+      "currency": "BDT",
+      "content_ids": ["PRODUCT_ID_123"],
+      "content_type": "product",
+      "num_items": 1,
+      "order_id": "1001"
+    }}
+  }}]
+}}</pre>
+        </div>
+
+        <h3 style="color:#fff;font-size:16px;margin:0 0 10px 0;">৩. cURL test</h3>
+        <div style="position:relative;margin-bottom:22px;">
+          <button class="btn-sm btn-outline" onclick="copyText('curl_ex')" style="position:absolute;top:12px;right:12px;">Copy</button>
           <pre class="instr-box" id="curl_ex" style="padding:16px;background:rgba(0,0,0,0.4);border:1px solid rgba(255,255,255,0.05);color:#93c5fd;font-size:13px;margin:0;">curl -X POST "{safe_endpoint}" \
   -H "Content-Type: application/json" \
   -H "X-API-Key: {safe_api_key}" \
-  -H "X-CAPI-Origin: {safe_capi_origin}" \
-  -H "X-CAPI-Timestamp: UNIX_TIMESTAMP" \
-  -H "X-CAPI-Signature: HMAC_SHA256(timestamp.raw_body, api_key)" \
   -d '{{
     "data": [{{
       "event_name": "Purchase",
       "event_time": 1715000000,
-      "event_id": "order-12345-1715000000",
+      "event_id": "order_1001",
+      "event_source_url": "https://example.com/thank-you/1001",
       "action_source": "website",
-      "event_source_url": "https://example.com/checkout/success",
       "user_data": {{
-        "client_ip_address": "192.168.1.1",
-        "client_user_agent": "Mozilla/5.0..."
+        "em": ["customer@example.com"],
+        "ph": ["017xxxxxxxx"],
+        "client_ip_address": "203.0.113.10",
+        "client_user_agent": "Mozilla/5.0"
       }},
       "custom_data": {{
-        "value": 150.50,
-        "currency": "BDT"
+        "value": 1500,
+        "currency": "BDT",
+        "content_ids": ["123"],
+        "content_type": "product",
+        "order_id": "1001"
       }}
     }}]
   }}'</pre>
         </div>
+
+        <h3 style="color:#fff;font-size:16px;margin:0 0 10px 0;">৪. Browser tracker option</h3>
+        <p>যাদের backend integration করা কঠিন, তারা public tracker key দিয়ে browser script বসাতে পারে। এই key browser-safe, কিন্তু server API key browser-এ দেওয়া যাবে না।</p>
+        <div style="position:relative;margin-bottom:22px;">
+          <button class="btn-sm btn-outline" onclick="copyText('custom_browser_script')" style="position:absolute;top:12px;right:12px;">Copy</button>
+          <pre class="instr-box" id="custom_browser_script" style="padding:16px;background:rgba(0,0,0,0.4);border:1px solid rgba(255,255,255,0.05);color:#93c5fd;font-size:13px;margin:0;">&lt;script src="{safe_tracker_url}" defer&gt;&lt;/script&gt;
+
+&lt;script&gt;
+capi('setUser', {{
+  email: 'customer@example.com',
+  phone: '+8801XXXXXXXXX'
+}});
+
+capi('track', 'ViewContent', {{
+  content_ids: ['123'],
+  content_type: 'product',
+  value: 1200,
+  currency: 'BDT'
+}});
+&lt;/script&gt;</pre>
+        </div>
+
+        <h3 style="color:#fff;font-size:16px;margin:0 0 10px 0;">৫. Must-follow rules</h3>
+        <ul style="margin:0;padding-left:18px;display:grid;gap:8px;">
+          <li><code>event_id</code> unique হতে হবে। Purchase হলে <code>order_1001</code> type ID ব্যবহার করুন।</li>
+          <li><code>content_ids</code> Facebook/TikTok catalog product ID-এর সাথে exact match করতে হবে।</li>
+          <li><code>currency</code> ISO code হবে, যেমন <code>BDT</code>, <code>USD</code>।</li>
+          <li><code>client_ip_address</code> এবং <code>client_user_agent</code> দিলে match quality ভালো হয়।</li>
+          <li>Email/phone raw দিলেও server auto SHA-256 hash করবে। আগে hash করা থাকলেও accept করবে।</li>
+          <li>একই event browser এবং server দুদিক থেকে পাঠালে একই <code>event_id</code> দিন, না হলে duplicate হতে পারে।</li>
+        </ul>
       </div>
     </div>
 
@@ -1443,7 +1539,7 @@ async def admin_clients(
             status_badge = '<span class="badge badge-healthy">Active</span>' if c.is_active else '<span class="badge badge-degraded">Inactive</span>'
             toggle_action = "deactivate" if c.is_active else "activate"
             toggle_label = "Deactivate" if c.is_active else "Activate"
-            domain_text = html.escape(c.domain) if c.domain else "—"
+            domain_text = html.escape(display_domain_url(c.domain)) if c.domain else "—"
             created = c.created_at.strftime("%Y-%m-%d") if c.created_at else "—"
 
             # Usage bar color
@@ -1550,7 +1646,7 @@ async def edit_client_form(
     csrf_token = create_admin_csrf_token(username)
     safe_name = html.escape(client.name or "", quote=True)
     safe_pixel = html.escape(client.pixel_id or "", quote=True)
-    safe_domain = html.escape(client.domain or "", quote=True)
+    safe_domain = html.escape(display_domain_url(client.domain), quote=True)
     safe_test_code = html.escape(client.test_event_code or "", quote=True)
     safe_tiktok_pixel = html.escape(client.tiktok_pixel_id or "", quote=True)
     safe_tiktok_test_code = html.escape(client.tiktok_test_event_code or "", quote=True)
@@ -1602,9 +1698,9 @@ async def edit_client_form(
               </div>
 
               <div class="form-group">
-                <label>Website Domain (Security)</label>
-                <input type="text" name="domain" value="{safe_domain}" placeholder="buykori.me">
-                <div class="hint">🔒 শুধু এই ডোমেইন থেকে API Key ব্যবহার করতে পারবে।</div>
+                <label>Website URL / Domain (Security)</label>
+                <input type="text" name="domain" value="{safe_domain}" placeholder="https://www.buykori.me">
+                <div class="hint">🔒 https://, www, বা path দিলেও system clean domain save করবে। শুধু এই ডোমেইন থেকে API Key ব্যবহার করতে পারবে।</div>
               </div>
 
               <div class="form-group">
@@ -1716,12 +1812,7 @@ async def edit_client_submit(
         return RedirectResponse(url=f"/api/v1/admin/client/{client_id}/edit?{q}", status_code=303)
 
     # ─── Domain sanitize ─────────────────────────────────────────────────────
-    clean_domain = None
-    if domain and domain.strip():
-        clean_domain = domain.strip().lower()
-        for prefix in ["https://", "http://", "www."]:
-            clean_domain = clean_domain.removeprefix(prefix)
-        clean_domain = clean_domain.rstrip("/")
+    clean_domain = normalize_domain_input(domain)
 
     # ─── Webhook validation ──────────────────────────────────────────────────
     clean_webhook = webhook_url.strip() if webhook_url and webhook_url.strip() else None

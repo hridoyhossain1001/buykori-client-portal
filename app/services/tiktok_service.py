@@ -36,6 +36,50 @@ def _map_event_name(fb_event_name: str) -> str:
     return mapping.get(fb_event_name, fb_event_name)
 
 
+def _normalize_tiktok_contents(cd) -> list[dict]:
+    content_type = cd.content_type or "product"
+    raw_contents = getattr(cd, "contents", None) or []
+    normalized = []
+
+    for item in raw_contents:
+        if not isinstance(item, dict):
+            continue
+
+        content_id = item.get("content_id") or item.get("id")
+        if not content_id:
+            continue
+
+        normalized_item = {
+            "content_id": str(content_id),
+            "content_type": item.get("content_type") or content_type,
+        }
+
+        if item.get("content_name"):
+            normalized_item["content_name"] = item.get("content_name")
+        if item.get("content_category"):
+            normalized_item["content_category"] = item.get("content_category")
+        if item.get("quantity") is not None:
+            normalized_item["quantity"] = item.get("quantity")
+        if item.get("price") is not None:
+            normalized_item["price"] = item.get("price")
+        elif item.get("item_price") is not None:
+            normalized_item["price"] = item.get("item_price")
+
+        normalized.append(normalized_item)
+
+    if normalized:
+        return normalized
+
+    if cd.content_ids:
+        return [
+            {"content_id": str(cid), "content_type": content_type}
+            for cid in cd.content_ids
+            if cid
+        ]
+
+    return []
+
+
 def _build_tiktok_payload(client, events: List[EventData]) -> dict:
     """Facebook EventData লিস্ট থেকে TikTok Events API-র payload বানায়।"""
     tiktok_events = []
@@ -80,11 +124,16 @@ def _build_tiktok_payload(client, events: List[EventData]) -> dict:
                 properties["value"] = cd.value
             if cd.currency:
                 properties["currency"] = cd.currency
+            if cd.content_type:
+                properties["content_type"] = cd.content_type
             if cd.content_ids:
-                properties["contents"] = [
-                    {"content_id": cid, "content_type": cd.content_type or "product"}
-                    for cid in cd.content_ids
-                ]
+                properties["content_ids"] = [str(cid) for cid in cd.content_ids if cid]
+                if len(properties["content_ids"]) == 1:
+                    properties["content_id"] = properties["content_ids"][0]
+                properties.setdefault("content_type", cd.content_type or "product")
+            contents = _normalize_tiktok_contents(cd)
+            if contents:
+                properties["contents"] = contents
             if cd.order_id:
                 properties["order_id"] = cd.order_id
             if cd.num_items is not None:

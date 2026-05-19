@@ -36,6 +36,9 @@ def test_tiktok_viewcontent_keeps_product_content_ids():
     payload = _build_tiktok_payload(client, [event])
 
     assert payload["data"][0]["event"] == "ViewContent"
+    assert payload["data"][0]["properties"]["content_ids"] == ["123"]
+    assert payload["data"][0]["properties"]["content_id"] == "123"
+    assert payload["data"][0]["properties"]["content_type"] == "product"
     assert payload["data"][0]["properties"]["contents"] == [
         {"content_id": "123", "content_type": "product"}
     ]
@@ -61,3 +64,43 @@ def test_tiktok_payload_includes_ttp_and_ttclid():
 
     assert context["user"]["ttp"] == "ttp-cookie"
     assert context["ad"]["callback"] == "click-123"
+
+
+def test_tiktok_purchase_normalizes_fb_contents_shape():
+    client = SimpleNamespace(tiktok_pixel_id="TT_PIXEL", tiktok_test_event_code=None)
+    event = EventData(
+        event_name="Purchase",
+        event_time=1710000000,
+        event_id="purchase-123",
+        event_source_url="https://example.com/checkout/order-received/123",
+        custom_data={
+            "content_ids": ["123"],
+            "content_type": "product",
+            "value": 1200,
+            "currency": "BDT",
+            "contents": [
+                {
+                    "id": "123",
+                    "content_name": "Test Product",
+                    "content_category": "Shoes",
+                    "quantity": 2,
+                    "item_price": 600,
+                }
+            ],
+        },
+    )
+
+    payload = _build_tiktok_payload(client, [event])
+
+    assert payload["data"][0]["event"] == "Purchase"
+    assert payload["data"][0]["properties"]["content_ids"] == ["123"]
+    assert payload["data"][0]["properties"]["contents"] == [
+        {
+            "content_id": "123",
+            "content_type": "product",
+            "content_name": "Test Product",
+            "content_category": "Shoes",
+            "quantity": 2,
+            "price": 600,
+        }
+    ]

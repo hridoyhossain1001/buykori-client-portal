@@ -266,6 +266,7 @@ function capigw_inject_custom_events_js() {
             formData.append('fbc', getCookie('_fbc') || '');
             formData.append('ttp', getCookie('_ttp') || '');
             formData.append('ttclid', getQueryParam('ttclid') || getCookie('_ttclid') || '');
+            appendCustomerData(formData);
             navigator.sendBeacon
                 ? navigator.sendBeacon(cfg.ajax_url, formData)
                 : fetch(cfg.ajax_url, { method: 'POST', body: formData, keepalive: true });
@@ -282,6 +283,34 @@ function capigw_inject_custom_events_js() {
             } catch(e) {
                 return '';
             }
+        }
+
+        function getFieldValue(selectors) {
+            for (var i = 0; i < selectors.length; i++) {
+                var el = document.querySelector(selectors[i]);
+                if (el && el.value && String(el.value).trim()) {
+                    return String(el.value).trim();
+                }
+            }
+            return '';
+        }
+
+        function appendCustomerData(formData) {
+            var fields = {
+                em: ['#billing_email', 'input[name="billing_email"]', 'input[type="email"]'],
+                ph: ['#billing_phone', 'input[name="billing_phone"]', 'input[type="tel"]'],
+                fn: ['#billing_first_name', 'input[name="billing_first_name"]'],
+                ln: ['#billing_last_name', 'input[name="billing_last_name"]'],
+                ct: ['#billing_city', 'input[name="billing_city"]'],
+                st: ['#billing_state', 'select[name="billing_state"], input[name="billing_state"]'],
+                zp: ['#billing_postcode', 'input[name="billing_postcode"]'],
+                country: ['#billing_country', 'select[name="billing_country"], input[name="billing_country"]']
+            };
+
+            Object.keys(fields).forEach(function(key) {
+                var value = getFieldValue(fields[key]);
+                if (value) formData.append(key, value);
+            });
         }
 
         function elementMatches(el, selector) {

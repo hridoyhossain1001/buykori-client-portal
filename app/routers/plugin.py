@@ -10,7 +10,7 @@ from fastapi.responses import FileResponse, JSONResponse
 
 router = APIRouter(tags=["Plugin"])
 
-PLUGIN_VERSION = os.getenv("PLUGIN_VERSION", "1.1.2")
+PLUGIN_VERSION = os.getenv("PLUGIN_VERSION", "1.1.3")
 PLUGIN_ZIP_PATH = Path(
     os.getenv(
         "PLUGIN_ZIP_PATH",
@@ -63,9 +63,14 @@ def _plugin_update_response(download_url: str, package_sha256: str, signature: s
         "requires": "5.8",
         "tested": "6.7",
         "requires_php": "7.4",
-        "last_updated": "2026-05-18",
+        "last_updated": "2026-05-19",
         "description": "Server-Side Facebook CAPI, TikTok, and GA4 tracking for WooCommerce with deferred purchase support.",
         "changelog": (
+            "<h4>v1.1.3</h4><ul>"
+            "<li>Added customer PII fields capture (email, phone, name, address, etc.) for AJAX tracking events</li>"
+            "<li>Added nested contents array support to browser events (AddToCart, ViewContent, InitiateCheckout, etc.)</li>"
+            "<li>Improved TikTok payload content mapping to follow Events API specifications</li>"
+            "</ul>"
             "<h4>v1.1.2</h4><ul>"
             "<li>Durable outbox-friendly tracking improvements</li>"
             "<li>TikTok _ttp and ttclid capture for standard and custom events</li>"
