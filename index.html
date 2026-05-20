@@ -20,10 +20,14 @@
     button.primary { border:0; background:var(--blue); color:#00111f; padding:11px 14px; border-radius:8px; font-weight:800; cursor:pointer; }
     button.secondary { border:1px solid var(--line); background:#0d1728; color:var(--text); padding:10px 13px; border-radius:8px; font-weight:750; cursor:pointer; }
     .login { max-width:520px; margin:12vh auto; padding:24px; background:var(--panel); border:1px solid var(--line); border-radius:8px; }
-    .auth-tabs { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin:18px 0; }
-    .auth-tabs button.active { background:#16233a; border-color:#365071; color:var(--text); }
+    .auth-tabs { display:grid; grid-template-columns:1fr 1fr; gap:0; margin:0 0 20px; border-bottom:2px solid var(--line); }
+    .auth-tab { text-align:center; border:0; background:transparent; color:var(--muted); padding:12px 12px; cursor:pointer; font-weight:700; font-size:15px; border-bottom:2px solid transparent; margin-bottom:-2px; transition:all .2s; }
+    .auth-tab.active { color:var(--blue); border-bottom-color:var(--blue); }
+    .auth-tab:hover { color:var(--text); }
     .auth-panel { display:none; }
     .auth-panel.active { display:block; }
+    .field-label { display:block; font-size:13px; font-weight:600; color:var(--muted); margin-bottom:6px; }
+    .register-btn:hover { filter:brightness(1.15); }
     .grid { display:grid; grid-template-columns:repeat(4, minmax(0, 1fr)); gap:14px; margin-bottom:18px; }
     .card { background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:16px; }
     .card b { display:block; font-size:26px; margin-top:8px; }
@@ -39,33 +43,42 @@
 </head>
 <body>
   <div id="login" class="login">
-    <h1>Client Portal</h1>
-    <p class="muted">Create a Buykori workspace or sign in with your email and password.</p>
+    <h1 style="margin:0 0 4px 0">🚀 Buykori Client Portal</h1>
+    <p class="muted" style="margin:0 0 18px 0">Sign in to your workspace or create a new account.</p>
     <div class="auth-tabs">
-      <button id="loginTab" class="secondary active" onclick="showAuth('signin')">Sign in</button>
-      <button id="signupTab" class="secondary" onclick="showAuth('signup')">Sign up</button>
+      <button id="loginTab" class="auth-tab active" onclick="showAuth('signin')">Sign In</button>
+      <button id="signupTab" class="auth-tab" onclick="showAuth('signup')">Register</button>
     </div>
     <div id="signinPanel" class="auth-panel active">
-      <input id="loginEmail" type="email" placeholder="Email address">
-      <div style="height:10px"></div>
-      <input id="loginPassword" type="password" placeholder="Password">
+      <label class="field-label">Email</label>
+      <input id="loginEmail" type="email" placeholder="you@example.com">
       <div style="height:12px"></div>
-      <button class="primary" onclick="login()">Sign in</button>
+      <label class="field-label">Password</label>
+      <input id="loginPassword" type="password" placeholder="Your password">
+      <div style="height:16px"></div>
+      <button class="primary" style="width:100%;padding:13px;font-size:15px" onclick="login()">Sign In</button>
+      <p style="text-align:center;margin:14px 0 0;color:var(--muted);font-size:13px">Don't have an account? <a href="#" onclick="showAuth('signup');return false" style="color:var(--blue);text-decoration:none;font-weight:700">Register here</a></p>
     </div>
     <div id="signupPanel" class="auth-panel">
-      <input id="signupName" placeholder="Your name">
+      <label class="field-label">Full Name</label>
+      <input id="signupName" placeholder="Your full name">
       <div style="height:10px"></div>
-      <input id="signupEmail" type="email" placeholder="Email address">
+      <label class="field-label">Email</label>
+      <input id="signupEmail" type="email" placeholder="you@example.com">
       <div style="height:10px"></div>
-      <input id="signupPassword" type="password" placeholder="Password, minimum 8 characters">
+      <label class="field-label">Password <span style="color:var(--muted);font-weight:400">(min 8 characters)</span></label>
+      <input id="signupPassword" type="password" placeholder="Create a strong password">
       <div style="height:10px"></div>
-      <input id="businessName" placeholder="Business or store name">
+      <label class="field-label">Business / Store Name</label>
+      <input id="businessName" placeholder="Your business name">
       <div style="height:10px"></div>
-      <input id="businessDomain" placeholder="Website domain, optional">
-      <div style="height:12px"></div>
-      <button class="primary" onclick="signup()">Create workspace</button>
+      <label class="field-label">Website Domain <span style="color:var(--muted);font-weight:400">(optional)</span></label>
+      <input id="businessDomain" placeholder="example.com">
+      <div style="height:16px"></div>
+      <button class="primary register-btn" style="width:100%;padding:13px;font-size:15px;background:var(--green)" onclick="signup()">🚀 Create Free Account</button>
+      <p style="text-align:center;margin:14px 0 0;color:var(--muted);font-size:13px">Already have an account? <a href="#" onclick="showAuth('signin');return false" style="color:var(--blue);text-decoration:none;font-weight:700">Sign in</a></p>
     </div>
-    <p id="loginError" class="muted"></p>
+    <p id="loginError" style="color:var(--red);text-align:center;min-height:20px;margin:10px 0 0"></p>
   </div>
   <div id="app" class="shell" style="display:none">
     <aside>
