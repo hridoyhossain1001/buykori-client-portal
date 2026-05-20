@@ -273,8 +273,10 @@
         <span class="nav-section-label">Events</span>
         <button class="nav-item" data-tab="events"><span class="nav-icon">EV</span> Event Log</button>
         <button class="nav-item" data-tab="campaigns"><span class="nav-icon">CP</span> Campaigns</button>
+        <button class="nav-item" data-tab="pending"><span class="nav-icon">PD</span> Pending Purchases</button>
         <span class="nav-section-label">Tools</span>
         <button class="nav-item" data-tab="doctor"><span class="nav-icon">HD</span> Signal Doctor</button>
+        <button class="nav-item" data-tab="campaign-builder"><span class="nav-icon">CB</span> Campaign Builder</button>
         <button class="nav-item" data-tab="setup"><span class="nav-icon">ST</span> Setup Guide</button>
         <span class="nav-section-label">Account</span>
         <button class="nav-item nav-upgrade" onclick="alert('Coming soon. Please contact the admin for updates.')"><span class="nav-icon">UP</span> Upgrade Plan</button>
@@ -401,6 +403,30 @@
           </div>
         </section>
 
+        <section id="pending" class="section">
+          <div class="header">
+            <div><h1 class="page-title">Pending Purchases</h1><p class="page-sub">Deferred purchase orders waiting for confirmation. Confirm to send Purchase event to platforms.</p></div>
+          </div>
+          <div class="stat-row">
+            <div class="stat-box" style="border-color:rgba(245,158,11,0.25);"><div class="stat-icon">PEND</div><div class="num" id="pendingCount" style="color:var(--warning)">-</div><div class="lbl">Pending orders</div></div>
+            <div class="stat-box" style="border-color:rgba(16,185,129,0.22);"><div class="stat-icon">CONF</div><div class="num" id="confirmedToday" style="color:var(--accent)">-</div><div class="lbl">Confirmed today</div></div>
+            <div class="stat-box" style="border-color:rgba(248,113,113,0.2);"><div class="stat-icon">CANC</div><div class="num" id="cancelledCount" style="color:var(--danger)">-</div><div class="lbl">Cancelled total</div></div>
+          </div>
+          <div class="card">
+            <div class="card-title"><span class="icon">PD</span> Pending Orders
+              <span style="margin-left:auto;display:flex;gap:8px">
+                <button class="btn btn-soft" style="font-size:11px;padding:5px 12px" onclick="selectAllPending()">Select All</button>
+                <button class="btn btn-primary" style="font-size:11px;padding:5px 12px" onclick="confirmSelectedOrders()">Confirm Selected</button>
+                <button class="btn" style="font-size:11px;padding:5px 12px;background:rgba(248,113,113,0.12);color:#fca5a5;box-shadow:none" onclick="cancelSelectedOrders()">Cancel Selected</button>
+              </span>
+            </div>
+            <div id="pendingStatus" style="display:none;padding:10px 14px;border-radius:8px;margin-bottom:12px;font-size:13px"></div>
+            <div class="table-wrap">
+              <table class="client-table"><thead><tr><th style="width:30px"></th><th>Order ID</th><th>Amount</th><th>Customer</th><th>Time</th><th>Actions</th></tr></thead><tbody id="pendingRows"></tbody></table>
+            </div>
+          </div>
+        </section>
+
         <section id="doctor" class="section">
           <div class="header">
             <div><h1 class="page-title">Signal Doctor</h1><p class="page-sub">Platform readiness and issues that can improve your match quality.</p></div>
@@ -412,6 +438,52 @@
             <div class="stat-box"><div class="stat-icon">GA4</div><div class="num" id="gaReadyDoctor">-</div><div class="lbl">GA4 Measurement</div></div>
           </div>
           <div class="card"><div class="card-title"><span class="icon">IX</span> Issues</div><div id="issues"></div></div>
+        </section>
+
+        <section id="campaign-builder" class="section">
+          <div class="header">
+            <div><h1 class="page-title">Campaign URL Builder</h1><p class="page-sub">Generate UTM-tagged campaign URLs for Facebook, TikTok, Google and more.</p></div>
+          </div>
+          <div class="card">
+            <div class="card-title"><span class="icon">CB</span> Build Campaign URL</div>
+            <div class="setup-grid">
+              <div>
+                <label class="field-label">Landing / Product URL</label>
+                <input id="campaignUrlBase" placeholder="https://your-site.com/product/item">
+                <div style="height:12px"></div>
+                <div class="form-grid">
+                  <div>
+                    <label class="field-label">Platform</label>
+                    <select id="campaignPlatform" onchange="updateMedium()">
+                      <option value="facebook">Facebook</option>
+                      <option value="tiktok">TikTok</option>
+                      <option value="google">Google</option>
+                      <option value="instagram">Instagram</option>
+                      <option value="youtube">YouTube</option>
+                      <option value="email">Email</option>
+                      <option value="whatsapp">WhatsApp</option>
+                    </select>
+                  </div>
+                  <div><label class="field-label">Medium</label><input id="campaignMedium" value="paid_social"></div>
+                </div>
+              </div>
+              <div>
+                <label class="field-label">Campaign Name</label>
+                <input id="campaignName" placeholder="eid_sale_tshirt">
+                <div style="height:12px"></div>
+                <div class="form-grid">
+                  <div><label class="field-label">Content (optional)</label><input id="campaignContent" placeholder="video_1"></div>
+                  <div><label class="field-label">Term (optional)</label><input id="campaignTerm" placeholder="keyword"></div>
+                </div>
+              </div>
+            </div>
+            <div class="code-box" id="campaignOutput" style="margin-top:14px;word-break:break-all">Generated campaign URL will appear here</div>
+            <div style="display:flex;gap:10px;margin-top:12px;align-items:center">
+              <button class="btn btn-primary" onclick="generateCampaignUrl()">Generate URL</button>
+              <button class="btn btn-soft" onclick="copyCampaignUrl()">Copy</button>
+              <span id="campaignStatus" style="font-size:12px;color:var(--text-muted)"></span>
+            </div>
+          </div>
         </section>
 
         <section id="setup" class="section">
@@ -468,6 +540,40 @@
                 <p class="muted" style="margin-bottom:12px">Use this only for custom/non-WooCommerce pages. Keep the server API key out of frontend code.</p>
                 <div class="code-box" id="trackerSnippet">&lt;script src="https://api.buykori.app/t.js?key=YOUR_PUBLIC_KEY" defer&gt;&lt;/script&gt;</div>
               </div>
+            </div>
+          </div>
+
+          <div class="card" style="margin-top:20px;border-color:rgba(16,185,129,0.2)">
+            <div class="card-title"><span class="icon">TS</span> Event Testing & Debug</div>
+            <div class="setup-grid">
+              <div style="background:rgba(255,255,255,0.02);border:1px solid var(--border);border-radius:12px;padding:20px">
+                <h4 style="color:#fff;margin:0 0 12px;font-size:14px">Send Test Event</h4>
+                <select id="testEventName" style="width:100%;padding:10px;background:rgba(2,8,22,0.78);color:#fff;border:1px solid var(--border);border-radius:8px;margin-bottom:10px;font-size:13px;outline:none">
+                  <option value="PageView">PageView</option>
+                  <option value="ViewContent">ViewContent</option>
+                  <option value="AddToCart">AddToCart</option>
+                  <option value="InitiateCheckout">InitiateCheckout</option>
+                  <option value="Purchase">Purchase</option>
+                  <option value="Lead">Lead</option>
+                  <option value="CompleteRegistration">CompleteRegistration</option>
+                  <option value="Search">Search</option>
+                </select>
+                <button class="btn btn-primary" style="width:100%;font-size:13px" onclick="sendTestEvent()">Send Test Event</button>
+                <div id="testResult" style="margin-top:10px;font-size:12px;color:var(--text-muted)"></div>
+              </div>
+              <div style="background:rgba(255,255,255,0.02);border:1px solid var(--border);border-radius:12px;padding:20px">
+                <h4 style="color:#fff;margin:0 0 12px;font-size:14px">Validate Event Payload</h4>
+                <textarea id="validatePayload" style="width:100%;height:120px;padding:10px;background:rgba(2,8,22,0.78);color:var(--accent);border:1px solid var(--border);border-radius:8px;font-family:monospace;font-size:11px;resize:vertical" placeholder='{"event_name":"Purchase","event_time":1234567890,"user_data":{"em":["test@example.com"]},"custom_data":{"value":1500,"currency":"BDT"}}'></textarea>
+                <button class="btn btn-primary" style="width:100%;font-size:13px;margin-top:8px" onclick="validatePayload()">Validate</button>
+                <div id="validateResult" style="margin-top:10px;font-size:12px"></div>
+              </div>
+            </div>
+            <div style="margin-top:20px;background:rgba(255,255,255,0.02);border:1px solid var(--border);border-radius:12px;padding:20px">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+                <h4 style="color:#fff;margin:0;font-size:14px">Live Event Stream (Last Hour)</h4>
+                <button class="btn btn-soft" style="font-size:11px;padding:5px 12px" onclick="refreshLiveEvents()">Refresh</button>
+              </div>
+              <div id="liveEvents" style="max-height:300px;overflow-y:auto;font-family:monospace;font-size:11px;color:var(--text-muted)">Loading...</div>
             </div>
           </div>
         </section>
@@ -604,6 +710,7 @@
       document.querySelectorAll(".nav-item[data-tab]").forEach(btn => btn.classList.toggle("active", btn.dataset.tab === tab));
       document.querySelectorAll(".section").forEach(section => section.classList.toggle("active", section.id === tab));
       if (tab === "setup") loadSetup();
+      if (tab === "pending") loadPending();
       if (window.innerWidth <= 980 && $("sidebar").classList.contains("open")) toggleSidebar();
     }
 
@@ -621,7 +728,7 @@
         $("setupPixelId").value = setup.pixel_id || "";
         $("setupTiktokPixel").value = setup.tiktok_pixel_id || "";
         $("setupGa4Id").value = setup.ga4_measurement_id || "";
-        $("trackerSnippet").textContent = `<script src="https://api.buykori.app/t.js?key=${setup.public_key || "YOUR_PUBLIC_KEY"}" defer><\\/script>`;
+        $("trackerSnippet").textContent = `<script src="https://api.buykori.app/t.js?key=${setup.public_key || "YOUR_PUBLIC_KEY"}" defer><\/script>`;
       } catch (error) {
         $("apiKeyDisplay").textContent = "Could not load API key";
       }
@@ -664,6 +771,198 @@
       }
       $("saveSetupBtn").textContent = "Save Settings & Get API Key";
       $("saveSetupBtn").disabled = false;
+    }
+
+    // ─── Pending Purchases ──────────────────────────────────────────────
+    async function loadPending() {
+      try {
+        const data = await api("/client/pending");
+        $("pendingCount").textContent = fmt(data.pending_count);
+        $("confirmedToday").textContent = fmt(data.confirmed_today);
+        $("cancelledCount").textContent = fmt(data.cancelled_count);
+        const rows = (data.orders || []).map(o => {
+          const val = o.value ? `$${Number(o.value).toLocaleString()}` : "—";
+          const cust = esc(o.customer || "—");
+          const age = o.age || "—";
+          return `<tr id="row-${esc(o.order_id)}">
+            <td><input type="checkbox" class="pending-cb" value="${esc(o.order_id)}" style="accent-color:var(--primary);width:16px;height:16px"></td>
+            <td style="font-family:monospace;font-size:12px;color:var(--text-muted)">${esc(o.order_id)}</td>
+            <td style="color:var(--accent);font-weight:600">${val}</td>
+            <td style="color:var(--text-muted);font-size:12px">${cust}</td>
+            <td style="color:var(--text-muted);font-size:12px">${esc(age)}</td>
+            <td>
+              <button class="btn btn-primary" style="font-size:11px;padding:4px 10px;margin-right:4px" onclick="confirmOrder('${esc(o.order_id)}')">Confirm</button>
+              <button class="btn" style="font-size:11px;padding:4px 10px;background:rgba(248,113,113,0.12);color:#fca5a5;box-shadow:none" onclick="cancelOrder('${esc(o.order_id)}')">Cancel</button>
+            </td>
+          </tr>`;
+        }).join("");
+        $("pendingRows").innerHTML = rows || `<tr><td colspan="6" class="muted" style="text-align:center;padding:30px">No pending orders</td></tr>`;
+      } catch (e) {
+        $("pendingRows").innerHTML = `<tr><td colspan="6" class="muted" style="text-align:center;padding:30px">Could not load pending orders</td></tr>`;
+      }
+    }
+
+    function showPendingStatus(msg, type) {
+      const el = $("pendingStatus");
+      el.style.display = "block";
+      el.style.background = type === "success" ? "rgba(16,185,129,0.1)" : "rgba(248,113,113,0.1)";
+      el.style.border = type === "success" ? "1px solid rgba(16,185,129,0.2)" : "1px solid rgba(248,113,113,0.2)";
+      el.style.color = type === "success" ? "#6ee7b7" : "#fca5a5";
+      el.textContent = msg;
+      setTimeout(() => el.style.display = "none", 5000);
+    }
+
+    async function confirmOrder(orderId) {
+      if (!confirm(`Confirm order ${orderId}? Purchase event will be sent to platforms.`)) return;
+      try {
+        const res = await api("/events/confirm", { method: "POST", body: JSON.stringify({ order_id: orderId }) });
+        showPendingStatus(`Order ${orderId} confirmed and sent to platforms.`, "success");
+        const row = $(`row-${orderId}`);
+        if (row) { row.style.opacity = "0.3"; setTimeout(() => row.remove(), 1500); }
+      } catch (e) { showPendingStatus(`Error confirming ${orderId}`, "error"); }
+    }
+
+    async function cancelOrder(orderId) {
+      if (!confirm(`Cancel order ${orderId}? No event will be sent.`)) return;
+      try {
+        await api("/events/cancel", { method: "POST", body: JSON.stringify({ order_id: orderId }) });
+        showPendingStatus(`Order ${orderId} cancelled.`, "success");
+        const row = $(`row-${orderId}`);
+        if (row) { row.style.opacity = "0.3"; setTimeout(() => row.remove(), 1500); }
+      } catch (e) { showPendingStatus(`Error cancelling ${orderId}`, "error"); }
+    }
+
+    function selectAllPending() {
+      const cbs = document.querySelectorAll(".pending-cb");
+      const allChecked = Array.from(cbs).every(cb => cb.checked);
+      cbs.forEach(cb => cb.checked = !allChecked);
+    }
+
+    async function confirmSelectedOrders() {
+      const cbs = document.querySelectorAll(".pending-cb:checked");
+      if (!cbs.length) { showPendingStatus("No orders selected.", "error"); return; }
+      if (!confirm(`Confirm ${cbs.length} order(s)?`)) return;
+      const ids = Array.from(cbs).map(cb => cb.value);
+      try {
+        const res = await api("/events/confirm/bulk", { method: "POST", body: JSON.stringify({ order_ids: ids }) });
+        showPendingStatus(`${res.confirmed || ids.length} order(s) confirmed.`, "success");
+        ids.forEach(id => { const row = $(`row-${id}`); if (row) { row.style.opacity = "0.3"; setTimeout(() => row.remove(), 1500); } });
+      } catch (e) { showPendingStatus("Bulk confirm failed.", "error"); }
+    }
+
+    async function cancelSelectedOrders() {
+      const cbs = document.querySelectorAll(".pending-cb:checked");
+      if (!cbs.length) { showPendingStatus("No orders selected.", "error"); return; }
+      if (!confirm(`Cancel ${cbs.length} order(s)?`)) return;
+      const ids = Array.from(cbs).map(cb => cb.value);
+      try {
+        const res = await api("/events/cancel/bulk", { method: "POST", body: JSON.stringify({ order_ids: ids }) });
+        showPendingStatus(`${res.cancelled || ids.length} order(s) cancelled.`, "success");
+        ids.forEach(id => { const row = $(`row-${id}`); if (row) { row.style.opacity = "0.3"; setTimeout(() => row.remove(), 1500); } });
+      } catch (e) { showPendingStatus("Bulk cancel failed.", "error"); }
+    }
+
+    // ─── Campaign URL Builder ───────────────────────────────────────────
+    function slugifyUtm(value) {
+      return String(value || "").trim().toLowerCase().replace(/\s+/g, "_").replace(/[^a-z0-9_.-]/g, "").replace(/_+/g, "_").replace(/^_+|_+$/g, "");
+    }
+
+    function updateMedium() {
+      const p = $("campaignPlatform").value;
+      if (p === "google" || p === "youtube") $("campaignMedium").value = "cpc";
+      else if (p === "email") $("campaignMedium").value = "email";
+      else if (p === "whatsapp") $("campaignMedium").value = "message";
+      else $("campaignMedium").value = "paid_social";
+    }
+
+    function generateCampaignUrl() {
+      let raw = $("campaignUrlBase").value.trim();
+      const status = $("campaignStatus");
+      if (!raw) { status.style.color = "var(--danger)"; status.textContent = "Enter a landing URL."; return; }
+      if (!/^https?:\/\//i.test(raw)) raw = "https://" + raw;
+      const campaign = slugifyUtm($("campaignName").value);
+      if (!campaign) { status.style.color = "var(--danger)"; status.textContent = "Enter a campaign name."; return; }
+      try {
+        const url = new URL(raw);
+        url.searchParams.set("utm_source", slugifyUtm($("campaignPlatform").value) || "unknown");
+        url.searchParams.set("utm_medium", slugifyUtm($("campaignMedium").value) || "paid_social");
+        url.searchParams.set("utm_campaign", campaign);
+        const content = slugifyUtm($("campaignContent").value);
+        const term = slugifyUtm($("campaignTerm").value);
+        if (content) url.searchParams.set("utm_content", content);
+        if (term) url.searchParams.set("utm_term", term);
+        $("campaignOutput").textContent = url.toString();
+        status.style.color = "var(--accent)";
+        status.textContent = "Ready — use this link as your campaign destination URL.";
+      } catch (e) {
+        status.style.color = "var(--danger)";
+        status.textContent = "Enter a valid URL, e.g. https://example.com/product";
+      }
+    }
+
+    function copyCampaignUrl() {
+      const text = $("campaignOutput").textContent;
+      if (!text || text.startsWith("Generated")) return;
+      navigator.clipboard.writeText(text).then(() => {
+        $("campaignStatus").style.color = "var(--accent)";
+        $("campaignStatus").textContent = "Copied!";
+        setTimeout(() => $("campaignStatus").textContent = "", 2000);
+      });
+    }
+
+    // ─── Event Testing & Debug ──────────────────────────────────────────
+    async function sendTestEvent() {
+      const evName = $("testEventName").value;
+      const el = $("testResult");
+      el.innerHTML = `<span style="color:var(--warning)">Sending...</span>`;
+      try {
+        const data = await api("/debug/test-event", { method: "POST", body: JSON.stringify({ event_name: evName }) });
+        el.innerHTML = `<span style="color:var(--accent)">${esc(evName)} event sent!</span><br><span style="color:var(--text-dim)">ID: ${esc(data.event_id || "")}</span>`;
+      } catch (e) {
+        el.innerHTML = `<span style="color:var(--danger)">Error sending test event</span>`;
+      }
+    }
+
+    async function validatePayload() {
+      const el = $("validateResult");
+      const raw = $("validatePayload").value;
+      if (!raw.trim()) { el.innerHTML = `<span style="color:var(--danger)">Enter a payload.</span>`; return; }
+      try {
+        JSON.parse(raw);
+        const data = await api("/debug/validate", { method: "POST", body: raw });
+        const emqColor = data.emq_estimate >= 7 ? "var(--accent)" : data.emq_estimate >= 4 ? "var(--warning)" : "var(--danger)";
+        let html = `<div style="margin-bottom:8px"><span style="font-size:16px;color:${emqColor};font-weight:bold">EMQ: ${data.emq_estimate}/10</span> `;
+        html += data.is_valid ? `<span style="color:var(--accent)">Valid</span>` : `<span style="color:var(--danger)">Invalid</span>`;
+        html += `</div>`;
+        (data.issues || []).forEach(i => {
+          const c = i.status === "ok" ? "var(--accent)" : i.status === "warning" ? "var(--warning)" : "var(--danger)";
+          html += `<div style="color:${c};margin:2px 0">${esc(i.message)}</div>`;
+        });
+        el.innerHTML = html;
+      } catch (e) {
+        el.innerHTML = `<span style="color:var(--danger)">Invalid JSON: ${esc(e.message)}</span>`;
+      }
+    }
+
+    async function refreshLiveEvents() {
+      const el = $("liveEvents");
+      el.innerHTML = `<span style="color:var(--warning)">Loading...</span>`;
+      try {
+        const data = await api("/debug/recent?limit=20&minutes=60");
+        if (!data.events || !data.events.length) { el.innerHTML = `<span class="muted">No events in the last hour</span>`; return; }
+        el.innerHTML = data.events.map(ev => {
+          const sc = ev.status === "success" ? "var(--accent)" : "var(--danger)";
+          const age = ev.age_seconds < 60 ? `${Math.round(ev.age_seconds)}s ago` : `${Math.round(ev.age_seconds / 60)}m ago`;
+          return `<div style="padding:6px 8px;border-bottom:1px solid rgba(255,255,255,0.03);display:flex;gap:12px;align-items:center">
+            <span style="color:var(--text-dim);min-width:55px">${age}</span>
+            <span style="color:${sc};min-width:12px">${ev.status === "success" ? "●" : "○"}</span>
+            <span style="color:#ccc;min-width:120px;font-weight:600">${esc(ev.event_name)}</span>
+            <span style="color:var(--text-dim);font-size:10px">${esc(ev.event_id || "")}</span>
+          </div>`;
+        }).join("");
+      } catch (e) {
+        el.innerHTML = `<span style="color:var(--danger)">Error loading events</span>`;
+      }
     }
 
     document.querySelectorAll(".nav-item[data-tab]").forEach(btn => btn.addEventListener("click", () => setTab(btn.dataset.tab)));
