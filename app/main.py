@@ -17,6 +17,7 @@ from app.routers.tracker import router as tracker_router
 from app.routers.deferred_events import router as deferred_events_router
 from app.routers.analytics import router as analytics_router
 from app.routers.debug import router as debug_router
+from app.routers.client_auth import router as client_auth_router
 from app.limiter import limiter
 import os
 
@@ -149,8 +150,8 @@ app.add_middleware(HerokuRedirectMiddleware)
 # Client Portal same-origin cookie ব্যবহার করে; public tracker CORS-এ credentials লাগে না।
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=False,
+    allow_origin_regex=r"https://.*|http://localhost(:\d+)?|http://127\.0\.0\.1(:\d+)?",
+    allow_credentials=True,
     allow_methods=["GET", "POST", "PATCH", "OPTIONS"],
     allow_headers=[
         "X-API-Key",
@@ -171,6 +172,7 @@ app.include_router(tracker_router, tags=["Tracker"])  # /t.js, /c — root level
 app.include_router(deferred_events_router, prefix="/api/v1", tags=["Deferred Events"])
 app.include_router(analytics_router, prefix="/api/v1", tags=["Analytics"])
 app.include_router(debug_router, prefix="/api/v1", tags=["Debug & Testing"])
+app.include_router(client_auth_router, prefix="/api/v1", tags=["Client Auth"])
 
 from app.routers.plugin import router as plugin_router
 app.include_router(plugin_router, prefix="/api/v1", tags=["Plugin"])

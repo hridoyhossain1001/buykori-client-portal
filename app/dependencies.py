@@ -1,12 +1,16 @@
 import time
 import logging
+import os
 from dataclasses import dataclass
+from urllib.parse import urlparse
 from fastapi import Header, HTTPException, Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from app.database import get_db
 from app.models.client import Client
+from app.models.client_session import ClientSession
 from app.security import decrypt_token
+from app.services.auth_service import hash_session_token
 
 logger = logging.getLogger(__name__)
 
@@ -46,6 +50,24 @@ class CachedClient:
 
 _client_cache: dict[str, tuple[CachedClient, float]] = {}
 CACHE_TTL = 60  # 60 সেকেন্ড — client info cache করে রাখো
+
+ALLOWED_CLIENT_AUTH_HOSTS = {
+    host.strip().lower()
+    for host in os.getenv(
+        "CLIENT_AUTH_ALLOWED_HOSTS",
+        "buykori.app,www.buykori.app,client.buykori.app,localhost,127.0.0.1",
+    ).split(",")
+    if host.strip()
+}
+
+
+def _origin_allowed_for_cookie_auth(request: Request) -> bool:
+    origin = request.headers.get("origin")
+    if not origin:
+        return True
+    host = (urlparse(origin).hostname or "").lower()
+    return host in ALLOWED_CLIENT_AUTH_HOSTS
+
 
 def clear_client_cache(api_key: str):
     """Admin update-এর পর cache ক্লিয়ার করতে ব্যবহৃত হয়"""
@@ -93,6 +115,31 @@ async def get_current_client(
     In-memory cache দিয়ে DB query minimize করে (60s TTL)।
     CachedClient রিটার্ন করে — SQLAlchemy session-এ নির্ভর করে না।
     """
+    if not x_api_key:
+        user_session = request.cookies.get("buykori_client_session")
+        if user_session:
+            if not _origin_allowed_for_cookie_auth(request):
+                raise HTTPException(status_code=403, detail="Origin is not allowed.")
+            try:
+                session_token = decrypt_token(user_session, allow_legacy_plaintext=False)
+                session_result = await db.execute(
+                    select(ClientSession).where(ClientSession.token_hash == hash_session_token(session_token))
+                )
+                client_session = session_result.scalar_one_or_none()
+                if client_session and not client_session.revoked_at:
+                    from datetime import datetime, timezone
+
+                    expires_at = client_session.expires_at
+                    if expires_at and expires_at.tzinfo is None:
+                        expires_at = expires_at.replace(tzinfo=timezone.utc)
+                    if expires_at and expires_at > datetime.now(timezone.utc):
+                        result = await db.execute(select(Client).where(Client.id == client_session.client_id))
+                        session_client = result.scalar_one_or_none()
+                        if session_client and session_client.is_active:
+                            x_api_key = session_client.api_key
+            except Exception:
+                x_api_key = None
+
     if not x_api_key:
         encrypted_session = request.cookies.get("client_session")
         if encrypted_session:

@@ -72,12 +72,15 @@ Both frontends call:
 https://api.buykori.app
 ```
 
-Current auth model:
+Current client auth model:
 
 ```txt
-client-portal -> sends X-API-Key to client analytics APIs
-admin-portal  -> sends X-Admin-API-Key to admin JSON APIs
+client-portal -> public email/password signup and login
+client-portal -> secure HttpOnly client session cookie
+admin-portal  -> sends X-Admin-API-Key to admin JSON APIs for now
 ```
+
+Email verification is intentionally deferred. New users can sign up and inspect the dashboard immediately; the workspace starts with a small free quota and platform delivery disabled until setup is completed.
 
 The old FastAPI-rendered HTML routes remain available during migration:
 
