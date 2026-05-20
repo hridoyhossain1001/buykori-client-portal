@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Buykori Client Portal</title>
+  <style>
+    :root { color-scheme: dark; --bg:#09111f; --panel:#101b2f; --line:#25324a; --text:#edf4ff; --muted:#94a3b8; --blue:#38bdf8; --green:#34d399; --red:#fb7185; --amber:#fbbf24; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif; background:#09111f; color:var(--text); }
+    .shell { display:grid; grid-template-columns:260px 1fr; min-height:100vh; }
+    aside { border-right:1px solid var(--line); padding:22px; background:#0d1728; }
+    .brand { font-weight:800; font-size:20px; margin-bottom:28px; }
+    .nav { display:grid; gap:8px; }
+    .nav button { text-align:left; border:0; background:transparent; color:var(--muted); padding:11px 12px; border-radius:8px; cursor:pointer; font-weight:650; }
+    .nav button.active, .nav button:hover { background:#16233a; color:var(--text); }
+    main { padding:28px; }
+    .top { display:flex; gap:12px; justify-content:space-between; align-items:center; margin-bottom:22px; }
+    input, select { width:100%; border:1px solid var(--line); background:#0d1728; color:var(--text); padding:11px 12px; border-radius:8px; }
+    button.primary { border:0; background:var(--blue); color:#00111f; padding:11px 14px; border-radius:8px; font-weight:800; cursor:pointer; }
+    .login { max-width:520px; margin:12vh auto; padding:24px; background:var(--panel); border:1px solid var(--line); border-radius:8px; }
+    .grid { display:grid; grid-template-columns:repeat(4, minmax(0, 1fr)); gap:14px; margin-bottom:18px; }
+    .card { background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:16px; }
+    .card b { display:block; font-size:26px; margin-top:8px; }
+    .muted { color:var(--muted); }
+    .section { display:none; }
+    .section.active { display:block; }
+    table { width:100%; border-collapse:collapse; }
+    th, td { padding:11px 8px; border-bottom:1px solid var(--line); text-align:left; }
+    .pill { display:inline-block; padding:4px 8px; border-radius:999px; background:#13243d; color:#bfdbfe; font-size:12px; font-weight:700; }
+    .issue { padding:11px 12px; border:1px solid var(--line); border-radius:8px; margin:8px 0; }
+    @media (max-width: 860px) { .shell { grid-template-columns:1fr; } aside { position:static; } .grid { grid-template-columns:1fr 1fr; } main { padding:18px; } }
+  </style>
+</head>
+<body>
+  <div id="login" class="login">
+    <h1>Client Portal</h1>
+    <p class="muted">Use your Buykori API key to view tracking health, usage, and signal diagnostics.</p>
+    <input id="apiKey" type="password" placeholder="Client API key">
+    <div style="height:12px"></div>
+    <button class="primary" onclick="saveKey()">Open dashboard</button>
+    <p id="loginError" class="muted"></p>
+  </div>
+  <div id="app" class="shell" style="display:none">
+    <aside>
+      <div class="brand">Buykori Client</div>
+      <div class="nav">
+        <button class="active" data-tab="overview">Overview</button>
+        <button data-tab="campaigns">Campaigns</button>
+        <button data-tab="doctor">Signal Doctor</button>
+        <button onclick="logout()">Log out</button>
+      </div>
+    </aside>
+    <main>
+      <div class="top">
+        <div>
+          <h1 id="clientName">Dashboard</h1>
+          <div class="muted">API: https://api.buykori.app</div>
+        </div>
+        <select id="days" style="max-width:160px" onchange="loadAll()">
+          <option value="7">Last 7 days</option>
+          <option value="30">Last 30 days</option>
+          <option value="90">Last 90 days</option>
+        </select>
+      </div>
+      <section id="overview" class="section active">
+        <div class="grid">
+          <div class="card">Events<b id="totalEvents">-</b></div>
+          <div class="card">Success Rate<b id="successRate">-</b></div>
+          <div class="card">Today<b id="todayEvents">-</b></div>
+          <div class="card">Usage<b id="usagePct">-</b></div>
+        </div>
+        <div class="card"><h2>Event Breakdown</h2><table><tbody id="eventsTable"></tbody></table></div>
+      </section>
+      <section id="campaigns" class="section">
+        <div class="card"><h2>Campaign Performance</h2><table><thead><tr><th>Source</th><th>Campaign</th><th>View</th><th>Cart</th><th>Checkout</th><th>Purchase</th><th>Revenue</th></tr></thead><tbody id="campaignRows"></tbody></table></div>
+      </section>
+      <section id="doctor" class="section">
+        <div class="grid">
+          <div class="card">Score<b id="doctorScore">-</b></div>
+          <div class="card">Facebook<b id="fbReady">-</b></div>
+          <div class="card">TikTok<b id="ttReady">-</b></div>
+          <div class="card">GA4<b id="gaReady">-</b></div>
+        </div>
+        <div class="card"><h2>Issues</h2><div id="issues"></div></div>
+      </section>
+    </main>
+  </div>
+  <script>
+    const API_BASE = "https://api.buykori.app/api/v1";
+    const $ = (id) => document.getElementById(id);
+    const fmt = (n) => Number(n || 0).toLocaleString();
+    const key = () => localStorage.getItem("buykori_client_api_key") || "";
+    async function api(path) {
+      const res = await fetch(API_BASE + path, { headers: { "X-API-Key": key() } });
+      if (!res.ok) throw new Error(await res.text());
+      return res.json();
+    }
+    async function saveKey() {
+      localStorage.setItem("buykori_client_api_key", $("apiKey").value.trim());
+      try { await loadAll(); showApp(); } catch (e) { $("loginError").textContent = "Could not connect with this API key."; }
+    }
+    function showApp() { $("login").style.display = "none"; $("app").style.display = "grid"; }
+    function logout() { localStorage.removeItem("buykori_client_api_key"); location.reload(); }
+    async function loadAll() {
+      const days = $("days").value;
+      const [health, usage, overview, campaigns, doctor] = await Promise.all([
+        api("/client/health"), api(`/client/usage?days=${days}`), api(`/analytics/overview?days=${days}`),
+        api(`/analytics/campaigns?days=${days}`), api(`/analytics/signal-doctor?days=${days}`)
+      ]);
+      $("clientName").textContent = health.client_name || "Dashboard";
+      $("totalEvents").textContent = fmt(overview.total_events);
+      $("successRate").textContent = `${overview.success_rate || 0}%`;
+      $("todayEvents").textContent = fmt(health.today_events);
+      $("usagePct").textContent = `${usage.usage_percentage || 0}%`;
+      $("eventsTable").innerHTML = (overview.event_breakdown || []).map(r => `<tr><td>${r.event_name}</td><td>${fmt(r.count)}</td><td><span class="pill">${r.percentage}%</span></td></tr>`).join("") || "<tr><td>No events yet</td></tr>";
+      $("campaignRows").innerHTML = (campaigns.campaigns || []).map(r => `<tr><td>${r.source}</td><td>${r.campaign}</td><td>${fmt(r.view_content)}</td><td>${fmt(r.add_to_cart)}</td><td>${fmt(r.initiate_checkout)}</td><td>${fmt(r.purchase)}</td><td>${fmt(r.revenue)}</td></tr>`).join("") || "<tr><td colspan='7'>No campaign data</td></tr>";
+      $("doctorScore").textContent = `${doctor.score} ${doctor.grade}`;
+      $("fbReady").textContent = `${doctor.platform_readiness.facebook}%`;
+      $("ttReady").textContent = `${doctor.platform_readiness.tiktok}%`;
+      $("gaReady").textContent = `${doctor.platform_readiness.ga4}%`;
+      $("issues").innerHTML = (doctor.issues || []).map(i => `<div class="issue"><b>${i.title}</b><div class="muted">${i.metric} - ${i.fix}</div></div>`).join("");
+    }
+    document.querySelectorAll(".nav button[data-tab]").forEach(btn => btn.onclick = () => {
+      document.querySelectorAll(".nav button").forEach(b => b.classList.remove("active"));
+      document.querySelectorAll(".section").forEach(s => s.classList.remove("active"));
+      btn.classList.add("active"); $(btn.dataset.tab).classList.add("active");
+    });
+    if (key()) loadAll().then(showApp).catch(logout);
+  </script>
+</body>
+</html>
