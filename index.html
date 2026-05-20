@@ -18,7 +18,12 @@
     .top { display:flex; gap:12px; justify-content:space-between; align-items:center; margin-bottom:22px; }
     input, select { width:100%; border:1px solid var(--line); background:#0d1728; color:var(--text); padding:11px 12px; border-radius:8px; }
     button.primary { border:0; background:var(--blue); color:#00111f; padding:11px 14px; border-radius:8px; font-weight:800; cursor:pointer; }
+    button.secondary { border:1px solid var(--line); background:#0d1728; color:var(--text); padding:10px 13px; border-radius:8px; font-weight:750; cursor:pointer; }
     .login { max-width:520px; margin:12vh auto; padding:24px; background:var(--panel); border:1px solid var(--line); border-radius:8px; }
+    .auth-tabs { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin:18px 0; }
+    .auth-tabs button.active { background:#16233a; border-color:#365071; color:var(--text); }
+    .auth-panel { display:none; }
+    .auth-panel.active { display:block; }
     .grid { display:grid; grid-template-columns:repeat(4, minmax(0, 1fr)); gap:14px; margin-bottom:18px; }
     .card { background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:16px; }
     .card b { display:block; font-size:26px; margin-top:8px; }
@@ -35,10 +40,31 @@
 <body>
   <div id="login" class="login">
     <h1>Client Portal</h1>
-    <p class="muted">Use your Buykori API key to view tracking health, usage, and signal diagnostics.</p>
-    <input id="apiKey" type="password" placeholder="Client API key">
-    <div style="height:12px"></div>
-    <button class="primary" onclick="saveKey()">Open dashboard</button>
+    <p class="muted">Create a Buykori workspace or sign in with your email and password.</p>
+    <div class="auth-tabs">
+      <button id="loginTab" class="secondary active" onclick="showAuth('signin')">Sign in</button>
+      <button id="signupTab" class="secondary" onclick="showAuth('signup')">Sign up</button>
+    </div>
+    <div id="signinPanel" class="auth-panel active">
+      <input id="loginEmail" type="email" placeholder="Email address">
+      <div style="height:10px"></div>
+      <input id="loginPassword" type="password" placeholder="Password">
+      <div style="height:12px"></div>
+      <button class="primary" onclick="login()">Sign in</button>
+    </div>
+    <div id="signupPanel" class="auth-panel">
+      <input id="signupName" placeholder="Your name">
+      <div style="height:10px"></div>
+      <input id="signupEmail" type="email" placeholder="Email address">
+      <div style="height:10px"></div>
+      <input id="signupPassword" type="password" placeholder="Password, minimum 8 characters">
+      <div style="height:10px"></div>
+      <input id="businessName" placeholder="Business or store name">
+      <div style="height:10px"></div>
+      <input id="businessDomain" placeholder="Website domain, optional">
+      <div style="height:12px"></div>
+      <button class="primary" onclick="signup()">Create workspace</button>
+    </div>
     <p id="loginError" class="muted"></p>
   </div>
   <div id="app" class="shell" style="display:none">
@@ -90,18 +116,43 @@
     const API_BASE = "https://api.buykori.app/api/v1";
     const $ = (id) => document.getElementById(id);
     const fmt = (n) => Number(n || 0).toLocaleString();
-    const key = () => localStorage.getItem("buykori_client_api_key") || "";
-    async function api(path) {
-      const res = await fetch(API_BASE + path, { headers: { "X-API-Key": key() } });
+    async function api(path, options = {}) {
+      const res = await fetch(API_BASE + path, { credentials: "include", ...options, headers: { "Content-Type": "application/json", ...(options.headers || {}) } });
       if (!res.ok) throw new Error(await res.text());
       return res.json();
     }
-    async function saveKey() {
-      localStorage.setItem("buykori_client_api_key", $("apiKey").value.trim());
-      try { await loadAll(); showApp(); } catch (e) { $("loginError").textContent = "Could not connect with this API key."; }
+    function showAuth(mode) {
+      $("signinPanel").classList.toggle("active", mode === "signin");
+      $("signupPanel").classList.toggle("active", mode === "signup");
+      $("loginTab").classList.toggle("active", mode === "signin");
+      $("signupTab").classList.toggle("active", mode === "signup");
+      $("loginError").textContent = "";
+    }
+    async function login() {
+      $("loginError").textContent = "Signing in...";
+      try {
+        await api("/auth/client/login", { method: "POST", body: JSON.stringify({ email: $("loginEmail").value, password: $("loginPassword").value }) });
+        await loadAll(); showApp();
+      } catch (e) { $("loginError").textContent = "Could not sign in with that email and password."; }
+    }
+    async function signup() {
+      $("loginError").textContent = "Creating workspace...";
+      try {
+        await api("/auth/client/signup", {
+          method: "POST",
+          body: JSON.stringify({
+            full_name: $("signupName").value,
+            email: $("signupEmail").value,
+            password: $("signupPassword").value,
+            business_name: $("businessName").value,
+            domain: $("businessDomain").value || null
+          })
+        });
+        await loadAll(); showApp();
+      } catch (e) { $("loginError").textContent = "Could not create the account. Check the fields or try another email."; }
     }
     function showApp() { $("login").style.display = "none"; $("app").style.display = "grid"; }
-    function logout() { localStorage.removeItem("buykori_client_api_key"); location.reload(); }
+    async function logout() { await api("/auth/client/logout", { method: "POST" }).catch(() => {}); location.reload(); }
     async function loadAll() {
       const days = $("days").value;
       const [health, usage, overview, campaigns, doctor] = await Promise.all([
@@ -126,7 +177,7 @@
       document.querySelectorAll(".section").forEach(s => s.classList.remove("active"));
       btn.classList.add("active"); $(btn.dataset.tab).classList.add("active");
     });
-    if (key()) loadAll().then(showApp).catch(logout);
+    api("/auth/client/me").then(() => loadAll()).then(showApp).catch(() => {});
   </script>
 </body>
 </html>
