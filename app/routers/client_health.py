@@ -361,3 +361,122 @@ async def admin_clients_health(
         inactive=inactive,
         clients=items,
     )
+
+
+# ─── GET /client/setup — Client: View Setup + API Key ───────────────────────
+
+@router.get(
+    "/client/setup",
+    summary="Get client setup details and API key",
+)
+async def client_get_setup(
+    client: CachedClient = Depends(get_current_client),
+    db: AsyncSession = Depends(get_db),
+):
+    """Client-এর বর্তমান setup এবং API key দেখুন।"""
+    client_r = await db.execute(select(Client).where(Client.id == client.id))
+    c = client_r.scalar_one_or_none()
+    if not c:
+        raise HTTPException(status_code=404, detail="Client not found")
+
+    from app.security import decrypt_token
+    # Safely decrypt access token for display (masked)
+    raw_token = ""
+    try:
+        raw_token = decrypt_token(c.access_token) if c.access_token and c.access_token != "pending_setup" else ""
+    except Exception:
+        raw_token = ""
+
+    return {
+        "status": "success",
+        "api_key": c.api_key,
+        "monthly_limit": getattr(c, "monthly_limit", 2000),
+        "domain": c.domain or "",
+        "pixel_id": c.pixel_id if c.pixel_id and c.pixel_id != "0" else "",
+        "access_token_set": bool(raw_token),
+        "tiktok_pixel_id": getattr(c, "tiktok_pixel_id", "") or "",
+        "ga4_measurement_id": getattr(c, "ga4_measurement_id", "") or "",
+        "enable_facebook": getattr(c, "enable_facebook", False),
+        "enable_tiktok": getattr(c, "enable_tiktok", False),
+        "enable_ga4": getattr(c, "enable_ga4", False),
+    }
+
+
+# ─── PATCH /client/setup — Client: Update Tracking Settings ─────────────────
+
+class ClientSetupRequest(BaseModel):
+    domain: Optional[str] = None
+    pixel_id: Optional[str] = None
+    access_token: Optional[str] = None
+    tiktok_pixel_id: Optional[str] = None
+    tiktok_access_token: Optional[str] = None
+    ga4_measurement_id: Optional[str] = None
+    ga4_api_secret: Optional[str] = None
+
+
+@router.patch(
+    "/client/setup",
+    summary="Update client tracking setup",
+)
+async def client_update_setup(
+    payload: ClientSetupRequest,
+    client: CachedClient = Depends(get_current_client),
+    db: AsyncSession = Depends(get_db),
+):
+    """Client নিজের Facebook Pixel, TikTok, GA4 settings আপডেট করতে পারবে।"""
+    from app.security import encrypt_token
+    import re
+
+    client_r = await db.execute(select(Client).where(Client.id == client.id))
+    c = client_r.scalar_one_or_none()
+    if not c:
+        raise HTTPException(status_code=404, detail="Client not found")
+
+    # Domain validation
+    if payload.domain is not None:
+        d = payload.domain.strip().lower()
+        d = re.sub(r"^https?://", "", d).split("/", 1)[0].rstrip(".")
+        if d.startswith("www."):
+            d = d[4:]
+        if d and ("." not in d or len(d) > 255):
+            raise HTTPException(status_code=400, detail="Invalid domain format.")
+        c.domain = d or None
+
+    # Facebook
+    if payload.pixel_id is not None:
+        c.pixel_id = payload.pixel_id.strip() or "0"
+        c.enable_facebook = bool(payload.pixel_id.strip())
+    if payload.access_token is not None and payload.access_token.strip():
+        c.access_token = encrypt_token(payload.access_token.strip())
+        c.enable_facebook = True
+
+    # TikTok
+    if payload.tiktok_pixel_id is not None:
+        c.tiktok_pixel_id = payload.tiktok_pixel_id.strip() or None
+        c.enable_tiktok = bool(payload.tiktok_pixel_id.strip())
+    if payload.tiktok_access_token is not None and payload.tiktok_access_token.strip():
+        c.tiktok_access_token = encrypt_token(payload.tiktok_access_token.strip())
+        c.enable_tiktok = True
+
+    # GA4
+    if payload.ga4_measurement_id is not None:
+        c.ga4_measurement_id = payload.ga4_measurement_id.strip() or None
+        c.enable_ga4 = bool(payload.ga4_measurement_id.strip())
+    if payload.ga4_api_secret is not None and payload.ga4_api_secret.strip():
+        c.ga4_api_secret = payload.ga4_api_secret.strip()
+        c.enable_ga4 = True
+
+    await db.commit()
+
+    # Clear dependency cache so new settings take effect
+    from app.dependencies import clear_client_cache
+    clear_client_cache(c.api_key)
+
+    return {
+        "status": "success",
+        "message": "Setup saved. Your tracking configuration has been updated.",
+        "api_key": c.api_key,
+        "enable_facebook": bool(c.enable_facebook),
+        "enable_tiktok": bool(c.enable_tiktok),
+        "enable_ga4": bool(c.enable_ga4),
+    }
