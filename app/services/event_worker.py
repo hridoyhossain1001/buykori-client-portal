@@ -208,6 +208,12 @@ async def _send_tiktok_secondary(client, events: list[EventData], event_names: s
             )
             return
 
+        if tiktok_result.get("sent_count") == 0:
+            logger.info(
+                f"[{client.name}] TikTok secondary skipped unsupported event(s): {event_names}"
+            )
+            return
+
         await _log_secondary_success(
             client.id,
             "TikTok",

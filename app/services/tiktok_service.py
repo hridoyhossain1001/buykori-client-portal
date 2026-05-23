@@ -1,7 +1,6 @@
 """TikTok Events API service."""
 
 import logging
-from datetime import datetime, timezone
 from typing import List
 
 from app.schemas.event import EventData
@@ -11,7 +10,26 @@ from app.services.capi_service import get_http_client
 logger = logging.getLogger(__name__)
 
 TIKTOK_API_URL = "https://business-api.tiktok.com/open_api/v1.3/event/track/"
-TIKTOK_PIXEL_TRACK_URL = "https://business-api.tiktok.com/open_api/v1.3/pixel/track/"
+TIKTOK_SUPPORTED_EVENTS = {
+    "AddPaymentInfo",
+    "AddToCart",
+    "AddToWishlist",
+    "ApplicationApproval",
+    "CompleteRegistration",
+    "Contact",
+    "CustomizeProduct",
+    "Download",
+    "FindLocation",
+    "InitiateCheckout",
+    "Purchase",
+    "Schedule",
+    "Search",
+    "StartTrial",
+    "SubmitApplication",
+    "SubmitForm",
+    "Subscribe",
+    "ViewContent",
+}
 
 
 def _number(value):
@@ -28,6 +46,50 @@ def _quantity(value) -> int:
     if number is None:
         return 0
     return max(0, int(number))
+
+
+def _extra_value(model, key):
+    value = getattr(model, key, None)
+    if value is not None:
+        return value
+    extra = getattr(model, "model_extra", None) or {}
+    return extra.get(key)
+
+
+def _clean_content_id(value) -> str | None:
+    if value is None:
+        return None
+    if isinstance(value, list):
+        for item in value:
+            cleaned = _clean_content_id(item)
+            if cleaned:
+                return cleaned
+        return None
+    value = str(value).strip()
+    return value or None
+
+
+def _first_content_id(cd, contents: list[dict] | None = None) -> str | None:
+    content_id = _clean_content_id(_extra_value(cd, "content_id"))
+    if content_id:
+        return content_id
+
+    if cd.content_ids:
+        content_id = _clean_content_id(cd.content_ids)
+        if content_id:
+            return content_id
+
+    raw_content_ids = _extra_value(cd, "content_ids")
+    content_id = _clean_content_id(raw_content_ids)
+    if content_id:
+        return content_id
+
+    for item in contents or []:
+        content_id = _clean_content_id(item.get("content_id") or item.get("id"))
+        if content_id:
+            return content_id
+
+    return None
 
 
 def _map_event_name(fb_event_name: str) -> str:
@@ -52,12 +114,13 @@ def _normalize_tiktok_contents(cd) -> list[dict]:
     content_type = cd.content_type or "product"
     raw_contents = getattr(cd, "contents", None) or []
     normalized = []
+    fallback_content_id = _first_content_id(cd)
 
     for item in raw_contents:
         if not isinstance(item, dict):
             continue
 
-        content_id = item.get("content_id") or item.get("id")
+        content_id = item.get("content_id") or item.get("id") or fallback_content_id
         if not content_id:
             continue
 
@@ -93,6 +156,10 @@ def _normalize_tiktok_contents(cd) -> list[dict]:
             if cid
         ]
 
+    content_id = _first_content_id(cd)
+    if content_id:
+        return [{"content_id": content_id, "content_type": content_type}]
+
     return []
 
 
@@ -111,13 +178,15 @@ def _build_properties(event: EventData) -> dict:
         properties["content_type"] = cd.content_type
     if cd.content_ids:
         properties["content_ids"] = [str(cid) for cid in cd.content_ids if cid]
-        if len(properties["content_ids"]) == 1:
-            properties["content_id"] = properties["content_ids"][0]
         properties.setdefault("content_type", cd.content_type or "product")
 
     contents = _normalize_tiktok_contents(cd)
     if contents:
         properties["contents"] = contents
+        first_content_id = _first_content_id(cd, contents)
+        if first_content_id:
+            properties["content_id"] = first_content_id
+            properties.setdefault("content_ids", [first_content_id])
         total_quantity = sum(_quantity(item.get("quantity")) for item in contents)
         if total_quantity:
             properties["quantity"] = total_quantity
@@ -166,6 +235,30 @@ def _build_context(event: EventData) -> dict:
     return context
 
 
+def _build_user(event: EventData) -> dict:
+    if not event.user_data:
+        return {}
+
+    ud = event.user_data
+    user = {}
+    if ud.em:
+        user["email"] = ud.em[0]
+    if ud.ph:
+        user["phone"] = ud.ph[0]
+    if ud.external_id:
+        user["external_id"] = ud.external_id[0]
+    if ud.ttp:
+        user["ttp"] = ud.ttp
+    if ud.ttclid:
+        user["ttclid"] = ud.ttclid
+    if ud.client_ip_address:
+        user["ip"] = ud.client_ip_address
+    if ud.client_user_agent:
+        user["user_agent"] = ud.client_user_agent
+
+    return user
+
+
 def _build_tiktok_payload(client, events: List[EventData]) -> dict:
     tiktok_events = []
 
@@ -179,25 +272,9 @@ def _build_tiktok_payload(client, events: List[EventData]) -> dict:
             },
         }
 
-        if event.user_data:
-            ud = event.user_data
-            context = {
-                "user_agent": ud.client_user_agent or "",
-                "ip": ud.client_ip_address or "",
-            }
-            user = {}
-            if ud.em:
-                user["email"] = ud.em[0]
-            if ud.ph:
-                user["phone_number"] = ud.ph[0]
-            if ud.external_id:
-                user["external_id"] = ud.external_id[0]
-            if ud.ttp:
-                user["ttp"] = ud.ttp
-            if ud.ttclid:
-                context["ad"] = {"callback": ud.ttclid}
-            context["user"] = user
-            tt_event["context"] = context
+        user = _build_user(event)
+        if user:
+            tt_event["user"] = user
 
         properties = _build_properties(event)
         if properties:
@@ -205,38 +282,45 @@ def _build_tiktok_payload(client, events: List[EventData]) -> dict:
 
         tiktok_events.append(tt_event)
 
-    return {
+    payload = {
         "pixel_code": client.tiktok_pixel_id,
         "event_source": "web",
         "event_source_id": client.tiktok_pixel_id,
         "data": tiktok_events,
     }
 
-
-def _build_pixel_track_payload(client, event: EventData) -> dict:
-    payload = {
-        "pixel_code": client.tiktok_pixel_id,
-        "event": _map_event_name(event.event_name),
-        "event_id": event.event_id or "",
-        "timestamp": datetime.fromtimestamp(int(event.event_time), timezone.utc)
-        .isoformat()
-        .replace("+00:00", "Z"),
-        "event_source": "web",
-        "test_event_code": getattr(client, "tiktok_test_event_code", None),
-        "context": _build_context(event),
-    }
-
-    properties = _build_properties(event)
-    if properties:
-        payload["properties"] = properties
+    test_event_code = getattr(client, "tiktok_test_event_code", None)
+    if test_event_code:
+        payload["test_event_code"] = test_event_code
 
     return payload
 
 
 async def send_to_tiktok(client, events: List[EventData]) -> dict | None:
-    """Send events to TikTok. Test-code mode uses pixel/track so Events Manager displays them."""
+    """Send events to TikTok Events API."""
     if not client.tiktok_pixel_id or not client.tiktok_access_token:
         return None
+
+    supported_events = [
+        event for event in events
+        if _map_event_name(event.event_name) in TIKTOK_SUPPORTED_EVENTS
+    ]
+    skipped_events = [
+        event.event_name for event in events
+        if _map_event_name(event.event_name) not in TIKTOK_SUPPORTED_EVENTS
+    ]
+
+    if not supported_events:
+        logger.info(
+            f"[{client.name}] TikTok: skipped unsupported event(s): "
+            f"{', '.join(skipped_events)}"
+        )
+        return {
+            "code": 0,
+            "message": "No TikTok-supported events to send",
+            "sent_count": 0,
+            "skipped_events": skipped_events,
+        }
 
     try:
         http_client = await get_http_client()
@@ -245,36 +329,21 @@ async def send_to_tiktok(client, events: List[EventData]) -> dict | None:
             "Content-Type": "application/json",
         }
 
-        if getattr(client, "tiktok_test_event_code", None):
-            responses = []
-            for event in events:
-                response = await http_client.post(
-                    TIKTOK_PIXEL_TRACK_URL,
-                    json=_build_pixel_track_payload(client, event),
-                    headers=headers,
-                )
-                responses.append(response.json())
-
-            failed = [item for item in responses if item.get("code") != 0]
-            result = {
-                "code": 0 if not failed else failed[0].get("code"),
-                "message": "OK" if not failed else failed[0].get("message", "TikTok test event failed"),
-                "test_event_code_used": True,
-                "responses": responses,
-            }
-            response_status = 200 if not failed else 400
-        else:
-            response = await http_client.post(
-                TIKTOK_API_URL,
-                json=_build_tiktok_payload(client, events),
-                headers=headers,
-            )
-            result = response.json()
-            response_status = response.status_code
+        test_event_code_used = bool(getattr(client, "tiktok_test_event_code", None))
+        response = await http_client.post(
+            TIKTOK_API_URL,
+            json=_build_tiktok_payload(client, supported_events),
+            headers=headers,
+        )
+        result = response.json()
+        result.setdefault("sent_count", len(supported_events))
+        result.setdefault("skipped_events", skipped_events)
+        result["test_event_code_used"] = test_event_code_used
+        response_status = response.status_code
 
         if response_status == 200 and result.get("code") == 0:
             logger.info(
-                f"[{client.name}] TikTok: {len(events)} event(s) successful. "
+                f"[{client.name}] TikTok: {len(supported_events)} event(s) successful. "
                 f"Response: {result.get('message', 'OK')}"
             )
         else:

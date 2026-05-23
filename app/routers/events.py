@@ -45,6 +45,7 @@ def _event_log_kwargs(client_id: int, event: dict, status: str, client_ip: str |
         "event_count": 1,
         "status": status,
         "ip_address": client_ip,
+        "emq_score": event.get("emq_score"),
         "value": value,
         "currency": custom_data.get("currency"),
         "campaign_source": custom_data.get("campaign_source") or utm_source,
@@ -205,6 +206,7 @@ async def receive_events(
     client: CachedClient = Depends(get_current_client),
     db: AsyncSession = Depends(get_db),
     hold: bool = Query(False, description="True হলে Purchase event hold হবে"),
+    force_send: bool = Query(False, description="True হলে deferred Purchase bypass করে queue করা হবে"),
 ):
     """
     ক্লায়েন্টের API Key ভেরিফাই করে ইভেন্ট durable outbox queue-তে জমা করে।
@@ -312,7 +314,7 @@ async def receive_events(
 
     # ─── Durable Outbox Transaction ───────────────────────────────────
     # Dedup + usage reserve + queue insert একই transaction-এ commit হবে।
-    should_hold = hold or client.deferred_purchase
+    should_hold = (hold or client.deferred_purchase) and not force_send
     deferred_count = 0
     queued_count = 0
     try:
