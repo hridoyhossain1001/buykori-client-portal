@@ -113,6 +113,8 @@ async def _mark_dead(db, row: EventOutbox, client, error_message: str) -> None:
     row.locked_by = None
     if row.usage_reserved:
         try:
+            # Using savepoint (nested transaction) ensures that a failure in usage rollback
+            # does not abort marking the outbox item as dead or saving its failure EventLog.
             async with db.begin_nested():
                 await rollback_usage_reservation(db, client, row.usage_reserved)
         except Exception as usage_error:

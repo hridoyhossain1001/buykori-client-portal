@@ -90,14 +90,14 @@ def client_to_api_dict(client: Client, event_total: int = 0, last_event_at=None)
         "last_event_at": last_event_at.isoformat() if last_event_at else None,
     }
 
-def validate_webhook_url_or_400(webhook_url: str | None) -> str | None:
+async def validate_webhook_url_or_400(webhook_url: str | None) -> str | None:
     clean_webhook_url = webhook_url.strip() if webhook_url and webhook_url.strip() else None
     if not clean_webhook_url:
         return None
     parsed_webhook = urlparse(clean_webhook_url)
     if parsed_webhook.scheme not in ("https", "http") or not parsed_webhook.netloc:
         raise HTTPException(status_code=400, detail="Webhook URL must be a valid http(s) URL.")
-    if not _webhook_url_allowed(clean_webhook_url):
+    if not await _webhook_url_allowed(clean_webhook_url):
         raise HTTPException(status_code=400, detail="Webhook URL is not allowed.")
     return clean_webhook_url
 
@@ -178,7 +178,7 @@ async def admin_api_create_client(
         ga4_measurement_id=payload.ga4_measurement_id.strip() if payload.ga4_measurement_id else None,
         ga4_api_secret=encrypt_token(payload.ga4_api_secret.strip()) if payload.ga4_api_secret else None,
         deferred_purchase=payload.deferred_purchase,
-        webhook_url=validate_webhook_url_or_400(payload.webhook_url),
+        webhook_url=await validate_webhook_url_or_400(payload.webhook_url),
     )
     db.add(client)
     await db.commit()
@@ -219,7 +219,7 @@ async def admin_api_update_client(
         if value is not None:
             setattr(client, field, value)
     if payload.webhook_url is not None:
-        client.webhook_url = validate_webhook_url_or_400(payload.webhook_url)
+        client.webhook_url = await validate_webhook_url_or_400(payload.webhook_url)
     if payload.test_event_code is not None:
         client.test_event_code = payload.test_event_code.strip() or None
     if payload.tiktok_test_event_code is not None:

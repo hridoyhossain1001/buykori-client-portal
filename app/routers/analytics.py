@@ -329,7 +329,7 @@ async def analytics_top_products(
         select(
             product_id_expr,
             sql_func.count(EventLog.id),
-            sql_func.coalesce(sql_func.sum(EventLog.event_count), 0),
+            sql_func.coalesce(sql_func.sum(EventLog.value), 0.0),
         )
         .where(and_(
             EventLog.client_id == client.id,

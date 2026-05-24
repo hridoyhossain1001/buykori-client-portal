@@ -34,11 +34,16 @@ security = HTTPBasic()
 ADMIN_USERNAME = os.getenv("ADMIN_USERNAME", "admin")
 ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD")
 if not ADMIN_PASSWORD:
-    raise RuntimeError("⛔ ADMIN_PASSWORD environment variable is required!")
+    logger.warning("⚠️ ADMIN_PASSWORD environment variable is not set! Admin views will be disabled.")
 
 CSRF_MAX_AGE_SECONDS = 60 * 60
 
 def verify_admin(credentials: HTTPBasicCredentials = Depends(security)):
+    if not ADMIN_PASSWORD:
+        raise HTTPException(
+            status_code=500,
+            detail="Admin configuration error: ADMIN_PASSWORD is not set."
+        )
     is_user_ok = secrets.compare_digest(credentials.username, ADMIN_USERNAME)
     is_pass_ok = secrets.compare_digest(credentials.password, ADMIN_PASSWORD)
     if not (is_user_ok and is_pass_ok):
@@ -273,7 +278,7 @@ async def add_client(
         parsed_webhook = urlparse(clean_webhook_url)
         if parsed_webhook.scheme not in ("https", "http") or not parsed_webhook.netloc:
             return admin_redirect("Webhook URL must be a valid http(s) URL.", "error")
-        if not _webhook_url_allowed(clean_webhook_url):
+        if not await _webhook_url_allowed(clean_webhook_url):
             return admin_redirect("Webhook URL is not allowed. Use a public http(s) endpoint.", "error")
 
     clean_domain = normalize_domain_input(domain)
@@ -617,7 +622,7 @@ async def edit_client_submit(
         if parsed.scheme not in ("https", "http") or not parsed.netloc:
             q = urlencode({"msg": "Webhook URL must be a valid http(s) URL.", "msg_type": "error"})
             return RedirectResponse(url=f"/api/v1/admin/client/{client_id}/edit?{q}", status_code=303)
-        if not _webhook_url_allowed(clean_webhook):
+        if not await _webhook_url_allowed(clean_webhook):
             q = urlencode({"msg": "Webhook URL is not allowed.", "msg_type": "error"})
             return RedirectResponse(url=f"/api/v1/admin/client/{client_id}/edit?{q}", status_code=303)
 

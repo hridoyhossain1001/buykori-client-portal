@@ -298,9 +298,9 @@ async def bulk_confirm_events(
             details.append({"order_id": pending.order_id, "status": "failed", "error": str(e.detail)})
             logger.error(f"[{client.name}] Bulk confirm queue rejected ({pending.order_id}): {e.detail}")
         except Exception as e:
-            await db.rollback()
+            failed += 1
+            details.append({"order_id": pending.order_id, "status": "failed", "error": f"Internal error: {str(e)}"})
             logger.exception(f"[{client.name}] Bulk confirm queue failed ({pending.order_id})")
-            raise HTTPException(status_code=500, detail=f"Bulk confirm queue failed: {e}") from None
 
     # Not found orders
     for oid in payload.order_ids:
@@ -343,7 +343,7 @@ async def cancel_event(
                 PendingEvent.order_id == payload.order_id,
                 PendingEvent.status == "pending",
             )
-        )
+        ).with_for_update()
     )
     pending = result.scalar_one_or_none()
 

@@ -4,13 +4,14 @@ import ipaddress
 import socket
 from datetime import datetime, timezone
 from urllib.parse import urlparse
+from collections import OrderedDict
 
 from app.services.capi_service import get_http_client
 
 logger = logging.getLogger(__name__)
 
 
-_dns_global_cache: dict[str, bool] = {}
+_dns_global_cache: OrderedDict[str, bool] = OrderedDict()
 
 
 async def _hostname_is_global(host: str) -> bool:
@@ -18,30 +19,40 @@ async def _hostname_is_global(host: str) -> bool:
     Results are cached and DNS resolution runs off the event loop.
     """
     if host in _dns_global_cache:
+        _dns_global_cache.move_to_end(host)
         return _dns_global_cache[host]
 
     try:
         loop = asyncio.get_running_loop()
         addrinfos = await loop.getaddrinfo(host, None, type=socket.SOCK_STREAM)
     except socket.gaierror:
+        if len(_dns_global_cache) >= 256:
+            _dns_global_cache.popitem(last=False)
         _dns_global_cache[host] = False
         return False
 
     addresses = {info[4][0] for info in addrinfos}
     if not addresses:
+        if len(_dns_global_cache) >= 256:
+            _dns_global_cache.popitem(last=False)
         _dns_global_cache[host] = False
         return False
 
     for address in addresses:
         try:
             if not ipaddress.ip_address(address).is_global:
+                if len(_dns_global_cache) >= 256:
+                    _dns_global_cache.popitem(last=False)
                 _dns_global_cache[host] = False
                 return False
         except ValueError:
+            if len(_dns_global_cache) >= 256:
+                _dns_global_cache.popitem(last=False)
             _dns_global_cache[host] = False
             return False
+
     if len(_dns_global_cache) >= 256:
-        _dns_global_cache.clear()
+        _dns_global_cache.popitem(last=False)
     _dns_global_cache[host] = True
     return True
 

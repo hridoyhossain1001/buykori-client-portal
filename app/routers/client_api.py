@@ -15,6 +15,9 @@ from app.models.usage_counter import UsageCounter
 from app.routers.client_portal import get_client_from_portal_session
 from app.security import encrypt_token, decrypt_token
 from app.routers.deferred_events import _queue_confirmed_event
+import calendar
+from app.models.client_user import ClientUser
+from app.routers.client_auth import get_client_user_from_cookie
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -55,7 +58,11 @@ class CampaignTestRequest(BaseModel):
 
 # ─── Profile & Usage Stats ───────────────────────────────────────────────────
 @router.get("/profile")
-async def get_profile(client: Client = Depends(get_current_portal_client), db: AsyncSession = Depends(get_db)):
+async def get_profile(
+    request: Request,
+    client: Client = Depends(get_current_portal_client),
+    db: AsyncSession = Depends(get_db)
+):
     now = datetime.now(timezone.utc)
     monthly_key = f"monthly:{now.strftime('%Y-%m')}"
     
@@ -76,29 +83,79 @@ async def get_profile(client: Client = Depends(get_current_portal_client), db: A
     elif events_quota <= 250000:
         plan_name = "Scale Plan"
 
+    email = f"{client.name.lower().replace(' ', '')}@domain.com"
+    try:
+        user, _, _ = await get_client_user_from_cookie(request, db)
+        email = user.email
+    except Exception:
+        result_user = await db.execute(select(ClientUser).where(ClientUser.client_id == client.id))
+        user = result_user.scalars().first()
+        if user:
+            email = user.email
+
+    last_day = calendar.monthrange(now.year, now.month)[1]
+    renewal_date = now.replace(day=last_day).strftime("%B %d, %Y")
+
     return {
         "name": client.name,
-        "email": f"{client.name.lower().replace(' ', '')}@domain.com",
+        "email": email,
         "plan": plan_name,
-        "renewalDate": (now.replace(day=28) + timedelta(days=4)).strftime("%B %d, %Y"),
+        "renewalDate": renewal_date,
         "eventsUsed": events_used,
         "eventsQuota": events_quota
     }
 
 @router.post("/profile")
 async def update_profile(
+    request: Request,
     payload: ProfileUpdateRequest,
     client: Client = Depends(get_current_portal_client),
     db: AsyncSession = Depends(get_db)
 ):
     client.name = payload.name
+    
+    user = None
+    try:
+        user, _, _ = await get_client_user_from_cookie(request, db)
+    except Exception:
+        result_user = await db.execute(select(ClientUser).where(ClientUser.client_id == client.id))
+        user = result_user.scalars().first()
+
+    if user and payload.email:
+        user.email = payload.email
+
     await db.commit()
+    
+    now = datetime.now(timezone.utc)
+    monthly_key = f"monthly:{now.strftime('%Y-%m')}"
+    
+    result = await db.execute(
+        select(UsageCounter.count).where(
+            and_(
+                UsageCounter.client_id == client.id,
+                UsageCounter.window_key == monthly_key
+            )
+        )
+    )
+    events_used = result.scalar() or 0
+    events_quota = client.monthly_limit or 50000
+
+    plan_name = "Enterprise Plan"
+    if events_quota <= 50000:
+        plan_name = "Trial Plan"
+    elif events_quota <= 250000:
+        plan_name = "Scale Plan"
+
+    last_day = calendar.monthrange(now.year, now.month)[1]
+    renewal_date = now.replace(day=last_day).strftime("%B %d, %Y")
+
     return {"success": True, "profile": {
         "name": client.name,
-        "email": payload.email or f"{client.name.lower().replace(' ', '')}@domain.com",
-        "plan": "Enterprise Plan",
-        "eventsUsed": 12450,
-        "eventsQuota": client.monthly_limit or 50000
+        "email": user.email if user else (payload.email or f"{client.name.lower().replace(' ', '')}@domain.com"),
+        "plan": plan_name,
+        "renewalDate": renewal_date,
+        "eventsUsed": events_used,
+        "eventsQuota": events_quota
     }}
 
 @router.post("/profile/reset-demo")
@@ -112,7 +169,7 @@ async def get_connection(client: Client = Depends(get_current_portal_client)):
         "wpVersion": "6.4.3",
         "lastHeartbeat": client.updated_at.isoformat() if client.updated_at else datetime.now(timezone.utc).isoformat(),
         "status": "Active" if client.is_active else "Disconnected",
-        "token": client.public_key or client.api_key
+        "token": client.public_key or ""
     }
 
 @router.post("/connection/test")
@@ -246,6 +303,10 @@ async def update_credentials(
     }
 
 # ─── Event Routing Rules ─────────────────────────────────────────────────────
+# Note: In the current MVP, event routing rules are derived dynamically from 
+# the client's enabled platforms settings (Meta, TikTok, GA4) and are not 
+# persisted separately in the database. The POST endpoint echoes the rules 
+# back to satisfy the client portal interface state.
 @router.get("/rules")
 async def get_rules(client: Client = Depends(get_current_portal_client)):
     return [
@@ -270,36 +331,76 @@ async def get_events(
     platform: Optional[str] = None
 ):
     query = select(EventLog).where(EventLog.client_id == client.id).order_by(desc(EventLog.created_at))
+    count_query = select(func.count(EventLog.id)).where(EventLog.client_id == client.id)
     
     if status:
         status_list = status.split(",")
         db_statuses = [s.lower() for s in status_list]
         query = query.where(EventLog.status.in_(db_statuses))
+        count_query = count_query.where(EventLog.status.in_(db_statuses))
+
+    if platform:
+        if platform == "GA4":
+            query = query.where(EventLog.event_name.like("GA4:%"))
+            count_query = count_query.where(EventLog.event_name.like("GA4:%"))
+        elif platform == "TikTok Events API":
+            query = query.where(EventLog.event_name.like("TikTok:%"))
+            count_query = count_query.where(EventLog.event_name.like("TikTok:%"))
+        elif platform == "Webhook":
+            query = query.where(EventLog.event_name.like("Webhook:%"))
+            count_query = count_query.where(EventLog.event_name.like("Webhook:%"))
+        elif platform == "Meta CAPI":
+            query = query.where(
+                (EventLog.event_name.like("Facebook:%")) | (~EventLog.event_name.contains(":"))
+            )
+            count_query = count_query.where(
+                (EventLog.event_name.like("Facebook:%")) | (~EventLog.event_name.contains(":"))
+            )
         
     result = await db.execute(query.offset(offset).limit(limit))
     logs = result.scalars().all()
     
-    count_r = await db.execute(select(func.count(EventLog.id)).where(EventLog.client_id == client.id))
+    count_r = await db.execute(count_query)
     total_count = count_r.scalar() or 0
 
     events_list = []
     for idx, log in enumerate(logs):
+        raw_event_name = log.event_name
         log_platform = "Meta CAPI"
-        if client.enable_tiktok and idx % 2 == 1:
-            log_platform = "TikTok Events API"
-        elif client.enable_ga4 and idx % 3 == 2:
-            log_platform = "GA4"
+        display_event_name = raw_event_name
+        
+        if ":" in raw_event_name:
+            parts = raw_event_name.split(":", 1)
+            channel = parts[0]
+            display_event_name = parts[1]
+            if channel.lower() == "tiktok":
+                log_platform = "TikTok Events API"
+            elif channel.lower() == "ga4":
+                log_platform = "GA4"
+            elif channel.lower() in ("facebook", "capi", "meta"):
+                log_platform = "Meta CAPI"
+            elif channel.lower() == "webhook":
+                log_platform = "Webhook"
+        else:
+            if getattr(client, "enable_facebook", True) and client.pixel_id and client.access_token:
+                log_platform = "Meta CAPI"
+            elif getattr(client, "enable_tiktok", True) and client.tiktok_pixel_id and client.tiktok_access_token:
+                log_platform = "TikTok Events API"
+            elif getattr(client, "enable_ga4", True) and client.ga4_measurement_id and client.ga4_api_secret:
+                log_platform = "GA4"
+            elif client.webhook_url:
+                log_platform = "Webhook"
 
         events_list.append({
             "id": f"evt_{log.id}",
             "timestamp": log.created_at.isoformat() if log.created_at else datetime.now(timezone.utc).isoformat(),
-            "name": log.event_name,
+            "name": display_event_name,
             "platform": log_platform,
             "status": "Success" if log.status == "success" else "Failed",
             "httpCode": 200 if log.status == "success" else 400,
             "deduplicationKey": log.event_id or f"did_{log.id}",
             "payload": {
-                "event_name": log.event_name,
+                "event_name": display_event_name,
                 "event_time": int(log.created_at.timestamp()) if log.created_at else int(datetime.now().timestamp()),
                 "user_data": {
                     "client_ip_address": log.ip_address or "127.0.0.1",
@@ -342,14 +443,38 @@ async def get_api_logs(
 
     api_logs_list = []
     for idx, log in enumerate(logs):
+        raw_event_name = log.event_name
         log_platform = "Meta CAPI"
-        endpoint = "https://graph.facebook.com/v18.0/pixel_id/events"
-        if idx % 2 == 1:
-            log_platform = "TikTok Events API"
-            endpoint = "https://open-api.tiktok.com/v1.3/pixel/track"
-        elif idx % 3 == 2:
-            log_platform = "GA4"
-            endpoint = "https://www.google-analytics.com/mp/collect"
+        display_event_name = raw_event_name
+        endpoint = f"https://graph.facebook.com/v18.0/{client.pixel_id or 'pixel_id'}/events"
+        
+        if ":" in raw_event_name:
+            parts = raw_event_name.split(":", 1)
+            channel = parts[0]
+            display_event_name = parts[1]
+            if channel.lower() == "tiktok":
+                log_platform = "TikTok Events API"
+                endpoint = "https://open-api.tiktok.com/v1.3/pixel/track"
+            elif channel.lower() == "ga4":
+                log_platform = "GA4"
+                endpoint = "https://www.google-analytics.com/mp/collect"
+            elif channel.lower() in ("facebook", "capi", "meta"):
+                log_platform = "Meta CAPI"
+            elif channel.lower() == "webhook":
+                log_platform = "Webhook"
+                endpoint = client.webhook_url or "Webhook URL"
+        else:
+            if getattr(client, "enable_facebook", True) and client.pixel_id and client.access_token:
+                log_platform = "Meta CAPI"
+            elif getattr(client, "enable_tiktok", True) and client.tiktok_pixel_id and client.tiktok_access_token:
+                log_platform = "TikTok Events API"
+                endpoint = "https://open-api.tiktok.com/v1.3/pixel/track"
+            elif getattr(client, "enable_ga4", True) and client.ga4_measurement_id and client.ga4_api_secret:
+                log_platform = "GA4"
+                endpoint = "https://www.google-analytics.com/mp/collect"
+            elif client.webhook_url:
+                log_platform = "Webhook"
+                endpoint = client.webhook_url
 
         api_logs_list.append({
             "id": f"api_{log.id}",
@@ -360,7 +485,7 @@ async def get_api_logs(
             "statusCode": 200 if log.status == "success" else 400,
             "latencyMs": 45 + (log.id % 80),
             "retryCount": 0 if log.status == "success" else 1,
-            "requestBody": f"{{\n  \"event_name\": \"{log.event_name}\",\n  \"event_time\": {int(log.created_at.timestamp()) if log.created_at else 0}\n}}",
+            "requestBody": f"{{\n  \"event_name\": \"{display_event_name}\",\n  \"event_time\": {int(log.created_at.timestamp()) if log.created_at else 0}\n}}",
             "responseBody": "{\n  \"status\": \"accepted\"\n}" if log.status == "success" else f"{{\n  \"error\": \"{log.error_message or 'Relay failure'}\"\n}}"
         })
 
@@ -384,16 +509,31 @@ async def get_live_stream_pulse(
     if not log:
         return {"event": None}
 
+    raw_event_name = log.event_name
+    log_platform = "Meta CAPI"
+    display_event_name = raw_event_name
+
+    if ":" in raw_event_name:
+        parts = raw_event_name.split(":", 1)
+        channel = parts[0]
+        display_event_name = parts[1]
+        if channel.lower() == "tiktok":
+            log_platform = "TikTok Events API"
+        elif channel.lower() == "ga4":
+            log_platform = "GA4"
+        elif channel.lower() == "webhook":
+            log_platform = "Webhook"
+
     return {
         "event": {
             "id": f"evt_{log.id}",
             "timestamp": log.created_at.isoformat(),
-            "name": log.event_name,
-            "platform": "Meta CAPI",
+            "name": display_event_name,
+            "platform": log_platform,
             "status": "Success" if log.status == "success" else "Failed",
             "httpCode": 200 if log.status == "success" else 400,
             "deduplicationKey": log.event_id or f"did_{log.id}",
-            "payload": {"event_name": log.event_name},
+            "payload": {"event_name": display_event_name},
             "responseBody": {"status": "accepted"},
             "latencyMs": 75
         }
@@ -459,7 +599,7 @@ async def dismiss_suggestion():
     return {"success": True}
 
 @router.post("/suggestions/ai-review")
-async def run_ai_review(
+async def run_diagnostics_scan(
     client: Client = Depends(get_current_portal_client),
     db: AsyncSession = Depends(get_db)
 ):
@@ -535,6 +675,11 @@ class DeferredConfirmRequest(BaseModel):
 class DeferredBulkConfirmRequest(BaseModel):
     order_ids: List[str]
 
+class DeferredSettingsRequest(BaseModel):
+    deferredEnabled: bool
+    autoConfirmDays: int
+    autoConfirmStatus: str
+
 @router.get("/deferred")
 async def get_deferred_purchases(
     client: Client = Depends(get_current_portal_client),
@@ -542,19 +687,6 @@ async def get_deferred_purchases(
     page: int = Query(1, ge=1),
     limit: int = Query(50, ge=1, le=100)
 ):
-    if not client.deferred_purchase:
-        return {
-            "deferredEnabled": False,
-            "pendingCount": 0,
-            "pendingValue": "৳0",
-            "confirmedTotal": 0,
-            "cancelledTotal": 0,
-            "expiredTotal": 0,
-            "confirmedToday": 0,
-            "oldestPending": "—",
-            "pendingList": []
-        }
-
     offset = (page - 1) * limit
     pending_r = await db.execute(
         select(PendingEvent)
@@ -630,7 +762,9 @@ async def get_deferred_purchases(
         })
 
     return {
-        "deferredEnabled": True,
+        "deferredEnabled": bool(client.deferred_purchase),
+        "autoConfirmDays": min(max(0, getattr(client, "auto_confirm_days", 0)), 7),
+        "autoConfirmStatus": str(getattr(client, "auto_confirm_status", "completed")),
         "pendingCount": pending_count,
         "pendingValue": f"৳{pending_value:,.0f}" if pending_value else "৳0",
         "confirmedTotal": confirmed_total,
@@ -639,6 +773,30 @@ async def get_deferred_purchases(
         "confirmedToday": confirmed_today,
         "oldestPending": f"{oldest_age_hours}h" if oldest_age_hours else "—",
         "pendingList": pending_list
+    }
+
+@router.post("/deferred/settings")
+async def save_deferred_settings(
+    payload: DeferredSettingsRequest,
+    client: Client = Depends(get_current_portal_client),
+    db: AsyncSession = Depends(get_db)
+):
+    client.deferred_purchase = payload.deferredEnabled
+    client.auto_confirm_days = min(max(0, payload.autoConfirmDays), 7)
+    client.auto_confirm_status = payload.autoConfirmStatus.strip() or "completed"
+    
+    await db.commit()
+    
+    # Clear client cache
+    from app.dependencies import clear_client_cache
+    clear_client_cache(client.api_key)
+    
+    return {
+        "success": True,
+        "message": "COD Protection settings synchronized successfully.",
+        "deferredEnabled": bool(client.deferred_purchase),
+        "autoConfirmDays": client.auto_confirm_days,
+        "autoConfirmStatus": client.auto_confirm_status
     }
 
 @router.post("/deferred/confirm")

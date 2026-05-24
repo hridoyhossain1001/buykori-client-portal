@@ -5,9 +5,12 @@ from sqlalchemy.future import select
 from sqlalchemy import func, or_, and_
 import datetime
 import secrets
+import logging
 from typing import Optional
 
 from app.database import get_db
+
+logger = logging.getLogger(__name__)
 from app.models.client import Client
 from app.models.client_user import ClientUser
 from app.models.event_log import EventLog
@@ -49,8 +52,9 @@ async def get_client_from_portal_session(request: Request, db: AsyncSession) -> 
     try:
         _, client, _ = await get_client_user_from_cookie(request, db)
         return client
-    except HTTPException:
-        pass
+    except HTTPException as e:
+        if e.status_code != 401:
+            raise
 
     session_value = get_client_from_cookie(request)
     if not session_value:
