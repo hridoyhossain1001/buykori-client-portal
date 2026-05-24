@@ -307,3 +307,28 @@ async def admin_api_delete_client(
     await log_admin_action(db, request, actor, "client.deleted", client_id, f"Client {client_name} deleted via API")
     await db.commit()
     return {"status": "success", "message": f"Client {client_name} deleted"}
+
+class AdminLoginRequest(BaseModel):
+    username: str
+    password: str
+
+@router.post("/admin/api/login")
+async def admin_api_login(payload: AdminLoginRequest):
+    admin_user = os.getenv("ADMIN_USERNAME", "admin")
+    admin_pass = os.getenv("ADMIN_PASSWORD")
+    admin_key = os.getenv("ADMIN_API_KEY")
+
+    if not admin_pass or not admin_key:
+        raise HTTPException(
+            status_code=500,
+            detail="Admin authentication is not configured on the server."
+        )
+
+    if not hmac.compare_digest(payload.username, admin_user) or not hmac.compare_digest(payload.password, admin_pass):
+        raise HTTPException(
+            status_code=401,
+            detail="Incorrect username or password"
+        )
+
+    return {"status": "success", "admin_api_key": admin_key}
+

@@ -382,3 +382,28 @@ async def test_plugin_download_with_session_cookie(tmp_path, monkeypatch):
     with zipfile.ZipFile(io.BytesIO(response.content)) as zf:
         patched = zf.read("buykori-adsync/buykori-adsync.php").decode("utf-8")
         assert "cookie-api-key" in patched
+
+# ─── ADMIN API LOGIN TESTS ───────────────────────────────────────────────────
+
+@pytest.mark.anyio
+async def test_admin_api_login_success():
+    client = TestClient(app)
+    response = client.post(
+        "/api/v1/admin/api/login",
+        json={"username": "admin", "password": "test-admin-password"}
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "success"
+    assert data["admin_api_key"] == "test-admin-api-key"
+
+@pytest.mark.anyio
+async def test_admin_api_login_failed_wrong_credentials():
+    client = TestClient(app)
+    response = client.post(
+        "/api/v1/admin/api/login",
+        json={"username": "admin", "password": "wrong-password"}
+    )
+    assert response.status_code == 401
+    assert "Incorrect username or password" in response.json()["detail"]
+
