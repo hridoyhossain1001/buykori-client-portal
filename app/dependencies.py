@@ -75,6 +75,17 @@ def clear_client_cache(api_key: str):
         if cache_key == api_key or cached.api_key == api_key:
             del _client_cache[cache_key]
 
+def set_in_client_cache(cache_key: str, cached_client: CachedClient):
+    """ক্যাশে নতুন ক্লায়েন্ট অ্যাড করার সময় ক্যাশের সাইজ ১০০০-এর নিচে রাখে যাতে মেমোরি লিক না হয়"""
+    now = time.time()
+    if len(_client_cache) >= 1000:
+        expired_keys = [k for k, (_, ts) in list(_client_cache.items()) if now - ts >= CACHE_TTL]
+        for k in expired_keys:
+            _client_cache.pop(k, None)
+        if len(_client_cache) >= 1000:
+            _client_cache.clear()
+    _client_cache[cache_key] = (cached_client, now)
+
 def _snapshot(client: Client) -> CachedClient:
     """ORM object থেকে plain dataclass তৈরি করো — session-independent।"""
     return CachedClient(
@@ -153,7 +164,7 @@ async def get_current_client(
                     _, client_id_str, session_secret = decrypted.split(":", 2)
                     result = await db.execute(select(Client).where(Client.id == int(client_id_str)))
                     portal_client = result.scalar_one_or_none()
-                    
+
                     if portal_client:
                         expected_secret = getattr(portal_client, "portal_key", None)
                         if expected_secret and secrets.compare_digest(session_secret, expected_secret):
@@ -204,5 +215,5 @@ async def get_current_client(
 
     # ─── Cache-এ রাখো (plain dataclass — safe across sessions) ──────
     cached = _snapshot(client)
-    _client_cache[x_api_key] = (cached, now)
+    set_in_client_cache(x_api_key, cached)
     return cached

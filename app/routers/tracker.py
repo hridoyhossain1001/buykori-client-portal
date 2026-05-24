@@ -17,13 +17,12 @@ from user_agents import parse as parse_ua
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Query
 from fastapi.responses import Response, JSONResponse
-from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
-from app.dependencies import get_current_client, CachedClient, _client_cache, _snapshot, CACHE_TTL
+from app.dependencies import get_current_client, CachedClient, _client_cache, _snapshot, CACHE_TTL, set_in_client_cache
 from app.models.client import Client
-from app.models.event_dedup import EventDedup
+from app.services.dedup_service import reserve_unique_event_ids
 from app.schemas.event import EventData, UserData, CustomData
 from app.services.bot_detector import is_bot
 from app.services.event_quality import boost_event_quality
@@ -67,7 +66,7 @@ async def _get_client_by_key(public_key: str, db: AsyncSession) -> CachedClient:
         raise HTTPException(status_code=401, detail="Invalid API Key।")
 
     cached = _snapshot(client)
-    _client_cache[cache_key] = (cached, now)
+    set_in_client_cache(cache_key, cached)
     return cached
 
 
@@ -153,15 +152,21 @@ async def collect_event(
     if client.domain:
         origin = request.headers.get("origin", "") or ""
         referer = request.headers.get("referer", "") or ""
-        allowed = client.domain.lower().strip()
         origin_host = (urlparse(origin).hostname or "").lower()
         referer_host = (urlparse(referer).hostname or "").lower()
 
+        allowed_domains = [d.strip().lower() for d in client.domain.split(",") if d.strip()]
+
         def _domain_ok(host: str) -> bool:
-            return host == allowed or host.endswith("." + allowed)
+            if not host:
+                return False
+            for allowed in allowed_domains:
+                if host == allowed or host.endswith("." + allowed):
+                    return True
+            return False
 
         if not (_domain_ok(origin_host) or _domain_ok(referer_host)):
-            logger.warning(f"[{client.name}] Tracker domain mismatch: {origin_host} / {referer_host}")
+            logger.warning(f"[{client.name}] Tracker domain mismatch: {origin_host} / {referer_host} (Allowed: {client.domain})")
             raise HTTPException(status_code=403, detail="Unauthorized domain.")
 
     # ─── Parse Events ─────────────────────────────────────────────────
@@ -192,17 +197,6 @@ async def collect_event(
                         ud_raw["country"] = loc_data["country"]
                     if loc_data.get("zp") and not ud_raw.get("zp"):
                         ud_raw["zp"] = loc_data["zp"]
-
-            # ─── Event Match Quality (EMQ) ─────────────────────────────────
-            emq = 0.0
-            if ud_raw.get("em"): emq += 3.0
-            if ud_raw.get("ph"): emq += 3.0
-            if ud_raw.get("fbp") or ud_raw.get("fbc"): emq += 1.0
-            if ud_raw.get("client_ip_address") and ud_raw.get("client_user_agent"): emq += 1.0
-            other_pii = sum(1 for k in ["fn", "ln", "ct", "st", "zp", "country"] if ud_raw.get(k))
-            if other_pii >= 2: emq += 2.0
-            elif other_pii == 1: emq += 1.0
-            emq = min(10.0, emq)
 
             user_data = UserData(**ud_raw)
 
@@ -237,7 +231,7 @@ async def collect_event(
                 action_source=raw.get("action_source", "website"),
                 user_data=user_data,
                 custom_data=custom_data,
-                emq_score=emq,
+                emq_score=None,
             )
             boost_event_quality(
                 event,
@@ -259,28 +253,18 @@ async def collect_event(
         candidate_ids = []
         seen_ids = set()
         for event in parsed_events:
-            if not event.event_id or event.event_id in seen_ids:
-                if not event.event_id:
-                    unique_events.append(event)
+            # boost_event_quality generates stable event IDs for tracker payloads.
+            if event.event_id in seen_ids:
                 continue
             seen_ids.add(event.event_id)
             candidate_ids.append(event.event_id)
 
-        if candidate_ids:
-            rows = [{"client_id": client.id, "event_id": eid} for eid in candidate_ids]
-            stmt = (
-                pg_insert(EventDedup)
-                .values(rows)
-                .on_conflict_do_nothing(index_elements=["client_id", "event_id"])
-                .returning(EventDedup.event_id)
-            )
-            result = await db.execute(stmt)
-            reserved_ids = set(result.scalars().all())
-            accepted_ids = set()
-            for event in parsed_events:
-                if event.event_id and event.event_id in reserved_ids and event.event_id not in accepted_ids:
-                    accepted_ids.add(event.event_id)
-                    unique_events.append(event)
+        reserved_ids = await reserve_unique_event_ids(db, client.id, candidate_ids)
+        accepted_ids = set()
+        for event in parsed_events:
+            if event.event_id in reserved_ids and event.event_id not in accepted_ids:
+                accepted_ids.add(event.event_id)
+                unique_events.append(event)
 
         if not unique_events:
             await db.commit()

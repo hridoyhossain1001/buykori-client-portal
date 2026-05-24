@@ -20,6 +20,7 @@ from app.routers.debug import router as debug_router
 from app.routers.client_auth import router as client_auth_router
 from app.limiter import limiter
 import os
+import asyncio
 
 ADMIN_API_KEY = os.getenv("ADMIN_API_KEY", "")
 if not ADMIN_API_KEY:
@@ -63,20 +64,37 @@ async def lifespan(app: FastAPI):
     else:
         logger.info("ℹ️  create_all স্কিপ — Alembic migration ব্যবহার করুন।")
 
+    # ─── Background Task Management ────────────────────────────────────
+    # Store references so tasks aren't garbage collected and add error callbacks
+    _background_tasks: set[asyncio.Task] = set()
+
+    def _task_done_callback(task: asyncio.Task) -> None:
+        _background_tasks.discard(task)
+        if task.cancelled():
+            return
+        exc = task.exception()
+        if exc:
+            logger.critical(f"🔥 Background task {task.get_name()} died: {exc!r}")
+
+    def _launch(coro, *, name: str) -> asyncio.Task:
+        task = asyncio.create_task(coro, name=name)
+        _background_tasks.add(task)
+        task.add_done_callback(_task_done_callback)
+        return task
+
     # 🔄 Retry Service — শুধুমাত্র ENABLE_RETRY_IN_WEB=true হলে এই process-এ চলবে
     # Worker dyno না থাকলে Procfile-এ: web: ENABLE_RETRY_IN_WEB=true uvicorn ... --workers 1
     # অথবা Heroku config var-এ সেট করুন। একাধিক worker থাকলে retry duplicate হবে!
-    import asyncio
     if os.getenv("ENABLE_OUTBOX_IN_WEB", "").lower() in ("true", "1", "yes"):
         from app.services.event_worker import process_event_outbox_forever
-        asyncio.create_task(process_event_outbox_forever())
+        _launch(process_event_outbox_forever(), name="outbox-worker")
         logger.info("Outbox worker started in Web Process.")
     else:
         logger.info("Outbox worker disabled in Web Process (ENABLE_OUTBOX_IN_WEB not set).")
 
     if os.getenv("ENABLE_RETRY_IN_WEB", "").lower() in ("true", "1", "yes"):
         from app.services.retry_service import retry_failed_events
-        asyncio.create_task(retry_failed_events())
+        _launch(retry_failed_events(), name="retry-worker")
         logger.info("⚙️  Background Retry Service স্টার্ট হয়েছে (Web Process)।")
     else:
         logger.info("ℹ️  Retry Service এই process-এ নিষ্ক্রিয় (ENABLE_RETRY_IN_WEB সেট নেই)।")
@@ -84,12 +102,12 @@ async def lifespan(app: FastAPI):
     if os.getenv("ENABLE_MAINTENANCE_IN_WEB", "").lower() in ("true", "1", "yes"):
         # 🧹 Auto-Cleanup Service
         from app.services.cleanup_service import auto_cleanup_database
-        asyncio.create_task(auto_cleanup_database())
+        _launch(auto_cleanup_database(), name="cleanup-worker")
         logger.info("🧹 Background Auto-Cleanup Service স্টার্ট হয়েছে (Web Process)।")
 
         # ⏰ Pending Events Auto-Expiry Service
         from app.services.expiry_service import expire_old_pending_events
-        asyncio.create_task(expire_old_pending_events())
+        _launch(expire_old_pending_events(), name="expiry-worker")
         logger.info("⏰ Pending Events Expiry Service স্টার্ট হয়েছে (Web Process)।")
     else:
         logger.info("ℹ️  Maintenance loops web process-এ নিষ্ক্রিয়; worker process ব্যবহার করুন।")
@@ -192,7 +210,7 @@ app.include_router(client_health_router, prefix="/api/v1", tags=["Client Health"
 @app.get("/", response_class=HTMLResponse, include_in_schema=False)
 async def marketing_home():
     import os
-    site_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "site.html")
+    site_path = os.path.join(os.path.dirname(__file__), "templates", "site.html")
     with open(site_path, "r", encoding="utf-8") as f:
         return HTMLResponse(f.read())
 

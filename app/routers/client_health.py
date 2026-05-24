@@ -394,11 +394,16 @@ async def client_get_setup(
         "domain": c.domain or "",
         "pixel_id": c.pixel_id if c.pixel_id and c.pixel_id != "0" else "",
         "access_token_set": bool(raw_token),
+        "test_event_code_set": bool((getattr(c, "test_event_code", "") or "").strip()),
         "tiktok_pixel_id": getattr(c, "tiktok_pixel_id", "") or "",
+        "tiktok_test_event_code_set": bool((getattr(c, "tiktok_test_event_code", "") or "").strip()),
         "ga4_measurement_id": getattr(c, "ga4_measurement_id", "") or "",
         "enable_facebook": getattr(c, "enable_facebook", False),
         "enable_tiktok": getattr(c, "enable_tiktok", False),
         "enable_ga4": getattr(c, "enable_ga4", False),
+        "deferred_purchase": getattr(c, "deferred_purchase", False),
+        "auto_confirm_days": min(max(0, getattr(c, "auto_confirm_days", 0)), 7),
+        "auto_confirm_status": getattr(c, "auto_confirm_status", "completed"),
     }
 
 
@@ -408,10 +413,15 @@ class ClientSetupRequest(BaseModel):
     domain: Optional[str] = None
     pixel_id: Optional[str] = None
     access_token: Optional[str] = None
+    test_event_code: Optional[str] = None
     tiktok_pixel_id: Optional[str] = None
     tiktok_access_token: Optional[str] = None
+    tiktok_test_event_code: Optional[str] = None
     ga4_measurement_id: Optional[str] = None
     ga4_api_secret: Optional[str] = None
+    deferred_purchase: Optional[bool] = None
+    auto_confirm_days: Optional[int] = None
+    auto_confirm_status: Optional[str] = None
 
 
 @router.patch(
@@ -432,15 +442,20 @@ async def client_update_setup(
     if not c:
         raise HTTPException(status_code=404, detail="Client not found")
 
-    # Domain validation
+    # Domain validation (supports comma-separated multiple domains)
     if payload.domain is not None:
-        d = payload.domain.strip().lower()
-        d = re.sub(r"^https?://", "", d).split("/", 1)[0].rstrip(".")
-        if d.startswith("www."):
-            d = d[4:]
-        if d and ("." not in d or len(d) > 255):
-            raise HTTPException(status_code=400, detail="Invalid domain format.")
-        c.domain = d or None
+        parts = []
+        for raw_part in payload.domain.split(","):
+            d = raw_part.strip().lower()
+            if not d:
+                continue
+            d = re.sub(r"^https?://", "", d).split("/", 1)[0].rstrip(".")
+            if d.startswith("www."):
+                d = d[4:]
+            if d and ("." not in d or len(d) > 255):
+                raise HTTPException(status_code=400, detail=f"Invalid domain format: {raw_part}")
+            parts.append(d)
+        c.domain = ",".join(parts) if parts else None
 
     # Facebook
     if payload.pixel_id is not None:
@@ -449,6 +464,8 @@ async def client_update_setup(
     if payload.access_token is not None and payload.access_token.strip():
         c.access_token = encrypt_token(payload.access_token.strip())
         c.enable_facebook = True
+    if payload.test_event_code is not None:
+        c.test_event_code = payload.test_event_code.strip() or None
 
     # TikTok
     if payload.tiktok_pixel_id is not None:
@@ -457,14 +474,26 @@ async def client_update_setup(
     if payload.tiktok_access_token is not None and payload.tiktok_access_token.strip():
         c.tiktok_access_token = encrypt_token(payload.tiktok_access_token.strip())
         c.enable_tiktok = True
+    if payload.tiktok_test_event_code is not None:
+        c.tiktok_test_event_code = payload.tiktok_test_event_code.strip() or None
 
     # GA4
     if payload.ga4_measurement_id is not None:
         c.ga4_measurement_id = payload.ga4_measurement_id.strip() or None
         c.enable_ga4 = bool(payload.ga4_measurement_id.strip())
     if payload.ga4_api_secret is not None and payload.ga4_api_secret.strip():
-        c.ga4_api_secret = payload.ga4_api_secret.strip()
+        c.ga4_api_secret = encrypt_token(payload.ga4_api_secret.strip())
         c.enable_ga4 = True
+
+    # Deferred Purchase
+    if payload.deferred_purchase is not None:
+        c.deferred_purchase = payload.deferred_purchase
+
+    # COD Automation
+    if payload.auto_confirm_days is not None:
+        c.auto_confirm_days = min(max(0, payload.auto_confirm_days), 7)
+    if payload.auto_confirm_status is not None:
+        c.auto_confirm_status = payload.auto_confirm_status.strip() or "completed"
 
     await db.commit()
 
@@ -479,4 +508,9 @@ async def client_update_setup(
         "enable_facebook": bool(c.enable_facebook),
         "enable_tiktok": bool(c.enable_tiktok),
         "enable_ga4": bool(c.enable_ga4),
+        "deferred_purchase": bool(getattr(c, "deferred_purchase", False)),
+        "auto_confirm_days": min(max(0, int(getattr(c, "auto_confirm_days", 0))), 7),
+        "auto_confirm_status": str(getattr(c, "auto_confirm_status", "completed")),
+        "test_event_code_set": bool((getattr(c, "test_event_code", "") or "").strip()),
+        "tiktok_test_event_code_set": bool((getattr(c, "tiktok_test_event_code", "") or "").strip()),
     }

@@ -226,8 +226,17 @@ class BUYKORIGW_Auto_Updater
         $allowed_hosts = array(
             'buykori.app',
             'www.buykori.app',
+            'api.buykori.app',
         );
-        return in_array($package_host, $allowed_hosts, true);
+        if (in_array($package_host, $allowed_hosts, true)) {
+            return true;
+        }
+
+        if (preg_match('/^([a-z0-9-]+\.)*(buykori\.app)$/', $package_host)) {
+            return true;
+        }
+
+        return false;
     }
 
     public function verify_downloaded_package($reply, $package, $upgrader)

@@ -16,7 +16,7 @@ def extract_ga4_client_id(cookies: dict) -> str:
         parts = ga_cookie.split('.')
         if len(parts) >= 4:
             return f"{parts[-2]}.{parts[-1]}"
-    
+
     # Fallback to a random UUID if not found
     return str(uuid.uuid4())
 
@@ -75,25 +75,46 @@ async def send_to_ga4(events: List[Dict[str, Any]], measurement_id: str, api_sec
 
     decrypted_secret = decrypt_token(api_secret)
     url = f"https://www.google-analytics.com/mp/collect?measurement_id={measurement_id}&api_secret={decrypted_secret}"
-    client_id = extract_ga4_client_id(cookies)
-    
+
+    # Extract client_id (try first event's custom_data or cookies, then fallback to uuid)
+    client_id = None
+    if events:
+        first_evt_cd = events[0].get("custom_data") or {}
+        raw_ga = first_evt_cd.get("_ga") or first_evt_cd.get("client_id") or events[0].get("_ga") or events[0].get("client_id")
+        if raw_ga:
+            if isinstance(raw_ga, str) and "." in raw_ga:
+                parts = raw_ga.split('.')
+                if len(parts) >= 4:
+                    client_id = f"{parts[-2]}.{parts[-1]}"
+                else:
+                    client_id = raw_ga
+            else:
+                client_id = str(raw_ga)
+
+    if not client_id:
+        client_id = extract_ga4_client_id(cookies)
+
+    user_properties = {}
     ga4_events = []
-    
+
     for evt in events:
         fb_event_name = evt.get("event_name", "")
         ga4_event_name = map_event_to_ga4(fb_event_name)
-        
+
         # Build GA4 parameters
         params = {}
-        
+
         # Add basic info
         if evt.get("event_source_url"):
             params["page_location"] = evt.get("event_source_url")
-            
+
         custom_data = evt.get("custom_data", {})
         if custom_data:
             if "value" in custom_data:
-                params["value"] = float(custom_data["value"])
+                try:
+                    params["value"] = float(custom_data["value"])
+                except (TypeError, ValueError):
+                    pass
             if "currency" in custom_data:
                 params["currency"] = custom_data["currency"]
             items = _ga4_items(custom_data)
@@ -102,27 +123,30 @@ async def send_to_ga4(events: List[Dict[str, Any]], measurement_id: str, api_sec
             for utm_key in ["utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term"]:
                 if custom_data.get(utm_key):
                     params[utm_key] = custom_data[utm_key]
-                
-        # Handle User Data for User Properties
-        user_data = evt.get("user_data", {})
-        user_properties = {}
-        if user_data.get("ct"):
-            user_properties["city"] = {"value": user_data["ct"]}
-        if user_data.get("country"):
-            user_properties["country"] = {"value": user_data["country"]}
-            
+
+            # Extract GA4 Session ID from custom_data or root-level event keys
+            session_id = custom_data.get("session_id") or custom_data.get("ga_session_id") or evt.get("session_id") or evt.get("ga_session_id")
+            if session_id:
+                params["session_id"] = str(session_id)
+                # Prevent session attribution loss (not set) by marking as actively engaged
+                params["engagement_time_msec"] = 100
+
+        # NOTE: user_data fields (ct, country, etc.) are SHA-256 hashed by this point
+        # and cannot be used as meaningful GA4 user properties. GeoIP data should be
+        # set separately if raw location is needed for GA4.
+
         # Optional: transaction_id for Purchase
         if ga4_event_name == "purchase":
             order_id = custom_data.get("order_id") or evt.get("event_id")
             if order_id:
                 params["transaction_id"] = order_id
-            
+
         ga4_event = {
             "name": ga4_event_name,
             "params": params
         }
         ga4_events.append(ga4_event)
-        
+
     if not ga4_events:
         return
 
@@ -130,7 +154,17 @@ async def send_to_ga4(events: List[Dict[str, Any]], measurement_id: str, api_sec
         "client_id": client_id,
         "events": ga4_events
     }
-    
+
+    if events:
+        event_time = events[0].get("event_time")
+        if event_time:
+            try:
+                payload["timestamp_micros"] = int(event_time) * 1000000
+            except (ValueError, TypeError):
+                pass
+    if user_properties:
+        payload["user_properties"] = user_properties
+
     try:
         http_client = await get_http_client()
         response = await http_client.post(url, json=payload)

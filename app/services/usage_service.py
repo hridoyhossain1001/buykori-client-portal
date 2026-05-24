@@ -157,13 +157,12 @@ async def rollback_usage_reservation(
     if not reserved_keys:
         return
 
-    try:
-        for window_key, event_count in reserved_keys.items():
-            await _atomic_rollback(db, client.id, window_key, event_count)
-        await db.commit()
-        logger.info(f"[{client.name}] Usage reservation rolled back: {len(reserved_keys)} windows")
-    except Exception as e:
-        logger.warning(f"[{client.name}] Usage rollback failed (non-fatal): {e}")
+    # We do NOT commit inside the helper, we just apply modifications.
+    # The caller manages the commit/rollback transaction boundary.
+    for window_key, event_count in reserved_keys.items():
+        await _atomic_rollback(db, client.id, window_key, event_count)
+    await db.flush()
+    logger.info(f"[{client.name}] Usage reservation rolled back in session: {len(reserved_keys)} windows")
 
 
 # ─── Legacy Functions (backward compatibility) ──────────────────────────────
@@ -300,4 +299,4 @@ async def increment_usage_counters_db(
         )
         await db.execute(monthly_stmt)
 
-    await db.commit()
+    await db.flush()

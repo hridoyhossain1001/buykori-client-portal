@@ -77,6 +77,12 @@ function buykorigw_sanitize_settings( $input ) {
     $sanitized['deferred_purchase']  = isset( $input['deferred_purchase'] ) ? 1 : 0;
     $sanitized['auto_confirm_status']= sanitize_text_field( $input['auto_confirm_status'] ?? 'completed' );
     $sanitized['debug_mode']         = isset( $input['debug_mode'] ) ? 1 : 0;
+    $content_id_format = sanitize_text_field( $input['content_id_format'] ?? 'id' );
+    $sanitized['content_id_format']  = in_array( $content_id_format, array( 'id', 'sku' ), true ) ? $content_id_format : 'id';
+    $sanitized['enable_hybrid']      = isset( $input['enable_hybrid'] ) ? 1 : 0;
+    $sanitized['enable_variations']  = isset( $input['enable_variations'] ) ? 1 : 0;
+    $sanitized['fb_pixel_id']        = sanitize_text_field( trim( $input['fb_pixel_id'] ?? '' ) );
+    $sanitized['tt_pixel_id']        = sanitize_text_field( trim( $input['tt_pixel_id'] ?? '' ) );
     return $sanitized;
 }
 
@@ -281,6 +287,38 @@ function buykorigw_settings_page() {
                     </div>
                 </div>
 
+                <!-- Hybrid Browser Tracking -->
+                <div class="buykorigw-card">
+                    <h2>🌐 Hybrid Browser Tracking (Deduplication)</h2>
+                    <p style="color:#666; font-size:13px; margin-bottom:16px;">
+                        সার্ভার-সাইড (CAPI) ট্র্যাকিংয়ের পাশাপাশি ব্রাউজার-সাইড পিক্সেল সোর্স একসাথে কাজ করবে। এপিআই ডুপ্লিকেশন রুলসের মাধ্যমে Meta ও TikTok স্বয়ংক্রিয়ভাবে অতিরিক্ত ডাটা ফিল্টার করে নিবে।
+                    </p>
+                    <div class="buykorigw-toggle">
+                        <label class="buykorigw-switch">
+                            <input type="checkbox"
+                                   name="<?php echo BUYKORIGW_OPTION_KEY; ?>[enable_hybrid]"
+                                   value="1"
+                                   <?php checked( $settings['enable_hybrid'] ?? 0, 1 ); ?>>
+                            <span class="buykorigw-slider"></span>
+                        </label>
+                        <label>ব্রাউজার ট্র্যাকিং চালু করুন (Hybrid Mode)</label>
+                    </div>
+                    <div class="buykorigw-field">
+                        <label for="buykorigw_fb_pixel_id">Meta (Facebook) Pixel ID</label>
+                        <input type="text" id="buykorigw_fb_pixel_id"
+                               name="<?php echo BUYKORIGW_OPTION_KEY; ?>[fb_pixel_id]"
+                               value="<?php echo esc_attr( $settings['fb_pixel_id'] ?? '' ); ?>"
+                               placeholder="যেমন: 123456789012345">
+                    </div>
+                    <div class="buykorigw-field">
+                        <label for="buykorigw_tt_pixel_id">TikTok Pixel ID</label>
+                        <input type="text" id="buykorigw_tt_pixel_id"
+                               name="<?php echo BUYKORIGW_OPTION_KEY; ?>[tt_pixel_id]"
+                               value="<?php echo esc_attr( $settings['tt_pixel_id'] ?? '' ); ?>"
+                               placeholder="যেমন: C1234567890ABC">
+                    </div>
+                </div>
+
             </div><!-- /tab-general -->
 
 
@@ -332,6 +370,38 @@ function buykorigw_settings_page() {
                             <option value="one_page" <?php selected( $settings['tracking_mode'], 'one_page' ); ?>>One-page landing / embedded checkout</option>
                         </select>
                         <p class="description">Use one-page mode when product, cart and checkout live on the same landing page. InitiateCheckout will wait for customer intent instead of firing on page load.</p>
+                    </div>
+                </div>
+
+                <!-- Product Catalog ID format mapping -->
+                <div class="buykorigw-card">
+                    <h2>🎯 Product Catalog ID Format</h2>
+                    <div class="buykorigw-field">
+                        <label for="buykorigw_content_id_format">Catalog Content ID Format</label>
+                        <select id="buykorigw_content_id_format"
+                                name="<?php echo BUYKORIGW_OPTION_KEY; ?>[content_id_format]">
+                            <option value="id" <?php selected( $settings['content_id_format'] ?? 'id', 'id' ); ?>>WooCommerce Product Database ID (e.g. 1245)</option>
+                            <option value="sku" <?php selected( $settings['content_id_format'] ?? 'id', 'sku' ); ?>>Product SKU Code (e.g. BK-SHOE-44)</option>
+                        </select>
+                        <p class="description">সিলেক্ট করুন ফেসবুক এবং টিকটক ক্যাটালগে প্রোডাক্ট সনাক্ত করতে কোন আইডিটি পাঠানো হবে। ক্যাটালগের ইউনিক আইডির সাথে এটি ম্যাচ করতে হবে।</p>
+                    </div>
+                </div>
+
+                <!-- Product Variation Tracking -->
+                <div class="buykorigw-card">
+                    <h2>📦 Product Variation Tracking</h2>
+                    <p style="color:#666; font-size:13px; margin-bottom:16px;">
+                        প্রোডাক্টের বিভিন্ন ভ্যারিয়েশন (যেমন: সাইজ, কালার) ট্র্যাকিং চালু করুন। এটি চালু করলে AddToCart, ViewContent এবং Purchase ইভেন্টে ভ্যারিয়েশনের আইডি এবং তার এট্রিবিউটসমূহ পাঠানো হবে।
+                    </p>
+                    <div class="buykorigw-toggle">
+                        <label class="buykorigw-switch">
+                            <input type="checkbox"
+                                   name="<?php echo BUYKORIGW_OPTION_KEY; ?>[enable_variations]"
+                                   value="1"
+                                   <?php checked( $settings['enable_variations'] ?? 0, 1 ); ?>>
+                            <span class="buykorigw-slider"></span>
+                        </label>
+                        <label>ভ্যারিয়েশন ট্র্যাকিং চালু করুন (Variation Tracking)</label>
                     </div>
                 </div>
 

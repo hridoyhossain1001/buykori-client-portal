@@ -386,6 +386,10 @@ function buykorigw_inject_custom_events_js()
                 if (ev.value) data.value = ev.value;
                 if (ev.currency) data.currency = ev.currency;
                 if (ev.custom_param) data.custom_param = ev.custom_param;
+                var ga4ClientId = getGA4ClientId();
+                var ga4SessionId = getGA4SessionId();
+                if (ga4ClientId) data._ga = ga4ClientId;
+                if (ga4SessionId) data.ga_session_id = ga4SessionId;
                 formData.append('event_data', JSON.stringify(data));
                 formData.append('page_url', window.location.href);
                 formData.append('fbp', getCookie('_fbp') || '');
@@ -409,6 +413,26 @@ function buykorigw_inject_custom_events_js()
                 } catch (e) {
                     return '';
                 }
+            }
+
+            function getGA4ClientId() {
+                var ga = getCookie('_ga');
+                if (!ga) return '';
+                var parts = ga.split('.');
+                return parts.length >= 4 ? parts[parts.length - 2] + '.' + parts[parts.length - 1] : '';
+            }
+
+            function getGA4SessionId() {
+                var cookies = document.cookie.split(';');
+                for (var i = 0; i < cookies.length; i++) {
+                    var c = cookies[i].trim();
+                    if (c.indexOf('_ga_') === 0) {
+                        var val = c.split('=')[1] || '';
+                        var parts = val.split('.');
+                        if (parts.length >= 3) return parts[2];
+                    }
+                }
+                return '';
             }
 
             function getFieldValue(selectors) {

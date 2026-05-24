@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ title }} — Buykori AdSync</title>
+  <meta name="description" content="Buykori AdSync Client Portal — Manage your server-side event delivery.">
+  <link rel="stylesheet" href="/static/css/portal.css">
+  <style>
+    body { justify-content: center; align-items: center; }
+    .login-bg { position: fixed; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; }
+    .login-blob { position: absolute; border-radius: 50%; filter: blur(80px); opacity: 0.12; animation: float-blob 10s ease-in-out infinite alternate; }
+    @keyframes float-blob { from { transform: translate(0,0) scale(1); } to { transform: translate(30px,-20px) scale(1.08); } }
+    .login-wrap { position: relative; z-index: 1; width: 100%; max-width: 420px; padding: 24px 16px; }
+    .login-logo { text-align: center; margin-bottom: 32px; }
+    .login-logo-mark { width: 56px; height: 56px; border-radius: 16px; background: #ff8b45; display: inline-flex; align-items: center; justify-content: center; font-size: 26px; font-weight: 900; color: #fff; font-family: 'Outfit', sans-serif; box-shadow: 0 0 0 1px rgba(255,139,69,0.38), 0 12px 40px rgba(255,139,69,0.35); margin-bottom: 16px; }
+    .login-logo h1 { font-size: 22px; font-weight: 800; color: #fff; font-family: 'Outfit', sans-serif; letter-spacing: -0.5px; margin: 0 0 6px; }
+    .login-logo p { font-size: 13px; color: #7c8fb5; }
+    .login-card { background: rgba(13,20,40,0.88); border: 1px solid rgba(148,163,184,0.1); border-radius: 18px; padding: 32px 28px; box-shadow: 0 24px 64px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.05); backdrop-filter: blur(20px); }
+    .login-label { display: block; font-size: 12px; font-weight: 700; color: #7c8fb5; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 8px; }
+    .login-input { width: 100%; padding: 13px 14px; background: rgba(0,0,0,0.4); border: 1px solid rgba(148,163,184,0.12); border-radius: 10px; color: #fff; font-size: 14px; outline: none; transition: border-color 0.2s, box-shadow 0.2s; font-family: 'Inter', sans-serif; margin-bottom: 20px; }
+    .login-input:focus { border-color: rgba(255,139,69,0.5); box-shadow: 0 0 0 3px rgba(255,139,69,0.15); }
+    .login-btn { width: 100%; padding: 13px; background: linear-gradient(135deg, #ff8b45 0%, #ffae6b 100%); color: #111827; font-size: 15px; font-weight: 700; border: none; border-radius: 10px; cursor: pointer; font-family: 'Outfit', sans-serif; box-shadow: 0 6px 24px rgba(255,139,69,0.35); transition: all 0.2s; }
+    .login-btn:hover { background: linear-gradient(135deg, #ffae6b 0%, #ff8b45 100%); transform: translateY(-1px); box-shadow: 0 10px 32px rgba(255,139,69,0.45); }
+    .login-footer { text-align: center; margin-top: 20px; font-size: 12px; color: #475569; }
+  </style>
+</head>
+<body>
+  <div class="login-bg">
+    <div class="login-blob" style="width:500px;height:500px;top:-200px;left:-150px;background:#ff8b45;"></div>
+    <div class="login-blob" style="width:400px;height:400px;bottom:-150px;right:-100px;background:#ffae6b;animation-delay:-4s;"></div>
+    <div class="login-blob" style="width:300px;height:300px;top:50%;left:60%;background:#06b6d4;animation-delay:-7s;"></div>
+  </div>
+  <div class="login-wrap">
+    <div class="login-logo">
+      <div class="login-logo-mark">B</div>
+      <h1>Buykori AdSync</h1>
+      <p>Sign in to your Client Portal</p>
+    </div>
+    <div class="login-card">
+      <form action="/client/login" method="post" autocomplete="off">
+        <label class="login-label" for="api_key_input">Portal Login Key</label>
+        <input class="login-input" type="password" id="api_key_input" name="api_key" required placeholder="Paste your Portal Login Key here…" autocomplete="off">
+        <button type="submit" class="login-btn">Sign In to Dashboard &rarr;</button>
+      </form>
+    </div>
+    <div class="login-footer">&copy; Buykori AdSync &mdash; Secure Server-Side Tracking</div>
+  </div>
+</body>
+</html>

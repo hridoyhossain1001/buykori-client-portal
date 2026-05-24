@@ -7,13 +7,13 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, Depends
 from sqlalchemy import select, func, and_
 from sqlalchemy.ext.asyncio import AsyncSession
-import httpx
 
 from app.database import get_db
 from app.models.client import Client
 from app.models.event_log import EventLog
 from app.models.failed_event import FailedEvent
 from app.routers.admin import verify_admin
+from app.services.capi_service import get_http_client
 
 logger = logging.getLogger(__name__)
 router = APIRouter(dependencies=[Depends(verify_admin)])
@@ -86,13 +86,13 @@ async def detailed_health(db: AsyncSession = Depends(get_db)):
 async def facebook_health():
     """Facebook Graph API কানেক্টিভিটি চেক"""
     try:
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            response = await client.get("https://graph.facebook.com/v20.0/")
-            return {
-                "facebook_api": "reachable",
-                "response_code": response.status_code,
-                "latency_ms": round(response.elapsed.total_seconds() * 1000, 1),
-            }
+        client = await get_http_client()
+        response = await client.get("https://graph.facebook.com/v20.0/")
+        return {
+            "facebook_api": "reachable",
+            "response_code": response.status_code,
+            "latency_ms": round(response.elapsed.total_seconds() * 1000, 1),
+        }
     except Exception:
         return {
             "facebook_api": "unreachable",

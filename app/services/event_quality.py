@@ -86,8 +86,49 @@ def _stable_event_suffix(event: EventData) -> str:
             str(custom_data.get("value") or ""),
         ]
     )
-    digest = hashlib.sha1(basis.encode("utf-8")).hexdigest()[:10]
+    digest = hashlib.sha256(basis.encode("utf-8")).hexdigest()[:10]
     return f"{digest}_{uuid.uuid4().hex[:8]}"
+
+
+def calculate_emq_score(event: EventData) -> float:
+    """
+    Calculate a realistic Event Match Quality (EMQ) score from 0.0 to 10.0
+    based on standard Facebook and TikTok guidelines.
+    """
+    if not event.user_data:
+        return 0.0
+
+    ud = event.user_data
+    score = 0.0
+
+    # 1. Email (em) - High value (up to 3.0 pts)
+    if ud.em:
+        score += 3.0
+
+    # 2. Phone (ph) - High value (up to 3.0 pts)
+    if ud.ph:
+        score += 3.0
+
+    # 3. First Party Cookies (fbp, ttp) - Medium-High value (up to 1.0 pts)
+    if ud.fbp or ud.ttp:
+        score += 1.0
+
+    # 4. Click IDs (fbc, ttclid) - High value for attribution (up to 1.0 pts)
+    if ud.fbc or ud.ttclid:
+        score += 1.0
+
+    # 5. IP Address & User Agent - Basic matching (up to 1.0 pts)
+    if ud.client_ip_address and ud.client_user_agent:
+        score += 1.0
+
+    # 6. Other PII (fn, ln, ct, st, zp, country) - Small boosts (up to 1.0 pts)
+    other_pii = sum(1 for k in ["fn", "ln", "ct", "st", "zp", "country"] if getattr(ud, k, None))
+    if other_pii >= 2:
+        score += 1.0
+    elif other_pii == 1:
+        score += 0.5
+
+    return min(10.0, score)
 
 
 def boost_event_quality(
@@ -126,12 +167,12 @@ def boost_event_quality(
         cd = event.custom_data
         cd.content_type = cd.content_type or "product"
 
-        contents = getattr(cd, "contents", None) or []
+        contents = cd.contents or []
         content_ids = _clean_ids(cd.content_ids) or _ids_from_contents(contents)
         if content_ids:
             cd.content_ids = content_ids
         if content_ids and not contents:
-            setattr(cd, "contents", _contents_from_ids(content_ids, cd.content_type))
+            cd.contents = _contents_from_ids(content_ids, cd.content_type)
 
         numeric_value = _numeric(cd.value)
         if numeric_value is not None:
@@ -153,6 +194,63 @@ def boost_event_quality(
                 if value:
                     cd.order_id = str(value)
                     break
+
+    # ─── Campaign Attribution & UTM Normalization ───────────────────────
+    if event.custom_data:
+        cd = event.custom_data
+        ud = event.user_data
+
+        def get_extra(model, key):
+            val = getattr(model, key, None)
+            if val is not None:
+                return val
+            extra = getattr(model, "model_extra", None) or {}
+            return extra.get(key)
+
+        def set_extra(model, key, val):
+            try:
+                setattr(model, key, val)
+            except Exception:
+                pass
+            if hasattr(model, "model_extra") and isinstance(model.model_extra, dict):
+                model.model_extra[key] = val
+            elif hasattr(model, "__dict__"):
+                model.__dict__[key] = val
+
+        # 1. Click ID based campaign fallback mapping
+        if not get_extra(cd, "utm_source") and ud:
+            if getattr(ud, "ttclid", None):
+                set_extra(cd, "utm_source", "tiktok")
+                set_extra(cd, "campaign_source", "tiktok")
+                if not get_extra(cd, "utm_medium"):
+                    set_extra(cd, "utm_medium", "paid_social")
+            elif getattr(ud, "fbc", None):
+                set_extra(cd, "utm_source", "facebook")
+                set_extra(cd, "campaign_source", "facebook")
+                if not get_extra(cd, "utm_medium"):
+                    set_extra(cd, "utm_medium", "paid_social")
+
+        # 2. Campaign parameter normalizations
+        utm_src = get_extra(cd, "utm_source")
+        if utm_src:
+            set_extra(cd, "utm_source", str(utm_src).strip().lower())
+
+        camp_src = get_extra(cd, "campaign_source")
+        if camp_src:
+            set_extra(cd, "campaign_source", str(camp_src).strip().lower())
+
+        utm_med = get_extra(cd, "utm_medium")
+        if utm_med:
+            set_extra(cd, "utm_medium", str(utm_med).strip().lower())
+
+        utm_camp = get_extra(cd, "utm_campaign")
+        if utm_camp:
+            # Slugify: lowercase and replace spaces/hyphens with underscores
+            slugified = str(utm_camp).strip().lower().replace(" ", "_").replace("-", "_")
+            set_extra(cd, "utm_campaign", slugified)
+
+    # Automatically calculate and set the EMQ score
+    event.emq_score = calculate_emq_score(event)
 
     return event
 

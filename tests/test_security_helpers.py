@@ -69,3 +69,22 @@ def test_plugin_update_signature_contract():
         signature,
         hmac.new(api_key.encode(), payload.encode(), hashlib.sha256).hexdigest(),
     )
+
+
+def test_domain_normalization():
+    from app.utils.display import normalize_domain_input, display_domain_url
+
+    assert normalize_domain_input("example.com") == "example.com"
+    assert normalize_domain_input("https://www.example.com") == "example.com"
+    assert normalize_domain_input("  www.example.com.  ") == "example.com"
+
+    assert normalize_domain_input("example.com, google.com") == "example.com,google.com"
+    assert normalize_domain_input("https://www.example.com, http://google.com") == "example.com,google.com"
+    assert normalize_domain_input("  www.example.com. ,  ") == "example.com"
+    assert normalize_domain_input(None) is None
+    assert normalize_domain_input("   ") is None
+
+    assert display_domain_url("example.com, google.com") == "https://www.example.com"
+    assert display_domain_url("https://www.example.com") == "https://www.example.com"
+    assert display_domain_url("") == ""
+    assert display_domain_url(None) == ""

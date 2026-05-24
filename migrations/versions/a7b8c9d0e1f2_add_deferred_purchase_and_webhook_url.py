@@ -1,7 +1,7 @@
 """add deferred_purchase and webhook_url to clients
 
 Revision ID: a7b8c9d0e1f2
-Revises: 2346a5d9e53f
+Revises: 6f95f5ca1ac2
 """
 from typing import Sequence, Union
 

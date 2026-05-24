@@ -243,18 +243,18 @@ async def analytics_overview(
         funnel.append(FunnelStep(step=fe, count=count, drop_off=drop))
         prev_count = count if count > 0 else prev_count
 
-    # EMQ Score — sample from recent events
+    # EMQ Score — average stored estimate from recent events
     sample_r = await db.execute(
-        select(EventLog.fb_response)
+        select(sql_func.avg(EventLog.emq_score))
         .where(and_(
             EventLog.client_id == client.id,
             EventLog.status == "success",
+            EventLog.emq_score.is_not(None),
             EventLog.created_at >= now - timedelta(hours=24),
         ))
-        .limit(50)
     )
-    # EMQ is estimated from available user_data fields
-    emq_score = None  # Real EMQ comes from Facebook — we estimate
+    emq_avg = sample_r.scalar()
+    emq_score = round(float(emq_avg), 1) if emq_avg is not None else None
 
     return OverviewResponse(
         status="success",
@@ -324,7 +324,7 @@ async def analytics_top_products(
     # Extract product ID from event_id (WP snippet uses 'view-123', 'cart-123')
     # Using Postgres split_part to get the part after the hyphen
     product_id_expr = sql_func.split_part(EventLog.event_id, '-', 2)
-    
+
     result = await db.execute(
         select(
             product_id_expr,
@@ -349,7 +349,7 @@ async def analytics_top_products(
         # Ignore timestamps or random strings if they're too long
         if not pid or len(pid) > 15:
             continue
-            
+
         products.append(TopProduct(
             product_id=f"Product #{pid}",
             event_count=row[1] or 0,

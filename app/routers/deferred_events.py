@@ -16,8 +16,8 @@ from datetime import datetime, timezone
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel
-from sqlalchemy import select, update, and_
+from pydantic import BaseModel, field_validator
+from sqlalchemy import select, update, and_, func as sql_func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
@@ -37,13 +37,44 @@ router = APIRouter()
 class ConfirmRequest(BaseModel):
     order_id: str
 
+    @field_validator("order_id")
+    @classmethod
+    def normalize_order_id(cls, value: str) -> str:
+        value = str(value or "").strip()
+        if not value:
+            raise ValueError("order_id is required")
+        return value
+
 
 class BulkConfirmRequest(BaseModel):
     order_ids: List[str]
 
+    @field_validator("order_ids")
+    @classmethod
+    def normalize_order_ids(cls, values: List[str]) -> List[str]:
+        normalized = []
+        seen = set()
+        for value in values or []:
+            order_id = str(value or "").strip()
+            if not order_id or order_id in seen:
+                continue
+            seen.add(order_id)
+            normalized.append(order_id)
+        if not normalized:
+            raise ValueError("order_ids is required")
+        return normalized
+
 
 class CancelRequest(BaseModel):
     order_id: str
+
+    @field_validator("order_id")
+    @classmethod
+    def normalize_order_id(cls, value: str) -> str:
+        value = str(value or "").strip()
+        if not value:
+            raise ValueError("order_id is required")
+        return value
 
 
 class PendingEventResponse(BaseModel):
@@ -54,6 +85,7 @@ class PendingEventResponse(BaseModel):
     status: str
     created_at: str
     age_hours: float
+    customer: Optional[str] = None
 
 
 class ConfirmResponse(BaseModel):
@@ -80,6 +112,16 @@ class PendingListResponse(BaseModel):
     status: str
     total: int
     events: List[PendingEventResponse]
+
+
+class DeferredSummaryResponse(BaseModel):
+    status: str
+    pending: int
+    confirmed: int
+    cancelled: int
+    expired: int
+    pending_value: float
+    pending_oldest_age_hours: Optional[float] = None
 
 
 # ─── Helper: Queue confirmed event for worker delivery ───────────────────────
@@ -243,9 +285,10 @@ async def bulk_confirm_events(
 
     for pending in pending_events:
         try:
-            await _queue_confirmed_event(client, pending, db)
-            pending.status = "confirmed"
-            pending.confirmed_at = datetime.now(timezone.utc)
+            async with db.begin_nested():
+                await _queue_confirmed_event(client, pending, db)
+                pending.status = "confirmed"
+                pending.confirmed_at = datetime.now(timezone.utc)
             confirmed += 1
             details.append({"order_id": pending.order_id, "status": "queued"})
         except HTTPException as e:
@@ -383,6 +426,61 @@ async def bulk_cancel_events(
     )
 
 
+@router.get(
+    "/events/deferred/summary",
+    response_model=DeferredSummaryResponse,
+    summary="Deferred Purchase summary",
+)
+async def deferred_purchase_summary(
+    client: CachedClient = Depends(get_current_client),
+    db: AsyncSession = Depends(get_db),
+):
+    """Compact COD/verified purchase status for dashboards and plugin widgets."""
+    status_result = await db.execute(
+        select(PendingEvent.status, sql_func.count(PendingEvent.id))
+        .where(PendingEvent.client_id == client.id)
+        .group_by(PendingEvent.status)
+    )
+    counts = {status: int(count or 0) for status, count in status_result}
+
+    pending_result = await db.execute(
+        select(PendingEvent)
+        .where(
+            and_(
+                PendingEvent.client_id == client.id,
+                PendingEvent.status == "pending",
+            )
+        )
+    )
+    pending_events = pending_result.scalars().all()
+
+    pending_value = 0.0
+    oldest_created = None
+    for pending in pending_events:
+        custom_data = (pending.event_data or {}).get("custom_data", {}) or {}
+        try:
+            pending_value += float(custom_data.get("value") or 0)
+        except (TypeError, ValueError):
+            pass
+        if pending.created_at and (oldest_created is None or pending.created_at < oldest_created):
+            oldest_created = pending.created_at
+
+    oldest_age_hours = None
+    if oldest_created:
+        created = oldest_created.replace(tzinfo=timezone.utc) if oldest_created.tzinfo is None else oldest_created
+        oldest_age_hours = round((datetime.now(timezone.utc) - created).total_seconds() / 3600, 1)
+
+    return DeferredSummaryResponse(
+        status="success",
+        pending=counts.get("pending", 0),
+        confirmed=counts.get("confirmed", 0),
+        cancelled=counts.get("cancelled", 0),
+        expired=counts.get("expired", 0),
+        pending_value=round(pending_value, 2),
+        pending_oldest_age_hours=oldest_age_hours,
+    )
+
+
 # ─── GET /events/pending — Pending List ──────────────────────────────────────
 
 @router.get(
@@ -400,7 +498,6 @@ async def list_pending_events(
     offset = (page - 1) * limit
 
     # Total count
-    from sqlalchemy import func as sql_func
     count_r = await db.execute(
         select(sql_func.count(PendingEvent.id)).where(
             and_(
@@ -434,6 +531,16 @@ async def list_pending_events(
         created = e.created_at.replace(tzinfo=timezone.utc) if e.created_at.tzinfo is None else e.created_at
         age_hours = round((now - created).total_seconds() / 3600, 1)
 
+        # Try to find a human readable customer representation
+        user_data = event_data.get("user_data", {}) or {}
+        ph_list = user_data.get("ph") or []
+        em_list = user_data.get("em") or []
+        cust_val = "—"
+        if ph_list:
+            cust_val = ph_list[0] if isinstance(ph_list, list) else str(ph_list)
+        elif em_list:
+            cust_val = em_list[0] if isinstance(em_list, list) else str(em_list)
+
         event_list.append(PendingEventResponse(
             order_id=e.order_id,
             event_name=event_data.get("event_name", "Purchase"),
@@ -442,6 +549,7 @@ async def list_pending_events(
             status=e.status,
             created_at=e.created_at.isoformat() if e.created_at else "",
             age_hours=age_hours,
+            customer=cust_val,
         ))
 
     return PendingListResponse(

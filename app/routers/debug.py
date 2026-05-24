@@ -4,7 +4,7 @@ Event Testing & Debug Router
 Real-time event debug, test event sender, এবং payload inspector।
 
 Endpoints:
-  POST /api/v1/debug/test-event    — Test event পাঠায় (Facebook Test Event Code সহ)
+  POST /api/v1/debug/test-event    — Test event পাঠায় (Facebook/TikTok/GA4 সব প্ল্যাটফর্মে)
   GET  /api/v1/debug/recent        — সর্বশেষ events real-time stream
   POST /api/v1/debug/validate      — Event payload validate করে (পাঠায় না)
 """
@@ -62,6 +62,7 @@ class RecentEventItem(BaseModel):
     event_name: str
     event_id: str | None
     status: str
+    error_message: str | None = None
     ip_address: str | None
     user_agent_short: str | None
     fb_response_preview: str | None
@@ -79,17 +80,19 @@ class RecentEventsResponse(BaseModel):
 @router.post(
     "/debug/test-event",
     response_model=TestEventResponse,
-    summary="Send a test event to Facebook",
+    summary="Send a test event to all enabled platforms",
 )
 async def send_test_event(
     payload: TestEventRequest,
     client: CachedClient = Depends(get_current_client),
 ):
     """
-    Facebook Test Events Tool-এ verify করার জন্য test event পাঠায়।
-    Test Event Code না থাকলেও কাজ করবে।
+    Test event পাঠায় — Facebook, TikTok, GA4 সবখানে (যেটা enabled)।
+    Test Event Code থাকলে সেটাসহ পাঠায়।
     """
     from app.services.capi_service import send_to_facebook
+    from app.services.tiktok_service import send_to_tiktok
+    from app.services.ga4_service import send_to_ga4
 
     event_id = f"test_{int(time.time())}_{id(payload)}"
 
@@ -120,14 +123,68 @@ async def send_test_event(
 
     try:
         event = EventData(**event_dict)
-        result = await send_to_facebook(client, [event])
-        logger.info(f"[{client.name}] 🧪 Test event sent: {payload.event_name}")
+        results = {}
+
+        # ── Facebook ──────────────────────────────────────────────────────
+        facebook_enabled = bool(
+            getattr(client, "enable_facebook", True)
+            and client.pixel_id
+            and client.access_token
+        )
+        if facebook_enabled:
+            try:
+                results["facebook"] = await send_to_facebook(client, [event])
+            except Exception as fb_err:
+                results["facebook"] = {"error": str(fb_err)}
+
+        # ── TikTok ────────────────────────────────────────────────────────
+        tiktok_enabled = bool(
+            getattr(client, "enable_tiktok", True)
+            and client.tiktok_pixel_id
+            and client.tiktok_access_token
+        )
+        if tiktok_enabled:
+            try:
+                results["tiktok"] = await send_to_tiktok(client, [event])
+            except Exception as tt_err:
+                results["tiktok"] = {"error": str(tt_err)}
+
+        # ── GA4 ───────────────────────────────────────────────────────────
+        ga4_enabled = bool(
+            getattr(client, "enable_ga4", True)
+            and client.ga4_measurement_id
+            and client.ga4_api_secret
+        )
+        if ga4_enabled:
+            try:
+                results["ga4"] = await send_to_ga4(
+                    events=[event_dict],
+                    measurement_id=client.ga4_measurement_id,
+                    api_secret=client.ga4_api_secret,
+                    cookies={},
+                    ip_address="127.0.0.1",
+                    user_agent="Buykori-AdSync-DebugTool/1.0",
+                )
+            except Exception as ga4_err:
+                results["ga4"] = {"error": str(ga4_err)}
+
+        platforms_sent = [
+            k for k, v in results.items()
+            if v and not (isinstance(v, dict) and v.get("error"))
+        ]
+        logger.info(
+            f"[{client.name}] 🧪 Test event sent: {payload.event_name} → "
+            f"{', '.join(platforms_sent) or 'none'}"
+        )
 
         return TestEventResponse(
             status="success",
-            message=f"🧪 Test {payload.event_name} event সফলভাবে পাঠানো হয়েছে!",
+            message=(
+                f"🧪 Test {payload.event_name} event পাঠানো হয়েছে! "
+                f"({', '.join(platforms_sent) or 'no platform enabled'})"
+            ),
             event_id=event_id,
-            fb_response=result,
+            fb_response=results,
         )
     except Exception as e:
         logger.error(f"[{client.name}] Test event failed: {e}")
@@ -189,6 +246,7 @@ async def recent_events(
             event_name=log.event_name or "unknown",
             event_id=log.event_id,
             status=log.status or "unknown",
+            error_message=log.error_message,
             ip_address=log.ip_address,
             user_agent_short=None,
             fb_response_preview=fb_preview,

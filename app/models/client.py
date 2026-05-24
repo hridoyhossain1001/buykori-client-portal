@@ -33,6 +33,8 @@ class Client(Base):
     ga4_api_secret = Column(String, nullable=True)                # GA4 API Secret (encrypted)
     # ─── Deferred Purchase ──────────────────────────────────────────────
     deferred_purchase = Column(Boolean, default=False)             # ON হলে Purchase event হোল্ড হবে
+    auto_confirm_days = Column(Integer, default=0, nullable=False)  # ০ = অফ, অন্যথা অর্ডারের বয়স N দিন হলে অটো-কনফার্ম
+    auto_confirm_status = Column(String, default="completed")       # কনফার্ম অর্ডারের স্ট্যাটাস
     # ─── Webhook (Outbound) ────────────────────────────────────────────
     webhook_url = Column(String, nullable=True)                    # Custom Webhook URL (outbound)
     # ─── Monthly Usage Limit (Rate Limiting Per-Client) ───────────────

@@ -7,25 +7,35 @@ def _clean_and_hash(val: str, field: str) -> str:
     """Normalize and hash PII data according to Facebook CAPI rules."""
     if not isinstance(val, str) or not val.strip():
         return val
-        
+
     val = val.strip()
-    
+
     # Check if already SHA256 hashed
     if re.match(r'^[a-f0-9]{64}$', val):
         return val
-        
+
     # Normalization
     if field == 'ph':
-        # Remove non-numeric characters (keep '+' if exists, then remove leading zeros)
-        # FB expects: country code + number without leading zero
+        # Remove non-numeric characters
         val = re.sub(r'[^0-9]', '', val)
-        val = val.lstrip('0')
+
+        # Bangladesh E.164 normalization:
+        # 01XXXXXXXXX (11 digits, starts with 01) → 8801XXXXXXXXX
+        # 1XXXXXXXXX  (10 digits, starts with 1)  → 8801XXXXXXXXX
+        # 8801XXXXXXXXX (13 digits, already E.164) → keep as-is
+        if len(val) == 11 and val.startswith('01'):
+            val = '88' + val
+        elif len(val) == 10 and val.startswith('1'):
+            val = '880' + val
+        elif not val.startswith('880') and not val.startswith('0'):
+            # Non-BD numbers: strip leading zeros (original behavior)
+            val = val.lstrip('0')
     else:
         val = val.lower()
         if field in ('fn', 'ln', 'ct'):
             # Remove punctuation (keep letters and spaces)
             val = re.sub(r'[^\w\s]', '', val)
-            
+
     return hashlib.sha256(val.encode('utf-8')).hexdigest()
 
 class UserData(BaseModel):
@@ -51,16 +61,16 @@ class UserData(BaseModel):
     def auto_hash_pii(cls, data: Any) -> Any:
         if not isinstance(data, dict):
             return data
-            
+
         hashable_fields = ['em', 'ph', 'fn', 'ln', 'ct', 'st', 'zp', 'country', 'external_id']
-        
+
         for field in hashable_fields:
             if field in data and data[field] is not None:
                 val = data[field]
                 # If a single string is provided, wrap it in a list
                 if isinstance(val, str):
                     val = [val]
-                
+
                 # Clean and hash each item in the list
                 if isinstance(val, list):
                     cleaned_list = []
@@ -70,7 +80,7 @@ class UserData(BaseModel):
                         else:
                             cleaned_list.append(item)
                     data[field] = cleaned_list
-                    
+
         return data
 
 
@@ -83,6 +93,7 @@ class CustomData(BaseModel):
     content_type: Optional[str] = None
     order_id: Optional[str] = None
     num_items: Optional[int] = None
+    contents: Optional[List[Dict[str, Any]]] = None
 
 
 class EventData(BaseModel):

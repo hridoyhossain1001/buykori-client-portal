@@ -18,6 +18,44 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // ─── Inject Tracker Script ────────────────────────────────────────────────────
+/**
+ * Resolve the configured tracking mode.
+ *
+ * One-page landing stores often place product and checkout UI on the same
+ * screen. In that case checkout events should wait for user intent instead of
+ * firing immediately on page load.
+ */
+function buykorigw_resolve_tracking_mode( $settings ) {
+    $mode = isset( $settings['tracking_mode'] ) ? $settings['tracking_mode'] : 'standard';
+    if ( ! in_array( $mode, array( 'standard', 'one_page' ), true ) ) {
+        $mode = 'standard';
+    }
+
+    if ( $mode === 'one_page' ) {
+        return 'one_page';
+    }
+
+    $is_landing = false;
+    if ( function_exists( 'is_front_page' ) && is_front_page() ) {
+        $is_landing = true;
+    } elseif ( function_exists( 'is_home' ) && is_home() ) {
+        $is_landing = true;
+    } elseif ( function_exists( 'is_product' ) && is_product() ) {
+        $is_landing = true;
+    }
+
+    if (
+        $is_landing
+        && function_exists( 'is_checkout' )
+        && is_checkout()
+        && ( ! function_exists( 'is_order_received_page' ) || ! is_order_received_page() )
+    ) {
+        return 'one_page';
+    }
+
+    return 'standard';
+}
+
 add_action( 'wp_footer', 'buykorigw_inject_tracker', 99 );
 
 function buykorigw_inject_tracker() {
@@ -31,8 +69,15 @@ function buykorigw_inject_tracker() {
     // Pass config to JS
     $tracker_data = array(
         'ajax_url'    => admin_url( 'admin-ajax.php' ),
+        'rest_url'    => rest_url( 'buykori/v1/track' ),
         'nonce'       => wp_create_nonce( 'buykorigw_track_nonce' ),
-        'tracking_mode' => in_array( $settings['tracking_mode'] ?? 'standard', array( 'standard', 'one_page' ), true ) ? $settings['tracking_mode'] : 'standard',
+        'rest_nonce'  => wp_create_nonce( 'wp_rest' ),
+        'tracking_mode' => buykorigw_resolve_tracking_mode( $settings ),
+        'content_id_format' => isset( $settings['content_id_format'] ) ? $settings['content_id_format'] : 'id',
+        'enable_hybrid' => isset( $settings['enable_hybrid'] ) ? (bool) $settings['enable_hybrid'] : false,
+        'enable_variations' => isset( $settings['enable_variations'] ) ? (bool) $settings['enable_variations'] : false,
+        'fb_pixel_id'  => isset( $settings['fb_pixel_id'] ) ? trim( $settings['fb_pixel_id'] ) : '',
+        'tt_pixel_id'  => isset( $settings['tt_pixel_id'] ) ? trim( $settings['tt_pixel_id'] ) : '',
         'events'      => array(
             'pageview'       => (bool) $settings['enable_pageview'],
             'lead'           => (bool) $settings['enable_lead'],
@@ -53,6 +98,7 @@ function buykorigw_inject_tracker() {
         if ( $product && is_a( $product, 'WC_Product' ) ) {
             $tracker_data['product'] = array(
                 'id'       => $product->get_id(),
+                'sku'      => $product->get_sku() ?: (string) $product->get_id(),
                 'name'     => $product->get_name(),
                 'price'    => (float) $product->get_price(),
                 'currency' => get_woocommerce_currency(),
@@ -65,10 +111,10 @@ function buykorigw_inject_tracker() {
     $tracker_data['page_type'] = 'other';
     if ( function_exists( 'is_product' ) && is_product() ) {
         $tracker_data['page_type'] = 'product';
-    } elseif ( function_exists( 'is_cart' ) && is_cart() ) {
-        $tracker_data['page_type'] = 'cart';
     } elseif ( function_exists( 'is_checkout' ) && is_checkout() && ( ! function_exists( 'is_order_received_page' ) || ! is_order_received_page() ) ) {
         $tracker_data['page_type'] = 'checkout';
+    } elseif ( function_exists( 'is_cart' ) && is_cart() ) {
+        $tracker_data['page_type'] = 'cart';
     } elseif ( function_exists( 'is_order_received_page' ) && is_order_received_page() ) {
         $tracker_data['page_type'] = 'thankyou';
     } elseif ( is_search() ) {
@@ -78,42 +124,13 @@ function buykorigw_inject_tracker() {
 
     // Add cart data for ViewCart and InitiateCheckout matching/optimization.
     if (
-        function_exists( 'WC' ) &&
-        WC()->cart &&
+        function_exists( 'buykorigw_get_cart_event_data' ) &&
         ( ( function_exists( 'is_cart' ) && is_cart() ) || ( function_exists( 'is_checkout' ) && is_checkout() && ( ! function_exists( 'is_order_received_page' ) || ! is_order_received_page() ) ) )
     ) {
-        $cart_ids  = array();
-        $contents  = array();
-        $num_items = 0;
-
-        foreach ( WC()->cart->get_cart() as $cart_item ) {
-            $product_id = isset( $cart_item['product_id'] ) ? (int) $cart_item['product_id'] : 0;
-            $product    = $product_id ? wc_get_product( $product_id ) : null;
-            $quantity   = isset( $cart_item['quantity'] ) ? (int) $cart_item['quantity'] : 0;
-            if ( $product_id > 0 ) {
-                $cart_ids[] = (string) $product_id;
-                $item_price = $product ? (float) wc_get_price_to_display( $product ) : 0;
-                $contents[] = array(
-                    'id'               => (string) $product_id,
-                    'content_id'       => (string) $product_id,
-                    'content_type'     => 'product',
-                    'content_name'     => $product ? $product->get_name() : '',
-                    'content_category' => implode( ', ', wp_list_pluck( wc_get_product_terms( $product_id, 'product_cat' ), 'name' ) ),
-                    'quantity'         => $quantity,
-                    'item_price'       => $item_price,
-                    'price'            => $item_price,
-                );
-            }
-            $num_items += $quantity;
+        $cart_data = buykorigw_get_cart_event_data();
+        if ( ! empty( $cart_data ) ) {
+            $tracker_data['cart'] = $cart_data;
         }
-
-        $tracker_data['cart'] = array(
-            'content_ids' => array_values( array_unique( $cart_ids ) ),
-            'contents'    => $contents,
-            'value'       => (float) WC()->cart->get_cart_contents_total(),
-            'currency'    => get_woocommerce_currency(),
-            'num_items'   => $num_items,
-        );
     }
 
     echo "<script id='buykorigw-tracker-config'>\n";
@@ -132,13 +149,136 @@ function buykorigw_get_tracker_js() {
     'use strict';
 
     var cfg = window.buykorigw_config || {};
-    if (!cfg.ajax_url) return;
+    if (!cfg.ajax_url && !cfg.rest_url) return;
     var trackingMode = cfg.tracking_mode || 'standard';
     persistMarketingParams();
     persistTikTokClickId();
+    ensureFirstPartyCookies();
+    initializeHybridPixels();
+
+    function initializeHybridPixels() {
+        if (!cfg.enable_hybrid) return;
+
+        // Gather cached customer data for advanced matching
+        var fbUserData = {};
+        var ttUserData = {};
+        var cookieFields = {
+            em: '_buykorigw_id_em',
+            ph: '_buykorigw_id_ph',
+            fn: '_buykorigw_id_fn',
+            ln: '_buykorigw_id_ln',
+            ct: '_buykorigw_id_ct',
+            st: '_buykorigw_id_st',
+            zp: '_buykorigw_id_zp',
+            country: '_buykorigw_id_country'
+        };
+        Object.keys(cookieFields).forEach(function(key) {
+            var val = getCookie(cookieFields[key]);
+            if (val) {
+                fbUserData[key] = val;
+                if (key === 'em') ttUserData.email = val;
+                if (key === 'ph') ttUserData.phone_number = val;
+            }
+        });
+        var externalId = getCookie('_buykorigw_vid');
+        if (externalId) {
+            fbUserData.external_id = externalId;
+            ttUserData.external_id = externalId;
+        }
+
+        if (cfg.fb_pixel_id && !window.fbq) {
+            !function(f,b,e,v,n,t,s)
+            {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+            n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+            if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+            n.queue=[];t=b.createElement(e);t.async=!0;
+            t.src=v;s=b.getElementsByTagName(e)[0];
+            s.parentNode.insertBefore(t,s)}(window, document,'script',
+            'https://connect.facebook.net/en_US/fbevents.js');
+            if (Object.keys(fbUserData).length) {
+                fbq('init', cfg.fb_pixel_id, fbUserData);
+            } else {
+                fbq('init', cfg.fb_pixel_id);
+            }
+        }
+
+        if (cfg.tt_pixel_id && !window.ttq) {
+            !function (w, d, t) {
+              w.TiktokAnalyticsObject=t;var ttq=w[t]=w[t]||[];ttq.methods=["page","track","identify","instances","debug","on","off","once","ready","alias","group","enableCookie","disableCookie"];
+              ttq.setAndDefer=function(t,e){t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}};for(var i=0;i<ttq.methods.length;i++)ttq.setAndDefer(ttq,ttq.methods[i]);
+              ttq.instance=function(t){var e=ttq._i[t]||[];return e};ttq.load=function(e,n){var r="https://analytics.tiktok.com/i18n/pixel/events.js";ttq._i=ttq._i||{},ttq._i[e]=[],ttq._i[e]._u=r,ttq._t=ttq._t||{},ttq._t[e]=+new Date,ttq._o=ttq._o||{},ttq._o[e]=n||{};var o=d.createElement("script");o.type="text/javascript",o.async=!0,o.src=r;var a=d.getElementsByTagName("script")[0];a.parentNode.insertBefore(o,a)};
+            }(window, document, 'ttq');
+            ttq.load(cfg.tt_pixel_id);
+            if (Object.keys(ttUserData).length) {
+                ttq.identify(ttUserData);
+            }
+        }
+    }
 
     function isOnePageMode() {
         return trackingMode === 'one_page';
+    }
+
+    function getSelectedVariationInfo() {
+        if (!cfg.enable_variations) return null;
+        var form = document.querySelector('form.cart.variations_form');
+        if (!form) return null;
+        var varIdInput = form.querySelector('[name="variation_id"], .variation_id');
+        if (!varIdInput) return null;
+        var variationId = varIdInput.value;
+        if (!variationId || variationId === '0') return null;
+
+        var attributes = {};
+        var selects = form.querySelectorAll('select[name^="attribute_"]');
+        selects.forEach(function(select) {
+            var name = select.name.replace('attribute_', '');
+            if (select.value) {
+                attributes[name] = select.value;
+            }
+        });
+        var radios = form.querySelectorAll('input[type="radio"][name^="attribute_"]:checked');
+        radios.forEach(function(radio) {
+            var name = radio.name.replace('attribute_', '');
+            if (radio.value) {
+                attributes[name] = radio.value;
+            }
+        });
+        var hiddens = form.querySelectorAll('input[type="hidden"][name^="attribute_"]');
+        hiddens.forEach(function(hidden) {
+            var name = hidden.name.replace('attribute_', '');
+            if (hidden.value) {
+                attributes[name] = hidden.value;
+            }
+        });
+
+        var price = null;
+        var sku = null;
+        try {
+            var variationsDataAttr = form.getAttribute('data-product_variations');
+            if (variationsDataAttr) {
+                var variations = JSON.parse(variationsDataAttr);
+                if (Array.isArray(variations)) {
+                    var found = variations.find(function(v) {
+                        return String(v.variation_id) === String(variationId);
+                    });
+                    if (found) {
+                        if (found.display_price !== undefined) {
+                            price = parseFloat(found.display_price);
+                        }
+                        if (found.sku) {
+                            sku = found.sku;
+                        }
+                    }
+                }
+            }
+        } catch(e) {}
+
+        return {
+            id: variationId,
+            sku: sku,
+            price: price,
+            attributes: attributes
+        };
     }
 
     function eventOnce(key, ttlSeconds) {
@@ -161,37 +301,256 @@ function buykorigw_get_tracker_js() {
         return (window.location.pathname || '/').replace(/[^a-zA-Z0-9_-]+/g, '_');
     }
 
-    // ─── Helper: Send event via AJAX (cache-safe) ──────────────────────
+    // ─── First-Party Cookie Helpers ──────────────────────────────────────
+    function ensureFirstPartyCookies() {
+        if (!getCookie('_fbp')) {
+            var fbp = 'fb.1.' + Date.now() + '.' + Math.floor(Math.random() * 9000000000 + 1000000000);
+            setCookieLocal('_fbp', fbp, 90);
+        }
+        var fbclid = getQueryParam('fbclid');
+        if (fbclid) {
+            var fbc = 'fb.1.' + Date.now() + '.' + fbclid;
+            setCookieLocal('_fbc', fbc, 90);
+        }
+        if (!getCookie('_ttp')) {
+            var ttp = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+                var r = Math.random() * 16 | 0;
+                return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+            });
+            setCookieLocal('_ttp', ttp, 90);
+        }
+        if (!getCookie('_buykorigw_vid')) {
+            setCookieLocal('_buykorigw_vid', createVisitorId(), 180);
+        }
+    }
+
+    function createVisitorId() {
+        if (window.crypto && window.crypto.getRandomValues) {
+            var bytes = new Uint32Array(4);
+            window.crypto.getRandomValues(bytes);
+            return 'bk.' + Date.now() + '.' + Array.prototype.map.call(bytes, function(n) {
+                return n.toString(16);
+            }).join('');
+        }
+        return 'bk.' + Date.now() + '.' + Math.floor(Math.random() * 9000000000 + 1000000000);
+    }
+
+    function getExternalId() {
+        var vid = getCookie('_buykorigw_vid');
+        if (!vid) {
+            vid = createVisitorId();
+            setCookieLocal('_buykorigw_vid', vid, 180);
+        }
+        return vid;
+    }
+
+    function setCookieLocal(name, value, days) {
+        var d = new Date();
+        d.setTime(d.getTime() + (days * 24 * 60 * 60 * 1000));
+        var expires = "; expires=" + d.toUTCString();
+        var domain = getCookieDomain();
+        document.cookie = name + '=' + encodeURIComponent(value) + expires + '; path=/' + domain + '; SameSite=Lax';
+    }
+
+    function getCookieDomain() {
+        var domain = "";
+        try {
+            var host = window.location.hostname;
+            if (host.indexOf('.') !== -1 && !/^[0-9.]+$/.test(host) && host !== 'localhost') {
+                var parts = host.split('.');
+                var commonSecondLevelTlds = {
+                    ac: true,
+                    co: true,
+                    com: true,
+                    edu: true,
+                    gov: true,
+                    net: true,
+                    org: true
+                };
+                if (
+                    parts.length > 2 &&
+                    parts[parts.length - 1].length === 2 &&
+                    commonSecondLevelTlds[parts[parts.length - 2]]
+                ) {
+                    domain = "; domain=." + parts.slice(-3).join('.');
+                } else if (parts.length > 2) {
+                    domain = "; domain=." + parts.slice(-2).join('.');
+                } else {
+                    domain = "; domain=." + host;
+                }
+            }
+        } catch(e) {}
+        return domain;
+    }
+
+    function markInitiateCheckoutSent(eventId) {
+        setCookieLocal('_buykorigw_ic_sent', String(Math.floor(Date.now() / 1000)), 1);
+        if (eventId) {
+            setCookieLocal('_buykorigw_ic_event_id', eventId, 1);
+        }
+    }
+
+    // ─── GA4 Cookie Capture ──────────────────────────────────────────────
+    function getGA4ClientId() {
+        var ga = getCookie('_ga');
+        if (ga) {
+            var parts = ga.split('.');
+            if (parts.length >= 4) return parts[parts.length - 2] + '.' + parts[parts.length - 1];
+        }
+        return '';
+    }
+
+    function getGA4SessionId() {
+        var cookies = document.cookie.split(';');
+        for (var i = 0; i < cookies.length; i++) {
+            var c = cookies[i].trim();
+            if (c.indexOf('_ga_') === 0) {
+                var val = c.split('=')[1] || '';
+                var parts = val.split('.');
+                if (parts.length >= 3) return parts[2];
+            }
+        }
+        return '';
+    }
+
+    // ─── Helper: Send event via REST API (primary) or AJAX (fallback) ────
     function sendEvent(eventName, eventData, synchronous) {
         eventData = normalizeEventData(eventData || {});
 
-        var formData = new FormData();
-        formData.append('action', 'buykorigw_track_event');
-        formData.append('nonce', cfg.nonce);
-        formData.append('event_name', eventName);
-        formData.append('event_data', JSON.stringify(eventData));
-        formData.append('page_url', window.location.href);
-        formData.append('page_title', document.title);
-        formData.append('fbp', getCookie('_fbp') || '');
-        formData.append('fbc', getCookie('_fbc') || '');
-        formData.append('ttp', getCookie('_ttp') || '');
-        formData.append('ttclid', getTikTokClickId());
-        appendCustomerData(formData);
+        var ga4ClientId = getGA4ClientId();
+        var ga4SessionId = getGA4SessionId();
+        if (ga4ClientId) eventData['_ga'] = ga4ClientId;
+        if (ga4SessionId) eventData['ga_session_id'] = ga4SessionId;
+        if (!eventData.page_location) eventData.page_location = window.location.href;
+        if (!eventData.page_path) eventData.page_path = window.location.pathname + window.location.search;
 
-        // synchronous=true — পেজ নেভিগেট হওয়ার আগে নিশ্চিত পাঠাতে
+        var eventId = '';
+        if (eventName === 'InitiateCheckout') {
+            var ic_marker_id = getCookie('_buykorigw_ic_event_id');
+            eventId = ic_marker_id || ('wp_' + eventName + '_' + Math.floor(Date.now() / 1000) + '_' + Math.floor(Math.random() * 9000 + 1000));
+            markInitiateCheckoutSent(eventId);
+        } else {
+            eventId = 'wp_' + eventName + '_' + Math.floor(Date.now() / 1000) + '_' + Math.floor(Math.random() * 9000 + 1000);
+        }
+
+        var payload = {
+            event_name: eventName,
+            event_data: eventData,
+            event_id: eventId,
+            page_url: window.location.href,
+            page_title: document.title,
+            fbp: getCookie('_fbp') || '',
+            fbc: getCookie('_fbc') || '',
+            ttp: getCookie('_ttp') || '',
+            ttclid: getTikTokClickId(),
+            fbclid: getQueryParam('fbclid') || '',
+            external_id: getExternalId(),
+            _ga: getCookie('_ga') || '',
+            ga_session_id: ga4SessionId
+        };
+
+        // Parallel Client-side Pixel Trigger (with identical eventId for perfect deduplication)
+        if (cfg.enable_hybrid && eventName !== 'Identify') {
+            var browserParams = {};
+            if (eventData.value !== undefined) browserParams.value = parseFloat(eventData.value);
+            if (eventData.currency !== undefined) browserParams.currency = eventData.currency;
+            if (eventData.content_name !== undefined) browserParams.content_name = eventData.content_name;
+            if (eventData.content_type !== undefined) browserParams.content_type = eventData.content_type;
+            if (eventData.content_ids !== undefined) browserParams.content_ids = eventData.content_ids;
+            if (eventData.contents !== undefined) browserParams.contents = eventData.contents;
+
+            // 1. Meta Pixel
+            if (window.fbq && cfg.fb_pixel_id) {
+                fbq('track', eventName, browserParams, { eventID: eventId });
+            }
+            // 2. TikTok Pixel
+            if (window.ttq && cfg.tt_pixel_id) {
+                ttq.track(eventName, browserParams, { event_id: eventId });
+            }
+        }
+
+        var piiSelectors = {
+            em: ['#billing_email', 'input[name="billing_email"]', 'input[type="email"]', 'input[id^="email"]', 'input[autocomplete="email"]', '#email'],
+            ph: ['#billing_phone', 'input[name="billing_phone"]', 'input[type="tel"]', 'input[id^="tel"]', 'input[autocomplete="tel"]', '#phone'],
+            fn: ['#billing_first_name', 'input[name="billing_first_name"]', 'input[autocomplete="given-name"]', '#first-name'],
+            ln: ['#billing_last_name', 'input[name="billing_last_name"]', 'input[autocomplete="family-name"]', '#last-name'],
+            ct: ['#billing_city', 'input[name="billing_city"]'],
+            st: ['#billing_state', 'select[name="billing_state"], input[name="billing_state"]'],
+            zp: ['#billing_postcode', 'input[name="billing_postcode"]'],
+            country: ['#billing_country', 'select[name="billing_country"], input[name="billing_country"]']
+        };
+        Object.keys(piiSelectors).forEach(function(key) {
+            var value = getFieldValue(piiSelectors[key]);
+            if (value) payload[key] = value;
+        });
+
+        var jsonBody = JSON.stringify(payload);
+
         if (synchronous) {
+            var url = cfg.rest_url || cfg.ajax_url;
             try {
                 var xhr = new XMLHttpRequest();
-                xhr.open('POST', cfg.ajax_url, false); // false = sync
-                xhr.send(formData);
+                xhr.open('POST', url, false);
+                if (cfg.rest_url) {
+                    xhr.setRequestHeader('Content-Type', 'application/json');
+                    xhr.send(jsonBody);
+                } else {
+                    xhr.send(buildAjaxFormData(eventName, eventData));
+                }
             } catch(e) {}
             return;
         }
 
-        if (navigator.sendBeacon) {
-            navigator.sendBeacon(cfg.ajax_url, formData);
+        if (cfg.rest_url && window.fetch) {
+            var headers = {'Content-Type': 'application/json'};
+            if (cfg.rest_nonce) {
+                headers['X-WP-Nonce'] = cfg.rest_nonce;
+            }
+            fetch(cfg.rest_url, {
+                method: 'POST',
+                headers: headers,
+                body: jsonBody,
+                keepalive: true
+            }).then(function(response) {
+                if (!response || !response.ok) {
+                    sendViaAjax(eventName, eventData);
+                }
+            }).catch(function() {
+                sendViaAjax(eventName, eventData);
+            });
+        } else if (cfg.rest_url && navigator.sendBeacon) {
+            var blob = new Blob([jsonBody], {type: 'application/json'});
+            if (!navigator.sendBeacon(cfg.rest_url, blob)) {
+                sendViaAjax(eventName, eventData);
+            }
         } else {
-            fetch(cfg.ajax_url, { method: 'POST', body: formData, keepalive: true });
+            sendViaAjax(eventName, eventData);
+        }
+    }
+
+    function buildAjaxFormData(eventName, eventData) {
+        var fd = new FormData();
+        fd.append('action', 'buykorigw_track_event');
+        fd.append('nonce', cfg.nonce);
+        fd.append('event_name', eventName);
+        fd.append('event_data', JSON.stringify(eventData));
+        fd.append('page_url', window.location.href);
+        fd.append('page_title', document.title);
+        fd.append('fbp', getCookie('_fbp') || '');
+        fd.append('fbc', getCookie('_fbc') || '');
+        fd.append('ttp', getCookie('_ttp') || '');
+        fd.append('ttclid', getTikTokClickId());
+        fd.append('external_id', getExternalId());
+        appendCustomerData(fd);
+        return fd;
+    }
+
+    function sendViaAjax(eventName, eventData) {
+        var fd = buildAjaxFormData(eventName, eventData);
+        if (navigator.sendBeacon) {
+            navigator.sendBeacon(cfg.ajax_url, fd);
+        } else {
+            fetch(cfg.ajax_url, { method: 'POST', body: fd, keepalive: true });
         }
     }
 
@@ -240,7 +599,7 @@ function buykorigw_get_tracker_js() {
         return '';
     }
 
-    function appendCustomerData(formData) {
+    function getCustomerData() {
         var fields = {
             em: ['#billing_email', 'input[name="billing_email"]', 'input[type="email"]'],
             ph: ['#billing_phone', 'input[name="billing_phone"]', 'input[type="tel"]'],
@@ -251,62 +610,105 @@ function buykorigw_get_tracker_js() {
             zp: ['#billing_postcode', 'input[name="billing_postcode"]'],
             country: ['#billing_country', 'select[name="billing_country"], input[name="billing_country"]']
         };
-
+        var out = {};
         Object.keys(fields).forEach(function(key) {
             var value = getFieldValue(fields[key]);
-            if (value) formData.append(key, value);
+            if (value) out[key] = value;
+        });
+        return out;
+    }
+
+    function hasStrongCustomerData() {
+        var data = getCustomerData();
+        return !!(data.em && data.ph);
+    }
+
+    function appendCustomerData(formData) {
+        var fields = getCustomerData();
+        Object.keys(fields).forEach(function(key) {
+            formData.append(key, fields[key]);
         });
     }
 
     function getQueryParam(name) {
+
         try {
+
             return new URLSearchParams(window.location.search).get(name) || '';
+
         } catch(e) {
+
             return '';
+
         }
+
     }
+
 
     function persistMarketingParams() {
+
         var keys = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term', 'campaign_source'];
+
         keys.forEach(function(key) {
+
             var value = normalizeCampaignValue(key, getQueryParam(key));
+
             if (value) {
+
                 document.cookie = '_buykorigw_' + key + '=' + encodeURIComponent(value) + '; path=/; max-age=' + (30 * 24 * 60 * 60) + '; SameSite=Lax';
+
             }
+
         });
+
     }
 
+
     function getMarketingParams() {
+
         var out = {};
+
         ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term', 'campaign_source'].forEach(function(key) {
+
             out[key] = normalizeCampaignValue(key, getQueryParam(key) || getCookie('_buykorigw_' + key) || '');
+
         });
+
         if (!out.campaign_source && out.utm_source) out.campaign_source = out.utm_source;
+
         if (!out.utm_source && getTikTokClickId()) out.utm_source = 'tiktok';
+
         if (!out.campaign_source && out.utm_source) out.campaign_source = out.utm_source;
+
         if (!out.utm_source && getCookie('_fbc')) {
+
             out.utm_source = 'facebook';
+
             out.campaign_source = 'facebook';
+
         }
+
         return out;
+
     }
+
 
     function normalizeCampaignValue(key, value) {
         value = String(value || '').trim();
         if (!value || /^__.*__$/.test(value)) return '';
+
         if (key === 'utm_source' || key === 'campaign_source') {
             return value.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
         }
-        if (key === 'utm_campaign') {
-            return value.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
-        }
+
         return value;
     }
 
     function persistTikTokClickId() {
         var ttclid = getQueryParam('ttclid');
-        if (!ttclid) return;
-        document.cookie = '_ttclid=' + encodeURIComponent(ttclid) + '; path=/; max-age=' + (90 * 24 * 60 * 60) + '; SameSite=Lax';
+        if (ttclid) {
+            setCookieLocal('_ttclid', ttclid, 90);
+        }
     }
 
     function getTikTokClickId() {
@@ -322,22 +724,42 @@ function buykorigw_get_tracker_js() {
     function sendViewContentOnce() {
         if (!cfg.events || !cfg.events.viewcontent || cfg.page_type !== 'product' || !cfg.product) return;
         if (!eventOnce('ViewContent:' + String(cfg.product.id || '') + ':' + currentPathKey(), 1800)) return;
+
+        var contentIdFormat = cfg.content_id_format || 'id';
+        var productId = (contentIdFormat === 'sku' && cfg.product.sku) ? cfg.product.sku : String(cfg.product.id);
+        var productPrice = cfg.product.price;
+        var attributes = null;
+
+        var variationInfo = getSelectedVariationInfo();
+        if (variationInfo) {
+            productId = (contentIdFormat === 'sku' && variationInfo.sku) ? variationInfo.sku : String(variationInfo.id);
+            if (variationInfo.price !== null) {
+                productPrice = variationInfo.price;
+            }
+            attributes = variationInfo.attributes;
+        }
+
+        var item = {
+            id: productId,
+            content_id: productId,
+            content_type: 'product',
+            content_name: cfg.product.name,
+            content_category: cfg.product.category || '',
+            quantity: 1,
+            item_price: productPrice,
+            price: productPrice
+        };
+        if (attributes) {
+            item.attributes = attributes;
+        }
+
         sendEvent('ViewContent', {
-            content_ids: [String(cfg.product.id)],
-            contents: [{
-                id: String(cfg.product.id),
-                content_id: String(cfg.product.id),
-                content_type: 'product',
-                content_name: cfg.product.name,
-                content_category: cfg.product.category || '',
-                quantity: 1,
-                item_price: cfg.product.price,
-                price: cfg.product.price
-            }],
+            content_ids: [productId],
+            contents: [item],
             content_name: cfg.product.name,
             content_type: 'product',
             content_category: cfg.product.category || '',
-            value: cfg.product.price,
+            value: productPrice,
             currency: cfg.product.currency
         });
     }
@@ -361,6 +783,51 @@ function buykorigw_get_tracker_js() {
         } else {
             sendViewContentOnce();
         }
+
+        // Variation change dynamic trigger
+        if (typeof jQuery !== 'undefined' && cfg.enable_variations) {
+            jQuery(document.body).on('found_variation', function(e, variation) {
+                if (variation && variation.variation_id) {
+                    var varId = String(variation.variation_id);
+                    if (eventOnce('ViewContentVar:' + varId + ':' + currentPathKey(), 300)) {
+                        var contentIdFormat = cfg.content_id_format || 'id';
+                        var productId = (contentIdFormat === 'sku' && variation.sku) ? variation.sku : varId;
+                        var productPrice = parseFloat(variation.display_price || cfg.product.price);
+
+                        var attributes = {};
+                        if (variation.attributes) {
+                            Object.keys(variation.attributes).forEach(function(k) {
+                                attributes[k.replace('attribute_', '')] = variation.attributes[k];
+                            });
+                        }
+
+                        var item = {
+                            id: productId,
+                            content_id: productId,
+                            content_type: 'product',
+                            content_name: cfg.product.name,
+                            content_category: cfg.product.category || '',
+                            quantity: 1,
+                            item_price: productPrice,
+                            price: productPrice
+                        };
+                        if (Object.keys(attributes).length) {
+                            item.attributes = attributes;
+                        }
+
+                        sendEvent('ViewContent', {
+                            content_ids: [productId],
+                            contents: [item],
+                            content_name: cfg.product.name,
+                            content_type: 'product',
+                            content_category: cfg.product.category || '',
+                            value: productPrice,
+                            currency: cfg.product.currency
+                        });
+                    }
+                }
+            });
+        }
     }
 
     // ─── 3. AddToCart ──────────────────────────────────────────────────
@@ -374,18 +841,47 @@ function buykorigw_get_tracker_js() {
                 var pid = $btn ? $btn.attr('data-product_id') : '';
                 var pname = $btn ? $btn.attr('data-product_name') : '';
                 var pprice = $btn ? parseFloat($btn.attr('data-product_price') || 0) : 0;
+
+                var variationInfo = getSelectedVariationInfo();
+                var attributes = null;
+                if (variationInfo) {
+                    pid = variationInfo.id;
+                    if (variationInfo.sku && cfg.content_id_format === 'sku') {
+                        pid = variationInfo.sku;
+                    }
+                    if (variationInfo.price !== null) {
+                        pprice = variationInfo.price;
+                    }
+                    attributes = variationInfo.attributes;
+                } else if (pid) {
+                    if (cfg.product && String(cfg.product.id) === String(pid)) {
+                        pname = cfg.product.name;
+                        if (cfg.content_id_format === 'sku' && cfg.product.sku) {
+                            pid = cfg.product.sku;
+                        }
+                        pprice = cfg.product.price;
+                    } else if (cfg.content_id_format === 'sku' && $btn && $btn.attr('data-product_sku')) {
+                        pid = $btn.attr('data-product_sku');
+                    }
+                }
+
+                var item = {
+                    id: String(pid),
+                    content_id: String(pid),
+                    content_type: 'product',
+                    content_name: pname || (cfg.product ? cfg.product.name : ''),
+                    quantity: 1,
+                    item_price: pprice,
+                    price: pprice
+                };
+                if (attributes) {
+                    item.attributes = attributes;
+                }
+
                 sendEvent('AddToCart', {
-                    content_ids: pid ? [pid] : [],
-                    contents: pid ? [{
-                        id: String(pid),
-                        content_id: String(pid),
-                        content_type: 'product',
-                        content_name: pname || '',
-                        quantity: 1,
-                        item_price: pprice,
-                        price: pprice
-                    }] : [],
-                    content_name: pname || '',
+                    content_ids: pid ? [String(pid)] : [],
+                    contents: pid ? [item] : [],
+                    content_name: pname || (cfg.product ? cfg.product.name : ''),
                     content_type: 'product',
                     value: pprice,
                     currency: (cfg.product ? cfg.product.currency : 'BDT')
@@ -402,45 +898,64 @@ function buykorigw_get_tracker_js() {
             // AJAX-enabled বাটনে click listener দরকার নেই — jQuery event handle করবে
             if (btn.classList.contains('ajax_add_to_cart')) return;
 
-            var productData = {};
-            if (cfg.product) {
-                productData = {
-                    content_ids: [String(cfg.product.id)],
-                    contents: [{
-                        id: String(cfg.product.id),
-                        content_id: String(cfg.product.id),
-                        content_type: 'product',
-                        content_name: cfg.product.name,
-                        content_category: cfg.product.category || '',
-                        quantity: 1,
-                        item_price: cfg.product.price,
-                        price: cfg.product.price
-                    }],
-                    content_name: cfg.product.name,
-                    content_type: 'product',
-                    value: cfg.product.price,
-                    currency: cfg.product.currency
-                };
+            var hasVariationsForm = !!document.querySelector('form.cart.variations_form');
+            var variationInfo = getSelectedVariationInfo();
+            var productId = '';
+            var productPrice = 0;
+            var productName = '';
+            var attributes = null;
+
+            if (variationInfo) {
+                productId = (cfg.content_id_format === 'sku' && variationInfo.sku) ? variationInfo.sku : String(variationInfo.id);
+                if (variationInfo.price !== null) {
+                    productPrice = variationInfo.price;
+                } else {
+                    productPrice = cfg.product ? cfg.product.price : 0;
+                }
+                productName = cfg.product ? cfg.product.name : '';
+                attributes = variationInfo.attributes;
+            } else if (hasVariationsForm) {
+                // If it is a variable product but no variation is selected, do not trigger AddToCart fallback
+                return;
+            } else if (cfg.product) {
+                productId = (cfg.content_id_format === 'sku' && cfg.product.sku) ? cfg.product.sku : String(cfg.product.id);
+                productPrice = cfg.product.price;
+                productName = cfg.product.name;
             } else {
                 var pid = btn.getAttribute('data-product_id') || '';
-                productData = {
-                    content_ids: pid ? [pid] : [],
-                    contents: pid ? [{
-                        id: String(pid),
-                        content_id: String(pid),
-                        content_type: 'product',
-                        content_name: btn.getAttribute('data-product_name') || '',
-                        quantity: 1,
-                        item_price: parseFloat(btn.getAttribute('data-product_price') || 0),
-                        price: parseFloat(btn.getAttribute('data-product_price') || 0)
-                    }] : [],
-                    content_name: btn.getAttribute('data-product_name') || '',
-                    content_type: 'product',
-                    value: parseFloat(btn.getAttribute('data-product_price') || 0),
-                    currency: 'BDT'
-                };
+                productId = pid;
+                if (cfg.content_id_format === 'sku' && btn.getAttribute('data-product_sku')) {
+                    productId = btn.getAttribute('data-product_sku');
+                }
+                productPrice = parseFloat(btn.getAttribute('data-product_price') || 0);
+                productName = btn.getAttribute('data-product_name') || '';
             }
-            sendEvent('AddToCart', productData);
+
+            if (!productId) return;
+
+            var item = {
+                id: String(productId),
+                content_id: String(productId),
+                content_type: 'product',
+                content_name: productName,
+                content_category: (cfg.product ? cfg.product.category : '') || '',
+                quantity: 1,
+                item_price: productPrice,
+                price: productPrice
+            };
+            if (attributes) {
+                item.attributes = attributes;
+            }
+
+            sendEvent('AddToCart', {
+                content_ids: [String(productId)],
+                contents: [item],
+                content_name: productName,
+                content_type: 'product',
+                content_category: (cfg.product ? cfg.product.category : '') || '',
+                value: productPrice,
+                currency: cfg.product ? cfg.product.currency : 'BDT'
+            });
         });
     }
 
@@ -458,20 +973,54 @@ function buykorigw_get_tracker_js() {
         };
     }
 
-    function sendInitiateCheckoutOnce(reason) {
+    var initiateCheckoutSent = false;
+    function sendInitiateCheckoutOnce(reason, synchronous) {
         if (!cfg.events || !cfg.events.checkout) return;
-        if (!eventOnce('InitiateCheckout:' + currentPathKey(), 3600)) return;
-        sendEvent('InitiateCheckout', checkoutPayload(reason));
+        if (initiateCheckoutSent) return;
+        initiateCheckoutSent = true;
+        sendEvent('InitiateCheckout', checkoutPayload(reason), !!synchronous);
+    }
+
+    function sendInitiateCheckoutWhenReady(reason, force, synchronous) {
+        if (force || hasStrongCustomerData()) {
+            sendInitiateCheckoutOnce(reason, synchronous);
+        }
+    }
+
+    function hasCheckoutCartData() {
+        var checkoutData = cfg.cart || {};
+        if (parseFloat(checkoutData.value || 0) > 0) return true;
+        if (parseInt(checkoutData.num_items || 0, 10) > 0) return true;
+        if (checkoutData.content_ids && checkoutData.content_ids.length) return true;
+        if (checkoutData.contents && checkoutData.contents.length) return true;
+        return isCheckoutFlowPage();
+    }
+
+    function sendInitiateCheckoutOnSurface(reason) {
+        if (!hasCheckoutSurface()) return;
+        sendInitiateCheckoutWhenReady(reason || 'checkout_surface_ready', hasCheckoutCartData());
+    }
+
+    function scheduleCheckoutSurfaceChecks(prefix) {
+        if (!isCheckoutFlowPage()) return;
+        setTimeout(function() {
+            sendInitiateCheckoutOnSurface((prefix || 'checkout') + '_page_load');
+        }, 1200);
+        setTimeout(function() {
+            sendInitiateCheckoutOnSurface((prefix || 'checkout') + '_delayed_page_load');
+        }, 4000);
     }
 
     function hasCheckoutSurface() {
-        return !!document.querySelector('form.checkout, form.woocommerce-checkout, .woocommerce-checkout, .wc-block-checkout, #customer_details, #order_review, #place_order');
+        return !!(
+            document.querySelector('form.checkout, form.woocommerce-checkout, .woocommerce-checkout, .wc-block-checkout, #customer_details, #order_review, #place_order')
+            || document.querySelector('#billing_email, #billing_phone, input[name="billing_email"], input[name="billing_phone"]')
+        );
     }
 
     var checkoutIntentBound = false;
     function bindCheckoutIntentTracking() {
         if (checkoutIntentBound) return;
-        if (!hasCheckoutSurface()) return;
         checkoutIntentBound = true;
         var intentSelector = [
             '#billing_email',
@@ -480,6 +1029,10 @@ function buykorigw_get_tracker_js() {
             'input[name^="billing_"]',
             'select[name^="billing_"]',
             'textarea[name^="order_"]',
+            'input[autocomplete="email"]',
+            'input[autocomplete="tel"]',
+            'input[autocomplete="given-name"]',
+            'input[autocomplete="family-name"]',
             '.woocommerce-checkout input',
             '.woocommerce-checkout select',
             '.wc-block-checkout input',
@@ -490,40 +1043,92 @@ function buykorigw_get_tracker_js() {
             var target = e.target;
             if (!target || !target.matches || !target.matches(intentSelector)) return;
             if (target.type === 'hidden' || target.type === 'checkbox' || target.type === 'radio') return;
-            sendInitiateCheckoutOnce(e.type === 'focusin' ? 'checkout_field_focus' : 'checkout_field_input');
+            sendInitiateCheckoutWhenReady('checkout_field_input', hasCheckoutCartData());
         }
 
-        document.addEventListener('focusin', maybeFireFromField, true);
         document.addEventListener('input', maybeFireFromField, true);
         document.addEventListener('change', maybeFireFromField, true);
         document.addEventListener('click', function(e) {
             if (e.target.closest('#place_order, .wc-block-components-checkout-place-order-button, [name="woocommerce_checkout_place_order"]')) {
-                sendInitiateCheckoutOnce('place_order_click');
+                sendInitiateCheckoutWhenReady('place_order_click', true, true);
             }
         }, true);
         document.addEventListener('submit', function(e) {
             if (e.target.matches('form.checkout, form.woocommerce-checkout, .woocommerce-checkout form')) {
-                sendInitiateCheckoutOnce('checkout_submit');
+                sendInitiateCheckoutWhenReady('checkout_submit', true, true);
+            }
+        }, true);
+
+        if (window.jQuery && window.jQuery(document.body).on) {
+            window.jQuery(document.body).on('init_checkout updated_checkout checkout_place_order', function(e) {
+                sendInitiateCheckoutWhenReady(e && e.type ? e.type : 'woocommerce_checkout_event', true);
+            });
+        }
+
+        function validateEmail(email) {
+            return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+        }
+        function validatePhone(phone) {
+            var clean = String(phone).replace(/[^0-9]/g, '');
+            return clean.length >= 8;
+        }
+
+        document.addEventListener('blur', function(e) {
+            var target = e.target;
+            if (!target || !target.matches) return;
+            var isEmail = target.matches('#billing_email, input[name="billing_email"], input[type="email"]');
+            var isPhone = target.matches('#billing_phone, input[name="billing_phone"], input[type="tel"]');
+            if (isEmail || isPhone) {
+                var val = String(target.value).trim();
+                if (isEmail && validateEmail(val)) {
+                    sendEvent('Identify', { em: val });
+                } else if (isPhone && validatePhone(val)) {
+                    sendEvent('Identify', { ph: val });
+                }
             }
         }, true);
     }
 
+    function isCheckoutFlowPage() {
+        if (cfg.page_type === 'checkout') return true;
+        var path = (window.location && window.location.pathname ? window.location.pathname : '').toLowerCase();
+        if (path.indexOf('checkout') !== -1 && !path.match(/order-received|order-pay/)) return true;
+        return hasCheckoutSurface();
+    }
+
     if (cfg.events && cfg.events.checkout) {
-        if (isOnePageMode()) {
+        bindCheckoutIntentTracking();
+        scheduleCheckoutSurfaceChecks('checkout');
+
+        document.addEventListener('DOMContentLoaded', function() {
             bindCheckoutIntentTracking();
-            if (!checkoutIntentBound) {
-                document.addEventListener('DOMContentLoaded', bindCheckoutIntentTracking);
-                setTimeout(bindCheckoutIntentTracking, 1200);
-                if (typeof MutationObserver !== 'undefined') {
-                    var checkoutObserver = new MutationObserver(function() {
-                        bindCheckoutIntentTracking();
-                        if (checkoutIntentBound) checkoutObserver.disconnect();
-                    });
-                    checkoutObserver.observe(document.body, { childList: true, subtree: true });
+            scheduleCheckoutSurfaceChecks('checkout');
+        });
+
+        setTimeout(function() {
+            bindCheckoutIntentTracking();
+            scheduleCheckoutSurfaceChecks('checkout');
+        }, 1200);
+
+        if (typeof MutationObserver !== 'undefined') {
+            var checkoutObserverTimeout;
+            var checkoutObserver = new MutationObserver(function() {
+                if (initiateCheckoutSent && checkoutIntentBound) {
+                    checkoutObserver.disconnect();
+                    return;
                 }
-            }
-        } else if (cfg.page_type === 'checkout') {
-            sendInitiateCheckoutOnce('checkout_page_load');
+                clearTimeout(checkoutObserverTimeout);
+                checkoutObserverTimeout = setTimeout(function() {
+                    if (isCheckoutFlowPage()) {
+                        bindCheckoutIntentTracking();
+                        sendInitiateCheckoutOnSurface('checkout_surface_ready');
+                        if (initiateCheckoutSent && checkoutIntentBound) {
+                            checkoutObserver.disconnect();
+                        }
+                    }
+                }, 150);
+            });
+            checkoutObserver.observe(document.body, { childList: true, subtree: true });
         }
     }
 
@@ -674,7 +1279,7 @@ function buykorigw_ajax_track_event() {
     $request_referer = isset( $_SERVER['HTTP_REFERER'] ) ? $_SERVER['HTTP_REFERER'] : '';
 
     $origin_valid = false;
-    
+
     // Check Origin
     if ( ! empty( $request_origin ) ) {
         $origin_host = parse_url( $request_origin, PHP_URL_HOST );
@@ -682,7 +1287,7 @@ function buykorigw_ajax_track_event() {
             $origin_valid = true;
         }
     }
-    
+
     // Check Referer if Origin is missing or invalid
     if ( ! $origin_valid && ! empty( $request_referer ) ) {
         $referer_host = parse_url( $request_referer, PHP_URL_HOST );
@@ -700,7 +1305,7 @@ function buykorigw_ajax_track_event() {
     }
 
     // ─── Whitelist allowed event names ──────────────────────────────────
-    $allowed_events = array( 'PageView', 'ViewContent', 'AddToCart', 'ViewCart', 'RemoveFromCart', 'InitiateCheckout', 'AddPaymentInfo', 'Purchase', 'Lead', 'Search' );
+    $allowed_events = array( 'PageView', 'ViewContent', 'AddToCart', 'ViewCart', 'RemoveFromCart', 'InitiateCheckout', 'AddPaymentInfo', 'Purchase', 'Lead', 'Search', 'Identify', 'Refund' );
 
     // Also allow user-defined custom events from the Custom Event Builder
     if ( defined( 'BUYKORIGW_CUSTOM_EVENTS_KEY' ) ) {
@@ -720,8 +1325,7 @@ function buykorigw_ajax_track_event() {
     $fbc        = isset( $_POST['fbc'] ) ? sanitize_text_field( wp_unslash( $_POST['fbc'] ) ) : '';
     $ttp        = isset( $_POST['ttp'] ) ? sanitize_text_field( wp_unslash( $_POST['ttp'] ) ) : '';
     $ttclid     = isset( $_POST['ttclid'] ) ? sanitize_text_field( wp_unslash( $_POST['ttclid'] ) ) : '';
-    $pii_fields = array( 'em', 'ph', 'fn', 'ln', 'ct', 'st', 'zp', 'country' );
-
+    $external_id = isset( $_POST['external_id'] ) ? sanitize_text_field( wp_unslash( $_POST['external_id'] ) ) : '';
     if ( empty( $event_name ) || ! in_array( $event_name, $allowed_events, true ) ) {
         wp_send_json_error( 'Invalid event name' );
     }
@@ -732,6 +1336,12 @@ function buykorigw_ajax_track_event() {
     }
 
     $custom_data = buykorigw_add_marketing_params( $custom_data );
+
+    // Translate product IDs to SKUs if configured
+    $content_format = isset( $settings['content_id_format'] ) ? $settings['content_id_format'] : 'id';
+    if ( function_exists( 'buykorigw_normalize_content_identifiers' ) ) {
+        buykorigw_normalize_content_identifiers( $custom_data, $content_format );
+    }
 
     // Build user_data with PII hashing
     $user_data = array(
@@ -752,36 +1362,24 @@ function buykorigw_ajax_track_event() {
     if ( ! empty( $ttclid ) ) {
         $user_data['ttclid'] = $ttclid;
     }
+    if ( ! empty( $external_id ) ) {
+        $user_data['external_id'] = array( buykorigw_hash( $external_id ) );
+    }
 
-    foreach ( $pii_fields as $field ) {
-        if ( empty( $_POST[ $field ] ) ) {
-            continue;
-        }
+    buykorigw_apply_identity_data( $user_data, wp_unslash( $_POST ) );
 
-        $raw_value = sanitize_text_field( wp_unslash( $_POST[ $field ] ) );
-        if ( $field === 'ph' ) {
-            $hashed_value = buykorigw_hash_phone( $raw_value );
-        } else {
-            $hashed_value = buykorigw_hash( $raw_value );
-        }
-
-        if ( $hashed_value ) {
-            $user_data[ $field ] = array( $hashed_value );
-        }
+    if ( $event_name === 'Identify' ) {
+        wp_send_json_success( 'Identity updated' );
     }
 
     // If user is logged in, hash their email and name
     if ( is_user_logged_in() ) {
         $user = wp_get_current_user();
-        if ( $user->user_email ) {
-            $user_data['em'] = array( buykorigw_hash( $user->user_email ) );
-        }
-        if ( $user->first_name ) {
-            $user_data['fn'] = array( buykorigw_hash( $user->first_name ) );
-        }
-        if ( $user->last_name ) {
-            $user_data['ln'] = array( buykorigw_hash( $user->last_name ) );
-        }
+        buykorigw_apply_identity_data( $user_data, array(
+            'em' => $user->user_email,
+            'fn' => $user->first_name,
+            'ln' => $user->last_name,
+        ), false );
     }
 
     // Build event payload
@@ -803,6 +1401,9 @@ function buykorigw_ajax_track_event() {
 
     // Send to gateway
     buykorigw_send_event( $event_payload, false );
+    if ( $event_name === 'InitiateCheckout' && function_exists( 'buykorigw_mark_initiate_checkout_sent' ) ) {
+        buykorigw_mark_initiate_checkout_sent( $event_payload['event_id'] );
+    }
 
     wp_send_json_success( 'Event tracked' );
 }
@@ -838,10 +1439,12 @@ function buykorigw_normalize_campaign_value( $key, $value ) {
         return '';
     }
 
-    if ( in_array( $key, array( 'utm_source', 'campaign_source', 'utm_campaign' ), true ) ) {
+    if ( in_array( $key, array( 'utm_source', 'campaign_source' ), true ) ) {
         $value = strtolower( $value );
         $value = preg_replace( '/[^a-z0-9]+/', '_', $value );
         $value = trim( $value, '_' );
+    } else {
+        $value = sanitize_text_field( $value );
     }
 
     return $value;
@@ -892,12 +1495,23 @@ function buykorigw_track_purchase( $order_id ) {
     $content_ids = array();
     $contents    = array();
     $num_items   = 0;
+    $content_format = isset( $settings['content_id_format'] ) ? $settings['content_id_format'] : 'id';
 
     foreach ( $order->get_items() as $item ) {
         $product_id = $item->get_product_id();
-        $content_ids[] = (string) $product_id;
+        $product    = $item->get_product();
+
+        $final_id = (string) $product_id;
+        if ( $content_format === 'sku' && $product ) {
+            $sku = $product->get_sku();
+            if ( ! empty( $sku ) ) {
+                $final_id = $sku;
+            }
+        }
+
+        $content_ids[] = $final_id;
         $contents[] = array(
-            'id'       => (string) $product_id,
+            'id'       => $final_id,
             'quantity' => $item->get_quantity(),
             'item_price' => (float) ( $item->get_total() / max( $item->get_quantity(), 1 ) ),
         );
@@ -905,9 +1519,14 @@ function buykorigw_track_purchase( $order_id ) {
     }
 
     // Build user_data with real customer info (hashed)
+    // Prefer saved attribution snapshot (from checkout) over current $_COOKIE
+    // because payment gateway redirects (bKash/Nagad/SSLCommerz) destroy cookies
+    $snapshot_ip = $order->get_meta( '_buykorigw_snapshot_ip' );
+    $snapshot_ua = $order->get_meta( '_buykorigw_snapshot_ua' );
+
     $user_data = array(
-        'client_ip_address' => $order->get_customer_ip_address() ?: buykorigw_get_real_ip(),
-        'client_user_agent' => $order->get_customer_user_agent() ?: ( $_SERVER['HTTP_USER_AGENT'] ?? '' ),
+        'client_ip_address' => $order->get_customer_ip_address() ?: ( $snapshot_ip ?: buykorigw_get_real_ip() ),
+        'client_user_agent' => $order->get_customer_user_agent() ?: ( $snapshot_ua ?: ( $_SERVER['HTTP_USER_AGENT'] ?? '' ) ),
     );
 
     if ( $order->get_billing_email() ) {
@@ -934,19 +1553,40 @@ function buykorigw_track_purchase( $order_id ) {
     if ( $order->get_billing_postcode() ) {
         $user_data['zp'] = array( buykorigw_hash( $order->get_billing_postcode() ) );
     }
+    buykorigw_apply_identity_data( $user_data, array(
+        'em'      => $order->get_billing_email(),
+        'ph'      => $order->get_billing_phone(),
+        'fn'      => $order->get_billing_first_name(),
+        'ln'      => $order->get_billing_last_name(),
+        'ct'      => $order->get_billing_city(),
+        'st'      => $order->get_billing_state(),
+        'zp'      => $order->get_billing_postcode(),
+        'country' => $order->get_billing_country(),
+    ), false );
 
-    // Add fbp/fbc from cookies
-    if ( isset( $_COOKIE['_fbp'] ) ) {
-        $user_data['fbp'] = sanitize_text_field( wp_unslash( $_COOKIE['_fbp'] ) );
+    // Attribution cookies: prefer saved snapshot over $_COOKIE
+    $cookie_map = array(
+        'fbp'    => '_fbp',
+        'fbc'    => '_fbc',
+        'ttp'    => '_ttp',
+        'ttclid' => '_ttclid',
+    );
+    foreach ( $cookie_map as $ud_key => $cookie_name ) {
+        $snapshot_val = $order->get_meta( '_buykorigw_snapshot' . $cookie_name );
+        $cookie_val   = isset( $_COOKIE[ $cookie_name ] ) ? sanitize_text_field( wp_unslash( $_COOKIE[ $cookie_name ] ) ) : '';
+        $final_val    = ! empty( $snapshot_val ) ? $snapshot_val : $cookie_val;
+        if ( ! empty( $final_val ) ) {
+            $user_data[ $ud_key ] = $final_val;
+        }
     }
-    if ( isset( $_COOKIE['_fbc'] ) ) {
-        $user_data['fbc'] = sanitize_text_field( wp_unslash( $_COOKIE['_fbc'] ) );
-    }
-    if ( isset( $_COOKIE['_ttp'] ) ) {
-        $user_data['ttp'] = sanitize_text_field( wp_unslash( $_COOKIE['_ttp'] ) );
-    }
-    if ( isset( $_COOKIE['_ttclid'] ) ) {
-        $user_data['ttclid'] = sanitize_text_field( wp_unslash( $_COOKIE['_ttclid'] ) );
+
+    $snapshot_external_id = $order->get_meta( '_buykorigw_snapshot_buykorigw_vid' );
+    $cookie_external_id   = isset( $_COOKIE['_buykorigw_vid'] ) ? sanitize_text_field( wp_unslash( $_COOKIE['_buykorigw_vid'] ) ) : '';
+    $external_id          = ! empty( $snapshot_external_id ) ? $snapshot_external_id : $cookie_external_id;
+    if ( ! empty( $external_id ) ) {
+        $user_data['external_id'] = array( buykorigw_hash( $external_id ) );
+    } elseif ( $order->get_customer_id() ) {
+        $user_data['external_id'] = array( buykorigw_hash( 'wp_user_' . $order->get_customer_id() ) );
     }
 
     // Build event payload
@@ -969,6 +1609,25 @@ function buykorigw_track_purchase( $order_id ) {
     );
 
     $event_payload['custom_data'] = buykorigw_add_marketing_params( $event_payload['custom_data'] );
+
+    // Inject GA4 client_id and session_id from snapshot for Measurement Protocol
+    $ga4_client_id  = $order->get_meta( '_buykorigw_snapshot_ga_client_id' );
+    $ga4_session_id = $order->get_meta( '_buykorigw_snapshot_ga_session_id' );
+    if ( $ga4_client_id ) {
+        $event_payload['custom_data']['client_id'] = $ga4_client_id;
+    }
+    if ( $ga4_session_id ) {
+        $event_payload['custom_data']['session_id'] = $ga4_session_id;
+    }
+
+    // Add UTM params from snapshot
+    $utm_keys = array( 'utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term' );
+    foreach ( $utm_keys as $key ) {
+        $val = $order->get_meta( '_buykorigw_snapshot_' . $key );
+        if ( $val ) {
+            $event_payload['custom_data'][ $key ] = $val;
+        }
+    }
 
     $sent = false;
 

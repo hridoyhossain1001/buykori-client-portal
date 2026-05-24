@@ -7,19 +7,16 @@ from datetime import datetime, timezone
 from urllib.parse import urlparse
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Query, status
-from sqlalchemy import and_, func as sql_func, select
-from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.database import get_db, AsyncSessionLocal
+from app.database import get_db
 from app.dependencies import get_current_client, CachedClient
-from app.models.event_dedup import EventDedup
 from app.models.event_log import EventLog
-from app.schemas.event import EventsPayload, EventsResponse
+from app.services.dedup_service import reserve_unique_event_ids
+from app.schemas.event import EventsPayload, EventsResponse, UserData, _clean_and_hash
 from app.services.geoip_service import get_location_data
-from app.services.event_quality import boost_event_quality, event_signal_flags
+from app.services.event_quality import boost_event_quality
 from app.services.event_worker import enqueue_events
-from app.services.retry_service import save_failed_event
 from app.services.usage_service import check_and_reserve_usage
 from app.models.pending_event import PendingEvent
 
@@ -31,32 +28,7 @@ MAX_EVENTS_PER_REQUEST = int(os.getenv("MAX_EVENTS_PER_REQUEST", "500"))
 CAPI_SIGNATURE_WINDOW_SECONDS = int(os.getenv("CAPI_SIGNATURE_WINDOW_SECONDS", "300"))
 
 
-def _event_log_kwargs(client_id: int, event: dict, status: str, client_ip: str | None, **extra) -> dict:
-    custom_data = event.get("custom_data") or {}
-    utm_source = custom_data.get("utm_source")
-    try:
-        value = float(custom_data.get("value")) if custom_data.get("value") is not None else None
-    except (TypeError, ValueError):
-        value = None
-    return {
-        "client_id": client_id,
-        "event_name": event.get("event_name") or "unknown",
-        "event_id": event.get("event_id"),
-        "event_count": 1,
-        "status": status,
-        "ip_address": client_ip,
-        "emq_score": event.get("emq_score"),
-        "value": value,
-        "currency": custom_data.get("currency"),
-        "campaign_source": custom_data.get("campaign_source") or utm_source,
-        "utm_source": utm_source,
-        "utm_medium": custom_data.get("utm_medium"),
-        "utm_campaign": custom_data.get("utm_campaign"),
-        "utm_content": custom_data.get("utm_content"),
-        "utm_term": custom_data.get("utm_term"),
-        **event_signal_flags(event),
-        **extra,
-    }
+from app.utils.event_log_helpers import build_event_log_kwargs as _event_log_kwargs
 
 # ─── Domain Validation Helper ────────────────────────────────────────────────
 def _is_domain_allowed(request_host: str, allowed_domain: str) -> bool:
@@ -114,16 +86,7 @@ async def reserve_unique_events(
     if not candidate_ids:
         return [event for event in events if not event.event_id]
 
-    rows = [{"client_id": client.id, "event_id": event_id} for event_id in candidate_ids]
-    stmt = (
-        pg_insert(EventDedup)
-        .values(rows)
-        .on_conflict_do_nothing(index_elements=["client_id", "event_id"])
-        .returning(EventDedup.event_id)
-    )
-
-    result = await db.execute(stmt)
-    reserved_ids = set(result.scalars().all())
+    reserved_ids = await reserve_unique_event_ids(db, client.id, candidate_ids)
 
     unique_events = []
     accepted_ids: set[str] = set()
@@ -141,57 +104,6 @@ async def reserve_unique_events(
         unique_events.append(event)
 
     return unique_events
-
-
-async def save_success_logs_bg(
-    client_id: int,
-    events_data: list,
-    fb_result: dict | None,
-    client_ip: str | None,
-) -> None:
-    try:
-        async with AsyncSessionLocal() as db:
-            log_entries = [
-                EventLog(**_event_log_kwargs(
-                    client_id,
-                    event,
-                    "success",
-                    client_ip,
-                    fb_response=json.dumps(fb_result) if fb_result else None,
-                ))
-                for event in events_data
-            ]
-            db.add_all(log_entries)
-            await db.commit()
-    except Exception as e:
-        logger.error(f"Background success log save error: {e}")
-
-
-async def save_failure_log_and_retry_bg(
-    client_id: int,
-    event_names: str,
-    events_data: list,
-    error_msg: str,
-    client_ip: str | None,
-) -> None:
-    try:
-        async with AsyncSessionLocal() as db:
-            log_entry = EventLog(
-                client_id=client_id,
-                event_name=event_names,
-                event_count=len(events_data),
-                status="failed",
-                error_message=error_msg[:500],
-                ip_address=client_ip,
-            )
-            db.add(log_entry)
-            await db.commit()
-
-            saved = await save_failed_event(db, client_id, events_data, error_msg)
-            if not saved:
-                logger.error(f"[Client {client_id}] Failed events were not saved to retry queue.")
-    except Exception as e:
-        logger.error(f"Background failure log save error: {e}")
 
 
 @router.post(
@@ -235,36 +147,49 @@ async def receive_events(
         origin = request.headers.get("origin", "") or ""
         referer = request.headers.get("referer", "") or ""
         declared_origin = request.headers.get("x-capi-origin", "") or ""
-        allowed_domain = client.domain.lower().strip()
+
+        # Split allowed domains by comma
+        allowed_domains = [d.strip().lower() for d in client.domain.split(",") if d.strip()]
+
         origin_host = (urlparse(origin).hostname or "").lower()
         referer_host = (urlparse(referer).hostname or "").lower()
         declared_host = (urlparse(declared_origin).hostname or declared_origin).lower().strip()
         signed_declared_origin_ok = False
-        if declared_host:
-            signed_declared_origin_ok = (
-                _is_domain_allowed(declared_host, allowed_domain)
-                and _verify_capi_signature(
-                    await request.body(),
+
+        if declared_host and allowed_domains:
+            # Check if declared origin is allowed under any allowed domains
+            any_declared_allowed = any(_is_domain_allowed(declared_host, ad) for ad in allowed_domains)
+            if any_declared_allowed:
+                raw_body = await request.body()
+                signed_declared_origin_ok = _verify_capi_signature(
+                    raw_body,
                     client.api_key,
                     request.headers.get("x-capi-timestamp", ""),
                     request.headers.get("x-capi-signature", ""),
                 )
-            )
 
         if not (origin_host or referer_host or signed_declared_origin_ok):
-            logger.warning(f"[{client.name}] Domain header missing for locked domain: {allowed_domain}")
+            logger.warning(f"[{client.name}] Domain header missing for locked domains: {client.domain}")
             raise HTTPException(
                 status_code=403,
                 detail="Missing domain proof. Send Origin, Referer, or signed X-CAPI-Origin for this API Key.",
             )
-        if not (
-            _is_domain_allowed(origin_host, allowed_domain)
-            or _is_domain_allowed(referer_host, allowed_domain)
-            or signed_declared_origin_ok
-        ):
+
+        # Verify if request host is allowed under any allowed domains
+        is_allowed = False
+        for ad in allowed_domains:
+            if (
+                _is_domain_allowed(origin_host, ad)
+                or _is_domain_allowed(referer_host, ad)
+                or (signed_declared_origin_ok and _is_domain_allowed(declared_host, ad))
+            ):
+                is_allowed = True
+                break
+
+        if not is_allowed:
             logger.warning(
                 f"[{client.name}] Domain mismatch! "
-                f"Allowed: {allowed_domain}, Origin: {origin_host}, Referer: {referer_host}, Declared: {declared_host}"
+                f"Allowed: {client.domain}, Origin: {origin_host}, Referer: {referer_host}, Declared: {declared_host}"
             )
             raise HTTPException(
                 status_code=403,
@@ -285,7 +210,6 @@ async def receive_events(
     for event in payload.data:
         # Ensure user_data exists (schema now allows Optional)
         if not event.user_data:
-            from app.schemas.event import UserData
             event.user_data = UserData()
         if event.user_data.client_ip_address in PLACEHOLDER_IPS:
             event.user_data.client_ip_address = client_ip
@@ -296,7 +220,6 @@ async def receive_events(
         if event.user_data.client_ip_address:
             loc_data = get_location_data(event.user_data.client_ip_address)
             if loc_data:
-                from app.schemas.event import _clean_and_hash
                 if loc_data.get("ct") and not event.user_data.ct:
                     event.user_data.ct = [_clean_and_hash(loc_data["ct"], "ct")]
                 if loc_data.get("st") and not event.user_data.st:

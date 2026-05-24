@@ -20,11 +20,11 @@ from app.models.event_log import EventLog
 from app.models.event_outbox import EventOutbox
 from app.schemas.event import EventData
 from app.services.capi_service import send_to_facebook
-from app.services.event_quality import event_signal_flags
 from app.services.ga4_service import send_to_ga4
 from app.services.tiktok_service import send_to_tiktok
 from app.services.usage_service import rollback_usage_reservation
 from app.services.webhook_service import send_webhook
+from app.utils.event_log_helpers import build_event_log_kwargs as _event_log_kwargs
 
 logger = logging.getLogger(__name__)
 
@@ -49,33 +49,6 @@ def _event_names(events: list[EventData]) -> str:
     return ", ".join(sorted({event.event_name for event in events}))
 
 
-def _event_log_kwargs(client_id: int, event_data: dict, status: str, ip_address: str | None, **extra) -> dict:
-    custom_data = event_data.get("custom_data") or {}
-    utm_source = custom_data.get("utm_source")
-    try:
-        value = float(custom_data.get("value")) if custom_data.get("value") is not None else None
-    except (TypeError, ValueError):
-        value = None
-    campaign_source = custom_data.get("campaign_source") or utm_source
-    return {
-        "client_id": client_id,
-        "event_name": event_data.get("event_name") or "unknown",
-        "event_id": event_data.get("event_id"),
-        "event_count": 1,
-        "status": status,
-        "ip_address": ip_address,
-        "emq_score": event_data.get("emq_score"),
-        "value": value,
-        "currency": custom_data.get("currency"),
-        "campaign_source": campaign_source,
-        "utm_source": utm_source,
-        "utm_medium": custom_data.get("utm_medium"),
-        "utm_campaign": custom_data.get("utm_campaign"),
-        "utm_content": custom_data.get("utm_content"),
-        "utm_term": custom_data.get("utm_term"),
-        **event_signal_flags(event_data),
-        **extra,
-    }
 
 
 async def _log_secondary_failure(
@@ -182,16 +155,17 @@ async def claim_due_events(db, limit: int = WORKER_BATCH_SIZE) -> list[EventOutb
 
 
 async def _mark_dead(db, row: EventOutbox, client, error_message: str) -> None:
+    """Mark an outbox row dead without committing the caller's transaction."""
     row.status = "dead"
     row.last_error = error_message[:500]
     row.locked_at = None
     row.locked_by = None
     if row.usage_reserved:
         try:
-            await rollback_usage_reservation(db, client, row.usage_reserved)
+            async with db.begin_nested():
+                await rollback_usage_reservation(db, client, row.usage_reserved)
         except Exception as usage_error:
             logger.warning(f"[{client.name}] Outbox usage rollback failed: {usage_error}")
-    await db.commit()
 
 
 async def _send_tiktok_secondary(client, events: list[EventData], event_names: str, ip_address: str | None) -> None:
@@ -314,6 +288,7 @@ async def process_outbox_row(row_id: int) -> None:
         if not client_row or not client_row.is_active:
             fallback_client = client_row or type("InactiveClient", (), {"id": row.client_id, "name": f"Client {row.client_id}"})()
             await _mark_dead(db, row, fallback_client, "Client inactive or missing")
+            await db.commit()
             return
 
         client = _snapshot(client_row)
@@ -408,6 +383,7 @@ async def process_outbox_row(row_id: int) -> None:
                     ip_address=context.get("ip_address"),
                 ))
                 await _mark_dead(db, row, client, row.last_error or "Outbox send failed")
+                await db.commit()
                 logger.error(f"[{client.name}] Outbox row {row.id} dead after {attempts} attempts.")
                 return
 

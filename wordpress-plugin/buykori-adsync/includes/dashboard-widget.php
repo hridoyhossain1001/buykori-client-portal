@@ -82,6 +82,57 @@ function buykorigw_dashboard_widget_render()
             color: #7e57c2;
         }
 
+        .cgw-alert {
+            background: #fff8e1;
+            border: 1px solid #ffe08a;
+            border-left: 4px solid #f57c00;
+            color: #7a4b00;
+            border-radius: 8px;
+            padding: 10px 12px;
+            font-size: 12px;
+            line-height: 1.45;
+            margin-bottom: 14px;
+        }
+
+        .cgw-risk {
+            border: 1px solid #ffd59b;
+            border-left: 4px solid #f57c00;
+            border-radius: 8px;
+            padding: 12px 14px;
+            margin-bottom: 14px;
+            background: #fffaf2;
+        }
+
+        .cgw-risk-head {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            align-items: flex-start;
+        }
+
+        .cgw-risk-title {
+            color: #7a4b00;
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+        }
+
+        .cgw-risk-value {
+            color: #1a1a2e;
+            font-size: 24px;
+            font-weight: 800;
+            line-height: 1.1;
+            margin-top: 4px;
+        }
+
+        .cgw-risk-meta {
+            color: #6b7280;
+            font-size: 12px;
+            margin-top: 8px;
+            line-height: 1.45;
+        }
+
         .cgw-conn {
             display: flex;
             align-items: center;
@@ -200,6 +251,10 @@ function buykorigw_dashboard_widget_render()
                 return Number.isFinite(number) ? number : 0;
             }
 
+            function cgwMoney(value) {
+                return 'BDT ' + cgwNumber(value).toLocaleString();
+            }
+
             var formData = new FormData();
             formData.append('action', 'buykorigw_widget_data');
             formData.append('nonce', '<?php echo $nonce; ?>');
@@ -220,13 +275,34 @@ function buykorigw_dashboard_widget_render()
                     html += d.server_online ? 'Server Connected' : 'Server Offline';
                     html += '</div>';
 
+                    if (cgwNumber(d.pending_orders) > 0) {
+                        html += '<div class="cgw-risk">';
+                        html += '<div class="cgw-risk-head">';
+                        html += '<div><div class="cgw-risk-title">Pending revenue at risk</div>';
+                        html += '<div class="cgw-risk-value">' + cgwMoney(d.pending_value) + '</div></div>';
+                        html += '<div style="text-align:right;color:#f57c00;font-weight:700;">' + cgwNumber(d.pending_orders) + ' COD</div>';
+                        html += '</div>';
+                        html += '<div class="cgw-risk-meta">These orders are held until verification, so fake or cancelled COD orders do not train Meta/TikTok.';
+                        if (cgwNumber(d.pending_oldest_age_hours) > 0) {
+                            html += '<br>Oldest pending order: ' + cgwNumber(d.pending_oldest_age_hours) + 'h';
+                        }
+                        html += '</div></div>';
+                    }
+
                     // Stats grid
                     html += '<div class="cgw-stats">';
                     html += '<div class="cgw-stat info"><div class="num">' + cgwNumber(d.total_today) + '</div><div class="label">Today\'s Events</div></div>';
                     html += '<div class="cgw-stat success"><div class="num">' + cgwNumber(d.success_rate) + '%</div><div class="label">Success Rate</div></div>';
-                    html += '<div class="cgw-stat warning"><div class="num">' + cgwNumber(d.pending_orders) + '</div><div class="label">Pending Orders</div></div>';
+                    html += '<div class="cgw-stat warning"><div class="num">' + cgwNumber(d.pending_orders) + '</div><div class="label">Pending COD</div></div>';
+                    html += '<div class="cgw-stat success"><div class="num">' + cgwNumber(d.verified_purchases) + '</div><div class="label">Verified Purchases</div></div>';
+                    html += '<div class="cgw-stat error"><div class="num">' + cgwNumber(d.cancelled_or_expired) + '</div><div class="label">Cancelled / Expired</div></div>';
+                    html += '<div class="cgw-stat warning"><div class="num" style="font-size:20px;">' + cgwMoney(d.pending_value) + '</div><div class="label">Revenue At Risk</div></div>';
                     html += '<div class="cgw-stat"><div class="num">' + cgwNumber(d.total_month) + '</div><div class="label">This Month</div></div>';
                     html += '</div>';
+
+                    if (cgwNumber(d.pending_oldest_age_hours) >= 24) {
+                        html += '<div class="cgw-alert">⚠️ Oldest COD order is ' + cgwNumber(d.pending_oldest_age_hours) + 'h pending. Confirm or cancel it so ad platforms learn from verified purchases only.</div>';
+                    }
 
                     // Top events
                     if (d.top_events && d.top_events.length > 0) {
@@ -273,6 +349,10 @@ function buykorigw_widget_data()
         'total_month' => 0,
         'success_rate' => 0,
         'pending_orders' => 0,
+        'verified_purchases' => 0,
+        'cancelled_or_expired' => 0,
+        'pending_value' => 0,
+        'pending_oldest_age_hours' => null,
         'top_events' => array(),
     );
 
@@ -328,17 +408,35 @@ function buykorigw_widget_data()
         }
     }
 
-    // 4. Get pending orders count
-    $pending = wp_remote_get($base_url . '/events/pending?limit=1', array(
+    // 4. Get verified purchase / COD summary
+    $pending_summary = wp_remote_get($base_url . '/events/deferred/summary', array(
         'timeout' => 5,
         'sslverify' => true,
         'headers' => array('X-API-Key' => $settings['api_key']),
     ));
 
-    if (!is_wp_error($pending) && wp_remote_retrieve_response_code($pending) === 200) {
-        $pbody = json_decode(wp_remote_retrieve_body($pending), true);
+    if (!is_wp_error($pending_summary) && wp_remote_retrieve_response_code($pending_summary) === 200) {
+        $pbody = json_decode(wp_remote_retrieve_body($pending_summary), true);
         if ($pbody) {
-            $data['pending_orders'] = $pbody['total'] ?? 0;
+            $data['pending_orders'] = $pbody['pending'] ?? 0;
+            $data['verified_purchases'] = $pbody['confirmed'] ?? 0;
+            $data['cancelled_or_expired'] = ($pbody['cancelled'] ?? 0) + ($pbody['expired'] ?? 0);
+            $data['pending_value'] = $pbody['pending_value'] ?? 0;
+            $data['pending_oldest_age_hours'] = $pbody['pending_oldest_age_hours'] ?? null;
+        }
+    } else {
+        // Backward-compatible fallback for older servers.
+        $pending = wp_remote_get($base_url . '/events/pending?limit=1', array(
+            'timeout' => 5,
+            'sslverify' => true,
+            'headers' => array('X-API-Key' => $settings['api_key']),
+        ));
+
+        if (!is_wp_error($pending) && wp_remote_retrieve_response_code($pending) === 200) {
+            $pbody = json_decode(wp_remote_retrieve_body($pending), true);
+            if ($pbody) {
+                $data['pending_orders'] = $pbody['total'] ?? 0;
+            }
         }
     }
 

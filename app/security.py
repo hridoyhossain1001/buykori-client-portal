@@ -32,18 +32,19 @@ def encrypt_token(plaintext: str) -> str:
 
 
 def decrypt_token(encrypted: str, *, allow_legacy_plaintext: bool | None = None) -> str:
-    """Decrypt a token and fail closed unless legacy fallback is explicitly enabled."""
+    """Decrypt a token and fail closed unless legacy fallback is explicitly requested."""
     try:
         return _fernet.decrypt(encrypted.encode()).decode()
     except InvalidToken:
-        allow_fallback = (
-            ALLOW_LEGACY_PLAINTEXT_TOKENS
-            if allow_legacy_plaintext is None
-            else allow_legacy_plaintext
-        )
+        app_env = (os.getenv("APP_ENV") or os.getenv("ENVIRONMENT") or os.getenv("ENV") or "").lower()
+        is_production = app_env in ("production", "prod") or bool(os.getenv("PRIMARY_DOMAIN"))
+        allow_fallback = bool(allow_legacy_plaintext) and ALLOW_LEGACY_PLAINTEXT_TOKENS
+        if is_production:
+            allow_fallback = False
+
         if allow_fallback:
             logger.warning(
-                f"Token decryption failed; using legacy plaintext fallback (length={len(encrypted)}). "
+                "Token decryption failed; using legacy plaintext fallback. "
                 "Disable ALLOW_LEGACY_PLAINTEXT_TOKENS after migration."
             )
             return encrypted

@@ -4,7 +4,7 @@ Tags: facebook, capi, server-side tracking, woocommerce, pixel, ga4, tiktok
 Requires at least: 5.8
 Tested up to: 6.7
 Requires PHP: 7.4
-Stable tag: 1.1.8
+Stable tag: 1.2.3
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -43,6 +43,25 @@ Buykori AdSync প্লাগইন আপনার WooCommerce স্টোর
 ক্যাশ-অন-ডেলিভারি (COD) অর্ডারের ক্ষেত্রে Purchase ইভেন্ট তখনই Facebook-এ পাঠানো হয় যখন আপনি অর্ডারটি "Completed" করেন। এতে ফেক অর্ডারের ডাটা Facebook-এ যায় না।
 
 == Changelog ==
+
+= 1.2.3 =
+* Ensured TikTok Events API always receives a singular content_id for catalog matching diagnostics
+* Allowed REST tracking requests to accept custom_data directly as well as event_data
+* Improved content_id/content_ids normalization for checkout and cart events
+
+= 1.2.2 =
+* Added server-side WooCommerce cart fallback for InitiateCheckout, ViewCart, and AddPaymentInfo payloads
+* Ensures value, currency, content_ids, contents, and num_items are filled even when cached checkout config is empty
+
+= 1.2.1 =
+* Improved InitiateCheckout matching by waiting for checkout email/phone or submit intent before firing
+* Added page_location and page_path custom parameters for clearer event source debugging
+
+= 1.2.0 =
+* Added Pending Revenue at Risk panel to the WordPress dashboard widget
+* Added verified purchase, cancelled/expired, and pending revenue summary metrics
+* Added WooCommerce order notes for held, confirmed, cancelled, failed, and retried Purchase events
+* Added auto-cancel handling for cancelled, failed, and refunded WooCommerce orders
 
 = 1.1.8 =
 * Added one-page landing tracking mode for embedded checkout pages

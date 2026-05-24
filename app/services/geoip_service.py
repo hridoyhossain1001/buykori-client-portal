@@ -16,16 +16,20 @@ async def download_geoip_db_if_missing():
     if not os.path.exists(DB_PATH):
         logger.info(f"Downloading GeoIP database from {DB_URL} (this may take a minute)...")
         try:
-            async with httpx.AsyncClient(follow_redirects=True) as client:
-                response = await client.get(DB_URL, timeout=60.0)
-                response.raise_for_status()
-                with open(DB_PATH, "wb") as f:
-                    f.write(response.content)
+            timeout = httpx.Timeout(180.0, connect=20.0)
+            tmp_path = f"{DB_PATH}.part"
+            async with httpx.AsyncClient(follow_redirects=True, timeout=timeout) as client:
+                async with client.stream("GET", DB_URL) as response:
+                    response.raise_for_status()
+                    with open(tmp_path, "wb") as f:
+                        async for chunk in response.aiter_bytes():
+                            f.write(chunk)
+            os.replace(tmp_path, DB_PATH)
             logger.info("GeoIP database downloaded successfully.")
         except Exception as e:
             logger.error(f"Failed to download GeoIP database: {e}")
             return
-    
+
     # Initialize reader
     try:
         _reader = maxminddb.open_database(DB_PATH)
@@ -40,18 +44,18 @@ def get_location_data(ip_address: str) -> dict:
     """
     if not _reader or not ip_address:
         return {}
-    
+
     try:
         data = _reader.get(ip_address)
         if not data:
             return {}
 
         loc = {}
-        
+
         # City
         if 'city' in data and 'names' in data['city'] and 'en' in data['city']['names']:
             loc['ct'] = data['city']['names']['en']
-            
+
         # State/Region
         if 'subdivisions' in data and len(data['subdivisions']) > 0:
             sub = data['subdivisions'][0]
@@ -59,15 +63,15 @@ def get_location_data(ip_address: str) -> dict:
                 loc['st'] = sub['iso_code']
             elif 'names' in sub and 'en' in sub['names']:
                 loc['st'] = sub['names']['en']
-                
+
         # Country
         if 'country' in data and 'iso_code' in data['country']:
             loc['country'] = data['country']['iso_code'].lower()
-            
+
         # Zip Code
         if 'postal' in data and 'code' in data['postal']:
             loc['zp'] = data['postal']['code']
-            
+
         return loc
     except Exception as e:
         logger.warning(f"GeoIP lookup failed for IP {ip_address}: {e}")

@@ -93,14 +93,16 @@ def _first_content_id(cd, contents: list[dict] | None = None) -> str | None:
 
 
 def _map_event_name(fb_event_name: str) -> str:
+    """Map Facebook event names to TikTok equivalents.
+    Only maps events that are in TIKTOK_SUPPORTED_EVENTS.
+    PageView is intentionally excluded — TikTok does not support it.
+    """
     mapping = {
-        "PageView": "PageView",
         "ViewContent": "ViewContent",
         "AddToCart": "AddToCart",
         "InitiateCheckout": "InitiateCheckout",
         "AddPaymentInfo": "AddPaymentInfo",
         "Purchase": "Purchase",
-        "CompletePayment": "CompletePayment",
         "Lead": "SubmitForm",
         "Contact": "Contact",
         "Search": "Search",
