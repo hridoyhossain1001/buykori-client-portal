@@ -5,7 +5,27 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://still-stream-48626-bb0ac4cda957.herokuapp.com/api/:path*"
+      "destination": "https://api.buykori.app/api/:path*"
+    },
+    {
+      "source": "/client",
+      "destination": "https://api.buykori.app/client"
+    },
+    {
+      "source": "/client/login",
+      "destination": "https://api.buykori.app/client/login"
+    },
+    {
+      "source": "/client/logout",
+      "destination": "https://api.buykori.app/client/logout"
+    },
+    {
+      "source": "/client/settings/update",
+      "destination": "https://api.buykori.app/client/settings/update"
+    },
+    {
+      "source": "/((?!.*\\..*).*)",
+      "destination": "/index.html"
     }
   ]
 }
