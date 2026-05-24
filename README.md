@@ -1,22 +1,20 @@
-# Buykori Client Portal
+<div align="center">
+<img width="1200" height="475" alt="GHBanner" src="https://ai.google.dev/static/site-assets/images/share-ais-513315318.png" />
+</div>
 
-Vercel-ready static frontend for `client.buykori.app`.
+# Run and deploy your AI Studio app
 
-Set the Vercel project root to `client-portal`.
+This contains everything you need to run your app locally.
 
-Runtime API target:
+View your app in AI Studio: https://ai.studio/apps/0e704a75-9b74-4728-a872-cf83f7272a73
 
-```txt
-https://api.buykori.app
-```
+## Run Locally
 
-The portal now uses public email/password signup and secure client sessions.
+**Prerequisites:**  Node.js
 
-Current flow:
 
-```txt
-Sign up -> workspace auto-created -> session cookie set -> dashboard opens
-Sign in -> session cookie set -> dashboard opens
-```
-
-Email verification is intentionally not required yet. It can be added later when transactional email is configured.
+1. Install dependencies:
+   `npm install`
+2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
+3. Run the app:
+   `npm run dev`
