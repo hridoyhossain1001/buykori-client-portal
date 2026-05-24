@@ -29,16 +29,16 @@ export function SuggestionsView({
         <div className="space-y-1">
           <h2 className="font-bold text-slate-900 dark:text-white text-base flex items-center gap-2">
             <Sparkles className="w-5 h-5 text-indigo-600 animate-pulse" />
-            AI Trace Performance Optimizer
+            System Diagnostics Scanner
           </h2>
           <p className="text-xs text-slate-655 dark:text-slate-400 max-w-2xl leading-normal">
-            Our intelligence telemetry monitors active Conversion streams. Adjust fields or enable WooCommerce price parameters to reach 100% Conversions Match Score.
+            Our conversions diagnostics engine monitors active conversion streams. Adjust settings or verify WooCommerce parameters to optimize match rates and configurations.
           </p>
         </div>
 
         {/* Optimization score badge widget */}
         <div className="text-right shrink-0">
-          <span className="block text-[10px] font-bold text-indigo-500 uppercase tracking-widest leading-none">CAPI Optimizer Score</span>
+          <span className="block text-[10px] font-bold text-indigo-500 uppercase tracking-widest leading-none">Conversions Health Score</span>
           <span className="text-4xl font-extrabold text-slate-850 dark:text-white font-mono inline-block mt-1">{optScore}%</span>
           <div className="mt-1.5 h-1.5 w-24 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden ml-auto">
             <div className="h-full bg-indigo-600 rounded-full" style={{ width: `${optScore}%` }} />
@@ -46,15 +46,15 @@ export function SuggestionsView({
         </div>
       </div>
 
-      {/* AI Review trigger CTA */}
+      {/* Live Diagnostics scan trigger CTA */}
       <div className="bg-white border border-slate-205 dark:bg-slate-900 dark:border-slate-800 p-4 rounded-xl shadow-sm flex flex-col sm:flex-row gap-4 items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-lg bg-indigo-100 dark:bg-indigo-950/40 flex items-center justify-center text-indigo-700 dark:text-indigo-400 border border-indigo-150 dark:border-indigo-900/60 shrink-0">
             <Sparkles className="w-5 h-5" />
           </div>
           <div>
-            <h4 className="font-bold text-slate-800 dark:text-white text-xs uppercase tracking-wider">Run Live diagnostic trace</h4>
-            <p className="text-xs text-slate-400 dark:text-slate-500">Initialize Google Gemini server-side agent review. Scan parameters triggers, trace payloads, and surface optimizations.</p>
+            <h4 className="font-bold text-slate-800 dark:text-white text-xs uppercase tracking-wider">Run Live Diagnostics Scan</h4>
+            <p className="text-xs text-slate-400 dark:text-slate-500">Initialize automated backend audit of conversions pipeline parameters, credentials, and event streams.</p>
           </div>
         </div>
 
@@ -66,12 +66,12 @@ export function SuggestionsView({
           {aiReviewing ? (
             <>
               <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-              <span>Generating Trace Diagnostic...</span>
+              <span>Running Diagnostics Scan...</span>
             </>
           ) : (
             <>
               <Sparkles className="w-4 h-4" />
-              <span>Run Server AI Audit</span>
+              <span>Run Diagnostics Scan</span>
             </>
           )}
         </button>

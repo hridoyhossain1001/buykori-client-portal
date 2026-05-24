@@ -9,6 +9,14 @@ interface CodProtectionViewProps {
   handleBulkCancel: () => Promise<void>;
   handleConfirmOrder: (orderId: string) => Promise<void>;
   handleCancelOrder: (orderId: string) => Promise<void>;
+  deferredEnabled: boolean;
+  setDeferredEnabled: (val: boolean) => void;
+  autoConfirmDays: number;
+  setAutoConfirmDays: (val: number) => void;
+  autoConfirmStatus: string;
+  setAutoConfirmStatus: (val: string) => void;
+  savingDeferredSettings: boolean;
+  handleSaveDeferredSettings: () => Promise<void>;
 }
 
 export function CodProtectionView({
@@ -18,10 +26,89 @@ export function CodProtectionView({
   handleBulkConfirm,
   handleBulkCancel,
   handleConfirmOrder,
-  handleCancelOrder
+  handleCancelOrder,
+  deferredEnabled,
+  setDeferredEnabled,
+  autoConfirmDays,
+  setAutoConfirmDays,
+  autoConfirmStatus,
+  setAutoConfirmStatus,
+  savingDeferredSettings,
+  handleSaveDeferredSettings
 }: CodProtectionViewProps) {
   return (
     <div className="space-y-6">
+      
+      {/* COD Protection Settings Card */}
+      <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:bg-slate-900 dark:border-slate-800 space-y-6">
+        <div>
+          <h3 className="font-bold text-slate-850 text-sm uppercase tracking-wide dark:text-white">COD Protection Settings</h3>
+          <p className="text-xs text-slate-405 dark:text-slate-500">Configure parameters for holding and releasing Cash-on-Delivery conversion triggers.</p>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
+          {/* Toggle COD Protection */}
+          <div className="space-y-2">
+            <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">COD Protection status</label>
+            <label className="relative inline-flex items-center cursor-pointer select-none">
+              <input 
+                type="checkbox" 
+                checked={deferredEnabled}
+                onChange={(e) => setDeferredEnabled(e.target.checked)} 
+                className="sr-only peer"
+              />
+              <div className="w-9 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600" />
+              <span className="ml-2 text-xs font-semibold text-slate-650 dark:text-slate-350">
+                {deferredEnabled ? 'Enabled (Hold COD Orders)' : 'Disabled (Instant Dispatch)'}
+              </span>
+            </label>
+          </div>
+
+          {/* Auto-Verification Cutoff */}
+          <div>
+            <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Auto-Verification Cutoff</label>
+            <select 
+              value={autoConfirmDays}
+              onChange={(e) => setAutoConfirmDays(Number(e.target.value))}
+              disabled={!deferredEnabled}
+              className="w-full p-2.5 text-xs text-slate-800 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all duration-200 dark:bg-slate-950 dark:border-slate-800 dark:text-white cursor-pointer disabled:opacity-50"
+            >
+              <option value="0">Off (Verify manually only)</option>
+              <option value="1">1 Day</option>
+              <option value="2">2 Days</option>
+              <option value="3">3 Days</option>
+              <option value="5">5 Days</option>
+              <option value="7">7 Days</option>
+            </select>
+          </div>
+
+          {/* Trigger Order Status */}
+          <div>
+            <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Trigger Order Status</label>
+            <select 
+              value={autoConfirmStatus}
+              onChange={(e) => setAutoConfirmStatus(e.target.value)}
+              disabled={!deferredEnabled}
+              className="w-full p-2.5 text-xs text-slate-800 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all duration-200 dark:bg-slate-950 dark:border-slate-800 dark:text-white cursor-pointer disabled:opacity-50"
+            >
+              <option value="completed">Completed / Delivered</option>
+              <option value="processing">Processing / Confirmed</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="pt-2">
+          <button
+            type="button"
+            disabled={savingDeferredSettings}
+            onClick={handleSaveDeferredSettings}
+            className="px-5 py-2.5 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 disabled:opacity-50 text-white text-xs font-bold rounded-lg transition-all duration-300 transform hover:-translate-y-0.5 shadow-md shadow-indigo-500/10 hover:shadow-indigo-500/20 cursor-pointer"
+          >
+            {savingDeferredSettings ? 'Saving Configurations...' : 'Save COD Settings'}
+          </button>
+        </div>
+      </div>
+
       
       {/* 4 Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">

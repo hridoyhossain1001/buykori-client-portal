@@ -6,7 +6,6 @@
 import express from "express";
 import path from "path";
 import { createServer as createViteServer } from "vite";
-import { GoogleGenAI } from "@google/genai";
 import { 
   initialProfile, 
   initialConnection, 
@@ -17,30 +16,6 @@ import {
 } from "./src/lib/mock-data.js";
 import { CAPIEvent, APILog, Suggestion, Platform, EventRule, PlatformConfig } from "./src/types.js";
 
-// Lazy-loaded Gemini AI initialization helper
-let aiClient: GoogleGenAI | null = null;
-function getGeminiClient(): GoogleGenAI | null {
-  if (aiClient) return aiClient;
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey || apiKey === "MY_GEMINI_API_KEY" || apiKey.trim() === "") {
-    console.warn("GEMINI_API_KEY is not defined. AI suggestions will operate in deep emulation fallback mode.");
-    return null;
-  }
-  try {
-    aiClient = new GoogleGenAI({
-      apiKey: apiKey,
-      httpOptions: {
-        headers: {
-          'User-Agent': 'aistudio-build',
-        }
-      }
-    });
-    return aiClient;
-  } catch (err) {
-    console.error("Failed to initialize Gemini AI client:", err);
-    return null;
-  }
-}
 
 async function startServer() {
   const app = express();
@@ -52,6 +27,34 @@ async function startServer() {
   let connection = { ...initialConnection };
   let rules = [...initialRules];
   let suggestions = [...initialSuggestions];
+
+  // Deferred Purchase / COD Protection settings & mock queue
+  let deferredEnabled = false;
+  let autoConfirmDays = 3;
+  let autoConfirmStatus = "completed";
+  let pendingOrders = [
+    {
+      orderId: "WC-9283",
+      amount: 2490,
+      customer: "+8801712345678",
+      fraudScore: 12,
+      fraudDetails: {},
+      ageHours: 5.2,
+      timestamp: new Date(Date.now() - 5.2 * 3600000).toISOString()
+    },
+    {
+      orderId: "WC-9284",
+      amount: 4500,
+      customer: "customer@domain.com",
+      fraudScore: 78,
+      fraudDetails: { ip_mismatch: true, gibberish_name: true },
+      ageHours: 12.8,
+      timestamp: new Date(Date.now() - 12.8 * 3600000).toISOString()
+    }
+  ];
+  let confirmedTotal = 12;
+  let cancelledTotal = 2;
+  let confirmedToday = 2;
   
   // Platform Credentials state
   let credentials: Record<Platform, PlatformConfig> = {
@@ -415,101 +418,96 @@ async function startServer() {
     res.json({ success: true, suggestions });
   });
 
-  // AI-Assisted Recommendation review using the real Gemini model!
-  app.post("/api/suggestions/ai-review", async (req, res) => {
-    const client = getGeminiClient();
-    
-    // We make a short snapshot statistics overview to send as context to Gemini:
-    const activeEnabled = Object.keys(credentials).filter(k => credentials[k as Platform].enabled);
-    const errorCount = events.filter(e => e.status === 'Failed').length;
-    const successCount = events.filter(e => e.status === 'Success').length;
-    const failRate = events.length > 0 ? ((errorCount / events.length) * 100).toFixed(1) : "0.0";
-    
-    const recentFailures = events
-      .filter(e => e.status === 'Failed')
-      .slice(0, 3)
-      .map(e => `[${e.platform}] Event '${e.name}' failed with HTTP ${e.httpCode}: ${JSON.stringify(e.responseBody)}`);
-
-    const promptContext = `
-      You are an expert marketing conversions engineer auditing server-side tracking configurations.
-      Analyze the current configuration profile:
-      - active pipelines: ${activeEnabled.join(', ')}
-      - Event volumes (last 30 days sample): ${successCount} successful events, ${errorCount} failed events (Failure rate: ${failRate}%)
-      - WordPress integration detected version: WooCommerce, WP v${connection.wpVersion} (Status: ${connection.status})
-      - Recent failure patterns caught in error arrays:
-        ${recentFailures.join('\n') || "No critical failures caught in current batch."}
-
-      Task: Write 2 high-value, specific actionable tracking setup suggestions that an ads operations manager can copy and apply.
-      Output format: MUST be valid JSON (excluding wrapping elements or Markdown blocks) containing an array of objects matching this exact TypeScript structure:
+  // System Diagnostics scan endpoint
+  app.post("/api/suggestions/ai-review", (req, res) => {
+    const emulatedAI: Suggestion[] = [
       {
-        "id": "ai_gen_s_", // must start with this prefix followed by index
-        "title": string, // clear name of the issue
-        "severity": "Critical" | "Warning" | "Tip",
-        "explanation": string, // what is wrong, the visual effect, and why it hurts campaign performance
-        "fixAction": string, // numbered exact steps to correct inside WooCommerce or tracking credentials
-        "resolved": false,
-        "platform": "Meta CAPI" | "TikTok Events API" | "GA4"
+        id: `ai_gen_${Date.now()}_01`,
+        title: "Verify Meta CAPI 'test_event_code' telemetry trace filter",
+        severity: "Tip",
+        explanation: "You have verified active production endpoints, but Meta sandbox logs show no recent debugging matches. Adding a transient 'test_event_code' to payload headers redirects stream debugging output directly inside the Event Manager Sandbox tab in real-time.",
+        fixAction: "Pencil in your FB Events Manager test trace code (e.g., 'TEST82931') into Settings > Platform Credentials panel and trigger a test capture cycle.",
+        resolved: false,
+        platform: "Meta CAPI"
+      },
+      {
+        id: `ai_gen_${Date.now()}_02`,
+        title: "Missing WooCommerce cart basket data matches on TikTok API",
+        severity: "Warning",
+        explanation: "AddToCart events transiting to TikTok contain content IDs, but lack product categories ('content_category') or product descriptions. TikTok Ads Manager operates core audience matching and dynamic catalog re-targeting by matching catalog indexes directly.",
+        fixAction: "1. Open WooCommerce > CAPI Plugin.\n2. Enable the option 'Synchronize Catalog Category taxonomy map with TikTok category hierarchies'.\n3. Save config.",
+        resolved: false,
+        platform: "TikTok Events API"
       }
-      Do NOT write any trailing summaries or commentary. Return ONLY the strict JSON array.
-    `;
+    ];
 
-    if (!client) {
-      // Return beautiful, premium emulated AI responses if Gemini key is missing
-      const emulatedAI: Suggestion[] = [
-        {
-          id: `ai_gen_${Date.now()}_01`,
-          title: "Verify Meta CAPI 'test_event_code' telemetry trace filter",
-          severity: "Tip",
-          explanation: "You have verified active production endpoints, but Meta sandbox logs show no recent debugging matches. Adding a transient 'test_event_code' to payload headers redirects stream debugging output directly inside the Event Manager Sandbox tab in real-time.",
-          fixAction: "Pencil in your FB Events Manager test trace code (e.g., 'TEST82931') into Settings > Platform Credentials panel and trigger a test capture cycle.",
-          resolved: false,
-          platform: "Meta CAPI"
-        },
-        {
-          id: `ai_gen_${Date.now()}_02`,
-          title: "Missing WooCommerce cart basket data matches on TikTok API",
-          severity: "Warning",
-          explanation: "AddToCart events transiting to TikTok contain content IDs, but lack product categories ('content_category') or product descriptions. TikTok Ads Manager operates core audience matching and dynamic catalog re-targeting by matching catalog indexes directly.",
-          fixAction: "1. Open WooCommerce > CAPI Plugin.\n2. Enable the option 'Synchronize Catalog Category taxonomy map with TikTok category hierarchies'.\n3. Save config.",
-          resolved: false,
-          platform: "TikTok Events API"
-        }
-      ];
+    suggestions = [ ...emulatedAI, ...suggestions ];
+    res.json({ 
+      success: true, 
+      message: "Diagnostics scan completed successfully.", 
+      suggestions 
+    });
+  });
 
-      // Add to suggestions feed randomly
-      suggestions = [ ...emulatedAI, ...suggestions ];
-      return res.json({ 
-        success: true, 
-        message: "Expert analytical ruleset generated suggestions successfully.", 
-        suggestions 
-      });
-    }
+  // COD Protection (Deferred Purchase Tracking) Mock Endpoints
+  app.get("/api/deferred", (req, res) => {
+    const pendingValue = pendingOrders.reduce((acc, o) => acc + o.amount, 0);
+    const oldestPending = pendingOrders.length > 0 ? `${Math.max(...pendingOrders.map(o => o.ageHours))}h` : "—";
+    res.json({
+      deferredEnabled,
+      autoConfirmDays,
+      autoConfirmStatus,
+      pendingCount: pendingOrders.length,
+      pendingValue: `৳${pendingValue.toLocaleString()}`,
+      confirmedTotal,
+      cancelledTotal,
+      expiredTotal: 0,
+      confirmedToday,
+      oldestPending,
+      pendingList: pendingOrders
+    });
+  });
 
-    try {
-      const response = await client.models.generateContent({
-        model: "gemini-3.5-flash",
-        contents: promptContext,
-        config: {
-          responseMimeType: "application/json",
-        }
-      });
+  app.post("/api/deferred/settings", (req, res) => {
+    deferredEnabled = req.body.deferredEnabled;
+    autoConfirmDays = Number(req.body.autoConfirmDays);
+    autoConfirmStatus = req.body.autoConfirmStatus;
+    res.json({
+      success: true,
+      deferredEnabled,
+      autoConfirmDays,
+      autoConfirmStatus
+    });
+  });
 
-      const responseText = response.text || "[]";
-      let parsedAIResult: Suggestion[] = JSON.parse(responseText.trim());
-      
-      // Sanitizing ID formats to ensure uniqueness
-      parsedAIResult = parsedAIResult.map((val, idx) => ({
-        ...val,
-        id: `ai_gen_${Date.now()}_${idx}`,
-        resolved: false
-      }));
+  app.post("/api/deferred/confirm", (req, res) => {
+    const { order_id } = req.body;
+    pendingOrders = pendingOrders.filter(o => o.orderId !== order_id);
+    confirmedTotal++;
+    confirmedToday++;
+    res.json({ success: true });
+  });
 
-      suggestions = [ ...parsedAIResult, ...suggestions ];
-      res.json({ success: true, message: "AI analytics successfully reviewed state.", suggestions });
-    } catch (err) {
-      console.error("AI dynamic analysis error:", err);
-      res.status(500).json({ error: "Gemini AI pipeline failed to parse state recommendation. Fallen back on static logic." });
-    }
+  app.post("/api/deferred/cancel", (req, res) => {
+    const { order_id } = req.body;
+    pendingOrders = pendingOrders.filter(o => o.orderId !== order_id);
+    cancelledTotal++;
+    res.json({ success: true });
+  });
+
+  app.post("/api/deferred/confirm-bulk", (req, res) => {
+    const { order_ids } = req.body;
+    pendingOrders = pendingOrders.filter(o => !order_ids.includes(o.orderId));
+    confirmedTotal += order_ids.length;
+    confirmedToday += order_ids.length;
+    res.json({ success: true });
+  });
+
+  app.post("/api/deferred/cancel-bulk", (req, res) => {
+    const { order_ids } = req.body;
+    pendingOrders = pendingOrders.filter(o => !order_ids.includes(o.orderId));
+    cancelledTotal += order_ids.length;
+    res.json({ success: true });
   });
 
   // Mount Vite development middleware after API endpoints the template suggests

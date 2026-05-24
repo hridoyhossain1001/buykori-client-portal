@@ -3,27 +3,28 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, Suspense, lazy } from 'react';
 import { 
   ShieldAlert, 
   CheckCircle2, 
-  XCircle 
+  XCircle,
+  Loader2
 } from 'lucide-react';
 import { Sidebar } from './components/Sidebar';
 import { Header } from './components/Header';
 import { CAPIEvent, APILog, Suggestion, Platform, EventRule, PlatformConfig, UserProfile, ClientConnection } from './types';
 
-// Import modular views
-import { DashboardView } from './components/DashboardView';
-import { AnalyticsView } from './components/AnalyticsView';
-import { CodProtectionView } from './components/CodProtectionView';
-import { EventLogsView } from './components/EventLogsView';
-import { ApiLogsView } from './components/ApiLogsView';
-import { SettingsView } from './components/SettingsView';
-import { SetupGuideView } from './components/SetupGuideView';
-import { SuggestionsView } from './components/SuggestionsView';
-import { CampaignBuilderView } from './components/CampaignBuilderView';
-import { AccountView } from './components/AccountView';
+// Lazy-loaded modular views (code-splitting for smaller initial bundle)
+const DashboardView = lazy(() => import('./components/DashboardView').then(m => ({ default: m.DashboardView })));
+const AnalyticsView = lazy(() => import('./components/AnalyticsView').then(m => ({ default: m.AnalyticsView })));
+const CodProtectionView = lazy(() => import('./components/CodProtectionView').then(m => ({ default: m.CodProtectionView })));
+const EventLogsView = lazy(() => import('./components/EventLogsView').then(m => ({ default: m.EventLogsView })));
+const ApiLogsView = lazy(() => import('./components/ApiLogsView').then(m => ({ default: m.ApiLogsView })));
+const SettingsView = lazy(() => import('./components/SettingsView').then(m => ({ default: m.SettingsView })));
+const SetupGuideView = lazy(() => import('./components/SetupGuideView').then(m => ({ default: m.SetupGuideView })));
+const SuggestionsView = lazy(() => import('./components/SuggestionsView').then(m => ({ default: m.SuggestionsView })));
+const CampaignBuilderView = lazy(() => import('./components/CampaignBuilderView').then(m => ({ default: m.CampaignBuilderView })));
+const AccountView = lazy(() => import('./components/AccountView').then(m => ({ default: m.AccountView })));
 
 export default function App() {
   const [activePage, setActivePage] = useState<string>('dashboard');
@@ -56,6 +57,10 @@ export default function App() {
   const [apiLogs, setApiLogs] = useState<APILog[]>([]);
   const [deferredData, setDeferredData] = useState<any>(null);
   const [selectedOrderIds, setSelectedOrderIds] = useState<string[]>([]);
+  const [deferredEnabled, setDeferredEnabled] = useState<boolean>(false);
+  const [autoConfirmDays, setAutoConfirmDays] = useState<number>(0);
+  const [autoConfirmStatus, setAutoConfirmStatus] = useState<string>('completed');
+  const [savingDeferredSettings, setSavingDeferredSettings] = useState<boolean>(false);
 
   // Advanced Analytics States
   const [analyticsOverview, setAnalyticsOverview] = useState<any>(null);
@@ -192,6 +197,9 @@ export default function App() {
       if (res.ok) {
         const data = await res.json();
         setDeferredData(data);
+        setDeferredEnabled(data.deferredEnabled);
+        setAutoConfirmDays(data.autoConfirmDays);
+        setAutoConfirmStatus(data.autoConfirmStatus);
       }
     } catch (err) {
       console.error("Failed to fetch COD Protection", err);
@@ -242,6 +250,9 @@ export default function App() {
       setEvents(dLogs.events);
       setApiLogs(dApi.logs);
       setDeferredData(dDef);
+      setDeferredEnabled(dDef.deferredEnabled);
+      setAutoConfirmDays(dDef.autoConfirmDays);
+      setAutoConfirmStatus(dDef.autoConfirmStatus);
       
       // Initialize text fields
       setProfName(dProf.name);
@@ -429,17 +440,38 @@ export default function App() {
     }
   };
 
-  // Trigger Gemini AI Suggestion Review Workflow
+  const handleSaveDeferredSettings = async () => {
+    setSavingDeferredSettings(true);
+    try {
+      const res = await fetch('/api/deferred/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ deferredEnabled, autoConfirmDays, autoConfirmStatus })
+      });
+      if (res.ok) {
+        showToast("COD Protection settings saved successfully.", false);
+        loadSystemData(false);
+      } else {
+        showToast("Failed to save COD Protection settings.", true);
+      }
+    } catch {
+      showToast("Failed to save COD Protection settings.", true);
+    } finally {
+      setSavingDeferredSettings(false);
+    }
+  };
+
+  // Trigger System Diagnostics Scan Workflow
   const handleAiReview = async () => {
     setAiReviewing(true);
     try {
       const res = await fetch('/api/suggestions/ai-review', { method: 'POST' });
-      if (!res.ok) throw new Error("AI Endpoint failed.");
+      if (!res.ok) throw new Error("Diagnostics scan endpoint failed.");
       const data = await res.json();
       setSuggestions(data.suggestions);
-      showToast("AI diagnostics successfully validated. Suggestions feed refreshed.", false);
+      showToast("System diagnostics successfully validated. Suggestions feed refreshed.", false);
     } catch (err: any) {
-      showToast("Failed to initialize Google Gemini trace sequence.", true);
+      showToast("Failed to run system diagnostics scan.", true);
     } finally {
       setAiReviewing(false);
     }
@@ -785,6 +817,14 @@ export default function App() {
           <div className="flex-1 p-4 sm:p-6 md:p-8 space-y-4 md:space-y-6">
 
             {/* --- CORE VIEWS DISPATCHER --- */}
+            <Suspense fallback={
+              <div className="flex-1 flex items-center justify-center min-h-[400px]">
+                <div className="flex flex-col items-center gap-3">
+                  <Loader2 className="w-8 h-8 text-indigo-500 animate-spin" />
+                  <span className="text-sm text-slate-400 font-medium">Loading...</span>
+                </div>
+              </div>
+            }>
 
             {/* PAGE 1: DASHBOARD */}
             {activePage === 'dashboard' && profile && (
@@ -817,6 +857,14 @@ export default function App() {
                 handleBulkCancel={handleBulkCancel}
                 handleConfirmOrder={handleConfirmOrder}
                 handleCancelOrder={handleCancelOrder}
+                deferredEnabled={deferredEnabled}
+                setDeferredEnabled={setDeferredEnabled}
+                autoConfirmDays={autoConfirmDays}
+                setAutoConfirmDays={setAutoConfirmDays}
+                autoConfirmStatus={autoConfirmStatus}
+                setAutoConfirmStatus={setAutoConfirmStatus}
+                savingDeferredSettings={savingDeferredSettings}
+                handleSaveDeferredSettings={handleSaveDeferredSettings}
               />
             )}
 
@@ -940,6 +988,22 @@ export default function App() {
                 campaignResp={campaignResp}
                 dispatchingTest={dispatchingTest}
                 handleDispatchSandboxTest={handleDispatchSandboxTest}
+                urlBuilderBaseUrl={urlBuilderBaseUrl}
+                setUrlBuilderBaseUrl={setUrlBuilderBaseUrl}
+                urlBuilderSource={urlBuilderSource}
+                setUrlBuilderSource={setUrlBuilderSource}
+                urlBuilderMedium={urlBuilderMedium}
+                setUrlBuilderMedium={setUrlBuilderMedium}
+                urlBuilderCampaign={urlBuilderCampaign}
+                setUrlBuilderCampaign={setUrlBuilderCampaign}
+                urlBuilderContent={urlBuilderContent}
+                setUrlBuilderContent={setUrlBuilderContent}
+                urlBuilderTerm={urlBuilderTerm}
+                setUrlBuilderTerm={setUrlBuilderTerm}
+                generatedCampaignUrl={generatedCampaignUrl}
+                handleGenerateCampaignUrl={handleGenerateCampaignUrl}
+                copiedStates={copiedStates}
+                handleCopy={handleCopy}
               />
             )}
 
@@ -969,6 +1033,8 @@ export default function App() {
                 showToast={showToast}
               />
             )}
+
+            </Suspense>
 
             {/* --- END DISPATCHER --- */}
 

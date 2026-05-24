@@ -7,6 +7,14 @@ import {
   Check, 
   Copy 
 } from 'lucide-react';
+import { 
+  BarChart, 
+  Bar, 
+  XAxis, 
+  YAxis, 
+  Tooltip as ReChartsTooltip, 
+  ResponsiveContainer
+} from 'recharts';
 
 interface AnalyticsViewProps {
   analyticsOverview: any;
@@ -118,46 +126,101 @@ export function AnalyticsView({
       {/* Conversion Funnel & Signal Doctor Breakdown */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
-        {/* Conversion Funnel */}
-        <div className="lg:col-span-2 rounded-xl border border-slate-200 bg-white p-6 shadow-sm flex flex-col dark:bg-slate-900 dark:border-slate-800">
-          <div className="mb-6">
-            <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wide dark:text-white">Pixel Conversion Funnel</h3>
-            <p className="text-xs text-slate-400 dark:text-slate-500">Visualizing customer flow drops from first page interaction to ultimate checkout conversion.</p>
+        <div className="lg:col-span-2 space-y-6">
+          {/* Conversion Funnel */}
+          <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm flex flex-col dark:bg-slate-900 dark:border-slate-800">
+            <div className="mb-6">
+              <h3 className="font-bold text-slate-850 text-sm uppercase tracking-wide dark:text-white">Pixel Conversion Funnel</h3>
+              <p className="text-xs text-slate-400 dark:text-slate-500">Visualizing customer flow drops from first page interaction to ultimate checkout conversion.</p>
+            </div>
+
+            <div className="space-y-4">
+              {analyticsOverview?.funnel ? (
+                (() => {
+                  const maxCount = Math.max(...analyticsOverview.funnel.map((f: any) => f.count), 1);
+                  const funnelColors = ['bg-purple-500', 'bg-blue-500', 'bg-green-500', 'bg-amber-500', 'bg-emerald-500'];
+                  return analyticsOverview.funnel.map((step: any, i: number) => {
+                    const pctWidth = Math.max((step.count / maxCount) * 100, 5);
+                    return (
+                      <div key={step.step} className="space-y-1.5">
+                        <div className="flex justify-between text-xs font-medium">
+                          <span className="text-slate-505 flex items-center gap-1 dark:text-slate-400 font-mono">
+                            {step.step}
+                            {i > 0 && step.drop_off > 0 && (
+                              <span className="text-rose-500 text-[10px] font-bold">
+                                ↓{step.drop_off}% drop
+                              </span>
+                            )}
+                          </span>
+                          <span className="text-slate-800 font-bold dark:text-white">{step.count.toLocaleString()} events</span>
+                        </div>
+                        <div className="h-2.5 w-full rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+                          <div 
+                            className={`h-full rounded-full transition-all duration-800 ${funnelColors[i % 5]}`}
+                            style={{ width: `${pctWidth}%` }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  });
+                })()
+              ) : (
+                <div className="py-12 text-center text-xs text-slate-400">No conversion funnel stats yet. Send test page view / checkout events.</div>
+              )}
+            </div>
           </div>
 
-          <div className="space-y-4">
-            {analyticsOverview?.funnel ? (
-              (() => {
-                const maxCount = Math.max(...analyticsOverview.funnel.map((f: any) => f.count), 1);
-                const funnelColors = ['bg-purple-500', 'bg-blue-500', 'bg-green-500', 'bg-amber-500', 'bg-emerald-500'];
-                return analyticsOverview.funnel.map((step: any, i: number) => {
-                  const pctWidth = Math.max((step.count / maxCount) * 100, 5);
-                  return (
-                    <div key={step.step} className="space-y-1.5">
-                      <div className="flex justify-between text-xs font-medium">
-                        <span className="text-slate-500 flex items-center gap-1 dark:text-slate-400">
-                          {step.step}
-                          {i > 0 && step.drop_off > 0 && (
-                            <span className="text-rose-500 text-[10px] font-bold">
-                              ↓{step.drop_off}% drop
-                            </span>
-                          )}
-                        </span>
-                        <span className="text-slate-800 font-bold dark:text-white">{step.count.toLocaleString()} events</span>
-                      </div>
-                      <div className="h-2.5 w-full rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
-                        <div 
-                          className={`h-full rounded-full transition-all duration-800 ${funnelColors[i % 5]}`}
-                          style={{ width: `${pctWidth}%` }}
-                        />
-                      </div>
-                    </div>
-                  );
-                });
-              })()
-            ) : (
-              <div className="py-12 text-center text-xs text-slate-400">No conversion funnel stats yet. Send test page view / checkout events.</div>
-            )}
+          {/* Telemetry Match Quality Index Bar Chart */}
+          <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm flex flex-col dark:bg-slate-900 dark:border-slate-800">
+            <div className="mb-6 flex justify-between items-center">
+              <div>
+                <h3 className="font-bold text-slate-850 text-sm uppercase tracking-wide dark:text-white">Telemetry Match Quality Index</h3>
+                <p className="text-xs text-slate-400 dark:text-slate-500">Distribution of customer parameter matching ratios sent across active pipelines.</p>
+              </div>
+              {signalDoctor?.score !== undefined && (
+                <div className="px-3 py-1.5 rounded-xl border border-indigo-100 bg-indigo-50/50 dark:bg-indigo-950/20 dark:border-indigo-900/40 text-right">
+                  <span className="block text-[8px] font-bold text-indigo-500 uppercase tracking-widest leading-none">EMQ Score</span>
+                  <span className="text-lg font-black text-slate-850 dark:text-white font-mono leading-none">{signalDoctor.score}%</span>
+                </div>
+              )}
+            </div>
+
+            <div className="h-64 mt-2">
+              {signalDoctor?.signal_rates ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart 
+                    data={[
+                      { name: 'Event ID', rate: signalDoctor.signal_rates.event_id || 0 },
+                      { name: 'User Match', rate: signalDoctor.signal_rates.user_match || 0 },
+                      { name: 'Email/Phone', rate: signalDoctor.signal_rates.email_or_phone || 0 },
+                      { name: 'Click IDs', rate: signalDoctor.signal_rates.click_id || 0 },
+                      { name: 'Product ID', rate: signalDoctor.signal_rates.content_ids || 0 },
+                      { name: 'Order Value', rate: signalDoctor.signal_rates.value || 0 },
+                      { name: 'UTM Source', rate: signalDoctor.signal_rates.utm || 0 }
+                    ]} 
+                    layout="vertical"
+                    margin={{ top: 0, right: 20, left: 10, bottom: 0 }}
+                  >
+                    <XAxis type="number" domain={[0, 100]} stroke="#94a3b8" fontSize={10} tickLine={false} axisLine={false} />
+                    <YAxis dataKey="name" type="category" stroke="#94a3b8" fontSize={10} tickLine={false} axisLine={false} width={80} />
+                    <ReChartsTooltip 
+                      contentStyle={{ 
+                        backgroundColor: '#0f172a', 
+                        borderColor: '#1e293b', 
+                        color: '#f1f5f9', 
+                        borderRadius: '8px', 
+                        fontSize: '11px', 
+                        boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.05)' 
+                      }}
+                      formatter={(val) => [`${val}%`, 'Match Rate']}
+                    />
+                    <Bar dataKey="rate" fill="#6366f1" radius={[0, 4, 4, 0]} barSize={12} />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="py-12 text-center text-xs text-slate-400">No match rate telemetry stats available yet.</div>
+              )}
+            </div>
           </div>
         </div>
 
@@ -168,7 +231,7 @@ export function AnalyticsView({
             <p className="text-xs text-slate-400 dark:text-slate-500">Technical telemetry parameters checklist mapping health optimization warnings.</p>
           </div>
 
-          <div className="mt-4 space-y-3 flex-1 overflow-y-auto max-h-64 pr-1">
+          <div className="mt-4 space-y-3 flex-1 overflow-y-auto max-h-96 pr-1">
             {signalDoctor?.issues ? (
               signalDoctor.issues.map((issue: any, idx: number) => (
                 <div key={idx} className={`p-3 rounded-lg border text-xs flex gap-2.5 ${
