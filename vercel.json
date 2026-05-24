@@ -6,6 +6,10 @@
   "outputDirectory": "dist",
   "rewrites": [
     {
+      "source": "/static/:path*",
+      "destination": "https://api.buykori.app/static/:path*"
+    },
+    {
       "source": "/api/:path*",
       "destination": "https://api.buykori.app/api/:path*"
     },
