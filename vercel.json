@@ -5,7 +5,7 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://api.buykori.app/api/:path*"
+      "destination": "https://still-stream-48626-bb0ac4cda957.herokuapp.com/api/:path*"
     }
   ]
 }
