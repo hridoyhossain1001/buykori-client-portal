@@ -82,9 +82,9 @@ export function ApiLogsView({
 
       {/* Outbound logs table */}
       <div className="rounded-xl border border-slate-205 bg-white shadow-sm overflow-hidden dark:bg-slate-900 dark:border-slate-800">
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto overflow-y-auto max-h-[calc(100vh-320px)] min-h-[300px]">
           <table className="w-full text-left text-xs divide-y divide-slate-100 dark:divide-slate-800 min-w-[850px]">
-            <thead className="bg-slate-50 dark:bg-slate-950 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+            <thead className="bg-slate-50 dark:bg-slate-950 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 sticky top-0 z-10">
               <tr>
                 <th className="px-6 py-3">Timestamp</th>
                 <th className="px-6 py-3">Platform</th>

@@ -209,9 +209,9 @@ export function EventLogsView({
             </div>
           </div>
         ) : (
-          <div className="overflow-x-auto min-h-96">
+          <div className="overflow-x-auto overflow-y-auto max-h-[calc(100vh-280px)] min-h-[400px]">
             <table className="w-full text-left text-xs text-slate-660 divide-y divide-slate-100 dark:text-slate-300 dark:divide-slate-800 min-w-[900px]">
-              <thead className="bg-slate-50 dark:bg-slate-950 text-[10px] font-bold uppercase tracking-wider text-slate-555 dark:text-slate-400">
+              <thead className="bg-slate-50 dark:bg-slate-950 text-[10px] font-bold uppercase tracking-wider text-slate-555 dark:text-slate-400 sticky top-0 z-10">
                 <tr>
                   <th className="px-6 py-3">Timestamp / Age</th>
                   <th className="px-6 py-3">Event ID</th>
