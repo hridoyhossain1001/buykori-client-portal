@@ -169,6 +169,14 @@ export default function App() {
     }, 4000);
   };
 
+  const redirectToClientLogin = () => {
+    window.location.assign('/client');
+  };
+
+  const isAuthFailure = (responses: Response[]) => {
+    return responses.some(res => res.status === 401 || res.status === 403);
+  };
+
   // Helper code copy
   const handleCopy = (text: string, labelId: string) => {
     navigator.clipboard.writeText(text);
@@ -207,6 +215,11 @@ export default function App() {
         fetch(`/api/api-logs?limit=100`),
         fetch('/api/deferred')
       ]);
+
+      if (isAuthFailure([resProf, resConn, resCreds, resRules])) {
+        redirectToClientLogin();
+        return;
+      }
 
       if (!resProf.ok || !resConn.ok || !resCreds.ok || !resRules.ok) {
         throw new Error("HTTP Handshake failed. Connection proxy is not fully responding.");
