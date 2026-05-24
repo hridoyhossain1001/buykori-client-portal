@@ -407,3 +407,112 @@ async def test_admin_api_login_failed_wrong_credentials():
     assert response.status_code == 401
     assert "Incorrect username or password" in response.json()["detail"]
 
+
+@pytest.mark.anyio
+async def test_admin_api_events_endpoint():
+    from app.models.event_log import EventLog
+    
+    async with TestingSessionLocal() as session:
+        client1 = Client(
+            name="Client A",
+            api_key="client1-api-key",
+            portal_key="client1-portal-key",
+            pixel_id="111111",
+            access_token=encrypt_token("token-a"),
+            is_active=True,
+        )
+        client2 = Client(
+            name="Client B",
+            api_key="client2-api-key",
+            portal_key="client2-portal-key",
+            pixel_id="222222",
+            access_token=encrypt_token("token-b"),
+            is_active=True,
+        )
+        session.add(client1)
+        session.add(client2)
+        await session.commit()
+        await session.refresh(client1)
+        await session.refresh(client2)
+        
+        log1 = EventLog(
+            client_id=client1.id,
+            event_name="GA4:Purchase",
+            status="success",
+            ip_address="192.168.1.5",
+            event_id="evt_001",
+            event_count=1,
+            value=1200.0,
+            currency="BDT",
+            created_at=datetime.now(timezone.utc) - timedelta(minutes=10)
+        )
+        log2 = EventLog(
+            client_id=client1.id,
+            event_name="TikTok:AddToCart",
+            status="failed",
+            error_message="Invalid token structure",
+            ip_address="192.168.1.10",
+            event_id="evt_002",
+            event_count=1,
+            created_at=datetime.now(timezone.utc) - timedelta(minutes=5)
+        )
+        log3 = EventLog(
+            client_id=client2.id,
+            event_name="Facebook:PageView",
+            status="success",
+            ip_address="10.0.0.1",
+            event_id="evt_003",
+            event_count=1,
+            created_at=datetime.now(timezone.utc)
+        )
+        session.add(log1)
+        session.add(log2)
+        session.add(log3)
+        await session.commit()
+        
+    client = TestClient(app)
+    headers = {"X-Admin-API-Key": "test-admin-api-key"}
+    
+    # 1. Test fetching all events
+    response = client.get("/api/v1/admin/api/events", headers=headers)
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "success"
+    assert data["totalCount"] == 3
+    assert len(data["events"]) == 3
+    
+    # 2. Test pagination limit
+    response = client.get("/api/v1/admin/api/events?limit=2", headers=headers)
+    assert response.status_code == 200
+    data = response.json()
+    assert data["totalCount"] == 3
+    assert len(data["events"]) == 2
+    
+    # 3. Test client ID filtering
+    response = client.get(f"/api/v1/admin/api/events?client_id={client1.id}", headers=headers)
+    assert response.status_code == 200
+    data = response.json()
+    assert data["totalCount"] == 2
+    assert all(e["client_id"] == client1.id for e in data["events"])
+    
+    # 4. Test platform filtering
+    response = client.get("/api/v1/admin/api/events?platform=GA4", headers=headers)
+    assert response.status_code == 200
+    data = response.json()
+    assert data["totalCount"] == 1
+    assert data["events"][0]["platform"] == "GA4"
+    
+    # 5. Test status filtering
+    response = client.get("/api/v1/admin/api/events?status=failed", headers=headers)
+    assert response.status_code == 200
+    data = response.json()
+    assert data["totalCount"] == 1
+    assert data["events"][0]["status"] == "Failed"
+    
+    # 6. Test search filter
+    response = client.get("/api/v1/admin/api/events?search=token", headers=headers)
+    assert response.status_code == 200
+    data = response.json()
+    assert data["totalCount"] == 1
+    assert "token" in data["events"][0]["responseBody"]["error"]["message"].lower()
+

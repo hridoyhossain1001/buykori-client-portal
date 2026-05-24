@@ -332,3 +332,128 @@ async def admin_api_login(payload: AdminLoginRequest):
 
     return {"status": "success", "admin_api_key": admin_key}
 
+@router.get("/admin/api/events")
+async def admin_api_events(
+    _: str = Depends(verify_admin_api_key),
+    db: AsyncSession = Depends(get_db),
+    limit: int = 100,
+    offset: int = 0,
+    client_id: int | None = None,
+    status: str | None = None,
+    platform: str | None = None,
+    search: str | None = None,
+):
+    from datetime import datetime, timezone
+    from sqlalchemy import desc
+
+    query = select(EventLog).order_by(desc(EventLog.created_at))
+    count_query = select(func.count(EventLog.id))
+
+    if client_id:
+        query = query.where(EventLog.client_id == client_id)
+        count_query = count_query.where(EventLog.client_id == client_id)
+
+    if status:
+        status_list = status.split(",")
+        db_statuses = [s.lower() for s in status_list]
+        query = query.where(EventLog.status.in_(db_statuses))
+        count_query = count_query.where(EventLog.status.in_(db_statuses))
+
+    if platform:
+        if platform == "GA4":
+            query = query.where(EventLog.event_name.like("GA4:%"))
+            count_query = count_query.where(EventLog.event_name.like("GA4:%"))
+        elif platform == "TikTok Events API":
+            query = query.where(EventLog.event_name.like("TikTok:%"))
+            count_query = count_query.where(EventLog.event_name.like("TikTok:%"))
+        elif platform == "Webhook":
+            query = query.where(EventLog.event_name.like("Webhook:%"))
+            count_query = count_query.where(EventLog.event_name.like("Webhook:%"))
+        elif platform == "Meta CAPI":
+            query = query.where(
+                (EventLog.event_name.like("Facebook:%")) | (~EventLog.event_name.contains(":"))
+            )
+            count_query = count_query.where(
+                (EventLog.event_name.like("Facebook:%")) | (~EventLog.event_name.contains(":"))
+            )
+
+    if search:
+        query = query.where(
+            EventLog.event_name.ilike(f"%{search}%") |
+            EventLog.ip_address.ilike(f"%{search}%") |
+            EventLog.error_message.ilike(f"%{search}%")
+        )
+        count_query = count_query.where(
+            EventLog.event_name.ilike(f"%{search}%") |
+            EventLog.ip_address.ilike(f"%{search}%") |
+            EventLog.error_message.ilike(f"%{search}%")
+        )
+
+    result = await db.execute(query.offset(offset).limit(limit))
+    logs = result.scalars().all()
+
+    count_r = await db.execute(count_query)
+    total_count = count_r.scalar() or 0
+
+    clients_r = await db.execute(select(Client))
+    clients = clients_r.scalars().all()
+    client_map = {c.id: c.name for c in clients}
+
+    events_list = []
+    for log in logs:
+        raw_event_name = log.event_name
+        log_platform = "Meta CAPI"
+        display_event_name = raw_event_name
+
+        if ":" in raw_event_name:
+            parts = raw_event_name.split(":", 1)
+            channel = parts[0]
+            display_event_name = parts[1]
+            if channel.lower() == "tiktok":
+                log_platform = "TikTok Events API"
+            elif channel.lower() == "ga4":
+                log_platform = "GA4"
+            elif channel.lower() in ("facebook", "capi", "meta"):
+                log_platform = "Meta CAPI"
+            elif channel.lower() == "webhook":
+                log_platform = "Webhook"
+
+        events_list.append({
+            "id": f"evt_{log.id}",
+            "client_id": log.client_id,
+            "client_name": client_map.get(log.client_id, f"Client #{log.client_id}"),
+            "timestamp": log.created_at.isoformat() if log.created_at else datetime.now(timezone.utc).isoformat(),
+            "name": display_event_name,
+            "platform": log_platform,
+            "status": "Success" if log.status == "success" else "Failed",
+            "httpCode": 200 if log.status == "success" else 400,
+            "deduplicationKey": log.event_id or f"did_{log.id}",
+            "payload": {
+                "event_name": display_event_name,
+                "event_time": int(log.created_at.timestamp()) if log.created_at else int(datetime.now().timestamp()),
+                "user_data": {
+                    "client_ip_address": log.ip_address or "127.0.0.1",
+                    "client_user_agent": "Mozilla/5.0"
+                },
+                "custom_data": {"value": log.value, "currency": log.currency or "BDT"} if log.value else {}
+            },
+            "headers": {
+                "Content-Type": "application/json",
+                "X-Client-IP": log.ip_address or "127.0.0.1"
+            },
+            "responseBody": {
+                "events_received": 1,
+                "status": "accepted",
+                "fb_trace_id": f"FBT_trace_{log.id}"
+            } if log.status == "success" else {
+                "error": {"message": log.error_message or "API execution failed", "code": 400}
+            },
+            "latencyMs": 45 + (log.id % 80)
+        })
+
+    return {
+        "status": "success",
+        "events": events_list,
+        "totalCount": total_count
+    }
+
