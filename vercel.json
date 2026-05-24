@@ -14,16 +14,8 @@
       "destination": "https://api.buykori.app/client"
     },
     {
-      "source": "/client/login",
-      "destination": "https://api.buykori.app/client/login"
-    },
-    {
-      "source": "/client/logout",
-      "destination": "https://api.buykori.app/client/logout"
-    },
-    {
-      "source": "/client/settings/update",
-      "destination": "https://api.buykori.app/client/settings/update"
+      "source": "/client/:path*",
+      "destination": "https://api.buykori.app/client/:path*"
     },
     {
       "source": "/((?!.*\\..*).*)",
