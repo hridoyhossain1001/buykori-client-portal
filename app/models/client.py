@@ -42,5 +42,13 @@ class Client(Base):
     event_rules = Column(JSON, nullable=True)                      # Custom routing rules for events (JSON)
     resolved_suggestions = Column(JSON, nullable=True)
     dismissed_suggestions = Column(JSON, nullable=True)
+    # ─── Courier Integration ─────────────────────────────────────────────
+    pathao_api_key = Column(String, nullable=True)                 # Pathao Merchant API Key
+    pathao_secret_key = Column(String, nullable=True)              # Pathao Secret (encrypted)
+    pathao_store_id = Column(String, nullable=True)                # Pathao Store ID
+    steadfast_api_key = Column(String, nullable=True)              # SteadFast API Key
+    steadfast_secret_key = Column(String, nullable=True)            # SteadFast Secret (encrypted)
+    courier_auto_send = Column(Boolean, default=False, nullable=False) # Confirm করলেই অটো Courier-এ পাঠাবে?
+    default_courier = Column(String, nullable=True)                # 'pathao' / 'steadfast'
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())

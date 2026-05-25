@@ -5,7 +5,7 @@ from typing import Optional, List
 from pydantic import BaseModel
 from fastapi import APIRouter, Depends, Request, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, and_, update, desc, cast, Float
+from sqlalchemy import select, func, and_, update, desc
 
 from app.database import get_db
 from app.models.client import Client
@@ -973,15 +973,21 @@ async def get_deferred_purchases(
     )
     confirmed_today = confirmed_today_r.scalar() or 0
 
-    # Calculate aggregate pending COD values using database func.sum() and func.min() instead of a paginated loop
-    sum_stmt = select(func.sum(cast(PendingEvent.event_data['custom_data']['value'], Float))).where(
-        and_(
-            PendingEvent.client_id == client.id,
-            PendingEvent.status == "pending"
+    value_rows = await db.execute(
+        select(PendingEvent.event_data).where(
+            and_(
+                PendingEvent.client_id == client.id,
+                PendingEvent.status == "pending",
+            )
         )
     )
-    sum_res = await db.execute(sum_stmt)
-    pending_value = sum_res.scalar() or 0.0
+    pending_value = 0.0
+    for event_data in value_rows.scalars().all():
+        custom_data = (event_data or {}).get("custom_data", {}) or {}
+        try:
+            pending_value += float(custom_data.get("value") or 0)
+        except (TypeError, ValueError):
+            pass
 
     oldest_stmt = select(func.min(PendingEvent.created_at)).where(
         and_(
@@ -1017,6 +1023,7 @@ async def get_deferred_purchases(
             customer_str = customer_em[0]
 
         pending_list.append({
+            "id": pe.id,
             "orderId": pe.order_id,
             "amount": custom_data.get("value", 0),
             "customer": customer_str,

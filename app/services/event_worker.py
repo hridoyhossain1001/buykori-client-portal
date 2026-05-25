@@ -256,6 +256,7 @@ if __name__ == "__main__":
     from app.services.cleanup_service import auto_cleanup_database
     from app.services.expiry_service import expire_old_pending_events
     from app.services.retry_service import retry_failed_events
+    from app.services.courier_status_worker import poll_courier_statuses_forever
 
     async def main() -> None:
         await asyncio.gather(
@@ -263,6 +264,7 @@ if __name__ == "__main__":
             retry_failed_events(),
             auto_cleanup_database(),
             expire_old_pending_events(),
+            poll_courier_statuses_forever(),
         )
 
     asyncio.run(main())

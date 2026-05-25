@@ -9,3 +9,4 @@ from app.models.audit_log import AuditLog  # noqa: F401
 from app.models.event_outbox import EventOutbox  # noqa: F401
 from app.models.client_user import ClientUser  # noqa: F401
 from app.models.client_session import ClientSession  # noqa: F401
+from app.models.courier_order import CourierOrder  # noqa: F401

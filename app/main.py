@@ -181,7 +181,7 @@ app.add_middleware(HerokuRedirectMiddleware)
 # Client Portal same-origin cookie ব্যবহার করে; public tracker CORS-এ credentials লাগে না।
 app.add_middleware(
     CORSMiddleware,
-    allow_origin_regex=r"https://.*|http://localhost(:\d+)?|http://127\.0\.0\.1(:\d+)?",
+    allow_origin_regex=r"null|file://.*|https://.*|http://localhost(:\d+)?|http://127\.0\.0\.1(:\d+)?",
     allow_credentials=True,
     allow_methods=["GET", "POST", "PATCH", "OPTIONS"],
     allow_headers=[
@@ -191,6 +191,7 @@ app.add_middleware(
         "X-CAPI-Timestamp",
         "X-CAPI-Signature",
         "Content-Type",
+        "Authorization",
     ],
 )
 
@@ -208,11 +209,17 @@ app.include_router(client_auth_router, prefix="/api/v1", tags=["Client Auth"])
 from app.routers.client_api import router as client_api_router
 app.include_router(client_api_router, prefix="/api", tags=["Client Portal JSON API"])
 
+from app.routers.courier_api import router as courier_api_router
+app.include_router(courier_api_router, prefix="/api", tags=["Courier Management API"])
+
 from app.routers.plugin import router as plugin_router
 app.include_router(plugin_router, prefix="/api/v1", tags=["Plugin"])
 
 from app.routers.webhook import router as webhook_router
 app.include_router(webhook_router, prefix="/api/v1", tags=["Webhook"])
+
+from app.routers.courier_webhook import router as courier_webhook_router
+app.include_router(courier_webhook_router, prefix="/api", tags=["Courier Webhook API"])
 
 from app.routers.client_health import router as client_health_router
 app.include_router(client_health_router, prefix="/api/v1", tags=["Client Health"])
