@@ -12,7 +12,7 @@ import {
 } from 'lucide-react';
 import { Sidebar } from './components/Sidebar';
 import { Header } from './components/Header';
-import { CAPIEvent, APILog, Suggestion, Platform, EventRule, PlatformConfig, UserProfile, ClientConnection } from './types';
+import { CAPIEvent, APILog, Suggestion, Platform, EventRule, PlatformConfig, UserProfile, ClientConnection, OutboxItem } from './types';
 
 // Lazy-loaded modular views (code-splitting for smaller initial bundle)
 const DashboardView = lazy(() => import('./components/DashboardView').then(m => ({ default: m.DashboardView })));
@@ -55,6 +55,8 @@ export default function App() {
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [events, setEvents] = useState<CAPIEvent[]>([]);
   const [apiLogs, setApiLogs] = useState<APILog[]>([]);
+  const [outboxItems, setOutboxItems] = useState<OutboxItem[]>([]);
+  const [retryingOutboxIds, setRetryingOutboxIds] = useState<number[]>([]);
   const [deferredData, setDeferredData] = useState<any>(null);
   const [selectedOrderIds, setSelectedOrderIds] = useState<string[]>([]);
   const [deferredEnabled, setDeferredEnabled] = useState<boolean>(false);
@@ -225,7 +227,7 @@ export default function App() {
     try {
       // Parallel pull
       const [
-        resProf, resConn, resCreds, resRules, resSugg, resLogs, resApi, resDef
+        resProf, resConn, resCreds, resRules, resSugg, resLogs, resApi, resDef, resOutbox
       ] = await Promise.all([
         fetch('/api/profile'),
         fetch('/api/connection'),
@@ -234,7 +236,8 @@ export default function App() {
         fetch('/api/suggestions'),
         fetch(`/api/events?limit=100`),
         fetch(`/api/api-logs?limit=100`),
-        fetch('/api/deferred')
+        fetch('/api/deferred'),
+        fetch('/api/outbox?limit=25')
       ]);
 
       if (isAuthFailure([resProf, resConn, resCreds, resRules])) {
@@ -254,6 +257,7 @@ export default function App() {
       const dLogs = await resLogs.json();
       const dApi = await resApi.json();
       const dDef = await resDef.json();
+      const dOutbox = resOutbox.ok ? await resOutbox.json() : { items: [] };
 
       setProfile(dProf);
       setConnection(dConn);
@@ -262,6 +266,7 @@ export default function App() {
       setSuggestions(dSugg);
       setEvents(dLogs.events);
       setApiLogs(dApi.logs);
+      setOutboxItems(dOutbox.items || []);
       setDeferredData(dDef);
       setDeferredEnabled(dDef.deferredEnabled);
       setAutoConfirmDays(dDef.autoConfirmDays);
@@ -377,6 +382,24 @@ export default function App() {
     const data = await res.json();
     setConnection(data.connection);
     await loadSystemData(false);
+  };
+
+  const handleRetryOutbox = async (id: number) => {
+    setRetryingOutboxIds(prev => [...prev, id]);
+    try {
+      const res = await fetch(`/api/outbox/${id}/retry`, { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.detail || 'Retry request failed.');
+      }
+      setOutboxItems(prev => prev.map(item => item.id === id ? data.item : item));
+      showToast(`Outbox event #${id} queued for retry.`, false);
+      await loadSystemData(false);
+    } catch (err: any) {
+      showToast(err.message || 'Could not queue retry.', true);
+    } finally {
+      setRetryingOutboxIds(prev => prev.filter(x => x !== id));
+    }
   };
 
   const handleConfirmOrder = async (orderId: string) => {
@@ -950,6 +973,9 @@ export default function App() {
                 copiedStates={copiedStates}
                 handleCopy={handleCopy}
                 handleExportData={handleExportData}
+                outboxItems={outboxItems}
+                retryingOutboxIds={retryingOutboxIds}
+                handleRetryOutbox={handleRetryOutbox}
               />
             )}
 

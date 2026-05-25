@@ -5,9 +5,11 @@ import {
   RotateCcw, 
   ListChecks, 
   Check, 
-  Copy 
+  Copy,
+  AlertTriangle,
+  Loader2
 } from 'lucide-react';
-import { CAPIEvent } from '../types';
+import { CAPIEvent, OutboxItem } from '../types';
 
 // Helper function to safely escape regular expressions
 function escapeRegExp(str: string): string {
@@ -57,6 +59,9 @@ interface EventLogsViewProps {
   copiedStates: Record<string, boolean>;
   handleCopy: (text: string, labelId: string) => void;
   handleExportData: (format: 'csv' | 'json', type: 'events' | 'apilogs') => void;
+  outboxItems: OutboxItem[];
+  retryingOutboxIds: number[];
+  handleRetryOutbox: (id: number) => void;
 }
 
 export function EventLogsView({
@@ -74,10 +79,87 @@ export function EventLogsView({
   setExpandedEventId,
   copiedStates,
   handleCopy,
-  handleExportData
+  handleExportData,
+  outboxItems,
+  retryingOutboxIds,
+  handleRetryOutbox
 }: EventLogsViewProps) {
+  const failedOutboxItems = outboxItems.filter(item => item.status === 'dead' || item.status === 'queued' || item.status === 'processing');
+
   return (
     <div className="space-y-6">
+      {failedOutboxItems.length > 0 && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50/60 shadow-sm overflow-hidden dark:bg-amber-950/10 dark:border-amber-900/60">
+          <div className="px-4 sm:px-5 py-3 border-b border-amber-200/70 dark:border-amber-900/60 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2 min-w-0">
+              <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+              <div className="min-w-0">
+                <h3 className="text-xs font-bold uppercase tracking-widest text-amber-900 dark:text-amber-250">Failed outbox recovery</h3>
+                <p className="text-[11px] text-amber-800/70 dark:text-amber-300/70 truncate">{failedOutboxItems.length} delivery job{failedOutboxItems.length === 1 ? '' : 's'} need attention</p>
+              </div>
+            </div>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs min-w-[820px]">
+              <thead className="text-[10px] font-bold uppercase tracking-wider text-amber-900/70 dark:text-amber-250/70">
+                <tr>
+                  <th className="px-5 py-2.5">Job</th>
+                  <th className="px-5 py-2.5">Events</th>
+                  <th className="px-5 py-2.5">Status</th>
+                  <th className="px-5 py-2.5">Attempts</th>
+                  <th className="px-5 py-2.5">Last Error</th>
+                  <th className="px-5 py-2.5 text-right">Action</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-amber-200/70 dark:divide-amber-900/60 bg-white/60 dark:bg-slate-950/30">
+                {failedOutboxItems.map(item => {
+                  const retrying = retryingOutboxIds.includes(item.id);
+                  const canRetry = item.status !== 'processing' && item.status !== 'sent';
+                  return (
+                    <tr key={item.id}>
+                      <td className="px-5 py-3 font-mono text-amber-950 dark:text-amber-100">
+                        #{item.id}<br />
+                        <span className="text-[9px] text-amber-800/60 dark:text-amber-300/60">{new Date(item.createdAt).toLocaleString()}</span>
+                      </td>
+                      <td className="px-5 py-3 text-amber-950 dark:text-amber-100">
+                        <span className="font-semibold">{item.eventNames.join(', ')}</span><br />
+                        <span className="text-[10px] text-amber-800/60 dark:text-amber-300/60">{item.eventCount} event{item.eventCount === 1 ? '' : 's'}</span>
+                      </td>
+                      <td className="px-5 py-3">
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${
+                          item.status === 'dead' ? 'bg-rose-50 text-rose-700 border-rose-150 dark:bg-rose-950/20 dark:text-rose-400 dark:border-rose-900/60' :
+                          item.status === 'processing' ? 'bg-indigo-50 text-indigo-700 border-indigo-150 dark:bg-indigo-950/20 dark:text-indigo-350 dark:border-indigo-900/60' :
+                          'bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-950/30 dark:text-amber-300 dark:border-amber-900/60'
+                        }`}>
+                          {item.status}
+                        </span>
+                      </td>
+                      <td className="px-5 py-3 font-mono text-amber-950 dark:text-amber-100">{item.attempts}/{item.maxAttempts}</td>
+                      <td className="px-5 py-3 text-amber-950 dark:text-amber-100 max-w-xs">
+                        <span className="block max-h-9 overflow-hidden">{item.lastError || (item.nextAttemptAt ? `Next attempt ${new Date(item.nextAttemptAt).toLocaleString()}` : 'Waiting in queue')}</span>
+                      </td>
+                      <td className="px-5 py-3 text-right">
+                        <button
+                          onClick={() => handleRetryOutbox(item.id)}
+                          disabled={!canRetry || retrying}
+                          className={`inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold border transition-colors ${
+                            canRetry && !retrying
+                              ? 'bg-amber-600 text-white border-amber-600 hover:bg-amber-700'
+                              : 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed dark:bg-slate-900 dark:border-slate-800'
+                          }`}
+                        >
+                          {retrying ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RotateCcw className="w-3.5 h-3.5" />}
+                          Retry Now
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
       
       {/* Search & filters controls panel */}
       <div className="rounded-xl border border-slate-200 bg-white p-4 sm:p-5 shadow-sm space-y-4 dark:bg-slate-900 dark:border-slate-800">

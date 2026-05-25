@@ -14,7 +14,7 @@ import {
   generateEventData, 
   generateAPILogs 
 } from "./src/lib/mock-data.js";
-import { CAPIEvent, APILog, Suggestion, Platform, EventRule, PlatformConfig } from "./src/types.js";
+import { CAPIEvent, APILog, Suggestion, Platform, EventRule, PlatformConfig, OutboxItem } from "./src/types.js";
 
 
 async function startServer() {
@@ -66,6 +66,36 @@ async function startServer() {
   // Generate initial database of events & raw API logs
   let events = generateEventData();
   let apiLogs = generateAPILogs(events);
+  let outboxItems: OutboxItem[] = [
+    {
+      id: 901,
+      status: "dead",
+      attempts: 8,
+      maxAttempts: 8,
+      nextAttemptAt: null,
+      lastError: "Meta CAPI rejected the request: invalid or expired access token.",
+      createdAt: new Date(Date.now() - 3 * 3600000).toISOString(),
+      sentAt: null,
+      locked: false,
+      eventNames: ["Purchase"],
+      eventCount: 1,
+      eventIds: ["demo_purchase_retry_901"]
+    },
+    {
+      id: 902,
+      status: "queued",
+      attempts: 2,
+      maxAttempts: 8,
+      nextAttemptAt: new Date(Date.now() + 12 * 60000).toISOString(),
+      lastError: "TikTok Events API timed out on the previous attempt.",
+      createdAt: new Date(Date.now() - 42 * 60000).toISOString(),
+      sentAt: null,
+      locked: false,
+      eventNames: ["AddToCart", "InitiateCheckout"],
+      eventCount: 2,
+      eventIds: ["demo_cart_retry_902"]
+    }
+  ];
 
   // Helper: record a new tracking event
   function addTrackingEvent(name: string, platform: Platform, status: 'Success' | 'Failed' | 'Retry', httpCode: number, payload: any, customRes?: any) {
@@ -290,6 +320,32 @@ async function startServer() {
       logs: paginated,
       totalCount
     });
+  });
+
+  app.get("/api/outbox", (req, res) => {
+    const { limit = "25" } = req.query;
+    res.json({
+      items: outboxItems.slice(0, parseInt(limit as string)),
+      totalCount: outboxItems.length
+    });
+  });
+
+  app.post("/api/outbox/:id/retry", (req, res) => {
+    const id = Number(req.params.id);
+    const item = outboxItems.find(row => row.id === id);
+    if (!item) {
+      return res.status(404).json({ detail: "Outbox row not found." });
+    }
+    if (item.status === "processing") {
+      return res.status(409).json({ detail: "This event is already being processed." });
+    }
+    item.status = "queued";
+    item.nextAttemptAt = new Date().toISOString();
+    item.lastError = "";
+    if (item.attempts >= item.maxAttempts) {
+      item.maxAttempts = item.attempts + 1;
+    }
+    res.json({ success: true, item });
   });
 
   // Simulated live logs feed for toggle polling OR SSE proxy

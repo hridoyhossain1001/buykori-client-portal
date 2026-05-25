@@ -34,6 +34,21 @@ export interface APILog {
   responseBody: string;
 }
 
+export interface OutboxItem {
+  id: number;
+  status: 'queued' | 'processing' | 'dead' | 'sent';
+  attempts: number;
+  maxAttempts: number;
+  nextAttemptAt: string | null;
+  lastError: string;
+  createdAt: string;
+  sentAt: string | null;
+  locked: boolean;
+  eventNames: string[];
+  eventCount: number;
+  eventIds: string[];
+}
+
 export interface PlatformConfig {
   enabled: boolean;
   pixelIdOrMeasurementId: string;
