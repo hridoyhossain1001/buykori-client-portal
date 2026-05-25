@@ -25,6 +25,7 @@ const SetupGuideView = lazy(() => import('./components/SetupGuideView').then(m =
 const SuggestionsView = lazy(() => import('./components/SuggestionsView').then(m => ({ default: m.SuggestionsView })));
 const CampaignBuilderView = lazy(() => import('./components/CampaignBuilderView').then(m => ({ default: m.CampaignBuilderView })));
 const AccountView = lazy(() => import('./components/AccountView').then(m => ({ default: m.AccountView })));
+const OrdersView = lazy(() => import('./components/OrdersView').then(m => ({ default: m.OrdersView })));
 
 export default function App() {
   const [activePage, setActivePage] = useState<string>('dashboard');
@@ -927,6 +928,17 @@ export default function App() {
                 setAutoConfirmStatus={setAutoConfirmStatus}
                 savingDeferredSettings={savingDeferredSettings}
                 handleSaveDeferredSettings={handleSaveDeferredSettings}
+              />
+            )}
+
+            {/* PAGE 11: ORDERS & COURIER */}
+            {activePage === 'orders' && deferredData && (
+              <OrdersView 
+                deferredData={deferredData}
+                fetchDeferred={fetchDeferred}
+                handleConfirmOrder={handleConfirmOrder}
+                handleCancelOrder={handleCancelOrder}
+                showToast={showToast}
               />
             )}
 

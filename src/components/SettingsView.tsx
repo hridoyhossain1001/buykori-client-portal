@@ -62,6 +62,59 @@ export function SettingsView({
       });
     }
   }, [credentials]);
+
+  // Courier Settings States
+  const [courierSettings, setCourierSettings] = useState<any>({
+    pathao_api_key: '',
+    pathao_secret_key: '',
+    pathao_store_id: '',
+    steadfast_api_key: '',
+    steadfast_secret_key: '',
+    courier_auto_send: false,
+    default_courier: 'steadfast'
+  });
+  const [loadingCourier, setLoadingCourier] = useState<boolean>(true);
+  const [savingCourier, setSavingCourier] = useState<boolean>(false);
+
+  useEffect(() => {
+    const fetchCourierSettings = async () => {
+      try {
+        const res = await fetch('/api/courier/settings');
+        if (res.ok) {
+          const data = await res.json();
+          setCourierSettings(data);
+        }
+      } catch (err) {
+        console.error("Failed to load courier settings", err);
+      } finally {
+        setLoadingCourier(false);
+      }
+    };
+    fetchCourierSettings();
+  }, []);
+
+  const handleSaveCourierSettings = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSavingCourier(true);
+    try {
+      const res = await fetch('/api/courier/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(courierSettings)
+      });
+      if (res.ok) {
+        showToast("Courier settings updated successfully.", false);
+      } else {
+        const errData = await res.json();
+        showToast(errData.detail || "Failed to update courier settings.", true);
+      }
+    } catch (err) {
+      showToast("Error updating courier settings.", true);
+    } finally {
+      setSavingCourier(false);
+    }
+  };
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
       
@@ -152,6 +205,143 @@ export function SettingsView({
               </div>
             );
           })}
+        </div>
+
+        {/* Courier Settings Panel */}
+        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-6 dark:bg-slate-900 dark:border-slate-800">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div>
+              <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wide dark:text-white">Courier Integration Credentials</h3>
+              <p className="text-xs text-slate-400 dark:text-slate-500">Configure API credentials and settings for Pathao & SteadFast courier APIs</p>
+            </div>
+            
+            {/* Auto send toggle */}
+            <div className="flex items-center gap-4">
+              <label className="relative inline-flex items-center cursor-pointer select-none">
+                <input 
+                  type="checkbox" 
+                  checked={courierSettings.courier_auto_send}
+                  onChange={(e) => setCourierSettings((prev: any) => ({ ...prev, courier_auto_send: e.target.checked }))} 
+                  className="sr-only peer"
+                />
+                <div className="w-9 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600" />
+                <span className="ml-2 text-[10px] font-semibold text-slate-500 uppercase dark:text-slate-400">
+                  Auto-Book Courier: {courierSettings.courier_auto_send ? 'On' : 'Off'}
+                </span>
+              </label>
+            </div>
+          </div>
+
+          {loadingCourier ? (
+            <div className="flex items-center justify-center py-6 text-slate-400 gap-2">
+              <span className="animate-spin h-4 w-4 border-2 border-indigo-500 border-t-transparent rounded-full" />
+              <span>Loading configurations...</span>
+            </div>
+          ) : (
+            <form onSubmit={handleSaveCourierSettings} className="space-y-6">
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* SteadFast section */}
+                <div className="p-4 rounded-lg border border-slate-150 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/20 space-y-4">
+                  <h4 className="font-bold text-xs text-indigo-650 dark:text-indigo-400 uppercase tracking-wider pb-2 border-b border-slate-100 dark:border-slate-850">
+                    SteadFast Courier API
+                  </h4>
+                  
+                  <div>
+                    <label className="block text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase mb-1">SteadFast API Key</label>
+                    <input 
+                      type="text"
+                      value={courierSettings.steadfast_api_key || ''}
+                      onChange={(e) => setCourierSettings((prev: any) => ({ ...prev, steadfast_api_key: e.target.value }))}
+                      placeholder="Enter SteadFast Api-Key"
+                      className="w-full p-2 text-xs bg-white border border-slate-205 rounded font-mono text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-slate-900 dark:border-slate-800 dark:text-white"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase mb-1">SteadFast Secret Key</label>
+                    <input 
+                      type="password"
+                      value={courierSettings.steadfast_secret_key || ''}
+                      onChange={(e) => setCourierSettings((prev: any) => ({ ...prev, steadfast_secret_key: e.target.value }))}
+                      placeholder="************************"
+                      className="w-full p-2 text-xs bg-white border border-slate-205 rounded font-mono text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-slate-900 dark:border-slate-800 dark:text-white"
+                    />
+                  </div>
+                </div>
+
+                {/* Pathao section */}
+                <div className="p-4 rounded-lg border border-slate-150 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/20 space-y-4">
+                  <h4 className="font-bold text-xs text-indigo-650 dark:text-indigo-400 uppercase tracking-wider pb-2 border-b border-slate-100 dark:border-slate-850">
+                    Pathao Courier API
+                  </h4>
+                  
+                  <div>
+                    <label className="block text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase mb-1">
+                      Pathao Client ID | Store Owner Email
+                    </label>
+                    <input 
+                      type="text"
+                      value={courierSettings.pathao_api_key || ''}
+                      onChange={(e) => setCourierSettings((prev: any) => ({ ...prev, pathao_api_key: e.target.value }))}
+                      placeholder="client_id|email"
+                      className="w-full p-2 text-xs bg-white border border-slate-205 rounded font-mono text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-slate-900 dark:border-slate-800 dark:text-white"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase mb-1">
+                      Pathao Client Secret | Store Password
+                    </label>
+                    <input 
+                      type="password"
+                      value={courierSettings.pathao_secret_key || ''}
+                      onChange={(e) => setCourierSettings((prev: any) => ({ ...prev, pathao_secret_key: e.target.value }))}
+                      placeholder="************************"
+                      className="w-full p-2 text-xs bg-white border border-slate-205 rounded font-mono text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-slate-900 dark:border-slate-800 dark:text-white"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase mb-1">Pathao Store ID</label>
+                    <input 
+                      type="text"
+                      value={courierSettings.pathao_store_id || ''}
+                      onChange={(e) => setCourierSettings((prev: any) => ({ ...prev, pathao_store_id: e.target.value }))}
+                      placeholder="Store ID"
+                      className="w-full p-2 text-xs bg-white border border-slate-205 rounded font-mono text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-slate-900 dark:border-slate-800 dark:text-white"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* General courier choices */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Default Courier Provider</label>
+                  <select 
+                    value={courierSettings.default_courier || 'steadfast'}
+                    onChange={(e) => setCourierSettings((prev: any) => ({ ...prev, default_courier: e.target.value }))}
+                    className="w-full p-2 text-xs bg-white border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 dark:bg-slate-900 dark:border-slate-800 dark:text-white cursor-pointer"
+                  >
+                    <option value="steadfast">SteadFast Courier</option>
+                    <option value="pathao">Pathao Courier</option>
+                  </select>
+                </div>
+                
+                <div className="flex items-end">
+                  <button
+                    type="submit"
+                    disabled={savingCourier}
+                    className="w-full py-2.5 bg-gradient-to-r from-indigo-650 to-violet-650 hover:from-indigo-750 hover:to-violet-750 disabled:opacity-50 text-white text-xs font-bold rounded-lg shadow-md transition-all cursor-pointer text-center"
+                  >
+                    {savingCourier ? 'Updating settings...' : 'Save Courier Settings'}
+                  </button>
+                </div>
+              </div>
+
+            </form>
+          )}
         </div>
 
         {/* WordPress Custom tracking rules */}

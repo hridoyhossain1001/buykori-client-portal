@@ -18,7 +18,8 @@ import {
   ShieldCheck,
   TrendingUp,
   Terminal,
-  X
+  X,
+  Truck
 } from 'lucide-react';
 import { UserProfile } from '../types';
 
@@ -48,6 +49,7 @@ export function Sidebar({
     { id: 'dashboard', name: 'Dashboard', icon: LayoutDashboard },
     { id: 'analytics', name: 'Analytics', icon: TrendingUp },
     { id: 'pending-purchases', name: 'COD Protection', icon: ShieldCheck },
+    { id: 'orders', name: 'Orders & Courier', icon: Truck },
     { id: 'event-logs', name: 'Event Logs', icon: ListChecks },
     { id: 'api-logs', name: 'API Logs', icon: Terminal },
     { id: 'campaign-builder', name: 'Campaign Builder', icon: Megaphone },
@@ -55,6 +57,7 @@ export function Sidebar({
     { id: 'settings', name: 'Settings', icon: Settings2 },
     { id: 'setup-guide', name: 'Setup Guide', icon: BookOpen },
   ];
+
 
   const formatQuota = (num: number) => {
     if (num >= 1000) {

@@ -103,3 +103,30 @@ export interface CampaignPayload {
   userAgent?: string;
   customParams?: Record<string, any>;
 }
+
+export interface CourierSettings {
+  pathao_api_key?: string;
+  pathao_secret_key?: string;
+  pathao_store_id?: string;
+  steadfast_api_key?: string;
+  steadfast_secret_key?: string;
+  courier_auto_send: boolean;
+  default_courier?: string;
+}
+
+export interface CourierOrder {
+  id: number;
+  order_id: string;
+  courier_provider: string;
+  courier_order_id?: string;
+  courier_tracking_id?: string;
+  courier_status: string;
+  recipient_name?: string;
+  recipient_phone?: string;
+  recipient_address?: string;
+  cod_amount: number;
+  delivery_charge: number;
+  created_at: string;
+  purchase_event_sent: boolean;
+}
+
