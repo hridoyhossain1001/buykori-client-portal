@@ -16,7 +16,7 @@ export const initialProfile: UserProfile = {
 };
 
 export const initialConnection: ClientConnection = {
-  token: "capi_tkn_8f172ea2d6ec4e9cb54b830d99dc07421f",
+  token: "",
   wpVersion: "6.4.3",
   lastHeartbeat: "2026-05-24T13:10:12Z",
   status: "Active",

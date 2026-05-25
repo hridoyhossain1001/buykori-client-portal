@@ -8,6 +8,7 @@ interface SetupGuideViewProps {
   copiedStates: Record<string, boolean>;
   handleCopy: (text: string, labelId: string) => void;
   setActivePage: (page: string) => void;
+  api_key?: string;
 }
 
 export function SetupGuideView({
@@ -15,8 +16,12 @@ export function SetupGuideView({
   setFaqExpanded,
   copiedStates,
   handleCopy,
-  setActivePage
+  setActivePage,
+  api_key
 }: SetupGuideViewProps) {
+  const apiToken = api_key?.trim() || '';
+  const hasApiToken = apiToken.length > 0;
+
   return (
     <div className="space-y-6">
       
@@ -24,7 +29,7 @@ export function SetupGuideView({
       <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:bg-slate-900 dark:border-slate-800">
         <div className="mb-6">
           <h2 className="font-bold text-slate-800 text-base uppercase tracking-wider dark:text-white">WooCommerce server Conversions API Integration Setup</h2>
-          <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">Deploy Conversions tracking client nodes inside your self-hosted WordPress panel in under 5 minutes.</p>
+          <p className="text-xs text-slate-400 dark:text-slate-550 mt-1">Deploy Conversions tracking client nodes inside your self-hosted WordPress panel in under 5 minutes.</p>
         </div>
 
         <div className="space-y-8 relative before:absolute before:left-4 before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-100 dark:before:bg-slate-800">
@@ -53,15 +58,21 @@ export function SetupGuideView({
                 Paste your unique cloud token below inside the WordPress client panel bridge key fields parameters.
               </p>
               <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-950 p-2 border border-slate-200 dark:border-slate-800 rounded font-mono text-xs text-slate-800 dark:text-slate-300 max-w-md">
-                <code className="truncate">capi_tkn_8f172ea2d6ec4e9cb54b830d99dc07421f</code>
+                <code className="truncate">{hasApiToken ? apiToken : 'Setup token unavailable'}</code>
                 <button 
-                  onClick={() => handleCopy('capi_tkn_8f172ea2d6ec4e9cb54b830d99dc07421f', 'c_g_tkn')}
-                  className="text-slate-400 hover:text-slate-650 ml-auto shrink-0 cursor-pointer"
-                  title="Copy setup token"
+                  onClick={() => hasApiToken && handleCopy(apiToken, 'c_g_tkn')}
+                  disabled={!hasApiToken}
+                  className="text-slate-400 hover:text-slate-650 ml-auto shrink-0 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                  title={hasApiToken ? "Copy setup token" : "Setup token unavailable"}
                 >
                   {copiedStates['c_g_tkn'] ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
                 </button>
               </div>
+              {!hasApiToken && (
+                <p className="text-xs text-amber-700 dark:text-amber-400 max-w-3xl leading-relaxed">
+                  The setup token has not loaded for this account. Refresh the portal or contact support before configuring the WordPress plugin.
+                </p>
+              )}
             </div>
           </div>
 

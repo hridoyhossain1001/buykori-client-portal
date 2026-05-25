@@ -16,6 +16,7 @@ interface AccountViewProps {
   setPassCurrent: (v: string) => void;
   passNew: string;
   setPassNew: (v: string) => void;
+  submitPasswordUpdate: () => Promise<void>;
   confirmRevokeText: string;
   setConfirmRevokeText: (v: string) => void;
   confirmDeleteText: string;
@@ -40,6 +41,7 @@ export function AccountView({
   setPassCurrent,
   passNew,
   setPassNew,
+  submitPasswordUpdate,
   confirmRevokeText,
   setConfirmRevokeText,
   confirmDeleteText,
@@ -135,15 +137,7 @@ export function AccountView({
 
             <div className="pt-2 text-right">
               <button 
-                onClick={() => {
-                  if (!passCurrent || !passNew) {
-                    showToast("Please complete current and new password constraints.", true);
-                    return;
-                  }
-                  showToast("Secure credentials modified successfully.", false);
-                  setPassCurrent('');
-                  setPassNew('');
-                }}
+                onClick={submitPasswordUpdate}
                 className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-lg transition-colors shadow-sm cursor-pointer"
               >
                 Update password key
@@ -190,7 +184,7 @@ export function AccountView({
             <div className="pt-5 space-y-3">
               <h4 className="font-bold text-xs text-rose-800 dark:text-rose-400 uppercase tracking-widest">Delete account request</h4>
               <p className="text-xs text-rose-700 dark:text-rose-500 leading-relaxed max-w-2xl">
-                Erase trace logs, analytical reports, billing data and routing keys. This operation is irreversible and permanent.
+                Account deletion is not self-service in this portal yet. Contact support to request permanent removal of trace logs, analytical reports, billing data and routing keys.
               </p>
 
               <div className="flex flex-col sm:flex-row gap-3">
@@ -206,7 +200,7 @@ export function AccountView({
                   onClick={handleDeleteAccountRequest}
                   className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-lg transition-colors shadow cursor-pointer whitespace-nowrap"
                 >
-                  Execute Erase checklist
+                  Contact support for deletion
                 </button>
               </div>
             </div>
@@ -224,7 +218,7 @@ export function AccountView({
           <div>
             <span className="text-[10px] font-bold text-indigo-650 dark:text-indigo-400 uppercase tracking-wider block">Enterprise Account details</span>
             <h3 className="text-lg font-bold text-slate-800 dark:text-white mt-1">{profile.plan}</h3>
-            <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">Renews securely auto-billed via Stripe</p>
+            <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">Billing changes are handled by support</p>
           </div>
 
           <div className="space-y-2 text-xs text-slate-700 dark:text-slate-300 font-medium">
@@ -254,11 +248,11 @@ export function AccountView({
                 <span className="text-[10px] text-indigo-650 dark:text-indigo-400 mt-1 leading-none">250k Events / mo</span>
                 <span className="text-xs font-mono font-extrabold mt-3 text-indigo-700 dark:text-indigo-400">$99 / mo</span>
                 <button 
-                  onClick={() => showToast("Redirecting securely to Stripe upgrade checkout...", false)}
+                  onClick={() => showToast("Billing checkout is not connected yet. Contact support@buykori.app to change plans.", true)}
                   className="mt-3 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded font-semibold text-[10px] cursor-pointer"
                   type="button"
                 >
-                  Select Plan
+                  Contact Support
                 </button>
               </div>
 
@@ -267,11 +261,11 @@ export function AccountView({
                 <span className="text-[10px] text-slate-450 dark:text-slate-500 mt-1 leading-none font-medium">Enterprise CAPI custom</span>
                 <span className="text-xs font-mono font-extrabold mt-3 text-slate-705 dark:text-slate-300">Contact Us</span>
                 <button 
-                  onClick={() => showToast("Contacting sales team at enterprise@capi.io to customize quotas...", false)}
+                  onClick={() => showToast("Custom billing requests are not automated here. Contact support@buykori.app.", true)}
                   className="mt-3 py-1 bg-slate-800 hover:bg-slate-900 dark:bg-slate-700 dark:hover:bg-slate-650 text-white rounded font-semibold text-[10px] cursor-pointer"
                   type="button"
                 >
-                  Custom Request
+                  Contact Support
                 </button>
               </div>
             </div>

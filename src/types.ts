@@ -54,6 +54,7 @@ export interface ClientConnection {
   wpVersion: string;
   lastHeartbeat: string;
   status: 'Active' | 'Degraded' | 'Disconnected';
+  api_key?: string;
 }
 
 export interface UserProfile {

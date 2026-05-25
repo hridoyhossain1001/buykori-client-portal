@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Copy, Check } from 'lucide-react';
 import { Platform, PlatformConfig, EventRule, ClientConnection } from '../types';
 
@@ -25,6 +25,43 @@ export function SettingsView({
   handleCopy,
   showToast
 }: SettingsViewProps) {
+  // Local state for inputs to prevent key-stroke POST spamming
+  const [localPixelIds, setLocalPixelIds] = useState<Record<Platform, string>>({
+    'Meta CAPI': '',
+    'TikTok Events API': '',
+    'GA4': ''
+  });
+  const [localTokens, setLocalTokens] = useState<Record<Platform, string>>({
+    'Meta CAPI': '',
+    'TikTok Events API': '',
+    'GA4': ''
+  });
+  const [localTestCodes, setLocalTestCodes] = useState<Record<Platform, string>>({
+    'Meta CAPI': '',
+    'TikTok Events API': '',
+    'GA4': ''
+  });
+
+  // Sync with credentials prop when it loads/updates
+  useEffect(() => {
+    if (credentials) {
+      setLocalPixelIds({
+        'Meta CAPI': credentials['Meta CAPI']?.pixelIdOrMeasurementId || '',
+        'TikTok Events API': credentials['TikTok Events API']?.pixelIdOrMeasurementId || '',
+        'GA4': credentials['GA4']?.pixelIdOrMeasurementId || ''
+      });
+      setLocalTokens({
+        'Meta CAPI': credentials['Meta CAPI']?.accessToken || '',
+        'TikTok Events API': credentials['TikTok Events API']?.accessToken || '',
+        'GA4': credentials['GA4']?.accessToken || ''
+      });
+      setLocalTestCodes({
+        'Meta CAPI': credentials['Meta CAPI']?.testEventCode || '',
+        'TikTok Events API': credentials['TikTok Events API']?.testEventCode || '',
+        'GA4': credentials['GA4']?.testEventCode || ''
+      });
+    }
+  }, [credentials]);
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
       
@@ -75,10 +112,12 @@ export function SettingsView({
                     <label className="block text-[10px] font-semibold text-slate-450 uppercase mb-1">Pixel ID / Measurement ID</label>
                     <input 
                       type="text"
-                      value={config.pixelIdOrMeasurementId}
+                      value={localPixelIds[plat]}
                       placeholder="e.g. 782049182390"
-                      onChange={(e) => handleUpdatePlatform(plat, { pixelIdOrMeasurementId: e.target.value })}
-                      className="w-full p-2 text-xs bg-white border border-slate-200 rounded font-mono text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-slate-900 dark:border-slate-800 dark:text-white"
+                      onChange={(e) => setLocalPixelIds(prev => ({ ...prev, [plat]: e.target.value }))}
+                      onBlur={() => handleUpdatePlatform(plat, { pixelIdOrMeasurementId: localPixelIds[plat] })}
+                      onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); }}
+                      className="w-full p-2 text-xs bg-white border border-slate-205 rounded font-mono text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-slate-900 dark:border-slate-800 dark:text-white"
                     />
                   </div>
                   
@@ -86,10 +125,12 @@ export function SettingsView({
                     <label className="block text-[10px] font-semibold text-slate-455 uppercase mb-1">CAPI Access secret Token</label>
                     <input 
                       type="password"
-                      value={config.accessToken}
+                      value={localTokens[plat]}
                       placeholder="************************"
-                      onChange={(e) => handleUpdatePlatform(plat, { accessToken: e.target.value })}
-                      className="w-full p-2 text-xs bg-white border border-slate-200 rounded font-mono text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-slate-900 dark:border-slate-800 dark:text-white"
+                      onChange={(e) => setLocalTokens(prev => ({ ...prev, [plat]: e.target.value }))}
+                      onBlur={() => handleUpdatePlatform(plat, { accessToken: localTokens[plat] })}
+                      onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); }}
+                      className="w-full p-2 text-xs bg-white border border-slate-205 rounded font-mono text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-slate-900 dark:border-slate-800 dark:text-white"
                     />
                   </div>
 
@@ -98,10 +139,12 @@ export function SettingsView({
                       <label className="block text-[10px] font-semibold text-slate-455 uppercase mb-1">Test Event Code (Optional)</label>
                       <input 
                         type="text"
-                        value={config.testEventCode || ''}
+                        value={localTestCodes[plat]}
                         placeholder="e.g. TEST12345"
-                        onChange={(e) => handleUpdatePlatform(plat, { testEventCode: e.target.value })}
-                        className="w-full p-2 text-xs bg-white border border-slate-200 rounded font-mono text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-slate-900 dark:border-slate-800 dark:text-white"
+                        onChange={(e) => setLocalTestCodes(prev => ({ ...prev, [plat]: e.target.value }))}
+                        onBlur={() => handleUpdatePlatform(plat, { testEventCode: localTestCodes[plat] })}
+                        onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); }}
+                        className="w-full p-2 text-xs bg-white border border-slate-205 rounded font-mono text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-slate-900 dark:border-slate-800 dark:text-white"
                       />
                     </div>
                   )}
@@ -179,12 +222,12 @@ export function SettingsView({
 
           <div className="p-4 rounded-lg bg-slate-50 border border-slate-150 dark:bg-slate-950 dark:border-slate-850 space-y-3 font-mono text-xs text-slate-700 dark:text-slate-305">
             <div>
-              <span className="block text-[9px] font-semibold text-slate-450 dark:text-slate-500 uppercase tracking-wider mb-0.5">REST API Access key token</span>
+              <span className="block text-[9px] font-semibold text-slate-455 dark:text-slate-500 uppercase tracking-wider mb-0.5">REST API Access key token</span>
               <div className="flex items-center gap-2 bg-white dark:bg-slate-900 px-2 py-1.5 rounded border border-slate-200 dark:border-slate-800">
-                <span className="truncate select-all">{connection.token}</span>
+                <span className="truncate select-all">{connection.api_key || connection.token}</span>
                 <button 
-                  onClick={() => handleCopy(connection.token, 'sett_wp_tok')}
-                  className="text-slate-400 hover:text-slate-650 ml-auto shrink-0 cursor-pointer"
+                  onClick={() => handleCopy(connection.api_key || connection.token, 'sett_wp_tok')}
+                  className="text-slate-400 hover:text-slate-655 ml-auto shrink-0 cursor-pointer"
                   title="Copy Access token"
                 >
                   {copiedStates['sett_wp_tok'] ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}

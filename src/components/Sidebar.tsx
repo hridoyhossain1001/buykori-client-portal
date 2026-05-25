@@ -30,6 +30,7 @@ interface SidebarProps {
   setCollapsed: (collapsed: boolean) => void;
   mobileOpen: boolean;
   setMobileOpen: (open: boolean) => void;
+  onLogout: () => Promise<void>;
 }
 
 export function Sidebar({ 
@@ -39,7 +40,8 @@ export function Sidebar({
   collapsed,
   setCollapsed,
   mobileOpen,
-  setMobileOpen
+  setMobileOpen,
+  onLogout
 }: SidebarProps) {
 
   const menuItems = [
@@ -200,7 +202,7 @@ export function Sidebar({
         <button 
           onClick={() => {
             if (window.confirm("Are you sure you want to logout and disconnect?")) {
-              window.location.href = '/client/logout';
+              onLogout();
             }
           }}
           className={`flex items-center w-full text-slate-500 hover:text-rose-600 dark:text-slate-400 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/20 rounded-lg text-sm font-medium transition-all duration-200 group ${

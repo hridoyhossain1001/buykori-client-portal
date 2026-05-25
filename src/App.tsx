@@ -178,6 +178,19 @@ export default function App() {
     window.location.assign('/client');
   };
 
+  const handleClientLogout = async () => {
+    try {
+      await fetch('/api/v1/auth/client/logout', {
+        method: 'POST',
+        credentials: 'include'
+      });
+    } catch (err) {
+      console.error("Client logout endpoint failed before redirect", err);
+    } finally {
+      redirectToClientLogin();
+    }
+  };
+
   const isAuthFailure = (responses: Response[]) => {
     return responses.some(res => res.status === 401 || res.status === 403);
   };
@@ -300,8 +313,6 @@ export default function App() {
           const data = await res.json();
           if (data.event) {
             setEvents(prev => [data.event, ...prev]);
-            // Refresh stats list in silent background mode to update progress bars
-            loadSystemData(false);
           }
         } catch (err) {
           console.error("Live packet error: ", err);
@@ -628,8 +639,35 @@ export default function App() {
       showToast("Verification word mismatch. Enter 'DELETE' exactly.", true);
       return;
     }
-    showToast("Sandbox account request recorded. Our representative will follow up.", false);
+    showToast("Account deletion is not connected in this portal. Contact support@buykori.app.", true);
     setConfirmDeleteText('');
+  };
+
+  const submitPasswordUpdate = async () => {
+    if (!passCurrent || !passNew) {
+      showToast("Please enter your current and new password.", true);
+      return;
+    }
+    if (passNew.length < 8) {
+      showToast("New password must be at least 8 characters.", true);
+      return;
+    }
+    try {
+      const res = await fetch('/api/account/password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ currentPassword: passCurrent, newPassword: passNew })
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.detail || 'Password update failed.');
+      }
+      setPassCurrent('');
+      setPassNew('');
+      showToast("Password updated successfully.", false);
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : "Password update failed.", true);
+    }
   };
 
   // Export utility for logs
@@ -753,6 +791,7 @@ export default function App() {
           setCollapsed={setSidebarCollapsed}
           mobileOpen={mobileSidebarOpen}
           setMobileOpen={setMobileSidebarOpen}
+          onLogout={handleClientLogout}
         />
       )}
 
@@ -949,6 +988,7 @@ export default function App() {
                 copiedStates={copiedStates}
                 handleCopy={handleCopy}
                 setActivePage={setActivePage}
+                api_key={connection?.api_key}
               />
             )}
 
@@ -1023,6 +1063,7 @@ export default function App() {
                 setPassCurrent={setPassCurrent}
                 passNew={passNew}
                 setPassNew={setPassNew}
+                submitPasswordUpdate={submitPasswordUpdate}
                 confirmRevokeText={confirmRevokeText}
                 setConfirmRevokeText={setConfirmRevokeText}
                 confirmDeleteText={confirmDeleteText}
