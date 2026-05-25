@@ -86,9 +86,9 @@ echo "----------------------------------------------------------------------"
 echo "⚙️ Configure Environment Variables"
 echo "----------------------------------------------------------------------"
 
-# 1. Primary Domain
+# 1. Primary Domain(s)
 if [ -z "$PRIMARY_DOMAIN" ]; then
-    read -p "Enter your Primary Domain (e.g. api.buykori.app): " PRIMARY_DOMAIN
+    read -p "Enter your Domain(s) (space-separated, e.g. api.buykori.app client.buykori.app track.buykori.app): " PRIMARY_DOMAIN
     if [ -z "$PRIMARY_DOMAIN" ]; then
         PRIMARY_DOMAIN="api.buykori.app"
     fi
@@ -242,12 +242,26 @@ if [ -z "$DNS_READY" ]; then
     read -p "Is your DNS already pointed to this server IP ($PRIMARY_DOMAIN)? (y/n): " DNS_READY
 fi
 if [ "$DNS_READY" = "y" ] || [ "$DNS_READY" = "Y" ]; then
-    info "Requesting SSL Certificate from Let's Encrypt for $PRIMARY_DOMAIN..."
-    certbot --nginx -d "$PRIMARY_DOMAIN" --non-interactive --agree-tos --email "webmaster@$PRIMARY_DOMAIN" --redirect || warn "SSL generation failed. Ensure DNS is pointed and try again later using: certbot --nginx"
+    # Expand space-separated domains into individual -d flags
+    CERTBOT_DOMAINS=""
+    FIRST_DOMAIN=""
+    for domain in $PRIMARY_DOMAIN; do
+        CERTBOT_DOMAINS="$CERTBOT_DOMAINS -d $domain"
+        if [ -z "$FIRST_DOMAIN" ]; then
+            FIRST_DOMAIN="$domain"
+        fi
+    done
+    info "Requesting SSL Certificate from Let's Encrypt for: $PRIMARY_DOMAIN..."
+    certbot --nginx $CERTBOT_DOMAINS --non-interactive --agree-tos --email "webmaster@$FIRST_DOMAIN" --redirect || warn "SSL generation failed. Ensure DNS is pointed and try again later using: certbot --nginx"
     success "SSL configured."
 else
+    # Build manual certbot command output
+    CERTBOT_DOMAINS=""
+    for domain in $PRIMARY_DOMAIN; do
+        CERTBOT_DOMAINS="$CERTBOT_DOMAINS -d $domain"
+    done
     warn "Skipping SSL setup for now. Once your DNS is pointed to this server, run:"
-    echo "    sudo certbot --nginx -d $PRIMARY_DOMAIN"
+    echo "    sudo certbot --nginx$CERTBOT_DOMAINS"
 fi
 
 echo "======================================================================"

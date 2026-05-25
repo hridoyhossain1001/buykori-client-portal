@@ -121,7 +121,7 @@ async def client_login(
 
     redirect = RedirectResponse(url="/client/dashboard", status_code=303)
     user.last_login_at = datetime.datetime.now(datetime.timezone.utc)
-    await _create_session(db, user, redirect)
+    await _create_session(db, user, redirect, request)
     await db.commit()
     return redirect
 
@@ -195,17 +195,17 @@ async def client_signup_form(
     await db.flush()
 
     redirect = RedirectResponse(url="/client/dashboard", status_code=303)
-    await _create_session(db, user, redirect)
+    await _create_session(db, user, redirect, request)
     await db.commit()
     return redirect
 
 
 @router.get("/client/logout", include_in_schema=False)
-async def client_logout():
+async def client_logout(request: Request):
     redirect = RedirectResponse(url="/client", status_code=303)
     redirect.delete_cookie("client_session")
     redirect.delete_cookie("buykori_client_session", path="/")
-    _clear_session_cookie(redirect)
+    _clear_session_cookie(redirect, request)
     return redirect
 
 

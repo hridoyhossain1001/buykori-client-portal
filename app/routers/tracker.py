@@ -40,6 +40,26 @@ router = APIRouter()
 TRACKER_COOKIE_DOMAIN = os.getenv("TRACKER_COOKIE_DOMAIN", "").strip() or None
 
 
+def _get_tracker_cookie_domain(request: Request) -> str | None:
+    env_val = os.getenv("TRACKER_COOKIE_DOMAIN")
+    if env_val is not None:
+        val = env_val.strip()
+        if val.lower() in ("none", "null", "false", ""):
+            return None
+        return val
+        
+    host = (request.url.hostname or "").lower()
+    if not host or host in ("localhost", "127.0.0.1"):
+        return None
+        
+    parts = host.split(".")
+    if len(parts) >= 2:
+        if len(parts) >= 3 and len(parts[-2]) <= 3 and parts[-2] in {"com", "co", "org", "net", "gov", "edu"}:
+            return "." + ".".join(parts[-3:])
+        return "." + ".".join(parts[-2:])
+    return None
+
+
 # ─── Helper: API Key থেকে Client লোড (Query param version) ──────────────────
 async def _get_client_by_key(public_key: str, db: AsyncSession) -> CachedClient:
     """
@@ -321,6 +341,7 @@ async def collect_event(
     fbc_val = ud.get("fbc", "")
 
     cookie_max_age = 180 * 24 * 60 * 60  # 180 দিন (৬ মাস)
+    cookie_domain = _get_tracker_cookie_domain(request)
 
     if fbp_val:
         resp.set_cookie(
@@ -331,7 +352,7 @@ async def collect_event(
             secure=True,
             samesite="lax",
             path="/",
-            domain=TRACKER_COOKIE_DOMAIN,
+            domain=cookie_domain,
         )
     if fbc_val:
         resp.set_cookie(
@@ -342,7 +363,7 @@ async def collect_event(
             secure=True,
             samesite="lax",
             path="/",
-            domain=TRACKER_COOKIE_DOMAIN,
+            domain=cookie_domain,
         )
 
     return resp

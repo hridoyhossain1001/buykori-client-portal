@@ -93,8 +93,29 @@ def require_allowed_origin(request: Request) -> None:
         raise HTTPException(status_code=403, detail="Origin is not allowed.")
 
 
-def _set_session_cookie(response: Response, token: str) -> None:
+def _get_cookie_domain(request: Request) -> str | None:
+    env_val = os.getenv("CLIENT_COOKIE_DOMAIN")
+    if env_val is not None:
+        val = env_val.strip()
+        if val.lower() in ("none", "null", "false", ""):
+            return None
+        return val
+        
+    host = (request.url.hostname or "").lower()
+    if not host or host in ("localhost", "127.0.0.1"):
+        return None
+        
+    parts = host.split(".")
+    if len(parts) >= 2:
+        if parts[0] in ("api", "client", "track", "admin", "www"):
+            return "." + ".".join(parts[1:])
+        return "." + host
+    return None
+
+
+def _set_session_cookie(response: Response, token: str, request: Request) -> None:
     encrypted = encrypt_token(token)
+    domain = _get_cookie_domain(request)
     response.set_cookie(
         key=CLIENT_SESSION_COOKIE,
         value=encrypted,
@@ -102,15 +123,16 @@ def _set_session_cookie(response: Response, token: str) -> None:
         httponly=True,
         secure=COOKIE_SECURE,
         samesite=COOKIE_SAMESITE,
-        domain=COOKIE_DOMAIN or None,
+        domain=domain,
         path="/",
     )
 
 
-def _clear_session_cookie(response: Response) -> None:
+def _clear_session_cookie(response: Response, request: Request) -> None:
+    domain = _get_cookie_domain(request)
     response.delete_cookie(
         key=CLIENT_SESSION_COOKIE,
-        domain=COOKIE_DOMAIN or None,
+        domain=domain,
         path="/",
         secure=COOKIE_SECURE,
         httponly=True,
@@ -134,7 +156,7 @@ def _user_payload(user: ClientUser, client: Client) -> dict:
     }
 
 
-async def _create_session(db: AsyncSession, user: ClientUser, response: Response) -> None:
+async def _create_session(db: AsyncSession, user: ClientUser, response: Response, request: Request) -> None:
     token = new_session_token()
     expires_at = datetime.now(timezone.utc) + timedelta(days=SESSION_DAYS)
     db.add(ClientSession(
@@ -143,7 +165,7 @@ async def _create_session(db: AsyncSession, user: ClientUser, response: Response
         token_hash=hash_session_token(token),
         expires_at=expires_at,
     ))
-    _set_session_cookie(response, token)
+    _set_session_cookie(response, token, request)
 
 
 async def get_client_user_from_cookie(
@@ -228,7 +250,7 @@ async def client_signup(
     )
     db.add(user)
     await db.flush()
-    await _create_session(db, user, response)
+    await _create_session(db, user, response, request)
     await db.commit()
     await db.refresh(client)
     await db.refresh(user)
@@ -256,7 +278,7 @@ async def client_login(
         raise HTTPException(status_code=401, detail="Inactive workspace.")
 
     user.last_login_at = datetime.now(timezone.utc)
-    await _create_session(db, user, response)
+    await _create_session(db, user, response, request)
     await db.commit()
     return {"status": "success", "user": _user_payload(user, client)}
 
@@ -281,7 +303,7 @@ async def client_logout(
                 await db.commit()
         except Exception:
             pass
-    _clear_session_cookie(response)
+    _clear_session_cookie(response, request)
     return {"status": "success"}
 
 
