@@ -116,7 +116,8 @@ async def check_and_reserve_usage(
     Returns: dict of {window_key: event_count} — rollback-এ ব্যবহার হবে
     """
     now = datetime.now(timezone.utc)
-    rate_limit = client.rate_limit or 5000
+    # FOR LOAD TESTING ONLY: Temporarily set rate limit to 100,000 events/min
+    rate_limit = 100000
     reserved_keys: dict[str, int] = {}
 
     # ─── Per-Minute Rate Limit ─────────────────────────────────────────
@@ -140,14 +141,16 @@ async def check_and_reserve_usage(
         new_daily = await _atomic_reserve(db, client.id, daily_key, incoming_event_count)
         reserved_keys[daily_key] = incoming_event_count
 
-        if new_daily > client.daily_quota:
+        # FOR LOAD TESTING ONLY: Temporarily set daily quota to 10,000,000 events
+        temp_daily_quota = 10000000
+        if new_daily > temp_daily_quota:
             # Undo inside the current transaction; caller owns commit/rollback.
             for rk, rc in reserved_keys.items():
                 await _atomic_rollback(db, client.id, rk, rc)
             await db.flush()
             raise HTTPException(
                 status_code=429,
-                detail=f"Daily quota exceeded! Today {new_daily}/{client.daily_quota} events.",
+                detail=f"Daily quota exceeded! Today {new_daily}/{temp_daily_quota} events.",
             )
 
     # ─── Monthly Quota Check ───────────────────────────────────────────
@@ -157,14 +160,16 @@ async def check_and_reserve_usage(
         new_monthly = await _atomic_reserve(db, client.id, monthly_key, incoming_event_count)
         reserved_keys[monthly_key] = incoming_event_count
 
-        if new_monthly > monthly_limit:
+        # FOR LOAD TESTING ONLY: Temporarily set monthly limit to 100,000,000 events
+        temp_monthly_limit = 100000000
+        if new_monthly > temp_monthly_limit:
             # Undo inside the current transaction; caller owns commit/rollback.
             for rk, rc in reserved_keys.items():
                 await _atomic_rollback(db, client.id, rk, rc)
             await db.flush()
             raise HTTPException(
                 status_code=429,
-                detail=f"Monthly quota exceeded! This month {new_monthly}/{monthly_limit} events.",
+                detail=f"Monthly quota exceeded! This month {new_monthly}/{temp_monthly_limit} events.",
             )
 
     # সব limit pass — commit reservations
