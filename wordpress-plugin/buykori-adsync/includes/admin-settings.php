@@ -60,6 +60,7 @@ function buykorigw_sanitize_settings( $input ) {
     $sanitized = array();
     $sanitized['api_key']            = sanitize_text_field( $input['api_key'] ?? '' );
     $sanitized['gateway_url']        = esc_url_raw( $input['gateway_url'] ?? BUYKORIGW_DEFAULT_GATEWAY_URL );
+    $sanitized['low_resource_mode']  = isset( $input['low_resource_mode'] ) ? 1 : 0;
     // Core Events
     $sanitized['enable_pageview']       = isset( $input['enable_pageview'] ) ? 1 : 0;
     $sanitized['enable_lead']           = isset( $input['enable_lead'] ) ? 1 : 0;
@@ -262,6 +263,16 @@ function buykorigw_settings_page() {
                 <!-- Core Events -->
                 <div class="buykorigw-card">
                     <h2>📊 Core Events</h2>
+                    <div class="buykorigw-toggle">
+                        <label class="buykorigw-switch">
+                            <input type="checkbox"
+                                   name="<?php echo BUYKORIGW_OPTION_KEY; ?>[low_resource_mode]"
+                                   value="1"
+                                   <?php checked( $settings['low_resource_mode'] ?? 0, 1 ); ?>>
+                            <span class="buykorigw-slider"></span>
+                        </label>
+                        <label>Low-resource mode <span style="color:#888; font-size:12px;">— PageView, ViewContent, Search server-side বন্ধ রাখে</span></label>
+                    </div>
                     <p style="color:#666; font-size:13px; margin-bottom:16px;">সকল ধরনের ওয়েবসাইটের জন্য — ব্লগ, কর্পোরেট সাইট, ল্যান্ডিং পেজ, ই-কমার্স সবখানে কাজ করবে:</p>
 
                     <div class="buykorigw-events-grid">

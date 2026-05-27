@@ -68,6 +68,7 @@ function buykorigw_activate()
             'enable_addpaymentinfo' => 0,
             'enable_purchase' => 1,
             // Advanced
+            'low_resource_mode' => 0,
             'tracking_mode' => 'standard',
             'deferred_purchase' => 0,  // 1 = hold purchase until order completed
             'auto_confirm_status' => 'completed', // wc status that triggers confirm
@@ -223,6 +224,7 @@ function buykorigw_get_settings()
         'enable_addpaymentinfo' => 0,
         'enable_purchase' => 1,
         // Advanced
+        'low_resource_mode' => 0,
         'tracking_mode' => 'standard',
         'deferred_purchase' => 0,
         'auto_confirm_status' => 'completed',

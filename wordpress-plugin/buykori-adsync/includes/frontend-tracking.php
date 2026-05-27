@@ -65,6 +65,7 @@ function buykorigw_inject_tracker() {
     if ( empty( $settings['api_key'] ) ) {
         return;
     }
+    $low_resource_mode = ! empty( $settings['low_resource_mode'] );
 
     // Pass config to JS
     $tracker_data = array(
@@ -80,10 +81,10 @@ function buykorigw_inject_tracker() {
         'fb_pixel_id'  => isset( $settings['fb_pixel_id'] ) ? trim( $settings['fb_pixel_id'] ) : '',
         'tt_pixel_id'  => isset( $settings['tt_pixel_id'] ) ? trim( $settings['tt_pixel_id'] ) : '',
         'events'      => array(
-            'pageview'       => (bool) $settings['enable_pageview'],
+            'pageview'       => $low_resource_mode ? false : (bool) $settings['enable_pageview'],
             'lead'           => (bool) $settings['enable_lead'],
-            'search'         => (bool) $settings['enable_search'],
-            'viewcontent'    => (bool) $settings['enable_viewcontent'],
+            'search'         => $low_resource_mode ? false : (bool) $settings['enable_search'],
+            'viewcontent'    => $low_resource_mode ? false : (bool) $settings['enable_viewcontent'],
             'addtocart'      => (bool) $settings['enable_addtocart'],
             'viewcart'       => (bool) $settings['enable_viewcart'],
             'removefromcart' => (bool) $settings['enable_removefromcart'],
@@ -94,7 +95,7 @@ function buykorigw_inject_tracker() {
     );
 
     // Add product data if on a WooCommerce product page
-    if ( function_exists( 'is_product' ) && is_product() && $settings['enable_viewcontent'] ) {
+    if ( ! $low_resource_mode && function_exists( 'is_product' ) && is_product() && $settings['enable_viewcontent'] ) {
         global $product;
         if ( $product && is_a( $product, 'WC_Product' ) ) {
             $tracker_data['product'] = array(
@@ -138,9 +139,10 @@ function buykorigw_inject_tracker() {
     echo "window.buykorigw_config = " . wp_json_encode( $tracker_data ) . ";\n";
     echo "</script>\n";
 
-    echo "<script id='buykorigw-tracker-js'>\n";
-    echo buykorigw_get_tracker_js() . "\n";
-    echo "</script>\n";
+    $js_file = BUYKORIGW_PLUGIN_DIR . 'assets/js/tracker.js';
+    $version = file_exists( $js_file ) ? filemtime( $js_file ) : BUYKORIGW_VERSION;
+    $js_url  = plugins_url( 'assets/js/tracker.js', dirname( __FILE__ ) );
+    echo "<script id='buykorigw-tracker-js' src='" . esc_url( add_query_arg( 'ver', $version, $js_url ) ) . "' defer></script>\n";
 }
 
 // ─── Tracker JavaScript ────────────────────────────────────────────────────────
@@ -508,6 +510,20 @@ function buykorigw_track_purchase( $order_id ) {
             'content_type' => 'product',
             'num_items'    => $num_items,
             'order_id'     => (string) $order_id,
+        ),
+        'raw_order_data'   => array(
+            'recipient_name'    => trim( $order->get_billing_first_name() . ' ' . $order->get_billing_last_name() ),
+            'recipient_phone'   => $order->get_billing_phone(),
+            'recipient_address' => trim(
+                implode( ', ', array_filter( array(
+                    $order->get_shipping_address_1() ?: $order->get_billing_address_1(),
+                    $order->get_shipping_address_2() ?: $order->get_billing_address_2(),
+                    $order->get_shipping_city() ?: $order->get_billing_city(),
+                    $order->get_shipping_state() ?: $order->get_billing_state(),
+                    $order->get_shipping_postcode() ?: $order->get_billing_postcode(),
+                ) ) )
+            ),
+            'cod_amount'        => (float) $order->get_total(),
         ),
     );
 

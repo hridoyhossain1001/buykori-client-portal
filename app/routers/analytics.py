@@ -217,20 +217,21 @@ async def analytics_overview(
         pct = round((count / success * 100) if success > 0 else 0, 1)
         breakdown.append(EventBreakdown(event_name=name, count=count, percentage=pct))
 
-    # Conversion Funnel
+    # Conversion Funnel — single query instead of N+1 per event type
     funnel_events = ["PageView", "ViewContent", "AddToCart", "InitiateCheckout", "Purchase"]
-    funnel_counts = {}
-    for fe in funnel_events:
-        fr = await db.execute(
-            select(sql_func.coalesce(sql_func.sum(EventLog.event_count), 0))
-            .where(and_(
-                EventLog.client_id == client.id,
-                EventLog.event_name == fe,
-                EventLog.status == "success",
-                EventLog.created_at >= start,
-            ))
-        )
-        funnel_counts[fe] = fr.scalar() or 0
+    funnel_r = await db.execute(
+        select(EventLog.event_name, sql_func.coalesce(sql_func.sum(EventLog.event_count), 0))
+        .where(and_(
+            EventLog.client_id == client.id,
+            EventLog.event_name.in_(funnel_events),
+            EventLog.status == "success",
+            EventLog.created_at >= start,
+        ))
+        .group_by(EventLog.event_name)
+    )
+    funnel_counts = {fe: 0 for fe in funnel_events}
+    for row in funnel_r:
+        funnel_counts[row[0]] = row[1] or 0
 
     funnel = []
     prev_count = None
@@ -434,7 +435,7 @@ async def signal_doctor(
             EventLog.created_at >= start,
         ))
         .order_by(EventLog.created_at.desc())
-        .limit(10000)
+        .limit(5000)
     )
     logs = result.scalars().all()
     total = sum(int(log.event_count or 1) for log in logs)
@@ -608,7 +609,7 @@ async def analytics_export(
             EventLog.created_at >= start,
         ))
         .order_by(EventLog.created_at.desc())
-        .limit(10000)
+        .limit(5000)
     )
     logs = result.scalars().all()
 

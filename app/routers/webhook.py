@@ -29,6 +29,7 @@ from app.services.event_quality import boost_event_quality
 from app.services.event_worker import enqueue_events
 from app.services.usage_service import check_and_reserve_usage
 from app.dependencies import CachedClient, _snapshot
+from app.routers.deferred_events import _auto_book_courier_for_pending, _queue_confirmed_event
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -149,51 +150,40 @@ async def woocommerce_webhook(
             "message": f"No pending Purchase event found for order #{order_id}",
         }
 
-    # ─── Queue confirmed purchase for worker delivery ────────────────
-    event_dict = pending.event_data.copy()
-    event_dict["event_time"] = int(datetime.now(timezone.utc).timestamp())
-
-    try:
-        event = EventData(**event_dict)
-        user_data = event_dict.get("user_data", {}) or {}
-        boost_event_quality(
-            event,
-            ip_address=user_data.get("client_ip_address"),
-            user_agent=user_data.get("client_user_agent") or "",
-        )
-        events_data = [event.model_dump(exclude_none=True)]
-        reserved_keys = await check_and_reserve_usage(db, client, 1)
-        await enqueue_events(
-            db,
-            client_id=client.id,
-            events_data=events_data,
-            request_context={
-                "ip_address": user_data.get("client_ip_address"),
-                "user_agent": user_data.get("client_user_agent") or "",
-                "cookies": {},
-            },
-            usage_reserved=reserved_keys,
-        )
-    except HTTPException:
+    booking = await _auto_book_courier_for_pending(client.id, pending, db)
+    if booking["mode"] in {"booked", "already_booked"}:
+        pending.status = "courier_booked"
+        pending.portal_state = "processing"
+        pending.is_confirmed = True
+        message = "Order booked with courier. Purchase event will fire after delivery."
+    elif booking["mode"] == "not_configured":
+        try:
+            await _queue_confirmed_event(client, pending, db)
+        except HTTPException:
+            await db.rollback()
+            raise
+        except Exception as e:
+            await db.rollback()
+            logger.error(f"[{client.name}] Webhook confirm queue failed (order #{order_id}): {e}")
+            raise HTTPException(
+                status_code=500,
+                detail=f"Purchase event queue failed: {e}",
+            ) from None
+        pending.status = "confirmed"
+        pending.portal_state = "confirmed"
+        pending.is_confirmed = True
+        pending.confirmed_at = datetime.now(timezone.utc)
+        message = "Purchase event confirmed and queued for delivery!"
+    else:
         await db.rollback()
-        raise
-    except Exception as e:
-        await db.rollback()
-        logger.error(f"[{client.name}] Webhook confirm queue failed (order #{order_id}): {e}")
-        raise HTTPException(
-            status_code=500,
-            detail=f"Purchase event queue failed: {e}",
-        ) from None
+        raise HTTPException(status_code=400, detail=booking["message"])
 
-    # ─── Update pending status ────────────────────────────────────────
-    pending.status = "confirmed"
-    pending.confirmed_at = datetime.now(timezone.utc)
     await db.commit()
 
-    logger.info(f"[{client.name}] Webhook confirmed order #{order_id} queued for delivery")
+    logger.info(f"[{client.name}] Webhook confirmed order #{order_id}: {message}")
 
     return {
         "status": "success",
         "order_id": str(order_id),
-        "message": "Purchase event confirmed and queued for delivery!",
+        "message": message,
     }

@@ -19,8 +19,8 @@ from app.models.client import Client
 
 router = APIRouter(tags=["Plugin"])
 
-# Keep the update version tied to the packaged plugin. A stale Heroku
-# PLUGIN_VERSION config var can hide available updates from WordPress.
+# Plugin version এই ফাইলে hardcoded — PLUGIN_VERSION env var দিয়ে override করা যায়।
+# Update করার সময় এখানে version change করুন এবং WP plugin-এও update করুন।
 PLUGIN_VERSION = "1.2.4"
 PLUGIN_SOURCE_DIR = Path(__file__).resolve().parents[2] / "wordpress-plugin" / "buykori-adsync"
 PLUGIN_ZIP_PATH = Path(

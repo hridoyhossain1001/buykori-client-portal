@@ -68,18 +68,28 @@ success "All system packages installed."
 # Step 3: Configure PostgreSQL
 info "Configuring PostgreSQL database..."
 
-# Generate a strong random password for DB user
-DB_PASS=$(openssl rand -hex 16)
+read -p "Do you want to use an external PostgreSQL database (e.g. AWS RDS)? (y/N): " USE_EXTERNAL_DB
+if [ "$USE_EXTERNAL_DB" = "y" ] || [ "$USE_EXTERNAL_DB" = "Y" ]; then
+    read -p "Enter your external DATABASE_URL (e.g. postgresql://user:pass@host:port/db): " EXTERNAL_DATABASE_URL
+    while [ -z "$EXTERNAL_DATABASE_URL" ]; do
+        read -p "Database URL cannot be empty. Enter external DATABASE_URL: " EXTERNAL_DATABASE_URL
+    done
+    DATABASE_URL="$EXTERNAL_DATABASE_URL"
+    DB_PASS="(External Database)"
+    info "Using external database. Skipping local PostgreSQL setup."
+else
+    # Generate a strong random password for DB user
+    DB_PASS=$(openssl rand -hex 16)
 
-# Create user and database
-sudo -u postgres psql -c "CREATE USER $DB_USER WITH PASSWORD '$DB_PASS';" || true
-sudo -u postgres psql -c "ALTER USER $DB_USER WITH PASSWORD '$DB_PASS';"
-sudo -u postgres psql -c "CREATE DATABASE $DB_NAME OWNER $DB_USER;" || true
-sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE $DB_NAME TO $DB_USER;"
-
-# Add connection permissions in pg_hba.conf if necessary (usually local is peer or md5, but md5 is safest)
-# Typically on Ubuntu, pg_hba.conf has local connections setup.
-success "PostgreSQL database '$DB_NAME' and user '$DB_USER' set up successfully."
+    # Create user and database
+    sudo -u postgres psql -c "CREATE USER $DB_USER WITH PASSWORD '$DB_PASS';" || true
+    sudo -u postgres psql -c "ALTER USER $DB_USER WITH PASSWORD '$DB_PASS';"
+    sudo -u postgres psql -c "CREATE DATABASE $DB_NAME OWNER $DB_USER;" || true
+    sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE $DB_NAME TO $DB_USER;"
+    
+    DATABASE_URL="postgresql://$DB_USER:$DB_PASS@127.0.0.1:5432/$DB_NAME"
+    success "PostgreSQL database '$DB_NAME' and user '$DB_USER' set up successfully."
+fi
 
 # Step 4: Prompt for App Credentials and Environment Variables
 echo "----------------------------------------------------------------------"
@@ -132,7 +142,7 @@ cat <<EOF > "$ENV_FILE"
 # ------------------------------------------------------------------------------
 # Buykori AdSync Production Environment Variables
 # ------------------------------------------------------------------------------
-DATABASE_URL="postgresql://$DB_USER:$DB_PASS@127.0.0.1:5432/$DB_NAME"
+DATABASE_URL="$DATABASE_URL"
 ADMIN_USERNAME="$ADMIN_USERNAME"
 ADMIN_PASSWORD="$ADMIN_PASSWORD"
 ADMIN_API_KEY="$ADMIN_API_KEY"

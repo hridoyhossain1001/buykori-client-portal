@@ -23,14 +23,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import get_db
 from app.dependencies import get_current_client, CachedClient, _client_cache, _snapshot, CACHE_TTL, set_in_client_cache
 from app.models.client import Client
-from app.services.dedup_service import reserve_unique_event_ids
+from app.services.dedup_service import reserve_unique_event_ids, _reserve_via_redis
 from app.schemas.event import EventData, UserData, CustomData
 from app.services.bot_detector import is_bot
 from app.services.event_quality import boost_event_quality
 from app.services.geoip_service import get_location_data
 from app.services.event_worker import enqueue_events
 from app.services.tracker_sdk import generate_tracker_js
-from app.services.usage_service import check_and_reserve_usage
+from app.services.usage_service import check_and_reserve_usage, check_rate_limit_only
 
 from sqlalchemy import select
 
@@ -38,6 +38,11 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter()
 TRACKER_COOKIE_DOMAIN = os.getenv("TRACKER_COOKIE_DOMAIN", "").strip() or None
+EVENT_INGEST_MODE = os.getenv("EVENT_INGEST_MODE", "db").strip().lower()
+
+
+def _fast_stream_ingest_enabled() -> bool:
+    return EVENT_INGEST_MODE == "redis_stream" and bool(os.getenv("REDIS_URL"))
 
 
 def _get_tracker_cookie_domain(request: Request) -> str | None:
@@ -58,6 +63,40 @@ def _get_tracker_cookie_domain(request: Request) -> str | None:
             return "." + ".".join(parts[-3:])
         return "." + ".".join(parts[-2:])
     return None
+
+
+def _attach_tracker_cookies(resp: JSONResponse, body: dict, request: Request) -> JSONResponse:
+    first_event = body.get("data", [{}])[0] if body.get("data") else {}
+    ud = first_event.get("user_data", {})
+    fbp_val = ud.get("fbp", "")
+    fbc_val = ud.get("fbc", "")
+
+    cookie_max_age = 180 * 24 * 60 * 60
+    cookie_domain = _get_tracker_cookie_domain(request)
+
+    if fbp_val:
+        resp.set_cookie(
+            key="_fbp",
+            value=fbp_val,
+            max_age=cookie_max_age,
+            httponly=False,
+            secure=True,
+            samesite="lax",
+            path="/",
+            domain=cookie_domain,
+        )
+    if fbc_val:
+        resp.set_cookie(
+            key="_fbc",
+            value=fbc_val,
+            max_age=cookie_max_age,
+            httponly=False,
+            secure=True,
+            samesite="lax",
+            path="/",
+            domain=cookie_domain,
+        )
+    return resp
 
 
 # ─── Helper: API Key থেকে Client লোড (Query param version) ──────────────────
@@ -108,8 +147,8 @@ async def serve_tracker_js(
     # Validate API Key
     client = await _get_client_by_key(key, db)
 
-    # Gateway origin detect করো (ক্লায়েন্টের custom domain বা Heroku URL)
-    # Request যেই host-এ আসছে সেটাই ব্যবহার করবে
+    # Gateway origin detect করো — request যেই host-এ আসছে সেটাই ব্যবহার করবে
+    # Nginx X-Forwarded-Proto header থেকে scheme নেওয়া হচ্ছে
     scheme = request.headers.get("x-forwarded-proto", "https")
     host = request.headers.get("host", "localhost")
     gateway_origin = f"{scheme}://{host}"
@@ -197,6 +236,7 @@ async def collect_event(
         raw_events = raw_events[:50]  # Tracker থেকে max 50 events
 
     parsed_events = []
+    fast_stream = _fast_stream_ingest_enabled()
     for raw in raw_events:
         try:
             # user_data build
@@ -208,7 +248,7 @@ async def collect_event(
                 ud_raw["client_user_agent"] = user_agent
 
             # ─── GeoIP Enrichment ──────────────────────────────────────────
-            if ud_raw.get("client_ip_address"):
+            if not fast_stream and ud_raw.get("client_ip_address"):
                 loc_data = get_location_data(ud_raw["client_ip_address"])
                 if loc_data:
                     if loc_data.get("ct") and not ud_raw.get("ct"):
@@ -228,7 +268,7 @@ async def collect_event(
                 custom_data_dict = {}
 
             # ─── User-Agent Parsing ────────────────────────────────────────
-            if ud_raw.get("client_user_agent"):
+            if not fast_stream and ud_raw.get("client_user_agent"):
                 ua = parse_ua(ud_raw["client_user_agent"])
                 custom_data_dict["device_type"] = "Mobile" if ua.is_mobile else "Tablet" if ua.is_tablet else "PC"
                 custom_data_dict["os_name"] = ua.os.family
@@ -285,6 +325,45 @@ async def collect_event(
                 continue
             seen_ids.add(event.event_id)
             candidate_ids.append(event.event_id)
+
+        if fast_stream:
+            redis_reserved = await _reserve_via_redis(client.id, candidate_ids)
+            if redis_reserved is not None:
+                accepted_ids: set[str] = set()
+                for event in parsed_events:
+                    if not event.event_id:
+                        continue
+                    if event.event_id in redis_reserved and event.event_id not in accepted_ids:
+                        accepted_ids.add(event.event_id)
+                        unique_events.append(event)
+                unique_events.extend(no_id_events)
+
+                if not unique_events:
+                    response_data = {"status": "ok", "events_received": 0, "message": "deduplicated"}
+                    resp = JSONResponse(content=response_data)
+                else:
+                    await check_rate_limit_only(client, len(unique_events))
+                    events_as_dicts = [event.model_dump(exclude_none=True) for event in unique_events]
+                    outbox = await enqueue_events(
+                        db,
+                        client_id=client.id,
+                        events_data=events_as_dicts,
+                        request_context={
+                            "ip_address": client_ip,
+                            "user_agent": user_agent,
+                            "cookies": {
+                                key: value
+                                for key, value in request.cookies.items()
+                                if key in {"_ga", "_fbp", "_fbc", "_ttp", "_ttclid"}
+                            },
+                        },
+                        usage_reserved={},
+                    )
+                    if outbox is not None:
+                        await db.commit()
+                    response_data = {"status": "ok", "events_received": len(unique_events), "message": "queued"}
+                    resp = JSONResponse(content=response_data)
+                return _attach_tracker_cookies(resp, body, request)
 
         reserved_ids = await reserve_unique_event_ids(db, client.id, candidate_ids)
         accepted_ids: set[str] = set()

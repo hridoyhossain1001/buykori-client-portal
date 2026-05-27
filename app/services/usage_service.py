@@ -14,6 +14,7 @@ Atomic reserve approach:
 এই approach race condition বন্ধ করে — কারণ increment নিজেই atomic (PostgreSQL guarantee)।
 """
 import logging
+import os
 from datetime import datetime, timezone
 
 from fastapi import HTTPException
@@ -23,8 +24,45 @@ from sqlalchemy import select, update
 
 from app.database import engine
 from app.models.usage_counter import UsageCounter
+from app.services.redis_pool import get_redis
 
 logger = logging.getLogger(__name__)
+USAGE_DB_SYNC_IN_REQUEST = os.getenv(
+    "USAGE_DB_SYNC_IN_REQUEST",
+    "",
+).lower() in ("true", "1", "yes")
+
+
+def _get_redis():
+    return get_redis()
+
+
+async def check_rate_limit_only(client, incoming_event_count: int) -> None:
+    """Fast best-effort per-minute rate limit for Redis stream hot paths."""
+    rate_limit = getattr(client, "rate_limit", None) or 5000
+    r = _get_redis()
+    if r is None:
+        return
+
+    now = datetime.now(timezone.utc)
+    minute_key = f"rate:{now.strftime('%Y-%m-%dT%H:%M')}"
+    rkey = f"usage:{client.id}:{minute_key}"
+    try:
+        pipe = r.pipeline()
+        pipe.incrby(rkey, incoming_event_count)
+        pipe.expire(rkey, 65, nx=True)
+        results = await pipe.execute()
+        new_rate = results[0]
+        if new_rate > rate_limit:
+            await r.decrby(rkey, incoming_event_count)
+            raise HTTPException(
+                status_code=429,
+                detail=f"Rate limit exceeded! {new_rate}/{rate_limit} events/min",
+            )
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.warning(f"[{client.name}] Redis rate-limit check failed: {exc}")
 
 
 async def _atomic_reserve(
@@ -116,9 +154,57 @@ async def check_and_reserve_usage(
     Returns: dict of {window_key: event_count} — rollback-এ ব্যবহার হবে
     """
     now = datetime.now(timezone.utc)
-    # FOR LOAD TESTING ONLY: Temporarily set rate limit to 100,000 events/min
-    rate_limit = 100000
+    rate_limit = getattr(client, "rate_limit", None) or 5000
     reserved_keys: dict[str, int] = {}
+    minute_key = f"rate:{now.strftime('%Y-%m-%dT%H:%M')}"
+    daily_key = f"daily:{now.strftime('%Y-%m-%d')}"
+    monthly_key = f"monthly:{now.strftime('%Y-%m')}"
+    reservations = [
+        (minute_key, incoming_event_count),
+        (daily_key, incoming_event_count),
+        (monthly_key, incoming_event_count),
+    ]
+
+    r = _get_redis()
+    if r is not None:
+        try:
+            pipe = r.pipeline()
+            for window_key, event_count in reservations:
+                pipe.incrby(f"usage:{client.id}:{window_key}", event_count)
+            results = await pipe.execute()
+
+            pipe = r.pipeline()
+            ttl_map = {minute_key: 65, daily_key: 90000, monthly_key: 2678400}
+            counts = {}
+            for (window_key, _), new_count in zip(reservations, results):
+                counts[window_key] = new_count
+                pipe.expire(f"usage:{client.id}:{window_key}", ttl_map[window_key], nx=True)
+            await pipe.execute()
+
+            daily_quota = getattr(client, "daily_quota", None)
+            monthly_limit = getattr(client, "monthly_limit", None)
+            if (
+                counts.get(minute_key, 0) > rate_limit
+                or (daily_quota and counts.get(daily_key, 0) > daily_quota)
+                or (monthly_limit and counts.get(monthly_key, 0) > monthly_limit)
+            ):
+                pipe = r.pipeline()
+                for window_key, event_count in reservations:
+                    pipe.decrby(f"usage:{client.id}:{window_key}", event_count)
+                await pipe.execute()
+                raise HTTPException(
+                    status_code=429,
+                    detail=f"Rate limit exceeded! {counts.get(minute_key, 0)}/{rate_limit} events/min",
+                )
+
+            reserved_keys = {window_key: event_count for window_key, event_count in reservations}
+            reserved_keys["_usage_source"] = "redis"
+            if not USAGE_DB_SYNC_IN_REQUEST:
+                return reserved_keys
+        except HTTPException:
+            raise
+        except Exception as exc:
+            logger.warning(f"[{client.name}] Redis usage reserve failed, falling back to DB: {exc}")
 
     # ─── Per-Minute Rate Limit ─────────────────────────────────────────
     minute_key = f"rate:{now.strftime('%Y-%m-%dT%H:%M')}"
@@ -141,16 +227,14 @@ async def check_and_reserve_usage(
         new_daily = await _atomic_reserve(db, client.id, daily_key, incoming_event_count)
         reserved_keys[daily_key] = incoming_event_count
 
-        # FOR LOAD TESTING ONLY: Temporarily set daily quota to 10,000,000 events
-        temp_daily_quota = 10000000
-        if new_daily > temp_daily_quota:
+        if new_daily > client.daily_quota:
             # Undo inside the current transaction; caller owns commit/rollback.
             for rk, rc in reserved_keys.items():
                 await _atomic_rollback(db, client.id, rk, rc)
             await db.flush()
             raise HTTPException(
                 status_code=429,
-                detail=f"Daily quota exceeded! Today {new_daily}/{temp_daily_quota} events.",
+                detail=f"Daily quota exceeded! Today {new_daily}/{client.daily_quota} events.",
             )
 
     # ─── Monthly Quota Check ───────────────────────────────────────────
@@ -160,16 +244,14 @@ async def check_and_reserve_usage(
         new_monthly = await _atomic_reserve(db, client.id, monthly_key, incoming_event_count)
         reserved_keys[monthly_key] = incoming_event_count
 
-        # FOR LOAD TESTING ONLY: Temporarily set monthly limit to 100,000,000 events
-        temp_monthly_limit = 100000000
-        if new_monthly > temp_monthly_limit:
+        if new_monthly > monthly_limit:
             # Undo inside the current transaction; caller owns commit/rollback.
             for rk, rc in reserved_keys.items():
                 await _atomic_rollback(db, client.id, rk, rc)
             await db.flush()
             raise HTTPException(
                 status_code=429,
-                detail=f"Monthly quota exceeded! This month {new_monthly}/{temp_monthly_limit} events.",
+                detail=f"Monthly quota exceeded! This month {new_monthly}/{monthly_limit} events.",
             )
 
     # সব limit pass — commit reservations

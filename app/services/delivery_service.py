@@ -305,10 +305,13 @@ async def deliver_events_to_platforms(
     tasks = []
     for coro in secondary_tasks:
         task = asyncio.create_task(coro)
-        task.add_done_callback(
-            lambda t: logger.error(f"Secondary send failed: {t.exception()}")
-            if t.exception() else None
-        )
+
+        def _on_secondary_done(t: asyncio.Task) -> None:
+            exc = t.exception()
+            if exc:
+                logger.error(f"Secondary send failed: {exc}")
+
+        task.add_done_callback(_on_secondary_done)
         tasks.append(task)
 
     return {

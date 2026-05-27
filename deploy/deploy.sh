@@ -1,5 +1,6 @@
 #!/bin/bash
 set -e
+set -o pipefail
 
 # Configuration
 PROJECT_DIR="/var/www/buykori-adsync"
@@ -24,8 +25,9 @@ echo "🗄️ Running database migrations (Alembic)..."
 ./venv/bin/alembic upgrade head
 
 # Restart Supervisor processes
-echo "🔁 Restarting web and worker services..."
-sudo supervisorctl restart buykori-web buykori-worker
+echo "🔁 Reloading web and restarting worker services..."
+sudo supervisorctl signal HUP buykori-web
+sudo supervisorctl restart buykori-worker:*
 
 # Check status
 echo "📊 Checking service status..."

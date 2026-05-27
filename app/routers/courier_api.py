@@ -4,7 +4,7 @@ from pydantic import BaseModel
 from fastapi import APIRouter, Depends, Request, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, desc
-from datetime import datetime
+from datetime import datetime, timezone
 
 from app.database import get_db
 from app.models.client import Client
@@ -94,12 +94,12 @@ async def update_courier_settings(
     client.courier_auto_send = settings.courier_auto_send
     
     # Encrypt credentials if they are newly updated and not masked
-    if settings.pathao_secret_key and not settings.pathao_secret_key.startswith("•••"):
+    if settings.pathao_secret_key and not (settings.pathao_secret_key.startswith("•••") or "••••••••••••" in settings.pathao_secret_key):
         client.pathao_secret_key = encrypt_token(settings.pathao_secret_key.strip())
     elif settings.pathao_secret_key == "":
         client.pathao_secret_key = None
         
-    if settings.steadfast_secret_key and not settings.steadfast_secret_key.startswith("•••"):
+    if settings.steadfast_secret_key and not (settings.steadfast_secret_key.startswith("•••") or "••••••••••••" in settings.steadfast_secret_key):
         client.steadfast_secret_key = encrypt_token(settings.steadfast_secret_key.strip())
     elif settings.steadfast_secret_key == "":
         client.steadfast_secret_key = None
@@ -158,20 +158,10 @@ async def send_order_to_courier(
         )
         
     elif req.courier_provider == "pathao":
-        # For Pathao, we use Client ID in pathao_api_key, Secret in pathao_secret_key,
-        # Store Owner Email in pathao_store_id, and Store Password in client_portal/or elsewhere.
-        # Wait, since Pathao OAuth requires email and password, let's look at how we store email/pass.
-        # We can store client_id in pathao_api_key, client_secret in pathao_secret_key,
-        # store_id in pathao_store_id.
-        # What about Pathao Merchant email and password?
-        # We can store them in a custom credential payload or let them provide them in settings.
-        # Let's assume Pathao credentials contain client_id, client_secret, email, password, store_id.
-        # Since we only have a few fields, we can split them or read them.
-        # Wait! A very elegant way is to let the user store client_id and secret, and store the Pathao Merchant email/password in the same fields (e.g. store_id can hold Store ID, pathao_api_key holds Client ID + Email, pathao_secret_key holds Secret + Password separated by a pipe '|').
-        # Let's check:
-        # If client_id & email are in pathao_api_key (format: "client_id|email")
-        # and client_secret & password are in pathao_secret_key (format: "client_secret|password")
-        # This is a super clean workaround that fits perfectly into the existing database schema without adding 2 more columns!
+        # Pathao credentials format:
+        # pathao_api_key = "client_id|email"
+        # pathao_secret_key = "client_secret|password" (encrypted)
+        # pathao_store_id = store_id
         if not client.pathao_api_key or not client.pathao_secret_key or not client.pathao_store_id:
             raise HTTPException(status_code=400, detail="Pathao API credentials are not configured.")
             
@@ -220,11 +210,12 @@ async def send_order_to_courier(
         recipient_phone=req.recipient_phone,
         recipient_address=req.recipient_address,
         cod_amount=req.cod_amount,
-        status_history=[{"status": "pending", "time": datetime.now().isoformat()}]
+        status_history=[{"status": "pending", "time": datetime.now(timezone.utc).isoformat()}]
     )
     
     # Update pending event state (to show it has been processed and sent to courier)
-    pending_event.portal_state = "processing" # or 'confirmed'
+    pending_event.status = "courier_booked"
+    pending_event.portal_state = "processing"
     pending_event.is_confirmed = True
     
     db.add(courier_order)

@@ -73,6 +73,7 @@ def _verify_capi_signature(
 
 def _strip_internal_custom_data(event_dict: dict) -> dict:
     """Remove fraud-only fields before storing or queueing ad-platform payloads."""
+    event_dict.pop("raw_order_data", None)
     custom_data = event_dict.get("custom_data")
     if isinstance(custom_data, dict):
         for key in FRAUD_INTERNAL_CUSTOM_KEYS:
@@ -211,7 +212,7 @@ async def receive_events(
                 detail="Unauthorized domain. এই API Key আপনার ডোমেইনে রেজিস্টার্ড নয়।",
             )
 
-    # ─── Real IP Detection (Heroku/Cloudflare X-Forwarded-For হেডার থেকে) ──
+    # ─── Real IP Detection (Cloudflare/Nginx X-Forwarded-For হেডার থেকে) ──
     forwarded = request.headers.get("x-forwarded-for")
     if forwarded:
         client_ip = forwarded.split(",")[0].strip()
@@ -297,6 +298,7 @@ async def receive_events(
                 fraud_score_val = None
                 fraud_details_val = None
 
+            raw_order_data = event.raw_order_data
             event_dict = _strip_internal_custom_data(event.model_dump(exclude_none=True))
 
             try:
@@ -305,6 +307,7 @@ async def receive_events(
                         client_id=client.id,
                         order_id=order_id,
                         event_data=event_dict,
+                        raw_order_data=raw_order_data,
                         status="pending",
                         fraud_score=fraud_score_val,
                         fraud_details=fraud_details_val,
