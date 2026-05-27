@@ -101,9 +101,9 @@ export function OrdersView({
     // We need to fetch the full pending event metadata to get name, phone, address if available
     // For now, let's prefill with what we have
     setSelectedOrder(order);
-    setRecipientName(order.customer.includes('@') ? '' : order.customer);
-    setRecipientPhone(order.customer.match(/^\+?[0-9\s-]{10,15}$/) ? order.customer : '');
-    setRecipientAddress('');
+    setRecipientName(order.recipientName || (order.customer.includes('@') ? '' : order.customer));
+    setRecipientPhone(order.recipientPhone || (order.customer.match(/^\+?[0-9\s-]{10,15}$/) ? order.customer : ''));
+    setRecipientAddress(order.recipientAddress || '');
     setCodAmount(order.amount);
     
     // Try to find full address or details if stored locally in raw event payload (deferredData may have details)
@@ -370,9 +370,9 @@ export function OrdersView({
                           onClick={() => {
                             setSelectedOrder(order);
                             // Pre-fill recipient fields from order
-                            setRecipientName('');
-                            setRecipientPhone(order.customer.match(/^\+?[0-9\s-]{10,15}$/) ? order.customer : '');
-                            setRecipientAddress('');
+                            setRecipientName(order.recipientName || '');
+                            setRecipientPhone(order.recipientPhone || (order.customer.match(/^\+?[0-9\s-]{10,15}$/) ? order.customer : ''));
+                            setRecipientAddress(order.recipientAddress || '');
                             setCodAmount(order.amount);
                             setIsSendModalOpen(true);
                           }}
@@ -383,9 +383,9 @@ export function OrdersView({
                         <button 
                           onClick={() => handleConfirmOrder(order.orderId)}
                           className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold rounded shadow-sm transition-colors cursor-pointer"
-                          title="Confirm without Courier (Direct CAPI Trigger)"
+                          title="Confirm order. If auto courier is enabled, Purchase waits for delivery."
                         >
-                          Verify Direct
+                          Confirm
                         </button>
                         <button 
                           onClick={() => handleCancelOrder(order.orderId)}

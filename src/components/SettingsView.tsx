@@ -12,6 +12,7 @@ interface SettingsViewProps {
   copiedStates: Record<string, boolean>;
   handleCopy: (text: string, labelId: string) => void;
   showToast: (msg: string, isErr?: boolean) => void;
+  orderManagementEnabled: boolean;
 }
 
 export function SettingsView({
@@ -23,7 +24,8 @@ export function SettingsView({
   refreshWPHeartbeat,
   copiedStates,
   handleCopy,
-  showToast
+  showToast,
+  orderManagementEnabled
 }: SettingsViewProps) {
   // Local state for inputs to prevent key-stroke POST spamming
   const [localPixelIds, setLocalPixelIds] = useState<Record<Platform, string>>({
@@ -73,10 +75,16 @@ export function SettingsView({
     courier_auto_send: false,
     default_courier: 'steadfast'
   });
-  const [loadingCourier, setLoadingCourier] = useState<boolean>(true);
+  const [loadingCourier, setLoadingCourier] = useState<boolean>(false);
   const [savingCourier, setSavingCourier] = useState<boolean>(false);
 
   useEffect(() => {
+    if (!orderManagementEnabled) {
+      setLoadingCourier(false);
+      return;
+    }
+
+    setLoadingCourier(true);
     const fetchCourierSettings = async () => {
       try {
         const res = await fetch('/api/courier/settings');
@@ -91,7 +99,7 @@ export function SettingsView({
       }
     };
     fetchCourierSettings();
-  }, []);
+  }, [orderManagementEnabled]);
 
   const handleSaveCourierSettings = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -208,6 +216,7 @@ export function SettingsView({
         </div>
 
         {/* Courier Settings Panel */}
+        {orderManagementEnabled && (
         <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-6 dark:bg-slate-900 dark:border-slate-800">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
@@ -343,6 +352,7 @@ export function SettingsView({
             </form>
           )}
         </div>
+        )}
 
         {/* WordPress Custom tracking rules */}
         <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-4 dark:bg-slate-900 dark:border-slate-800">

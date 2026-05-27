@@ -32,6 +32,7 @@ interface SidebarProps {
   mobileOpen: boolean;
   setMobileOpen: (open: boolean) => void;
   onLogout: () => Promise<void>;
+  orderManagementEnabled: boolean;
 }
 
 export function Sidebar({ 
@@ -42,14 +43,16 @@ export function Sidebar({
   setCollapsed,
   mobileOpen,
   setMobileOpen,
-  onLogout
+  onLogout,
+  orderManagementEnabled,
 }: SidebarProps) {
 
-  const menuItems = [
+  const allMenuItems = [
     { id: 'dashboard', name: 'Dashboard', icon: LayoutDashboard },
     { id: 'analytics', name: 'Analytics', icon: TrendingUp },
     { id: 'pending-purchases', name: 'COD Protection', icon: ShieldCheck },
-    { id: 'orders', name: 'Orders & Courier', icon: Truck },
+    // Orders & Courier tab — only show when Order Management is enabled
+    { id: 'orders', name: 'Orders & Courier', icon: Truck, requireOrderMgmt: true },
     { id: 'event-logs', name: 'Event Logs', icon: ListChecks },
     { id: 'api-logs', name: 'API Logs', icon: Terminal },
     { id: 'campaign-builder', name: 'Campaign Builder', icon: Megaphone },
@@ -57,6 +60,11 @@ export function Sidebar({
     { id: 'settings', name: 'Settings', icon: Settings2 },
     { id: 'setup-guide', name: 'Setup Guide', icon: BookOpen },
   ];
+
+  // Filter out Order Management tab if disabled
+  const menuItems = allMenuItems.filter(
+    (item) => !(item as any).requireOrderMgmt || orderManagementEnabled
+  );
 
 
   const formatQuota = (num: number) => {

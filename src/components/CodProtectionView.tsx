@@ -1,5 +1,5 @@
 import React from 'react';
-import { CheckCircle2, XCircle } from 'lucide-react';
+import { CheckCircle2, XCircle, Truck, Zap } from 'lucide-react';
 
 interface CodProtectionViewProps {
   deferredData: any;
@@ -17,6 +17,11 @@ interface CodProtectionViewProps {
   setAutoConfirmStatus: (val: string) => void;
   savingDeferredSettings: boolean;
   handleSaveDeferredSettings: () => Promise<void>;
+  // Order Management (courier integration)
+  orderManagementDraftEnabled: boolean;
+  setOrderManagementDraftEnabled: (val: boolean) => void;
+  savingOrderMgmt: boolean;
+  handleSaveOrderManagement: () => Promise<void>;
 }
 
 export function CodProtectionView({
@@ -34,12 +39,97 @@ export function CodProtectionView({
   autoConfirmStatus,
   setAutoConfirmStatus,
   savingDeferredSettings,
-  handleSaveDeferredSettings
+  handleSaveDeferredSettings,
+  orderManagementDraftEnabled,
+  setOrderManagementDraftEnabled,
+  savingOrderMgmt,
+  handleSaveOrderManagement,
 }: CodProtectionViewProps) {
   return (
     <div className="space-y-6">
-      
-      {/* COD Protection Settings Card */}
+
+      {/* ── Order Management Toggle Card ──────────────────────────────── */}
+      <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:bg-slate-900 dark:border-slate-800">
+        <div className="flex flex-col sm:flex-row gap-5 sm:items-start justify-between">
+          <div className="flex items-start gap-3">
+            <div className={`mt-0.5 flex items-center justify-center w-9 h-9 rounded-lg shrink-0 ${
+              orderManagementDraftEnabled
+                ? 'bg-indigo-100 dark:bg-indigo-950/40'
+                : 'bg-slate-100 dark:bg-slate-800'
+            }`}>
+              <Truck className={`w-5 h-5 ${
+                orderManagementDraftEnabled ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400'
+              }`} />
+            </div>
+            <div>
+              <h3 className="font-bold text-slate-850 text-sm dark:text-white">
+                Order Management &amp; Courier Integration
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-lg">
+                {orderManagementDraftEnabled ? (
+                  <span>
+                    <span className="font-semibold text-indigo-600 dark:text-indigo-400">Enabled</span> — Confirm করলে Pathao/SteadFast-এ auto courier booking হবে।
+                    Courier delivered করলে তারপর Purchase event fire হবে।
+                    Sidebar-এ "Orders &amp; Courier" tab দেখাবে।
+                  </span>
+                ) : (
+                  <span>
+                    <span className="font-semibold text-slate-500">Disabled</span> — Confirm করলে সাথে সাথে Purchase event fire হবে।
+                    Courier booking, tracking বা delivery wait নেই।
+                    "Orders &amp; Courier" tab hidden থাকবে।
+                  </span>
+                )}
+              </p>
+
+              {/* Mode Comparison */}
+              <div className="mt-3 flex flex-wrap gap-2">
+                <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold border transition-all ${
+                  !orderManagementDraftEnabled
+                    ? 'bg-emerald-50 border-emerald-200 text-emerald-700 dark:bg-emerald-950/20 dark:border-emerald-900/50 dark:text-emerald-400'
+                    : 'bg-slate-50 border-slate-200 text-slate-400 dark:bg-slate-800/40 dark:border-slate-700 dark:text-slate-500'
+                }`}>
+                  <Zap className="w-3 h-3" />
+                  Simple Mode: Confirm → Purchase
+                </div>
+                <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold border transition-all ${
+                  orderManagementDraftEnabled
+                    ? 'bg-indigo-50 border-indigo-200 text-indigo-700 dark:bg-indigo-950/20 dark:border-indigo-900/50 dark:text-indigo-400'
+                    : 'bg-slate-50 border-slate-200 text-slate-400 dark:bg-slate-800/40 dark:border-slate-700 dark:text-slate-500'
+                }`}>
+                  <Truck className="w-3 h-3" />
+                  Full Mode: Confirm → Courier → Delivered → Purchase
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Toggle + Save */}
+          <div className="flex flex-col items-end gap-3 shrink-0">
+            <label className="relative inline-flex items-center cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={orderManagementDraftEnabled}
+                onChange={(e) => setOrderManagementDraftEnabled(e.target.checked)}
+                className="sr-only peer"
+              />
+              <div className="w-11 h-6 bg-slate-200 dark:bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[3px] after:left-[3px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-[18px] after:w-[18px] after:transition-all peer-checked:bg-indigo-600" />
+              <span className="ml-2.5 text-xs font-bold text-slate-700 dark:text-slate-300">
+                {orderManagementDraftEnabled ? 'ON' : 'OFF'}
+              </span>
+            </label>
+            <button
+              type="button"
+              disabled={savingOrderMgmt}
+              onClick={handleSaveOrderManagement}
+              className="px-4 py-1.5 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 disabled:opacity-50 text-white text-[10px] font-bold rounded-lg transition-all shadow-md cursor-pointer whitespace-nowrap"
+            >
+              {savingOrderMgmt ? 'Saving...' : 'Save'}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* ── COD Protection Settings Card ─────────────────────────────── */}
       <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:bg-slate-900 dark:border-slate-800 space-y-6">
         <div>
           <h3 className="font-bold text-slate-850 text-sm uppercase tracking-wide dark:text-white">COD Protection Settings</h3>

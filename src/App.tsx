@@ -65,6 +65,11 @@ export default function App() {
   const [autoConfirmStatus, setAutoConfirmStatus] = useState<string>('completed');
   const [savingDeferredSettings, setSavingDeferredSettings] = useState<boolean>(false);
 
+  // Order Management (courier integration toggle)
+  const [orderManagementEnabled, setOrderManagementEnabled] = useState<boolean>(false);
+  const [orderManagementDraftEnabled, setOrderManagementDraftEnabled] = useState<boolean>(false);
+  const [savingOrderMgmt, setSavingOrderMgmt] = useState<boolean>(false);
+
   // Advanced Analytics States
   const [analyticsOverview, setAnalyticsOverview] = useState<any>(null);
   const [analyticsCampaigns, setAnalyticsCampaigns] = useState<any>(null);
@@ -222,13 +227,54 @@ export default function App() {
     }
   };
 
+  const handleSaveOrderManagement = async () => {
+    setSavingOrderMgmt(true);
+    try {
+      const getRes = await fetch('/api/courier/settings');
+      const current = getRes.ok ? await getRes.json() : {};
+      const currentDefaultCourier = typeof current.default_courier === 'string'
+        ? current.default_courier.trim()
+        : current.default_courier;
+      const nextSettings = {
+        ...current,
+        courier_auto_send: orderManagementDraftEnabled,
+        default_courier: orderManagementDraftEnabled
+          ? (currentDefaultCourier || 'steadfast')
+          : current.default_courier,
+      };
+      const res = await fetch('/api/courier/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(nextSettings),
+      });
+      if (res.ok) {
+        setOrderManagementEnabled(orderManagementDraftEnabled);
+        showToast(
+          orderManagementDraftEnabled
+            ? 'Order Management enabled. Confirm → Courier → Delivered → Purchase flow active.'
+            : 'Order Management disabled. Confirm → Purchase direct flow active.',
+          false
+        );
+        if (!orderManagementDraftEnabled && activePage === 'orders') {
+          setActivePage('pending-purchases');
+        }
+      } else {
+        showToast('Failed to save Order Management setting.', true);
+      }
+    } catch {
+      showToast('Network error saving Order Management.', true);
+    } finally {
+      setSavingOrderMgmt(false);
+    }
+  };
+
   // --- Fetch API Handlers ---
   const loadSystemData = async (showShimmer = true) => {
     if (showShimmer) setLoading(true);
     try {
       // Parallel pull
       const [
-        resProf, resConn, resCreds, resRules, resSugg, resLogs, resApi, resDef, resOutbox
+        resProf, resConn, resCreds, resRules, resSugg, resLogs, resApi, resDef, resOutbox, resCourier
       ] = await Promise.all([
         fetch('/api/profile'),
         fetch('/api/connection'),
@@ -238,7 +284,8 @@ export default function App() {
         fetch(`/api/events?limit=100`),
         fetch(`/api/api-logs?limit=100`),
         fetch('/api/deferred'),
-        fetch('/api/outbox?limit=25')
+        fetch('/api/outbox?limit=25'),
+        fetch('/api/courier/settings'),
       ]);
 
       if (isAuthFailure([resProf, resConn, resCreds, resRules])) {
@@ -259,6 +306,7 @@ export default function App() {
       const dApi = await resApi.json();
       const dDef = await resDef.json();
       const dOutbox = resOutbox.ok ? await resOutbox.json() : { items: [] };
+      const dCourier = resCourier.ok ? await resCourier.json() : {};
 
       setProfile(dProf);
       setConnection(dConn);
@@ -272,6 +320,8 @@ export default function App() {
       setDeferredEnabled(dDef.deferredEnabled);
       setAutoConfirmDays(dDef.autoConfirmDays);
       setAutoConfirmStatus(dDef.autoConfirmStatus);
+      setOrderManagementEnabled(dCourier.courier_auto_send ?? false);
+      setOrderManagementDraftEnabled(dCourier.courier_auto_send ?? false);
       
       // Initialize text fields
       setProfName(dProf.name);
@@ -816,6 +866,7 @@ export default function App() {
           mobileOpen={mobileSidebarOpen}
           setMobileOpen={setMobileSidebarOpen}
           onLogout={handleClientLogout}
+          orderManagementEnabled={orderManagementEnabled}
         />
       )}
 
@@ -928,11 +979,15 @@ export default function App() {
                 setAutoConfirmStatus={setAutoConfirmStatus}
                 savingDeferredSettings={savingDeferredSettings}
                 handleSaveDeferredSettings={handleSaveDeferredSettings}
+                orderManagementDraftEnabled={orderManagementDraftEnabled}
+                setOrderManagementDraftEnabled={setOrderManagementDraftEnabled}
+                savingOrderMgmt={savingOrderMgmt}
+                handleSaveOrderManagement={handleSaveOrderManagement}
               />
             )}
 
-            {/* PAGE 11: ORDERS & COURIER */}
-            {activePage === 'orders' && deferredData && (
+            {/* PAGE 11: ORDERS & COURIER — only when Order Management is enabled */}
+            {activePage === 'orders' && deferredData && orderManagementEnabled && (
               <OrdersView 
                 deferredData={deferredData}
                 fetchDeferred={fetchDeferred}
@@ -1015,6 +1070,7 @@ export default function App() {
                 copiedStates={copiedStates}
                 handleCopy={handleCopy}
                 showToast={showToast}
+                orderManagementEnabled={orderManagementEnabled}
               />
             )}
 
