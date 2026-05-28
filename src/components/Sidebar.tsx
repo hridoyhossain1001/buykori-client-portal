@@ -17,7 +17,8 @@ import {
   TrendingUp,
   Terminal,
   X,
-  Truck
+  Truck,
+  BookOpen
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { UserProfile } from '../types';
@@ -102,6 +103,7 @@ export function Sidebar({
     {
       label: 'SYSTEM',
       items: [
+        { id: 'setup-guide', name: 'Setup Guide', icon: BookOpen },
         { id: 'event-logs', name: 'Event History', icon: ListChecks },
         { id: 'api-logs', name: 'Delivery Logs', icon: Terminal },
         { id: 'settings', name: 'Tracking Settings', icon: Settings2 },
