@@ -33,6 +33,7 @@ interface SidebarProps {
   setMobileOpen: (open: boolean) => void;
   onLogout: () => Promise<void>;
   orderManagementEnabled: boolean;
+  suggestionsCount: number;
 }
 
 export function Sidebar({ 
@@ -45,6 +46,7 @@ export function Sidebar({
   setMobileOpen,
   onLogout,
   orderManagementEnabled,
+  suggestionsCount,
 }: SidebarProps) {
 
   const allMenuItems = [
@@ -56,7 +58,7 @@ export function Sidebar({
     { id: 'event-logs', name: 'Event Logs', icon: ListChecks },
     { id: 'api-logs', name: 'API Logs', icon: Terminal },
     { id: 'campaign-builder', name: 'Campaign Builder', icon: Megaphone },
-    { id: 'suggestions', name: 'Suggestions', icon: Lightbulb, count: 4 },
+    { id: 'suggestions', name: 'Suggestions', icon: Lightbulb, count: suggestionsCount },
     { id: 'settings', name: 'Settings', icon: Settings2 },
     { id: 'setup-guide', name: 'Setup Guide', icon: BookOpen },
   ];

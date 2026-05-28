@@ -847,11 +847,16 @@ export default function App() {
   const trendData = getTrendData();
 
   // Suggestions optimization score
-  const resolvedCount = suggestions.filter(s => s.resolved).length;
+  const unresolvedSuggestions = suggestions.filter(s => !s.resolved);
+  const resolvedCount = suggestions.length - unresolvedSuggestions.length;
   const totalSuggCount = suggestions.length;
-  const optScore = totalSuggCount > 0 
-    ? Math.round(65 + (resolvedCount / totalSuggCount) * 35) 
-    : 100;
+  const suggestionsCount = unresolvedSuggestions.length;
+  const severityPenalty = unresolvedSuggestions.reduce((total, suggestion) => {
+    if (suggestion.severity === 'Critical') return total + 25;
+    if (suggestion.severity === 'Warning') return total + 15;
+    return total + 8;
+  }, 0);
+  const optScore = Math.max(0, Math.min(100, 100 - severityPenalty));
 
   return (
     <div className={`flex min-h-screen bg-transparent font-sans text-slate-800 transition-colors duration-205 ${isDarkMode ? 'dark text-slate-100' : ''}`}>
@@ -867,6 +872,7 @@ export default function App() {
           setMobileOpen={setMobileSidebarOpen}
           onLogout={handleClientLogout}
           orderManagementEnabled={orderManagementEnabled}
+          suggestionsCount={suggestionsCount}
         />
       )}
 
