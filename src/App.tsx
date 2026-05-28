@@ -857,6 +857,19 @@ export default function App() {
     return total + 8;
   }, 0);
   const optScore = Math.max(0, Math.min(100, 100 - severityPenalty));
+  const pageTitles: Record<string, string> = {
+    dashboard: 'Dashboard',
+    analytics: 'Insights',
+    'pending-purchases': 'Order Verification',
+    orders: 'Orders & Delivery',
+    'campaign-builder': 'Campaigns',
+    suggestions: 'Optimization Audit',
+    'event-logs': 'Event History',
+    'api-logs': 'Delivery Logs',
+    settings: 'Tracking Settings',
+    'setup-guide': 'Setup Guide',
+    account: 'Account',
+  };
 
   return (
     <div className={`flex min-h-screen bg-transparent font-sans text-slate-800 transition-colors duration-205 ${isDarkMode ? 'dark text-slate-100' : ''}`}>
@@ -888,7 +901,7 @@ export default function App() {
       <div className={`flex-1 flex flex-col min-w-0 transition-all duration-300 ${sidebarCollapsed ? 'md:pl-20' : 'md:pl-64'}`}>
         {connection && (
           <Header 
-            title={activePage.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')} 
+            title={pageTitles[activePage] || activePage.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')} 
             connection={connection}
             onRefreshConnection={refreshWPHeartbeat}
             searchVal={searchVal}

@@ -3,15 +3,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from 'react';
-import { 
-  LayoutDashboard, 
-  ListChecks, 
-  Activity, 
-  Megaphone, 
-  Lightbulb, 
-  Settings2, 
-  BookOpen, 
+import React from 'react';
+import {
+  LayoutDashboard,
+  ListChecks,
+  Megaphone,
+  Lightbulb,
+  Settings2,
   LogOut,
   ChevronLeft,
   ChevronRight,
@@ -21,7 +19,22 @@ import {
   X,
   Truck
 } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { UserProfile } from '../types';
+
+interface SidebarItem {
+  id: string;
+  name: string;
+  icon: LucideIcon;
+  subtitle?: string;
+  requireOrderMgmt?: boolean;
+  count?: number;
+}
+
+interface SidebarGroup {
+  label: string;
+  items: SidebarItem[];
+}
 
 interface SidebarProps {
   activePage: string;
@@ -36,9 +49,9 @@ interface SidebarProps {
   suggestionsCount: number;
 }
 
-export function Sidebar({ 
-  activePage, 
-  setActivePage, 
+export function Sidebar({
+  activePage,
+  setActivePage,
   profile,
   collapsed,
   setCollapsed,
@@ -48,26 +61,47 @@ export function Sidebar({
   orderManagementEnabled,
   suggestionsCount,
 }: SidebarProps) {
-
-  const allMenuItems = [
-    { id: 'dashboard', name: 'Dashboard', icon: LayoutDashboard },
-    { id: 'analytics', name: 'Analytics', icon: TrendingUp },
-    { id: 'pending-purchases', name: 'COD Protection', icon: ShieldCheck },
-    // Orders & Courier tab — only show when Order Management is enabled
-    { id: 'orders', name: 'Orders & Courier', icon: Truck, requireOrderMgmt: true },
-    { id: 'event-logs', name: 'Event Logs', icon: ListChecks },
-    { id: 'api-logs', name: 'API Logs', icon: Terminal },
-    { id: 'campaign-builder', name: 'Campaign Builder', icon: Megaphone },
-    { id: 'suggestions', name: 'Suggestions', icon: Lightbulb, count: suggestionsCount },
-    { id: 'settings', name: 'Settings', icon: Settings2 },
-    { id: 'setup-guide', name: 'Setup Guide', icon: BookOpen },
+  const menuGroups: SidebarGroup[] = [
+    {
+      label: 'YOUR STORE',
+      items: [
+        { id: 'dashboard', name: 'Dashboard', icon: LayoutDashboard },
+        { id: 'analytics', name: 'Insights', icon: TrendingUp },
+      ],
+    },
+    {
+      label: 'YOUR ORDERS',
+      items: [
+        {
+          id: 'pending-purchases',
+          name: 'Order Verification',
+          icon: ShieldCheck,
+          subtitle: 'Hold COD purchases until verified',
+        },
+        {
+          id: 'orders',
+          name: 'Orders & Delivery',
+          icon: Truck,
+          requireOrderMgmt: true,
+        },
+      ],
+    },
+    {
+      label: 'GROW',
+      items: [
+        { id: 'campaign-builder', name: 'Campaigns', icon: Megaphone },
+        { id: 'suggestions', name: 'Optimization Audit', icon: Lightbulb, count: suggestionsCount },
+      ],
+    },
+    {
+      label: 'SYSTEM',
+      items: [
+        { id: 'event-logs', name: 'Event History', icon: ListChecks },
+        { id: 'api-logs', name: 'Delivery Logs', icon: Terminal },
+        { id: 'settings', name: 'Tracking Settings', icon: Settings2 },
+      ],
+    },
   ];
-
-  // Filter out Order Management tab if disabled
-  const menuItems = allMenuItems.filter(
-    (item) => !(item as any).requireOrderMgmt || orderManagementEnabled
-  );
-
 
   const formatQuota = (num: number) => {
     if (num >= 1000) {
@@ -76,12 +110,14 @@ export function Sidebar({
     return num.toString();
   };
 
-  const usagePercent = Math.min((profile.eventsUsed / profile.eventsQuota) * 100, 100);
+  const usagePercent = profile.eventsQuota > 0
+    ? Math.min((profile.eventsUsed / profile.eventsQuota) * 100, 100)
+    : 0;
   const quotaColor = usagePercent > 90 ? 'bg-rose-600' : usagePercent > 70 ? 'bg-amber-500' : 'bg-indigo-600';
   const textQuotaColor = usagePercent > 90 ? 'text-rose-600' : usagePercent > 70 ? 'text-amber-655' : 'text-indigo-600';
 
   return (
-    <aside 
+    <aside
       className={`fixed top-0 bottom-0 left-0 z-50 flex flex-col bg-white border-r border-slate-205 transition-transform duration-300 md:transition-all dark:bg-slate-900 dark:border-slate-800 ${
         collapsed ? 'md:w-20' : 'md:w-64'
       } ${
@@ -102,7 +138,7 @@ export function Sidebar({
             </span>
           )}
         </div>
-        <button 
+        <button
           onClick={() => {
             if (window.innerWidth < 768) {
               setMobileOpen(false);
@@ -111,7 +147,7 @@ export function Sidebar({
             }
           }}
           className="p-1 px-[5px] rounded-md text-slate-450 hover:text-slate-600 hover:bg-slate-50 dark:text-slate-400 dark:hover:text-slate-200 dark:hover:bg-slate-800 transition-colors"
-          title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         >
           <span className="md:hidden">
             <X className="w-4 h-4" />
@@ -123,43 +159,82 @@ export function Sidebar({
       </div>
 
       {/* Primary Navigation Links */}
-      <nav className="flex-1 py-4 space-y-1 overflow-y-auto px-3">
-        {menuItems.map((item) => {
-          const Icon = item.icon;
-          const isActive = activePage === item.id;
+      <nav className="flex-1 overflow-y-auto px-3 py-4">
+        {menuGroups.map((group, groupIndex) => {
+          const visibleItems = group.items.filter(
+            (item) => !item.requireOrderMgmt || orderManagementEnabled
+          );
+          if (visibleItems.length === 0) return null;
+
           return (
-            <button
-              key={item.id}
-              onClick={() => {
-                setActivePage(item.id);
-                setMobileOpen(false);
-              }}
-              className={`flex items-center w-full rounded-md text-sm font-medium transition-all duration-205 group relative ${
-                isActive 
-                  ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-200' 
-                  : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-slate-100'
-              } ${collapsed ? 'justify-center pl-0 py-2.5' : 'gap-3 py-2 px-3'}`}
-            >
-              <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-indigo-650 dark:text-indigo-400 font-bold' : 'text-slate-400 group-hover:text-slate-650 dark:group-hover:text-slate-205'}`} />
-              
+            <div key={group.label} className={groupIndex === 0 ? '' : collapsed ? 'mt-3' : 'mt-5'}>
               {!collapsed && (
-                <span className="truncate">{item.name}</span>
-              )}
-
-              {/* Suggestions count element */}
-              {item.count && !collapsed && (
-                <span className="ml-auto bg-indigo-100 text-indigo-700 border border-indigo-200/40 text-[10px] font-bold px-1.5 py-0.5 rounded-full shrink-0 dark:bg-indigo-950 dark:text-indigo-300 dark:border-indigo-900/60">
-                  {item.count}
-                </span>
-              )}
-
-              {/* Collapsed view tooltip */}
-              {collapsed && (
-                <div className="absolute left-full ml-3 px-2 py-1 bg-slate-900 text-white text-xs rounded-md whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-150 z-50 shadow-md">
-                  {item.name}
+                <div className="mb-2 flex items-center gap-2 px-3">
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500">
+                    {group.label}
+                  </span>
+                  <span className="h-px flex-1 bg-slate-200/70 dark:bg-slate-800" />
                 </div>
               )}
-            </button>
+
+              <div className="space-y-1">
+                {visibleItems.map((item) => {
+                  const Icon = item.icon;
+                  const isActive = activePage === item.id;
+                  return (
+                    <button
+                      key={item.id}
+                      aria-current={isActive ? 'page' : undefined}
+                      onClick={() => {
+                        setActivePage(item.id);
+                        setMobileOpen(false);
+                      }}
+                      className={`group relative flex w-full overflow-visible rounded-md text-sm transition-all duration-205 ${
+                        isActive
+                          ? 'bg-gradient-to-r from-indigo-50/95 to-violet-50/60 font-semibold text-indigo-700 shadow-sm dark:from-indigo-950/45 dark:to-violet-950/25 dark:text-indigo-200'
+                          : 'font-medium text-slate-600 hover:bg-white/70 hover:text-slate-900 hover:shadow-sm dark:text-slate-300 dark:hover:bg-slate-800/80 dark:hover:text-slate-100'
+                      } ${collapsed ? 'justify-center px-0 py-2.5' : 'items-center gap-3 px-3 py-2.5'}`}
+                    >
+                      {isActive && (
+                        <span className="absolute left-0 top-1/2 h-6 w-[3px] -translate-y-1/2 rounded-r-full bg-indigo-500 dark:bg-indigo-400" />
+                      )}
+
+                      <Icon
+                        strokeWidth={isActive ? 2.5 : 2}
+                        className={`h-[18px] w-[18px] shrink-0 transition-colors ${
+                          isActive
+                            ? 'text-indigo-650 dark:text-indigo-400'
+                            : 'text-slate-400 group-hover:text-slate-650 dark:group-hover:text-slate-205'
+                        }`}
+                      />
+
+                      {!collapsed && (
+                        <span className="min-w-0 flex-1 text-left">
+                          <span className="block truncate">{item.name}</span>
+                          {item.subtitle && (
+                            <span className="block max-h-0 overflow-hidden text-[10px] font-medium leading-4 text-slate-400 opacity-0 transition-all duration-200 group-hover:max-h-4 group-hover:opacity-100 dark:text-slate-500">
+                              {item.subtitle}
+                            </span>
+                          )}
+                        </span>
+                      )}
+
+                      {Boolean(item.count) && !collapsed && (
+                        <span className="ml-auto rounded-full border border-indigo-200/60 bg-indigo-100 px-1.5 py-0.5 text-[10px] font-bold text-indigo-700 dark:border-indigo-900/60 dark:bg-indigo-950 dark:text-indigo-300">
+                          {item.count}
+                        </span>
+                      )}
+
+                      {collapsed && (
+                        <div className="pointer-events-none absolute left-full z-50 ml-3 whitespace-nowrap rounded-md bg-slate-900 px-2 py-1 text-xs text-white opacity-0 shadow-md transition-opacity duration-150 group-hover:opacity-100">
+                          {item.name}
+                        </div>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
           );
         })}
       </nav>
@@ -172,8 +247,8 @@ export function Sidebar({
               {formatQuota(profile.eventsUsed)}
             </span>
             <div className="w-10 h-1.5 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
-              <div 
-                className={`h-full rounded-full ${quotaColor}`} 
+              <div
+                className={`h-full rounded-full ${quotaColor}`}
                 style={{ width: `${usagePercent}%` }}
               />
             </div>
@@ -185,8 +260,8 @@ export function Sidebar({
               <span className="font-bold">{usagePercent.toFixed(1)}%</span>
             </div>
             <div className="relative w-full h-1.5 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
-              <div 
-                className={`h-full rounded-full transition-all duration-500 ${quotaColor}`} 
+              <div
+                className={`h-full rounded-full transition-all duration-500 ${quotaColor}`}
                 style={{ width: `${usagePercent}%` }}
               />
             </div>
@@ -212,9 +287,9 @@ export function Sidebar({
           </div>
         )}
 
-        <button 
+        <button
           onClick={() => {
-            if (window.confirm("Are you sure you want to logout and disconnect?")) {
+            if (window.confirm('Are you sure you want to logout and disconnect?')) {
               onLogout();
             }
           }}
