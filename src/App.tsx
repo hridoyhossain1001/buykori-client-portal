@@ -59,6 +59,7 @@ export default function App() {
   const [outboxItems, setOutboxItems] = useState<OutboxItem[]>([]);
   const [retryingOutboxIds, setRetryingOutboxIds] = useState<number[]>([]);
   const [deferredData, setDeferredData] = useState<any>(null);
+  const [courierOrders, setCourierOrders] = useState<any[]>([]);
   const [selectedOrderIds, setSelectedOrderIds] = useState<string[]>([]);
   const [deferredEnabled, setDeferredEnabled] = useState<boolean>(false);
   const [autoConfirmDays, setAutoConfirmDays] = useState<number>(0);
@@ -274,7 +275,7 @@ export default function App() {
     try {
       // Parallel pull
       const [
-        resProf, resConn, resCreds, resRules, resSugg, resLogs, resApi, resDef, resOutbox, resCourier
+        resProf, resConn, resCreds, resRules, resSugg, resLogs, resApi, resDef, resOutbox, resCourier, resCourierOrders
       ] = await Promise.all([
         fetch('/api/profile'),
         fetch('/api/connection'),
@@ -286,6 +287,7 @@ export default function App() {
         fetch('/api/deferred'),
         fetch('/api/outbox?limit=25'),
         fetch('/api/courier/settings'),
+        fetch('/api/courier/orders'),
       ]);
 
       if (isAuthFailure([resProf, resConn, resCreds, resRules])) {
@@ -307,6 +309,7 @@ export default function App() {
       const dDef = await resDef.json();
       const dOutbox = resOutbox.ok ? await resOutbox.json() : { items: [] };
       const dCourier = resCourier.ok ? await resCourier.json() : {};
+      const dCourierOrders = resCourierOrders.ok ? await resCourierOrders.json() : [];
 
       setProfile(dProf);
       setConnection(dConn);
@@ -316,6 +319,7 @@ export default function App() {
       setEvents(dLogs.events);
       setApiLogs(dApi.logs);
       setOutboxItems(dOutbox.items || []);
+      setCourierOrders(Array.isArray(dCourierOrders) ? dCourierOrders : []);
       setDeferredData(dDef);
       setDeferredEnabled(dDef.deferredEnabled);
       setAutoConfirmDays(dDef.autoConfirmDays);
@@ -416,13 +420,76 @@ export default function App() {
     setRules(updated);
 
     try {
-      await fetch('/api/rules', {
+      const res = await fetch('/api/rules', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ rules: updated })
       });
+      if (!res.ok) throw new Error();
+      const data = await res.json();
+      setRules(data.rules || updated);
     } catch {
       showToast("Could not synchronize dynamic tracking rules.", true);
+      await loadSystemData(false);
+    }
+  };
+
+  const handleAddRule = async (eventName: string) => {
+    const cleanName = eventName.trim();
+    if (!cleanName) {
+      showToast("Select or enter an event name first.", true);
+      return;
+    }
+    if (rules.some(rule => rule.eventName.toLowerCase() === cleanName.toLowerCase())) {
+      showToast(`${cleanName} is already in your routing rules.`, true);
+      return;
+    }
+
+    const updated: EventRule[] = [
+      ...rules,
+      {
+        eventName: cleanName,
+        metaEnabled: Boolean(credentials?.['Meta CAPI']?.enabled ?? true),
+        tiktokEnabled: Boolean(credentials?.['TikTok Events API']?.enabled ?? true),
+        ga4Enabled: Boolean(credentials?.GA4?.enabled ?? true),
+      }
+    ];
+    setRules(updated);
+
+    try {
+      const res = await fetch('/api/rules', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rules: updated })
+      });
+      if (!res.ok) throw new Error();
+      const data = await res.json();
+      setRules(data.rules || updated);
+      showToast(`${cleanName} event route added.`, false);
+    } catch {
+      showToast("Could not add this event route. Use letters, numbers, or underscores for custom events.", true);
+      await loadSystemData(false);
+    }
+  };
+
+  const handleRemoveRule = async (index: number) => {
+    const removed = rules[index];
+    const updated = rules.filter((_, i) => i !== index);
+    setRules(updated);
+
+    try {
+      const res = await fetch('/api/rules', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rules: updated })
+      });
+      if (!res.ok) throw new Error();
+      const data = await res.json();
+      setRules(data.rules || updated);
+      showToast(`${removed?.eventName || 'Event'} route removed.`, false);
+    } catch {
+      showToast("Could not remove event route.", true);
+      await loadSystemData(false);
     }
   };
 
@@ -851,6 +918,11 @@ export default function App() {
   const resolvedCount = suggestions.length - unresolvedSuggestions.length;
   const totalSuggCount = suggestions.length;
   const suggestionsCount = unresolvedSuggestions.length;
+  const orderVerificationCount = Number(deferredData?.pendingCount ?? deferredData?.pendingList?.length ?? 0);
+  const deliveryBadgeCount = courierOrders.filter(order => {
+    const status = String(order?.courier_status || '').toLowerCase();
+    return status && !['delivered', 'returned', 'cancelled', 'canceled'].includes(status);
+  }).length;
   const severityPenalty = unresolvedSuggestions.reduce((total, suggestion) => {
     if (suggestion.severity === 'Critical') return total + 25;
     if (suggestion.severity === 'Warning') return total + 15;
@@ -886,6 +958,8 @@ export default function App() {
           onLogout={handleClientLogout}
           orderManagementEnabled={orderManagementEnabled}
           suggestionsCount={suggestionsCount}
+          orderVerificationCount={orderVerificationCount}
+          deliveryBadgeCount={deliveryBadgeCount}
         />
       )}
 
@@ -1085,6 +1159,8 @@ export default function App() {
                 rules={rules}
                 handleUpdatePlatform={handleUpdatePlatform}
                 handleToggleRule={handleToggleRule}
+                handleAddRule={handleAddRule}
+                handleRemoveRule={handleRemoveRule}
                 refreshWPHeartbeat={refreshWPHeartbeat}
                 copiedStates={copiedStates}
                 handleCopy={handleCopy}

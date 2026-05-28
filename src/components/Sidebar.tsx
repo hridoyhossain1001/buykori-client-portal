@@ -47,6 +47,8 @@ interface SidebarProps {
   onLogout: () => Promise<void>;
   orderManagementEnabled: boolean;
   suggestionsCount: number;
+  orderVerificationCount: number;
+  deliveryBadgeCount: number;
 }
 
 export function Sidebar({
@@ -60,6 +62,8 @@ export function Sidebar({
   onLogout,
   orderManagementEnabled,
   suggestionsCount,
+  orderVerificationCount,
+  deliveryBadgeCount,
 }: SidebarProps) {
   const menuGroups: SidebarGroup[] = [
     {
@@ -77,12 +81,14 @@ export function Sidebar({
           name: 'Order Verification',
           icon: ShieldCheck,
           subtitle: 'Hold COD purchases until verified',
+          count: orderVerificationCount,
         },
         {
           id: 'orders',
           name: 'Orders & Delivery',
           icon: Truck,
           requireOrderMgmt: true,
+          count: deliveryBadgeCount,
         },
       ],
     },
