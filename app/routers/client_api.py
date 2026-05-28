@@ -342,8 +342,8 @@ async def update_credentials(
             client.enable_tiktok = payload.enabled
         if val is not None:
             clean_val = val.strip()
-            if clean_val and not clean_val.isdigit():
-                raise HTTPException(status_code=400, detail="TikTok Pixel ID must be numeric.")
+            if clean_val and not clean_val.isalnum():
+                raise HTTPException(status_code=400, detail="TikTok Pixel ID must be alphanumeric.")
             client.tiktok_pixel_id = clean_val or None
         if token and not token.startswith("tt_ac*****") and token.strip():
             client.tiktok_access_token = encrypt_token(token.strip())

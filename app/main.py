@@ -1,11 +1,11 @@
 import logging
+import time
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import HTMLResponse, ORJSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
-from starlette.middleware.base import BaseHTTPMiddleware
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from pythonjsonlogger import jsonlogger
@@ -29,6 +29,8 @@ if not ADMIN_API_KEY:
     raise RuntimeError("ADMIN_API_KEY environment variable is required.")
 
 ENABLE_DOCS = os.getenv("ENABLE_DOCS", "").lower() in ("true", "1", "yes")
+STATUS_CACHE_SECONDS = float(os.getenv("STATUS_CACHE_SECONDS", "5"))
+_status_cache: tuple[float, dict] | None = None
 
 
 def _csv_env(name: str, default: str) -> list[str]:
@@ -158,7 +160,12 @@ app = FastAPI(
 
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
-app.mount("/static", StaticFiles(directory="app/static"), name="static")
+app.mount("/static/css", StaticFiles(directory="app/static/css"), name="static-css")
+app.mount(
+    "/static/client-portal/assets",
+    StaticFiles(directory="app/static/client-portal/assets"),
+    name="client-portal-assets",
+)
 
 app.add_middleware(
     TrustedHostMiddleware,
@@ -167,12 +174,19 @@ app.add_middleware(
 
 # ─── Domain Redirect Middleware ───────────────────────────────────────────────
 # buykori.app / www.buykori.app এ /client রিকোয়েস্ট হলে client.buykori.app-এ redirect করো
-class DomainRedirectMiddleware(BaseHTTPMiddleware):
-    async def dispatch(self, request, call_next):
-        host = request.url.hostname or ""
-        if host in {"buykori.app", "www.buykori.app"} and request.url.path.startswith("/client"):
-            return RedirectResponse(url="https://client.buykori.app", status_code=308)
-        return await call_next(request)
+class DomainRedirectMiddleware:
+    def __init__(self, app):
+        self.app = app
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] == "http" and scope.get("path", "").startswith("/client"):
+            headers = dict(scope.get("headers") or [])
+            host = headers.get(b"host", b"").decode("latin1").split(":", 1)[0].lower()
+            if host in {"buykori.app", "www.buykori.app"}:
+                response = RedirectResponse(url="https://client.buykori.app", status_code=308)
+                await response(scope, receive, send)
+                return
+        await self.app(scope, receive, send)
 
 app.add_middleware(DomainRedirectMiddleware)
 
@@ -246,9 +260,12 @@ async def marketing_home():
 async def health_check():
     """Real health check — DB ও Redis connectivity যাচাই করে।"""
     from sqlalchemy import text
-    from sqlalchemy.ext.asyncio import AsyncSession
-    from app.database import get_db
     from app.services.redis_pool import get_redis
+    global _status_cache
+
+    now = time.monotonic()
+    if _status_cache and now - _status_cache[0] < STATUS_CACHE_SECONDS:
+        return _status_cache[1]
 
     db_ok = False
     redis_ok = False
@@ -271,7 +288,7 @@ async def health_check():
         logger.error(f"Health check — Redis error: {e}")
 
     overall = "ok" if (db_ok and redis_ok) else "degraded"
-    return {
+    payload = {
         "status": overall,
         "service": "Buykori AdSync",
         "version": "1.1.0",
@@ -279,3 +296,5 @@ async def health_check():
         "redis": redis_ok,
         "message": "🔥 Buykori AdSync চলছে!" if overall == "ok" else "⚠️ সার্ভিস degraded!",
     }
+    _status_cache = (now, payload)
+    return payload
