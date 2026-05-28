@@ -55,6 +55,7 @@ async function startServer() {
   let confirmedTotal = 12;
   let cancelledTotal = 2;
   let confirmedToday = 2;
+  let sidebarSeenState: Record<string, string> = {};
   
   // Platform Credentials state
   let credentials: Record<Platform, PlatformConfig> = {
@@ -522,6 +523,39 @@ async function startServer() {
       oldestPending,
       pendingList: pendingOrders
     });
+  });
+
+  app.get("/api/sidebar/status", (req, res) => {
+    const orderSeenAt = Date.parse(sidebarSeenState.order_verification_seen_at || '1970-01-01T00:00:00.000Z');
+    const orderVerificationNew = pendingOrders.filter(order => Date.parse(order.timestamp) > orderSeenAt).length;
+
+    res.json({
+      orderVerificationTotal: pendingOrders.length,
+      orderVerificationNew,
+      ordersDeliveryTotal: 0,
+      ordersDeliveryNew: 0,
+      seenState: {
+        orderVerificationSeenAt: sidebarSeenState.order_verification_seen_at,
+        ordersDeliverySeenAt: sidebarSeenState.orders_delivery_seen_at,
+      },
+    });
+  });
+
+  app.post("/api/sidebar/mark-seen", (req, res) => {
+    const section = String(req.body?.section || '');
+    const seenKeys: Record<string, string> = {
+      order_verification: 'order_verification_seen_at',
+      orders_delivery: 'orders_delivery_seen_at',
+    };
+    const key = seenKeys[section];
+
+    if (!key) {
+      res.status(400).json({ detail: "Invalid sidebar section." });
+      return;
+    }
+
+    sidebarSeenState[key] = new Date().toISOString();
+    res.json({ success: true, seenState: sidebarSeenState });
   });
 
   app.post("/api/deferred/settings", (req, res) => {

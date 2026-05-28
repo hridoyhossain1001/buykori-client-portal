@@ -60,6 +60,7 @@ export default function App() {
   const [retryingOutboxIds, setRetryingOutboxIds] = useState<number[]>([]);
   const [deferredData, setDeferredData] = useState<any>(null);
   const [courierOrders, setCourierOrders] = useState<any[]>([]);
+  const [sidebarStatus, setSidebarStatus] = useState<any>(null);
   const [selectedOrderIds, setSelectedOrderIds] = useState<string[]>([]);
   const [deferredEnabled, setDeferredEnabled] = useState<boolean>(false);
   const [autoConfirmDays, setAutoConfirmDays] = useState<number>(0);
@@ -275,7 +276,7 @@ export default function App() {
     try {
       // Parallel pull
       const [
-        resProf, resConn, resCreds, resRules, resSugg, resLogs, resApi, resDef, resOutbox, resCourier, resCourierOrders
+        resProf, resConn, resCreds, resRules, resSugg, resLogs, resApi, resDef, resOutbox, resCourier, resCourierOrders, resSidebar
       ] = await Promise.all([
         fetch('/api/profile'),
         fetch('/api/connection'),
@@ -288,6 +289,7 @@ export default function App() {
         fetch('/api/outbox?limit=25'),
         fetch('/api/courier/settings'),
         fetch('/api/courier/orders'),
+        fetch('/api/sidebar/status'),
       ]);
 
       if (isAuthFailure([resProf, resConn, resCreds, resRules])) {
@@ -310,6 +312,7 @@ export default function App() {
       const dOutbox = resOutbox.ok ? await resOutbox.json() : { items: [] };
       const dCourier = resCourier.ok ? await resCourier.json() : {};
       const dCourierOrders = resCourierOrders.ok ? await resCourierOrders.json() : [];
+      const dSidebar = resSidebar.ok ? await resSidebar.json() : null;
 
       setProfile(dProf);
       setConnection(dConn);
@@ -320,6 +323,7 @@ export default function App() {
       setApiLogs(dApi.logs);
       setOutboxItems(dOutbox.items || []);
       setCourierOrders(Array.isArray(dCourierOrders) ? dCourierOrders : []);
+      setSidebarStatus(dSidebar);
       setDeferredData(dDef);
       setDeferredEnabled(dDef.deferredEnabled);
       setAutoConfirmDays(dDef.autoConfirmDays);
@@ -362,6 +366,41 @@ export default function App() {
     loadSystemData(true);
     loadAnalyticsData();
   }, []);
+
+  const markSidebarSeen = async (section: 'order_verification' | 'orders_delivery') => {
+    const isOrderVerification = section === 'order_verification';
+
+    setSidebarStatus((prev: any) => prev ? {
+      ...prev,
+      orderVerificationNew: isOrderVerification ? 0 : prev.orderVerificationNew,
+      ordersDeliveryNew: isOrderVerification ? prev.ordersDeliveryNew : 0,
+    } : prev);
+
+    try {
+      const res = await fetch('/api/sidebar/mark-seen', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ section })
+      });
+
+      if (res.ok) {
+        const statusRes = await fetch('/api/sidebar/status');
+        if (statusRes.ok) {
+          setSidebarStatus(await statusRes.json());
+        }
+      }
+    } catch (err) {
+      console.error("Failed to update sidebar seen state", err);
+    }
+  };
+
+  useEffect(() => {
+    if (activePage === 'pending-purchases') {
+      markSidebarSeen('order_verification');
+    } else if (activePage === 'orders') {
+      markSidebarSeen('orders_delivery');
+    }
+  }, [activePage]);
 
   // Live Tracking Mode Polling Simulator
   useEffect(() => {
@@ -918,11 +957,13 @@ export default function App() {
   const resolvedCount = suggestions.length - unresolvedSuggestions.length;
   const totalSuggCount = suggestions.length;
   const suggestionsCount = unresolvedSuggestions.length;
-  const orderVerificationCount = Number(deferredData?.pendingCount ?? deferredData?.pendingList?.length ?? 0);
-  const deliveryBadgeCount = courierOrders.filter(order => {
+  const totalOrderVerificationCount = Number(deferredData?.pendingCount ?? deferredData?.pendingList?.length ?? 0);
+  const totalDeliveryBadgeCount = courierOrders.filter(order => {
     const status = String(order?.courier_status || '').toLowerCase();
     return status && !['delivered', 'returned', 'cancelled', 'canceled'].includes(status);
   }).length;
+  const orderVerificationCount = Number(sidebarStatus?.orderVerificationNew ?? totalOrderVerificationCount);
+  const deliveryBadgeCount = Number(sidebarStatus?.ordersDeliveryNew ?? totalDeliveryBadgeCount);
   const severityPenalty = unresolvedSuggestions.reduce((total, suggestion) => {
     if (suggestion.severity === 'Critical') return total + 25;
     if (suggestion.severity === 'Warning') return total + 15;
