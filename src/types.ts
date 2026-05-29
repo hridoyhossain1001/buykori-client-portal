@@ -119,6 +119,10 @@ export interface CampaignPayload {
 export interface CourierSettings {
   pathao_api_key?: string;
   pathao_secret_key?: string;
+  pathao_client_id?: string;
+  pathao_email?: string;
+  pathao_client_secret?: string;
+  pathao_password?: string;
   pathao_store_id?: string;
   steadfast_api_key?: string;
   steadfast_secret_key?: string;

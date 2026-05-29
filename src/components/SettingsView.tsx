@@ -107,6 +107,10 @@ export function SettingsView({
   const [courierSettings, setCourierSettings] = useState<any>({
     pathao_api_key: '',
     pathao_secret_key: '',
+    pathao_client_id: '',
+    pathao_email: '',
+    pathao_client_secret: '',
+    pathao_password: '',
     pathao_store_id: '',
     steadfast_api_key: '',
     steadfast_secret_key: '',
@@ -128,7 +132,14 @@ export function SettingsView({
         const res = await fetch('/api/courier/settings');
         if (res.ok) {
           const data = await res.json();
-          setCourierSettings(data);
+          const [fallbackClientId = '', fallbackEmail = ''] = String(data.pathao_api_key || '').split('|');
+          setCourierSettings({
+            ...data,
+            pathao_client_id: data.pathao_client_id || fallbackClientId,
+            pathao_email: data.pathao_email || fallbackEmail,
+            pathao_client_secret: data.pathao_client_secret || '',
+            pathao_password: data.pathao_password || ''
+          });
         }
       } catch (err) {
         console.error("Failed to load courier settings", err);
@@ -142,11 +153,16 @@ export function SettingsView({
   const handleSaveCourierSettings = async (e: React.FormEvent) => {
     e.preventDefault();
     setSavingCourier(true);
+    const payload = {
+      ...courierSettings,
+      pathao_api_key: undefined,
+      pathao_secret_key: undefined
+    };
     try {
       const res = await fetch('/api/courier/settings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(courierSettings)
+        body: JSON.stringify(payload)
       });
       if (res.ok) {
         showToast("Courier settings updated successfully.", false);
@@ -323,30 +339,58 @@ export function SettingsView({
                     Pathao Courier API
                   </h4>
                   
-                  <div>
-                    <label className="block text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase mb-1">
-                      Pathao Client ID | Store Owner Email
-                    </label>
-                    <input 
-                      type="text"
-                      value={courierSettings.pathao_api_key || ''}
-                      onChange={(e) => setCourierSettings((prev: any) => ({ ...prev, pathao_api_key: e.target.value }))}
-                      placeholder="client_id|email"
-                      className="w-full p-2 text-xs bg-white border border-slate-205 rounded font-mono text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-slate-900 dark:border-slate-800 dark:text-white"
-                    />
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase mb-1">
+                        Pathao Client ID
+                      </label>
+                      <input
+                        type="text"
+                        value={courierSettings.pathao_client_id || ''}
+                        onChange={(e) => setCourierSettings((prev: any) => ({ ...prev, pathao_client_id: e.target.value }))}
+                        placeholder="Client ID"
+                        className="w-full p-2 text-xs bg-white border border-slate-205 rounded font-mono text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-slate-900 dark:border-slate-800 dark:text-white"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase mb-1">
+                        Store Owner Email
+                      </label>
+                      <input
+                        type="email"
+                        value={courierSettings.pathao_email || ''}
+                        onChange={(e) => setCourierSettings((prev: any) => ({ ...prev, pathao_email: e.target.value }))}
+                        placeholder="owner@example.com"
+                        className="w-full p-2 text-xs bg-white border border-slate-205 rounded font-mono text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-slate-900 dark:border-slate-800 dark:text-white"
+                      />
+                    </div>
                   </div>
 
-                  <div>
-                    <label className="block text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase mb-1">
-                      Pathao Client Secret | Store Password
-                    </label>
-                    <input 
-                      type="password"
-                      value={courierSettings.pathao_secret_key || ''}
-                      onChange={(e) => setCourierSettings((prev: any) => ({ ...prev, pathao_secret_key: e.target.value }))}
-                      placeholder="************************"
-                      className="w-full p-2 text-xs bg-white border border-slate-205 rounded font-mono text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-slate-900 dark:border-slate-800 dark:text-white"
-                    />
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase mb-1">
+                        Pathao Client Secret
+                      </label>
+                      <input
+                        type="password"
+                        value={courierSettings.pathao_client_secret || ''}
+                        onChange={(e) => setCourierSettings((prev: any) => ({ ...prev, pathao_client_secret: e.target.value }))}
+                        placeholder="************************"
+                        className="w-full p-2 text-xs bg-white border border-slate-205 rounded font-mono text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-slate-900 dark:border-slate-800 dark:text-white"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase mb-1">
+                        Store Password
+                      </label>
+                      <input
+                        type="password"
+                        value={courierSettings.pathao_password || ''}
+                        onChange={(e) => setCourierSettings((prev: any) => ({ ...prev, pathao_password: e.target.value }))}
+                        placeholder="************************"
+                        className="w-full p-2 text-xs bg-white border border-slate-205 rounded font-mono text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-slate-900 dark:border-slate-800 dark:text-white"
+                      />
+                    </div>
                   </div>
 
                   <div>
