@@ -929,29 +929,44 @@ export default function App() {
   const tiktokStats = getPlatformStats('TikTok Events API');
   const ga4Stats = getPlatformStats('GA4');
 
-  // Chart Generation: Events volume over last 30 days sample
+  // Chart Generation: Events volume over last 10 calendar days (padded so chart always renders properly)
   const getTrendData = () => {
+    // Use ISO date keys (YYYY-MM-DD) for reliable chronological sorting
     const dateCount: Record<string, { total: number; meta: number; tiktok: number; ga4: number }> = {};
 
     events.forEach(e => {
-      const dayStr = new Date(e.timestamp).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-      if (!dateCount[dayStr]) {
-        dateCount[dayStr] = { total: 0, meta: 0, tiktok: 0, ga4: 0 };
+      const d = new Date(e.timestamp);
+      const isoKey = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+      if (!dateCount[isoKey]) {
+        dateCount[isoKey] = { total: 0, meta: 0, tiktok: 0, ga4: 0 };
       }
-      dateCount[dayStr].total++;
-      if (e.platform === 'Meta CAPI') dateCount[dayStr].meta++;
-      else if (e.platform === 'TikTok Events API') dateCount[dayStr].tiktok++;
-      else if (e.platform === 'GA4') dateCount[dayStr].ga4++;
+      dateCount[isoKey].total++;
+      if (e.platform === 'Meta CAPI') dateCount[isoKey].meta++;
+      else if (e.platform === 'TikTok Events API') dateCount[isoKey].tiktok++;
+      else if (e.platform === 'GA4') dateCount[isoKey].ga4++;
     });
 
-    const sortedDays = Object.keys(dateCount).reverse().slice(-10); // last 10 days for readable charting
-    return sortedDays.map(day => ({
-      name: day,
-      'Meta CAPI': dateCount[day].meta,
-      'TikTok Events': dateCount[day].tiktok,
-      'GA4': dateCount[day].ga4,
-      'Total': dateCount[day].total
-    }));
+    // Always render last 10 calendar days (pads empty days so area chart has enough points)
+    const today = new Date();
+    const last10Days: string[] = [];
+    for (let i = 9; i >= 0; i--) {
+      const d = new Date(today);
+      d.setDate(today.getDate() - i);
+      const isoKey = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+      last10Days.push(isoKey);
+    }
+
+    return last10Days.map(isoKey => {
+      const displayLabel = new Date(isoKey + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+      const counts = dateCount[isoKey] || { total: 0, meta: 0, tiktok: 0, ga4: 0 };
+      return {
+        name: displayLabel,
+        'Meta CAPI': counts.meta,
+        'TikTok Events': counts.tiktok,
+        'GA4': counts.ga4,
+        'Total': counts.total
+      };
+    });
   };
 
   const trendData = getTrendData();
