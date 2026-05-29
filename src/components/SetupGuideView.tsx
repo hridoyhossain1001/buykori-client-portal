@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { ChevronDown, Copy, Check, Globe, ShoppingBag, Code, Download } from 'lucide-react';
 import { staticFAQs } from '../lib/mock-data';
+import { PluginReleaseInfo } from '../types';
 
 interface SetupGuideViewProps {
   faqExpanded: number | null;
@@ -10,6 +11,7 @@ interface SetupGuideViewProps {
   setActivePage: (page: string) => void;
   api_key?: string;
   public_key?: string;
+  pluginReleaseInfo?: PluginReleaseInfo | null;
 }
 
 type TabType = 'wordpress' | 'shopify' | 'custom';
@@ -21,7 +23,8 @@ export function SetupGuideView({
   handleCopy,
   setActivePage,
   api_key,
-  public_key
+  public_key,
+  pluginReleaseInfo
 }: SetupGuideViewProps) {
   const [activeTab, setActiveTab] = useState<TabType>('wordpress');
   
@@ -45,6 +48,7 @@ export function SetupGuideView({
   const gatewayUrl = `${apiDomain}/api/v1`;
   const collectUrl = `${apiDomain}/c`;
   const pluginDownloadUrl = `${gatewayUrl}/plugin/download${hasApiToken ? `?api_key=${encodeURIComponent(apiToken)}` : ''}`;
+  const packageSizeKb = pluginReleaseInfo?.package_size ? Math.round(pluginReleaseInfo.package_size / 1024) : 0;
 
   // Shopify Custom Pixel Script Template
   const shopifyPixelCode = `// Buykori AdSync Custom Pixel Tracking Code
@@ -271,6 +275,11 @@ capi('track', 'AddToCart', {
                   <Download className="w-3.5 h-3.5" />
                   Download Plugin ZIP
                 </a>
+                {pluginReleaseInfo && (
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                    Latest release v{pluginReleaseInfo.version} / tested up to WordPress {pluginReleaseInfo.tested} / {packageSizeKb} KB
+                  </p>
+                )}
                 {!hasApiToken && (
                   <p className="text-xs text-amber-700 dark:text-amber-400 max-w-3xl leading-relaxed">
                     Server API key has not loaded for this account. Refresh the portal before downloading the configured plugin.

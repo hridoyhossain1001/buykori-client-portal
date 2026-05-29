@@ -72,6 +72,18 @@ export interface ClientConnection {
   api_key?: string;
 }
 
+export interface PluginReleaseInfo {
+  version: string;
+  download_url: string;
+  package_sha256: string;
+  package_size: number;
+  package_available: boolean;
+  requires: string;
+  tested: string;
+  requires_php: string;
+  last_updated: string;
+}
+
 export interface UserProfile {
   name: string;
   email: string;
@@ -129,4 +141,3 @@ export interface CourierOrder {
   created_at: string;
   purchase_event_sent: boolean;
 }
-

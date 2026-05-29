@@ -12,7 +12,7 @@ import {
 } from 'lucide-react';
 import { Sidebar } from './components/Sidebar';
 import { Header } from './components/Header';
-import { CAPIEvent, APILog, Suggestion, Platform, EventRule, PlatformConfig, UserProfile, ClientConnection, OutboxItem } from './types';
+import { CAPIEvent, APILog, Suggestion, Platform, EventRule, PlatformConfig, UserProfile, ClientConnection, OutboxItem, PluginReleaseInfo } from './types';
 
 // Lazy-loaded modular views (code-splitting for smaller initial bundle)
 const DashboardView = lazy(() => import('./components/DashboardView').then(m => ({ default: m.DashboardView })));
@@ -61,6 +61,7 @@ export default function App() {
   const [deferredData, setDeferredData] = useState<any>(null);
   const [courierOrders, setCourierOrders] = useState<any[]>([]);
   const [sidebarStatus, setSidebarStatus] = useState<any>(null);
+  const [pluginReleaseInfo, setPluginReleaseInfo] = useState<PluginReleaseInfo | null>(null);
   const [selectedOrderIds, setSelectedOrderIds] = useState<string[]>([]);
   const [deferredEnabled, setDeferredEnabled] = useState<boolean>(false);
   const [autoConfirmDays, setAutoConfirmDays] = useState<number>(0);
@@ -276,7 +277,7 @@ export default function App() {
     try {
       // Parallel pull
       const [
-        resProf, resConn, resCreds, resRules, resSugg, resLogs, resApi, resDef, resOutbox, resCourier, resCourierOrders, resSidebar
+        resProf, resConn, resCreds, resRules, resSugg, resLogs, resApi, resDef, resOutbox, resCourier, resCourierOrders, resSidebar, resPlugin
       ] = await Promise.all([
         fetch('/api/profile'),
         fetch('/api/connection'),
@@ -290,6 +291,7 @@ export default function App() {
         fetch('/api/courier/settings'),
         fetch('/api/courier/orders'),
         fetch('/api/sidebar/status'),
+        fetch('/api/v1/plugin/info'),
       ]);
 
       if (isAuthFailure([resProf, resConn, resCreds, resRules])) {
@@ -313,6 +315,7 @@ export default function App() {
       const dCourier = resCourier.ok ? await resCourier.json() : {};
       const dCourierOrders = resCourierOrders.ok ? await resCourierOrders.json() : [];
       const dSidebar = resSidebar.ok ? await resSidebar.json() : null;
+      const dPlugin = resPlugin.ok ? await resPlugin.json() : null;
 
       setProfile(dProf);
       setConnection(dConn);
@@ -324,6 +327,7 @@ export default function App() {
       setOutboxItems(dOutbox.items || []);
       setCourierOrders(Array.isArray(dCourierOrders) ? dCourierOrders : []);
       setSidebarStatus(dSidebar);
+      setPluginReleaseInfo(dPlugin);
       setDeferredData(dDef);
       setDeferredEnabled(dDef.deferredEnabled);
       setAutoConfirmDays(dDef.autoConfirmDays);
@@ -1207,6 +1211,7 @@ export default function App() {
                 handleCopy={handleCopy}
                 showToast={showToast}
                 orderManagementEnabled={orderManagementEnabled}
+                pluginReleaseInfo={pluginReleaseInfo}
               />
             )}
 
@@ -1220,6 +1225,7 @@ export default function App() {
                 setActivePage={setActivePage}
                 api_key={connection?.api_key}
                 public_key={connection?.token}
+                pluginReleaseInfo={pluginReleaseInfo}
               />
             )}
 

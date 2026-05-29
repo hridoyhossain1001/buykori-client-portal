@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Copy, Check, Plus, Trash2 } from 'lucide-react';
-import { Platform, PlatformConfig, EventRule, ClientConnection } from '../types';
+import { Platform, PlatformConfig, EventRule, ClientConnection, PluginReleaseInfo } from '../types';
 
 interface SettingsViewProps {
   credentials: Record<Platform, PlatformConfig>;
@@ -15,6 +15,7 @@ interface SettingsViewProps {
   handleCopy: (text: string, labelId: string) => void;
   showToast: (msg: string, isErr?: boolean) => void;
   orderManagementEnabled: boolean;
+  pluginReleaseInfo?: PluginReleaseInfo | null;
 }
 
 export function SettingsView({
@@ -29,7 +30,8 @@ export function SettingsView({
   copiedStates,
   handleCopy,
   showToast,
-  orderManagementEnabled
+  orderManagementEnabled,
+  pluginReleaseInfo
 }: SettingsViewProps) {
   // Local state for inputs to prevent key-stroke POST spamming
   const [localPixelIds, setLocalPixelIds] = useState<Record<Platform, string>>({
@@ -63,6 +65,11 @@ export function SettingsView({
     { value: 'Subscribe', label: 'Subscribe - newsletter or membership signup' },
   ];
   const coreEventRoutes = new Set(['PageView', 'AddToCart', 'InitiateCheckout', 'Purchase']);
+  const normalizeVersion = (version?: string) => (version || '').replace(/^v/i, '').trim();
+  const installedVersion = normalizeVersion(connection.wpVersion);
+  const latestVersion = normalizeVersion(pluginReleaseInfo?.version);
+  const updateAvailable = Boolean(installedVersion && latestVersion && installedVersion !== latestVersion);
+  const packageSizeKb = pluginReleaseInfo?.package_size ? Math.round(pluginReleaseInfo.package_size / 1024) : 0;
   const availablePresetRoutes = presetEventRoutes.filter(
     preset => !rules.some(rule => rule.eventName.toLowerCase() === preset.value.toLowerCase())
   );
@@ -535,6 +542,31 @@ export function SettingsView({
                 <span className="block text-[9px] text-slate-400 dark:text-slate-500 uppercase mb-0.5">Last query heartbeat</span>
                 <span className="font-semibold text-slate-850 dark:text-white">{new Date(connection.lastHeartbeat).toLocaleTimeString()}</span>
               </div>
+            </div>
+          </div>
+
+          <div className="rounded-lg border border-slate-200 bg-white p-3 text-xs dark:border-slate-800 dark:bg-slate-950">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-[9px] font-semibold uppercase tracking-wider text-slate-455 dark:text-slate-500">Latest plugin package</p>
+                <p className="mt-1 font-semibold text-slate-850 dark:text-white">
+                  {pluginReleaseInfo ? `v${pluginReleaseInfo.version}` : 'Checking release...'}
+                </p>
+                {pluginReleaseInfo && (
+                  <p className="mt-0.5 text-[10px] text-slate-500 dark:text-slate-400">
+                    WordPress {pluginReleaseInfo.requires}+ / PHP {pluginReleaseInfo.requires_php}+ / {packageSizeKb} KB
+                  </p>
+                )}
+              </div>
+              <span className={
+                updateAvailable
+                  ? 'shrink-0 rounded-md border border-amber-200 bg-amber-50 px-2 py-1 text-[10px] font-semibold text-amber-700 dark:border-amber-900/60 dark:bg-amber-950/20 dark:text-amber-400'
+                  : pluginReleaseInfo?.package_available
+                    ? 'shrink-0 rounded-md border border-emerald-200 bg-emerald-50 px-2 py-1 text-[10px] font-semibold text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-950/20 dark:text-emerald-400'
+                    : 'shrink-0 rounded-md border border-slate-200 bg-slate-50 px-2 py-1 text-[10px] font-semibold text-slate-500 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400'
+              }>
+                {updateAvailable ? 'Update available' : pluginReleaseInfo?.package_available ? 'Up to date' : 'Unavailable'}
+              </span>
             </div>
           </div>
 
