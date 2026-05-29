@@ -1219,6 +1219,7 @@ export default function App() {
                 handleCopy={handleCopy}
                 setActivePage={setActivePage}
                 api_key={connection?.api_key}
+                public_key={connection?.token}
               />
             )}
 

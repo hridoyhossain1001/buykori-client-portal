@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ChevronDown, Copy, Check, Globe, ShoppingBag, Code, Terminal, Layers } from 'lucide-react';
+import { ChevronDown, Copy, Check, Globe, ShoppingBag, Code, Download } from 'lucide-react';
 import { staticFAQs } from '../lib/mock-data';
 
 interface SetupGuideViewProps {
@@ -9,6 +9,7 @@ interface SetupGuideViewProps {
   handleCopy: (text: string, labelId: string) => void;
   setActivePage: (page: string) => void;
   api_key?: string;
+  public_key?: string;
 }
 
 type TabType = 'wordpress' | 'shopify' | 'custom';
@@ -19,20 +20,38 @@ export function SetupGuideView({
   copiedStates,
   handleCopy,
   setActivePage,
-  api_key
+  api_key,
+  public_key
 }: SetupGuideViewProps) {
   const [activeTab, setActiveTab] = useState<TabType>('wordpress');
   
   const apiToken = api_key?.trim() || '';
   const hasApiToken = apiToken.length > 0;
-  const apiDomain = window.location.origin;
+  const publicToken = public_key?.trim() || '';
+  const hasPublicToken = publicToken.length > 0;
+
+  const resolveApiOrigin = () => {
+    const { protocol, hostname, origin } = window.location;
+    if (hostname === 'client.buykori.app' || hostname === 'buykori.app' || hostname === 'www.buykori.app') {
+      return 'https://api.buykori.app';
+    }
+    if (hostname.startsWith('client.')) {
+      return `${protocol}//${hostname.replace(/^client\./, 'api.')}`;
+    }
+    return origin;
+  };
+
+  const apiDomain = resolveApiOrigin();
+  const gatewayUrl = `${apiDomain}/api/v1`;
+  const collectUrl = `${apiDomain}/c`;
+  const pluginDownloadUrl = `${gatewayUrl}/plugin/download${hasApiToken ? `?api_key=${encodeURIComponent(apiToken)}` : ''}`;
 
   // Shopify Custom Pixel Script Template
   const shopifyPixelCode = `// Buykori AdSync Custom Pixel Tracking Code
 // Place this code in Shopify Settings > Customer Events > Custom Pixels
 
-const API_KEY = "${apiToken || 'YOUR_API_KEY'}";
-const API_URL = "${apiDomain}/api/v1/c";
+const API_KEY = "${publicToken || 'YOUR_PUBLIC_TRACKER_KEY'}";
+const API_URL = "${collectUrl}";
 
 // Helper to generate a unique event ID for deduplication
 function generateEventId() {
@@ -127,7 +146,7 @@ analytics.subscribe("checkout_started", (event) => {
 });`;
 
   // Custom Coded Website JS SDK
-  const customScriptTag = `<script src="${apiDomain}/api/v1/t.js?key=${apiToken || 'YOUR_PUBLIC_KEY'}" defer></script>`;
+  const customScriptTag = `<script src="${apiDomain}/t.js?key=${publicToken || 'YOUR_PUBLIC_TRACKER_KEY'}" defer></script>`;
 
   const customCapiCode = `// 1. Identify User (before firing events, e.g. on checkout, login, or registration)
 capi('setUser', {
@@ -146,7 +165,7 @@ capi('track', 'AddToCart', {
 });`;
 
   const customBackendCode = `// Server-to-Server Conversions API (e.g. Node.js / Laravel / Python)
-// POST ${apiDomain}/api/v1/events
+// POST ${gatewayUrl}/events
 // Header: X-API-Key: ${apiToken || 'YOUR_API_KEY'}
 // Header: Content-Type: application/json
 
@@ -238,8 +257,25 @@ capi('track', 'AddToCart', {
               <div className="space-y-2 flex-1">
                 <h4 className="font-bold text-slate-800 text-sm dark:text-white">Download and Install WordPress Helper Plugin</h4>
                 <p className="text-xs text-slate-500 dark:text-slate-400 max-w-3xl leading-relaxed">
-                  Navigate to your WordPress dashboard. Click <b>Plugins &gt; Add New</b>, and search for the <b>"Buykori AdSync"</b> plugin. Upload and activate it.
+                  Download the pre-configured plugin, then go to <b>WordPress Admin &gt; Plugins &gt; Add New &gt; Upload Plugin</b>. Upload the ZIP and activate it.
                 </p>
+                <a
+                  href={pluginDownloadUrl}
+                  className={`inline-flex items-center gap-2 px-3 py-1.5 rounded text-xs font-semibold border transition-colors ${
+                    hasApiToken
+                      ? 'bg-indigo-600 text-white border-indigo-700 hover:bg-indigo-700'
+                      : 'bg-slate-100 text-slate-400 border-slate-200 pointer-events-none dark:bg-slate-800 dark:border-slate-700'
+                  }`}
+                  aria-disabled={!hasApiToken}
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  Download Plugin ZIP
+                </a>
+                {!hasApiToken && (
+                  <p className="text-xs text-amber-700 dark:text-amber-400 max-w-3xl leading-relaxed">
+                    Server API key has not loaded for this account. Refresh the portal before downloading the configured plugin.
+                  </p>
+                )}
               </div>
             </div>
 
@@ -278,9 +314,9 @@ capi('track', 'AddToCart', {
                   Provide the API Gateway URL in your WordPress plugin settings to establish a pipeline connection:
                 </p>
                 <div className="flex items-center gap-2 bg-slate-55/50 dark:bg-slate-950 p-2 border border-slate-200 dark:border-slate-800 rounded font-mono text-xs text-slate-800 dark:text-slate-300 max-w-md">
-                  <code className="truncate">{apiDomain + "/api/v1"}</code>
+                  <code className="truncate">{gatewayUrl}</code>
                   <button 
-                    onClick={() => handleCopy(apiDomain + "/api/v1", 'c_g_url')}
+                    onClick={() => handleCopy(gatewayUrl, 'c_g_url')}
                     className="text-slate-400 hover:text-indigo-600 ml-auto shrink-0 cursor-pointer"
                     title="Copy Gateway URL"
                   >
@@ -350,6 +386,11 @@ capi('track', 'AddToCart', {
                 <code>{shopifyPixelCode}</code>
               </pre>
             </div>
+            {!hasPublicToken && (
+              <p className="text-xs text-amber-700 dark:text-amber-400 max-w-4xl leading-relaxed">
+                Public tracker key has not loaded for this account. Refresh the portal before installing the Shopify pixel.
+              </p>
+            )}
           </div>
 
           {/* Section 2: Webhooks */}
@@ -372,9 +413,9 @@ capi('track', 'AddToCart', {
               </ul>
               
               <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-950 p-2 border border-slate-250 dark:border-slate-800 rounded font-mono text-xs text-slate-800 dark:text-slate-300 max-w-xl">
-                <code className="truncate">{apiDomain + "/api/v1/webhook/shopify"}</code>
+                <code className="truncate">{`${gatewayUrl}/webhook/shopify?key=${apiToken || 'YOUR_API_KEY'}`}</code>
                 <button 
-                  onClick={() => handleCopy(apiDomain + "/api/v1/webhook/shopify", 'sh_wh_url')}
+                  onClick={() => handleCopy(`${gatewayUrl}/webhook/shopify?key=${apiToken || 'YOUR_API_KEY'}`, 'sh_wh_url')}
                   className="text-slate-455 hover:text-indigo-600 ml-auto shrink-0 cursor-pointer"
                   title="Copy Shopify Webhook URL"
                 >
@@ -412,13 +453,19 @@ capi('track', 'AddToCart', {
             <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-950 p-2.5 border border-slate-200 dark:border-slate-800 rounded font-mono text-xs text-slate-800 dark:text-slate-300">
               <code className="truncate">{customScriptTag}</code>
               <button 
-                onClick={() => handleCopy(customScriptTag, 'c_script')}
+                onClick={() => hasPublicToken && handleCopy(customScriptTag, 'c_script')}
+                disabled={!hasPublicToken}
                 className="text-slate-400 hover:text-indigo-600 ml-auto shrink-0 cursor-pointer"
                 title="Copy Script Tag"
               >
                 {copiedStates['c_script'] ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
               </button>
             </div>
+            {!hasPublicToken && (
+              <p className="text-xs text-amber-700 dark:text-amber-400 max-w-4xl leading-relaxed">
+                Public tracker key has not loaded for this account. Refresh the portal before copying the browser script.
+              </p>
+            )}
 
             <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed max-w-4xl pt-1">
               To trigger custom events or identify users (which automatically hashes PII using secure browser crypto APIs before sending), call the <code>capi()</code> function:
