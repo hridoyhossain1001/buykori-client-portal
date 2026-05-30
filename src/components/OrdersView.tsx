@@ -230,16 +230,16 @@ export function OrdersView({
   const handleSendToCourierSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!recipientName.trim() || !recipientPhone.trim() || !recipientAddress.trim()) {
-      showToast("Please fill in recipient name, phone, and address.", true);
+      showToast("নাম, ফোন নম্বর এবং ঠিকানা অবশ্যই পূরণ করুন।", true);
       return;
     }
 
     setSubmittingCourier(true);
     try {
-      // Find the database ID from the selected order
-      const dbId = selectedOrder.dbId || selectedOrder.id;
+      // 'id' field is the DB primary key of the PendingEvent
+      const dbId = selectedOrder?.id;
       if (!dbId) {
-        showToast("Error: Database event ID missing.", true);
+        showToast("Error: Pending Event ID পাওয়া যায়নি। পেজ রিফ্রেশ করুন।", true);
         setSubmittingCourier(false);
         return;
       }
@@ -255,8 +255,9 @@ export function OrdersView({
         item_quantity: Number(itemQuantity)
       };
 
-      if (courierProvider === 'pathao' && selectedStoreId) {
-        payload.store_id = Number(selectedStoreId);
+      // Pathao: auto-use store_id from settings (no manual picker needed)
+      if (courierProvider === 'pathao' && courierSettings?.pathao_store_id) {
+        payload.store_id = Number(courierSettings.pathao_store_id);
       }
 
       const res = await fetch('/api/courier/send', {
@@ -266,17 +267,17 @@ export function OrdersView({
       });
 
       if (res.ok) {
-        showToast(`Order successfully sent to ${courierProvider.toUpperCase()}!`, false);
+        showToast(`✅ অর্ডার সফলভাবে ${courierProvider === 'pathao' ? 'Pathao' : 'SteadFast'}-এ পাঠানো হয়েছে!`, false);
         setIsSendModalOpen(false);
         fetchDeferred();
         fetchCourierOrders();
       } else {
         const errData = await res.json();
-        showToast(errData.detail || "Failed to send order to courier.", true);
+        showToast(errData.detail || "Courier-এ পাঠাতে সমস্যা হয়েছে।", true);
       }
     } catch (err) {
       console.error(err);
-      showToast("Network error while sending order to courier.", true);
+      showToast("নেটওয়ার্ক সমস্যা। আবার চেষ্টা করুন।", true);
     } finally {
       setSubmittingCourier(false);
     }
@@ -491,11 +492,11 @@ export function OrdersView({
                           <td className="px-6 py-3 text-right space-x-2 whitespace-nowrap">
                             <button
                               onClick={() => {
+                                // order.id = PendingEvent DB primary key (from /api/deferred)
                                 setSelectedOrder(order);
-                                // Pre-fill recipient fields from order
-                                setRecipientName(order.recipientName || '');
-                                setRecipientPhone(order.recipientPhone || (order.customer.match(/^\+?[0-9\s-]{10,15}$/) ? order.customer : ''));
-                                setRecipientAddress(order.recipientAddress || '');
+                                setRecipientName(order.recipientName && order.recipientName !== '—' ? order.recipientName : '');
+                                setRecipientPhone(order.recipientPhone && order.recipientPhone !== '—' ? order.recipientPhone : (order.customer && !order.customer.includes('@') ? order.customer : ''));
+                                setRecipientAddress(order.recipientAddress && order.recipientAddress !== '—' ? order.recipientAddress : '');
                                 setCodAmount(order.amount);
                                 setIsSendModalOpen(true);
                               }}
@@ -1103,7 +1104,7 @@ export function OrdersView({
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase mb-1">COD Collection Amount</label>
+                    <label className="block text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase mb-1">COD সংগ্রহ পরিমাণ (৳)</label>
                     <div className="relative">
                       <DollarSign className="absolute left-2.5 top-2.5 w-3.5 h-3.5 text-slate-400" />
                       <input
@@ -1116,32 +1117,16 @@ export function OrdersView({
                     </div>
                   </div>
                   
+                  {/* Pathao: Store ID auto-used from Settings — no manual picker needed */}
                   {courierProvider === 'pathao' && (
                     <div>
-                      <label className="block text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase mb-1">Select Pickup Store</label>
-                      {loadingStores ? (
-                        <div className="flex items-center gap-2 py-2 px-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-400">
-                          <Loader2 className="w-3.5 h-3.5 animate-spin text-indigo-500" />
-                          Loading stores...
-                        </div>
-                      ) : pathaoStores.length === 0 ? (
-                        <div className="py-2 px-3 bg-rose-50 dark:bg-rose-950/20 border border-rose-200 dark:border-rose-900/40 rounded-lg text-xs text-rose-600 dark:text-rose-400 font-semibold">
-                          No stores found. Configure in Settings.
-                        </div>
-                      ) : (
-                        <select
-                          required
-                          value={selectedStoreId}
-                          onChange={(e) => setSelectedStoreId(Number(e.target.value))}
-                          className="w-full p-2 text-xs bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-lg text-slate-800 dark:text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 cursor-pointer font-semibold"
-                        >
-                          {pathaoStores.map((store) => (
-                            <option key={store.store_id} value={store.store_id}>
-                              {store.store_name} (ID: {store.store_id})
-                            </option>
-                          ))}
-                        </select>
-                      )}
+                      <label className="block text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase mb-1">Pathao Store</label>
+                      <div className="py-2 px-3 bg-indigo-50 dark:bg-indigo-950/20 border border-indigo-200 dark:border-indigo-900/40 rounded-lg text-xs text-indigo-700 dark:text-indigo-400 font-semibold flex items-center gap-1.5">
+                        <Truck className="w-3.5 h-3.5 shrink-0" />
+                        {courierSettings?.pathao_store_id
+                          ? `Store ID: ${courierSettings.pathao_store_id} (Settings থেকে)`
+                          : 'Store ID সেট নেই — Tracking Settings এ যান'}
+                      </div>
                     </div>
                   )}
                 </div>
