@@ -11,6 +11,7 @@ import {
   Loader2
 } from 'lucide-react';
 import { Sidebar } from './components/Sidebar';
+import { CreateStoreModal } from './components/CreateStoreModal';
 import { Header } from './components/Header';
 import { CAPIEvent, APILog, Suggestion, Platform, EventRule, PlatformConfig, UserProfile, ClientConnection, OutboxItem, PluginReleaseInfo } from './types';
 
@@ -67,6 +68,10 @@ export default function App() {
   const [autoConfirmDays, setAutoConfirmDays] = useState<number>(0);
   const [autoConfirmStatus, setAutoConfirmStatus] = useState<string>('completed');
   const [savingDeferredSettings, setSavingDeferredSettings] = useState<boolean>(false);
+
+  // Multiple Store Management
+  const [stores, setStores] = useState<any[]>([]);
+  const [createStoreModalOpen, setCreateStoreModalOpen] = useState<boolean>(false);
 
   // Order Management (courier integration toggle)
   const [orderManagementEnabled, setOrderManagementEnabled] = useState<boolean>(false);
@@ -369,7 +374,44 @@ export default function App() {
   useEffect(() => {
     loadSystemData(true);
     loadAnalyticsData();
+    fetchStores();
   }, []);
+
+  const fetchStores = async () => {
+    try {
+      const res = await fetch('/api/stores');
+      if (res.ok) {
+        const data = await res.json();
+        setStores(data.stores || []);
+      }
+    } catch (err) {
+      console.error('Failed to fetch stores', err);
+    }
+  };
+
+  const handleSwitchStore = async (clientId: number) => {
+    try {
+      const res = await fetch('/api/switch-store', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ target_client_id: clientId }),
+      });
+      if (res.ok) {
+        showToast('Switching store...', false);
+        setTimeout(() => {
+          loadSystemData(true);
+          fetchStores();
+          setActivePage('dashboard');
+        }, 400);
+      } else {
+        const data = await res.json();
+        showToast(data.detail || 'Failed to switch store.', true);
+      }
+    } catch {
+      showToast('Network error while switching store.', true);
+    }
+  };
+
 
   const markSidebarSeen = async (section: 'order_verification' | 'orders_delivery') => {
     const isOrderVerification = section === 'order_verification';
@@ -1020,6 +1062,9 @@ export default function App() {
           suggestionsCount={suggestionsCount}
           orderVerificationCount={orderVerificationCount}
           deliveryBadgeCount={deliveryBadgeCount}
+          stores={stores}
+          onSwitchStore={handleSwitchStore}
+          onCreateStore={() => setCreateStoreModalOpen(true)}
         />
       )}
 
@@ -1349,6 +1394,18 @@ export default function App() {
           </span>
         </div>
       )}
+
+      {/* Create Store Modal */}
+      <CreateStoreModal
+        open={createStoreModalOpen}
+        onClose={() => setCreateStoreModalOpen(false)}
+        showToast={showToast}
+        onCreated={() => {
+          fetchStores();
+          loadSystemData(true);
+          setActivePage('dashboard');
+        }}
+      />
     </div>
   );
 }
