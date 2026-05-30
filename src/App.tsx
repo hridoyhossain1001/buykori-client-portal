@@ -1147,6 +1147,7 @@ export default function App() {
                 handleConfirmOrder={handleConfirmOrder}
                 handleCancelOrder={handleCancelOrder}
                 showToast={showToast}
+                apiKey={connection?.api_key}
               />
             )}
 

@@ -15,7 +15,12 @@ import {
   User,
   Phone,
   MapPin,
-  DollarSign
+  DollarSign,
+  Wifi,
+  Copy,
+  ChevronDown,
+  ChevronUp,
+  Info
 } from 'lucide-react';
 import { CourierOrder, CourierSettings } from '../types';
 
@@ -25,6 +30,7 @@ interface OrdersViewProps {
   handleConfirmOrder: (orderId: string) => Promise<void>;
   handleCancelOrder: (orderId: string) => Promise<void>;
   showToast: (msg: string, isErr?: boolean) => void;
+  apiKey?: string; // Client-এর api_key — webhook URL তৈরিতে ব্যবহার হয়
 }
 
 export function OrdersView({
@@ -32,9 +38,28 @@ export function OrdersView({
   fetchDeferred,
   handleConfirmOrder,
   handleCancelOrder,
-  showToast
+  showToast,
+  apiKey,
 }: OrdersViewProps) {
   const [activeTab, setActiveTab] = useState<'pending' | 'shipped'>('pending');
+  const [webhookGuideExpanded, setWebhookGuideExpanded] = useState<Record<string, boolean>>({});
+  const [copiedWebhookUrl, setCopiedWebhookUrl] = useState<string | null>(null);
+
+  // Webhook URLs
+  const PATHAO_WEBHOOK_URL = `https://api.buykori.app/v1/webhook/pathao`;
+  const STEADFAST_WEBHOOK_URL = `https://api.buykori.app/v1/webhook/steadfast`;
+  const WEBHOOK_SECRET = apiKey ? apiKey.slice(0, 32) : ''; // api_key-এর প্রথম 32 char
+
+  const handleCopyWebhook = (url: string, label: string) => {
+    navigator.clipboard.writeText(url);
+    setCopiedWebhookUrl(label);
+    setTimeout(() => setCopiedWebhookUrl(null), 2500);
+    showToast('Webhook URL copied to clipboard!', false);
+  };
+
+  const toggleWebhookGuide = (provider: string) => {
+    setWebhookGuideExpanded(prev => ({ ...prev, [provider]: !prev[provider] }));
+  };
   const [courierOrders, setCourierOrders] = useState<CourierOrder[]>([]);
   const [courierSettings, setCourierSettings] = useState<CourierSettings | null>(null);
   const [loadingOrders, setLoadingOrders] = useState<boolean>(false);
@@ -444,6 +469,143 @@ export function OrdersView({
               <p className="text-xs text-slate-405 dark:text-slate-500">
                 Track delivery statuses on SteadFast or Pathao. Delivery completion triggers a CAPI Purchase event; Returns fire a Refund event.
               </p>
+            </div>
+          </div>
+
+          {/* ─── Webhook Setup Banner ─── */}
+          <div className="rounded-xl border border-indigo-200 bg-gradient-to-br from-indigo-50 to-violet-50 dark:from-indigo-950/30 dark:to-violet-950/20 dark:border-indigo-900/40 p-4 space-y-3">
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 rounded-lg bg-indigo-600 flex items-center justify-center shrink-0">
+                <Wifi className="w-3.5 h-3.5 text-white" />
+              </div>
+              <div>
+                <h4 className="text-xs font-bold text-indigo-800 dark:text-indigo-300">Real-time Delivery Tracking Setup</h4>
+                <p className="text-[10px] text-indigo-600/80 dark:text-indigo-400/70 mt-0.5">
+                  Courier-এর Merchant Panel-এ Webhook URL যোগ করুন — তাহলে order status real-time আপডেট হবে। না করলেও প্রতি ৩০ মিনিটে auto-check হবে।
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {/* Pathao Webhook */}
+              <div className="bg-white dark:bg-slate-900 rounded-xl border border-indigo-100 dark:border-indigo-900/30 overflow-hidden">
+                <div className="px-4 py-3 flex items-center justify-between border-b border-indigo-50 dark:border-indigo-900/20">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200">Pathao Courier Webhook</span>
+                  </div>
+                  <button
+                    onClick={() => toggleWebhookGuide('pathao')}
+                    className="text-[10px] font-semibold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1 cursor-pointer"
+                  >
+                    {webhookGuideExpanded['pathao'] ? 'Hide Guide' : 'How to Setup'}
+                    {webhookGuideExpanded['pathao'] ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                  </button>
+                </div>
+                <div className="px-4 py-3 space-y-2">
+                  <div>
+                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-1">Webhook URL (Copy করুন)</p>
+                    <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-950 rounded-lg border border-slate-200 dark:border-slate-800 px-2.5 py-1.5">
+                      <code className="flex-1 text-[10px] font-mono text-indigo-700 dark:text-indigo-400 truncate">{PATHAO_WEBHOOK_URL}</code>
+                      <button
+                        onClick={() => handleCopyWebhook(PATHAO_WEBHOOK_URL, 'pathao')}
+                        className="shrink-0 p-1 rounded text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950/30 transition-colors cursor-pointer"
+                        title="Copy Pathao Webhook URL"
+                      >
+                        {copiedWebhookUrl === 'pathao' ? (
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+                        ) : (
+                          <Copy className="w-3.5 h-3.5" />
+                        )}
+                      </button>
+                    </div>
+                  </div>
+
+                  {webhookGuideExpanded['pathao'] && (
+                    <div className="mt-2 space-y-1.5 border-t border-slate-100 dark:border-slate-800 pt-2">
+                      <p className="text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Step-by-step Setup:</p>
+                      {[
+                        { step: '1', text: 'Pathao Merchant Panel-এ login করুন' },
+                        { step: '2', text: 'Settings → Webhook বা API Settings-এ যান' },
+                        { step: '3', text: 'উপরের Webhook URL টি paste করুন' },
+                        { step: '4', text: 'Events: "Delivered", "Returned", "Cancelled" সব enable করুন' },
+                        { step: '5', text: 'Save করুন — এখন থেকে real-time update পাবেন!' },
+                      ].map(({ step, text }) => (
+                        <div key={step} className="flex items-start gap-2">
+                          <span className="shrink-0 w-4 h-4 rounded-full bg-indigo-100 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-400 text-[9px] font-bold flex items-center justify-center">{step}</span>
+                          <span className="text-[10px] text-slate-600 dark:text-slate-400 leading-relaxed">{text}</span>
+                        </div>
+                      ))}
+                      <div className="flex items-start gap-2 mt-2 p-2 rounded-lg bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/30">
+                        <Info className="w-3 h-3 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
+                        <p className="text-[9px] text-amber-700 dark:text-amber-400">
+                          Pathao Webhook Secret হিসেবে আপনার Pathao <strong>Client Secret</strong> ব্যবহার হয় (যেটা Settings-এ দিয়েছেন)। আলাদাভাবে কিছু দিতে হবে না।
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* SteadFast Webhook */}
+              <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-800/60 overflow-hidden">
+                <div className="px-4 py-3 flex items-center justify-between border-b border-slate-50 dark:border-slate-800/40">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200">SteadFast Courier Webhook</span>
+                  </div>
+                  <button
+                    onClick={() => toggleWebhookGuide('steadfast')}
+                    className="text-[10px] font-semibold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1 cursor-pointer"
+                  >
+                    {webhookGuideExpanded['steadfast'] ? 'Hide Guide' : 'How to Setup'}
+                    {webhookGuideExpanded['steadfast'] ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                  </button>
+                </div>
+                <div className="px-4 py-3 space-y-2">
+                  <div>
+                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-1">Webhook URL (Copy করুন)</p>
+                    <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-950 rounded-lg border border-slate-200 dark:border-slate-800 px-2.5 py-1.5">
+                      <code className="flex-1 text-[10px] font-mono text-slate-700 dark:text-slate-400 truncate">{STEADFAST_WEBHOOK_URL}</code>
+                      <button
+                        onClick={() => handleCopyWebhook(STEADFAST_WEBHOOK_URL, 'steadfast')}
+                        className="shrink-0 p-1 rounded text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950/30 transition-colors cursor-pointer"
+                        title="Copy SteadFast Webhook URL"
+                      >
+                        {copiedWebhookUrl === 'steadfast' ? (
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+                        ) : (
+                          <Copy className="w-3.5 h-3.5" />
+                        )}
+                      </button>
+                    </div>
+                  </div>
+
+                  {webhookGuideExpanded['steadfast'] && (
+                    <div className="mt-2 space-y-1.5 border-t border-slate-100 dark:border-slate-800 pt-2">
+                      <p className="text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Step-by-step Setup:</p>
+                      {[
+                        { step: '1', text: 'SteadFast Merchant Portal-এ login করুন (portal.steadfast.com.bd)' },
+                        { step: '2', text: 'Profile / Settings → Webhook Configuration-এ যান' },
+                        { step: '3', text: 'উপরের Webhook URL টি paste করুন' },
+                        { step: '4', text: 'Status Events: সব enable করুন' },
+                        { step: '5', text: 'Save করুন — real-time updates চালু হবে!' },
+                      ].map(({ step, text }) => (
+                        <div key={step} className="flex items-start gap-2">
+                          <span className="shrink-0 w-4 h-4 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-400 text-[9px] font-bold flex items-center justify-center">{step}</span>
+                          <span className="text-[10px] text-slate-600 dark:text-slate-400 leading-relaxed">{text}</span>
+                        </div>
+                      ))}
+                      <div className="flex items-start gap-2 mt-2 p-2 rounded-lg bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900/30">
+                        <Info className="w-3 h-3 text-blue-600 dark:text-blue-400 mt-0.5 shrink-0" />
+                        <p className="text-[9px] text-blue-700 dark:text-blue-400">
+                          Webhook না করলেও প্রতি <strong>৩০ মিনিট</strong> পর পর আমাদের system automatically status check করে।
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
 
