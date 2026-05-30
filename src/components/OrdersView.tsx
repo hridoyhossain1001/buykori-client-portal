@@ -256,8 +256,11 @@ export function OrdersView({
         item_quantity: Number(itemQuantity)
       };
 
-      // Pathao: auto-use store_id from settings (no manual picker needed)
-      if (courierProvider === 'pathao' && courierSettings?.pathao_store_id) {
+      // Pathao: use selectedStoreId from API-fetched stores list
+      if (courierProvider === 'pathao' && selectedStoreId !== '') {
+        payload.store_id = Number(selectedStoreId);
+      } else if (courierProvider === 'pathao' && courierSettings?.pathao_store_id) {
+        // fallback: settings-এ store_id থাকলে সেটা ব্যবহার করো
         payload.store_id = Number(courierSettings.pathao_store_id);
       }
 
@@ -1118,16 +1121,33 @@ export function OrdersView({
                     </div>
                   </div>
                   
-                  {/* Pathao: Store ID auto-used from Settings — no manual picker needed */}
+                  {/* Pathao: Store — API থেকে auto-fetch করা */}
                   {courierProvider === 'pathao' && (
                     <div>
                       <label className="block text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase mb-1">Pathao Store</label>
-                      <div className="py-2 px-3 bg-indigo-50 dark:bg-indigo-950/20 border border-indigo-200 dark:border-indigo-900/40 rounded-lg text-xs text-indigo-700 dark:text-indigo-400 font-semibold flex items-center gap-1.5">
-                        <Truck className="w-3.5 h-3.5 shrink-0" />
-                        {courierSettings?.pathao_store_id
-                          ? `Store ID: ${courierSettings.pathao_store_id} (Settings থেকে)`
-                          : 'Store ID সেট নেই — Tracking Settings এ যান'}
-                      </div>
+                      {loadingStores ? (
+                        <div className="py-2 px-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-xs text-slate-500 flex items-center gap-1.5">
+                          <Truck className="w-3.5 h-3.5 shrink-0 animate-pulse" />
+                          Stores লোড হচ্ছে...
+                        </div>
+                      ) : pathaoStores.length > 0 ? (
+                        <select
+                          value={selectedStoreId}
+                          onChange={(e) => setSelectedStoreId(Number(e.target.value))}
+                          className="w-full py-2 px-3 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-slate-950 dark:border-slate-700 dark:text-white"
+                        >
+                          {pathaoStores.map((store) => (
+                            <option key={store.store_id} value={store.store_id}>
+                              {store.store_name} (ID: {store.store_id})
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        <div className="py-2 px-3 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/40 rounded-lg text-xs text-red-600 dark:text-red-400 font-semibold flex items-center gap-1.5">
+                          <Truck className="w-3.5 h-3.5 shrink-0" />
+                          Pathao credentials সেট করা নেই — Settings এ যান
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
