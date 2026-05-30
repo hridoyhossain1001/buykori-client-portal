@@ -24,7 +24,7 @@
 
 /* Glassmorphism Liquid Glass overrides */
 .rounded-xl.bg-white, .rounded-lg.bg-white, .rounded-xl.bg-slate-50, .rounded-xl.bg-slate-50\/50 {
-  background-color: rgba(255, 255, 255, 0.35) !important;
+  background-color: rgba(255, 255, 255, 0.65) !important;
   backdrop-filter: blur(24px) saturate(160%);
   -webkit-backdrop-filter: blur(24px) saturate(160%);
   border: 1px solid rgba(255, 255, 255, 0.7) !important;
@@ -44,7 +44,7 @@
 
 /* Specific Sidebar & Header glass rules */
 .bg-white:not(.rounded-xl):not(.rounded-lg):not(.rounded-md):not(.rounded-full):not(.rounded):not(.rounded-2xl):not(.rounded-3xl) {
-  background-color: rgba(255, 255, 255, 0.35) !important;
+  background-color: rgba(255, 255, 255, 0.65) !important;
   backdrop-filter: blur(24px) saturate(160%);
   border-bottom: 1px solid rgba(255, 255, 255, 0.5);
   box-shadow: 0 4px 30px rgba(0, 0, 0, 0.03);
@@ -60,7 +60,7 @@
 
 .dark .rounded-xl.bg-white, .dark .rounded-lg.bg-white, .dark .rounded-xl.bg-slate-50, .dark .rounded-xl.bg-slate-50\/50,
 .dark .bg-white:not(.rounded-xl):not(.rounded-lg):not(.rounded-md):not(.rounded-full):not(.rounded):not(.rounded-2xl):not(.rounded-3xl) {
-  background-color: rgba(15, 23, 42, 0.45) !important;
+  background-color: rgba(15, 23, 42, 0.65) !important;
   border: 1px solid rgba(255, 255, 255, 0.1) !important;
   box-shadow: 
     0 8px 32px 0 rgba(0, 0, 0, 0.3),
@@ -236,17 +236,17 @@ button.bg-white, button.bg-slate-50, button.bg-slate-100, button.bg-indigo-50 {
 
 .dark .text-slate-650,
 .dark .text-slate-600 {
-  color: #94a3b8 !important; /* slate-400 core text */
+  color: #cbd5e1 !important; /* slate-300 core text */
 }
 
 .dark .text-slate-550,
 .dark .text-slate-500 {
-  color: #8da2bb !important; /* slate-400 light contrast */
+  color: #94a3b8 !important; /* slate-400 light contrast */
 }
 
 .dark .text-slate-450,
 .dark .text-slate-400 {
-  color: #64748b !important; /* slate-500 subtle captions/legends */
+  color: #94a3b8 !important; /* slate-400 subtle captions/legends */
 }
 
 /* Tables scroll elements */
