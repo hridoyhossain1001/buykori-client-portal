@@ -45,8 +45,6 @@ export function CodProtectionView({
   savingOrderMgmt,
   handleSaveOrderManagement,
 }: CodProtectionViewProps) {
-  const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
-  const toggleExpand = (orderId: string) => setExpandedOrderId(prev => prev === orderId ? null : orderId);
   return (
     <div className="space-y-6">
 
@@ -321,7 +319,7 @@ export function CodProtectionView({
 
                   return (
                     <React.Fragment key={order.orderId}>
-                      <tr className={`hover:bg-slate-50/50 transition-colors dark:hover:bg-slate-800/40 ${isSelected ? 'bg-indigo-50/10 dark:bg-indigo-950/20' : ''} ${isExpanded ? 'bg-indigo-50/20 dark:bg-indigo-950/10' : ''}`}>
+                      <tr className={`hover:bg-slate-50/50 transition-colors dark:hover:bg-slate-800/40 ${isSelected ? 'bg-indigo-50/10 dark:bg-indigo-950/20' : ''}`}>
                         <td className="px-6 py-3">
                           <input 
                             type="checkbox"
@@ -336,22 +334,11 @@ export function CodProtectionView({
                             className="rounded accent-indigo-600 cursor-pointer"
                           />
                         </td>
-                        <td className="px-6 py-3">
-                          <button
-                            onClick={() => toggleExpand(order.orderId)}
-                            className="flex items-center gap-1.5 font-mono font-bold text-slate-800 dark:text-slate-100 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors cursor-pointer"
-                          >
-                            {isExpanded ? <ChevronUp className="w-3.5 h-3.5 text-indigo-500" /> : <ChevronDown className="w-3.5 h-3.5 text-slate-400" />}
-                            {order.orderId}
-                          </button>
+                        <td className="px-6 py-3 font-mono font-bold text-slate-850 dark:text-slate-100">
+                          {order.orderId}
                         </td>
-                        <td className="px-6 py-3">
-                          <div className="flex flex-col gap-0.5">
-                            {order.recipientName && order.recipientName !== '—' && (
-                              <span className="font-semibold text-slate-700 dark:text-slate-200">{order.recipientName}</span>
-                            )}
-                            <span className="font-mono text-slate-500 dark:text-slate-400 text-[11px]">{order.customer}</span>
-                          </div>
+                        <td className="px-6 py-3 font-mono text-slate-550 dark:text-slate-400">
+                          {order.customer}
                         </td>
                         <td className="px-6 py-3 font-semibold text-slate-850 dark:text-slate-200">৳{order.amount.toLocaleString()}</td>
                         <td className="px-6 py-3">
@@ -386,83 +373,6 @@ export function CodProtectionView({
                           </button>
                         </td>
                       </tr>
-
-                      {/* Expanded Detail Row */}
-                      {isExpanded && (
-                        <tr className="bg-slate-50/80 dark:bg-slate-900/60">
-                          <td colSpan={7} className="px-6 py-4">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                              {/* Customer Info Card */}
-                              <div className="space-y-2.5">
-                                <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500">Customer Details</p>
-                                <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-3 space-y-2">
-                                  <div className="flex items-start gap-2.5">
-                                    <div className="w-7 h-7 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 flex items-center justify-center shrink-0">
-                                      <User className="w-3.5 h-3.5 text-indigo-500" />
-                                    </div>
-                                    <div>
-                                      <p className="text-[9px] text-slate-400 uppercase font-bold">Name</p>
-                                      <p className="text-xs font-semibold text-slate-800 dark:text-slate-100">{order.recipientName || '—'}</p>
-                                    </div>
-                                  </div>
-                                  <div className="flex items-start gap-2.5">
-                                    <div className="w-7 h-7 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 flex items-center justify-center shrink-0">
-                                      <Phone className="w-3.5 h-3.5 text-emerald-500" />
-                                    </div>
-                                    <div>
-                                      <p className="text-[9px] text-slate-400 uppercase font-bold">Phone</p>
-                                      <p className="text-xs font-semibold text-slate-800 dark:text-slate-100 font-mono">{order.recipientPhone || order.customer || '—'}</p>
-                                    </div>
-                                  </div>
-                                  <div className="flex items-start gap-2.5">
-                                    <div className="w-7 h-7 rounded-lg bg-amber-50 dark:bg-amber-950/40 flex items-center justify-center shrink-0">
-                                      <MapPin className="w-3.5 h-3.5 text-amber-500" />
-                                    </div>
-                                    <div>
-                                      <p className="text-[9px] text-slate-400 uppercase font-bold">Address</p>
-                                      <p className="text-xs font-semibold text-slate-800 dark:text-slate-100">{order.recipientAddress || '—'}</p>
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-
-                              {/* Products Card */}
-                              <div className="space-y-2.5">
-                                <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500">
-                                  Order Items {products.length > 0 && <span className="ml-1 text-indigo-500">({products.length})</span>}
-                                </p>
-                                <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
-                                  {products.length === 0 ? (
-                                    <div className="px-4 py-5 text-center">
-                                      <Package className="w-5 h-5 mx-auto text-slate-300 dark:text-slate-600 mb-1" />
-                                      <p className="text-[10px] text-slate-400">Product details not available for this order</p>
-                                    </div>
-                                  ) : (
-                                    <table className="w-full text-xs">
-                                      <thead className="bg-slate-50 dark:bg-slate-950">
-                                        <tr>
-                                          <th className="px-3 py-2 text-left text-[9px] font-bold uppercase text-slate-400">Product</th>
-                                          <th className="px-3 py-2 text-center text-[9px] font-bold uppercase text-slate-400">Qty</th>
-                                          <th className="px-3 py-2 text-right text-[9px] font-bold uppercase text-slate-400">Price</th>
-                                        </tr>
-                                      </thead>
-                                      <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                                        {products.map((p: any, i: number) => (
-                                          <tr key={i} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30">
-                                            <td className="px-3 py-2 font-medium text-slate-700 dark:text-slate-200 max-w-[160px] truncate" title={p.name}>{p.name}</td>
-                                            <td className="px-3 py-2 text-center font-bold text-slate-600 dark:text-slate-300">{p.quantity}</td>
-                                            <td className="px-3 py-2 text-right font-semibold text-slate-700 dark:text-slate-200">{p.price > 0 ? `৳${p.price.toLocaleString()}` : '—'}</td>
-                                          </tr>
-                                        ))}
-                                      </tbody>
-                                    </table>
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-                          </td>
-                        </tr>
-                      )}
                     </React.Fragment>
                   );
                 })

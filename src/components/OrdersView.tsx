@@ -65,7 +65,9 @@ export function OrdersView({
   const [loadingOrders, setLoadingOrders] = useState<boolean>(false);
   const [submittingCourier, setSubmittingCourier] = useState<boolean>(false);
   const [cancellingOrderId, setCancellingOrderId] = useState<number | null>(null); // which order is being cancelled
-  
+  const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
+  const toggleExpand = (id: string) => setExpandedOrderId(prev => prev === id ? null : id);
+
   // Search & Filters
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [providerFilter, setProviderFilter] = useState<string>('all');
@@ -402,58 +404,156 @@ export function OrdersView({
                     </td>
                   </tr>
                 ) : (
-                  deferredData.pendingList.map((order: any) => (
-                    <tr key={order.orderId} className="hover:bg-slate-50/50 transition-colors dark:hover:bg-slate-800/40">
-                      <td className="px-6 py-3 font-mono font-bold text-slate-850 dark:text-slate-100">{order.orderId}</td>
-                      <td className="px-6 py-3 font-mono text-slate-550 dark:text-slate-400">{order.customer}</td>
-                      <td className="px-6 py-3 font-semibold text-slate-850 dark:text-slate-200">৳{order.amount.toLocaleString()}</td>
-                      <td className="px-6 py-3">
-                        <span 
-                          className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded text-[10px] font-bold border ${
-                            order.fraudScore >= 75 ? 'bg-rose-50 text-rose-700 border-rose-150 dark:bg-rose-950/20 dark:text-rose-400 dark:border-rose-900/60' : 
-                            order.fraudScore >= 35 ? 'bg-amber-50 text-amber-700 border-amber-150 dark:bg-amber-950/20 dark:text-amber-400 dark:border-amber-900/60' : 
-                            'bg-green-50 text-green-700 border-green-150 dark:bg-green-950/20 dark:text-green-400 dark:border-green-900/60'
-                          }`}
-                        >
-                          <span className={`w-1.5 h-1.5 rounded-full ${
-                            order.fraudScore >= 75 ? 'bg-rose-500' : 
-                            order.fraudScore >= 35 ? 'bg-amber-500' : 'bg-green-500'
-                          }`} />
-                          Score: {order.fraudScore}/100
-                        </span>
-                      </td>
-                      <td className="px-6 py-3 text-slate-400 font-mono dark:text-slate-500">{order.ageHours}h ago</td>
-                      <td className="px-6 py-3 text-right space-x-2 whitespace-nowrap">
-                        <button
-                          onClick={() => {
-                            setSelectedOrder(order);
-                            // Pre-fill recipient fields from order
-                            setRecipientName(order.recipientName || '');
-                            setRecipientPhone(order.recipientPhone || (order.customer.match(/^\+?[0-9\s-]{10,15}$/) ? order.customer : ''));
-                            setRecipientAddress(order.recipientAddress || '');
-                            setCodAmount(order.amount);
-                            setIsSendModalOpen(true);
-                          }}
-                          className="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-750 text-white text-[10px] font-bold rounded shadow-sm transition-colors cursor-pointer inline-flex items-center gap-1"
-                        >
-                          <Send className="w-2.5 h-2.5" /> Book Courier
-                        </button>
-                        <button 
-                          onClick={() => handleConfirmOrder(order.orderId)}
-                          className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold rounded shadow-sm transition-colors cursor-pointer"
-                          title="Confirm order. If auto courier is enabled, Purchase waits for delivery."
-                        >
-                          Confirm
-                        </button>
-                        <button 
-                          onClick={() => handleCancelOrder(order.orderId)}
-                          className="px-2.5 py-1 bg-rose-600 hover:bg-rose-700 text-white text-[10px] font-bold rounded shadow-sm transition-colors cursor-pointer"
-                        >
-                          Cancel
-                        </button>
-                      </td>
-                    </tr>
-                  ))
+                  deferredData.pendingList.map((order: any) => {
+                    const isExpanded = expandedOrderId === order.orderId;
+                    const products: any[] = order.products || [];
+                    return (
+                      <React.Fragment key={order.orderId}>
+                        <tr className={`hover:bg-slate-50/50 transition-colors dark:hover:bg-slate-800/40 ${isExpanded ? 'bg-indigo-50/20 dark:bg-indigo-950/10' : ''}`}>
+                          <td className="px-6 py-3">
+                            <button
+                              onClick={() => toggleExpand(order.orderId)}
+                              className="flex items-center gap-1.5 font-mono font-bold text-slate-800 dark:text-slate-100 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors cursor-pointer"
+                            >
+                              {isExpanded ? <ChevronUp className="w-3.5 h-3.5 text-indigo-500" /> : <ChevronDown className="w-3.5 h-3.5 text-slate-400" />}
+                              {order.orderId}
+                            </button>
+                          </td>
+                          <td className="px-6 py-3">
+                            <div className="flex flex-col gap-0.5">
+                              {order.recipientName && order.recipientName !== '—' && (
+                                <span className="font-semibold text-slate-700 dark:text-slate-200">{order.recipientName}</span>
+                              )}
+                              <span className="font-mono text-slate-500 dark:text-slate-400 text-[11px]">{order.customer}</span>
+                            </div>
+                          </td>
+                          <td className="px-6 py-3 font-semibold text-slate-850 dark:text-slate-200">৳{order.amount.toLocaleString()}</td>
+                          <td className="px-6 py-3">
+                            <span 
+                              className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded text-[10px] font-bold border ${
+                                order.fraudScore >= 75 ? 'bg-rose-50 text-rose-700 border-rose-150 dark:bg-rose-950/20 dark:text-rose-400 dark:border-rose-900/60' : 
+                                order.fraudScore >= 35 ? 'bg-amber-50 text-amber-700 border-amber-150 dark:bg-amber-950/20 dark:text-amber-400 dark:border-amber-900/60' : 
+                                'bg-green-50 text-green-700 border-green-150 dark:bg-green-950/20 dark:text-green-400 dark:border-green-900/60'
+                              }`}
+                            >
+                              <span className={`w-1.5 h-1.5 rounded-full ${
+                                order.fraudScore >= 75 ? 'bg-rose-500' : 
+                                order.fraudScore >= 35 ? 'bg-amber-500' : 'bg-green-500'
+                              }`} />
+                              Score: {order.fraudScore}/100
+                            </span>
+                          </td>
+                          <td className="px-6 py-3 text-slate-400 font-mono dark:text-slate-500">{order.ageHours}h ago</td>
+                          <td className="px-6 py-3 text-right space-x-2 whitespace-nowrap">
+                            <button
+                              onClick={() => {
+                                setSelectedOrder(order);
+                                // Pre-fill recipient fields from order
+                                setRecipientName(order.recipientName || '');
+                                setRecipientPhone(order.recipientPhone || (order.customer.match(/^\+?[0-9\s-]{10,15}$/) ? order.customer : ''));
+                                setRecipientAddress(order.recipientAddress || '');
+                                setCodAmount(order.amount);
+                                setIsSendModalOpen(true);
+                              }}
+                              className="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-750 text-white text-[10px] font-bold rounded shadow-sm transition-colors cursor-pointer inline-flex items-center gap-1"
+                            >
+                              <Send className="w-2.5 h-2.5" /> Book Courier
+                            </button>
+                            <button 
+                              onClick={() => handleConfirmOrder(order.orderId)}
+                              className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold rounded shadow-sm transition-colors cursor-pointer"
+                              title="Confirm order. If auto courier is enabled, Purchase waits for delivery."
+                            >
+                              Confirm
+                            </button>
+                            <button 
+                              onClick={() => handleCancelOrder(order.orderId)}
+                              className="px-2.5 py-1 bg-rose-600 hover:bg-rose-700 text-white text-[10px] font-bold rounded shadow-sm transition-colors cursor-pointer"
+                            >
+                              Cancel
+                            </button>
+                          </td>
+                        </tr>
+
+                        {/* Expanded Detail Row */}
+                        {isExpanded && (
+                          <tr className="bg-slate-50/80 dark:bg-slate-900/60">
+                            <td colSpan={6} className="px-6 py-4">
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {/* Customer Info Card */}
+                                <div className="space-y-2.5">
+                                  <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500">Customer Details</p>
+                                  <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-3 space-y-2">
+                                    <div className="flex items-start gap-2.5">
+                                      <div className="w-7 h-7 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 flex items-center justify-center shrink-0">
+                                        <User className="w-3.5 h-3.5 text-indigo-500" />
+                                      </div>
+                                      <div>
+                                        <p className="text-[9px] text-slate-400 uppercase font-bold">Name</p>
+                                        <p className="text-xs font-semibold text-slate-800 dark:text-slate-100">{order.recipientName || '—'}</p>
+                                      </div>
+                                    </div>
+                                    <div className="flex items-start gap-2.5">
+                                      <div className="w-7 h-7 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 flex items-center justify-center shrink-0">
+                                        <Phone className="w-3.5 h-3.5 text-emerald-500" />
+                                      </div>
+                                      <div>
+                                        <p className="text-[9px] text-slate-400 uppercase font-bold">Phone</p>
+                                        <p className="text-xs font-semibold text-slate-800 dark:text-slate-100 font-mono">{order.recipientPhone || order.customer || '—'}</p>
+                                      </div>
+                                    </div>
+                                    <div className="flex items-start gap-2.5">
+                                      <div className="w-7 h-7 rounded-lg bg-amber-50 dark:bg-amber-950/40 flex items-center justify-center shrink-0">
+                                        <MapPin className="w-3.5 h-3.5 text-amber-500" />
+                                      </div>
+                                      <div>
+                                        <p className="text-[9px] text-slate-400 uppercase font-bold">Address</p>
+                                        <p className="text-xs font-semibold text-slate-800 dark:text-slate-100">{order.recipientAddress || '—'}</p>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {/* Products Card */}
+                                <div className="space-y-2.5">
+                                  <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500">
+                                    Order Items {products.length > 0 && <span className="ml-1 text-indigo-500">({products.length})</span>}
+                                  </p>
+                                  <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+                                    {products.length === 0 ? (
+                                      <div className="px-4 py-5 text-center">
+                                        <Package className="w-5 h-5 mx-auto text-slate-300 dark:text-slate-600 mb-1" />
+                                        <p className="text-[10px] text-slate-400">Product details not available for this order</p>
+                                      </div>
+                                    ) : (
+                                      <table className="w-full text-xs">
+                                        <thead className="bg-slate-50 dark:bg-slate-950">
+                                          <tr>
+                                            <th className="px-3 py-2 text-left text-[9px] font-bold uppercase text-slate-400">Product</th>
+                                            <th className="px-3 py-2 text-center text-[9px] font-bold uppercase text-slate-400">Qty</th>
+                                            <th className="px-3 py-2 text-right text-[9px] font-bold uppercase text-slate-400">Price</th>
+                                          </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                                          {products.map((p: any, i: number) => (
+                                            <tr key={i} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30">
+                                              <td className="px-3 py-2 font-medium text-slate-700 dark:text-slate-200 max-w-[160px] truncate" title={p.name}>{p.name}</td>
+                                              <td className="px-3 py-2 text-center font-bold text-slate-600 dark:text-slate-300">{p.quantity}</td>
+                                              <td className="px-3 py-2 text-right font-semibold text-slate-700 dark:text-slate-200">{p.price > 0 ? `৳${p.price.toLocaleString()}` : '—'}</td>
+                                            </tr>
+                                          ))}
+                                        </tbody>
+                                      </table>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </React.Fragment>
+                    );
+                  })
                 )}
               </tbody>
             </table>
@@ -821,11 +921,42 @@ export function OrdersView({
                 {/* Order Meta details read-only */}
                 <div className="p-3 bg-slate-50 rounded-lg dark:bg-slate-950/40 border border-slate-100 dark:border-slate-850">
                   <span className="block text-[10px] text-slate-400 uppercase font-bold tracking-wider">Order Reference ID</span>
-                  <span className="font-mono font-bold text-sm text-slate-850 dark:text-white">{selectedOrder.orderId}</span>
+                  <span className="font-mono font-bold text-sm text-slate-850 dark:text-white">{selectedOrder.orderId || selectedOrder.order_id}</span>
                 </div>
                 <div className="p-3 bg-slate-50 rounded-lg dark:bg-slate-950/40 border border-slate-100 dark:border-slate-850">
                   <span className="block text-[10px] text-slate-400 uppercase font-bold tracking-wider">Original Value</span>
-                  <span className="font-bold text-sm text-slate-850 dark:text-white">৳{selectedOrder.amount.toLocaleString()}</span>
+                  <span className="font-bold text-sm text-slate-850 dark:text-white">৳{(selectedOrder.amount || selectedOrder.cod_amount || 0).toLocaleString()}</span>
+                </div>
+              </div>
+
+              {/* Order Items (Products) */}
+              <div className="space-y-1.5">
+                <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Order Items</label>
+                <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 overflow-hidden">
+                  {(!selectedOrder?.products || selectedOrder.products.length === 0) ? (
+                    <div className="px-4 py-3 text-center">
+                      <p className="text-[10px] text-slate-400">Product details not available</p>
+                    </div>
+                  ) : (
+                    <table className="w-full text-xs">
+                      <thead className="bg-slate-50 dark:bg-slate-950">
+                        <tr>
+                          <th className="px-3 py-1.5 text-left text-[9px] font-bold uppercase text-slate-400">Product</th>
+                          <th className="px-3 py-1.5 text-center text-[9px] font-bold uppercase text-slate-400">Qty</th>
+                          <th className="px-3 py-1.5 text-right text-[9px] font-bold uppercase text-slate-400">Price</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                        {selectedOrder.products.map((p: any, i: number) => (
+                          <tr key={i} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30">
+                            <td className="px-3 py-1.5 font-medium text-slate-700 dark:text-slate-200 max-w-[160px] truncate" title={p.name}>{p.name}</td>
+                            <td className="px-3 py-1.5 text-center font-bold text-slate-600 dark:text-slate-300">{p.quantity}</td>
+                            <td className="px-3 py-1.5 text-right font-semibold text-slate-700 dark:text-slate-200">{p.price > 0 ? `৳${p.price.toLocaleString()}` : '—'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  )}
                 </div>
               </div>
 
