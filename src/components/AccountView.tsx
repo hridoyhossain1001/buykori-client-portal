@@ -69,7 +69,7 @@ export function AccountView({
                   type="text" 
                   value={profName}
                   onChange={(e) => setProfName(e.target.value)}
-                  className="w-full p-2 text-xs bg-slate-55 border border-slate-200 dark:bg-slate-950 dark:border-slate-850 dark:text-white rounded"
+                  className="w-full p-2 text-xs bg-slate-50 border border-slate-200 dark:bg-slate-950 dark:border-slate-800 dark:text-white rounded"
                 />
               </div>
 
@@ -79,7 +79,7 @@ export function AccountView({
                   type="email" 
                   value={profEmail}
                   onChange={(e) => setProfEmail(e.target.value)}
-                  className="w-full p-2 text-xs bg-slate-55 border border-slate-200 dark:bg-slate-955 dark:border-slate-850 dark:text-white rounded"
+                  className="w-full p-2 text-xs bg-slate-50 border border-slate-200 dark:bg-slate-950 dark:border-slate-800 dark:text-white rounded"
                 />
               </div>
             </div>
@@ -90,7 +90,7 @@ export function AccountView({
                 type="email" 
                 value={profNotifEmail}
                 onChange={(e) => setProfNotifEmail(e.target.value)}
-                className="w-full p-2 text-xs bg-slate-55 border border-slate-200 dark:bg-slate-955 dark:border-slate-850 dark:text-white rounded"
+                className="w-full p-2 text-xs bg-slate-50 border border-slate-200 dark:bg-slate-950 dark:border-slate-800 dark:text-white rounded"
               />
             </div>
 
@@ -119,7 +119,7 @@ export function AccountView({
                   value={passCurrent} 
                   placeholder="••••••••••••••"
                   onChange={(e) => setPassCurrent(e.target.value)}
-                  className="w-full p-2 text-xs bg-slate-50 border border-slate-200 dark:bg-slate-950 dark:border-slate-850 dark:text-white rounded font-mono"
+                  className="w-full p-2 text-xs bg-slate-50 border border-slate-200 dark:bg-slate-950 dark:border-slate-800 dark:text-white rounded font-mono"
                 />
               </div>
 
@@ -130,7 +130,7 @@ export function AccountView({
                   value={passNew} 
                   placeholder="Enter secure password"
                   onChange={(e) => setPassNew(e.target.value)}
-                  className="w-full p-2 text-xs bg-slate-55 border border-slate-200 dark:bg-slate-950 dark:border-slate-850 dark:text-white rounded font-mono"
+                  className="w-full p-2 text-xs bg-slate-50 border border-slate-200 dark:bg-slate-950 dark:border-slate-800 dark:text-white rounded font-mono"
                 />
               </div>
             </div>
@@ -214,9 +214,9 @@ export function AccountView({
       <div className="space-y-6">
         
         {/* Current Active Plan summary card */}
-        <div className="rounded-xl border border-slate-205 bg-white p-6 shadow-sm space-y-4 dark:bg-slate-900 dark:border-slate-800">
+        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-4 dark:bg-slate-900 dark:border-slate-800">
           <div>
-            <span className="text-[10px] font-bold text-indigo-650 dark:text-indigo-400 uppercase tracking-wider block">Enterprise Account details</span>
+            <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider block">Enterprise Account details</span>
             <h3 className="text-lg font-bold text-slate-800 dark:text-white mt-1">{profile.plan}</h3>
             <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">Billing changes are handled by support</p>
           </div>
@@ -245,7 +245,7 @@ export function AccountView({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-center text-xs">
               <div className="p-3 border border-indigo-200 dark:border-indigo-900/60 rounded bg-indigo-50/50 dark:bg-indigo-950/20 flex flex-col justify-between">
                 <span className="font-bold text-slate-800 dark:text-white leading-none">Scale Tier</span>
-                <span className="text-[10px] text-indigo-650 dark:text-indigo-400 mt-1 leading-none">250k Events / mo</span>
+                <span className="text-[10px] text-indigo-600 dark:text-indigo-400 mt-1 leading-none">250k Events / mo</span>
                 <span className="text-xs font-mono font-extrabold mt-3 text-indigo-700 dark:text-indigo-400">$99 / mo</span>
                 <button 
                   onClick={() => showToast("Billing checkout is not connected yet. Contact support@buykori.app to change plans.", true)}
@@ -258,11 +258,11 @@ export function AccountView({
 
               <div className="p-3 border border-slate-200 dark:border-slate-800 rounded hover:bg-slate-50 dark:hover:bg-slate-800/60 flex flex-col justify-between">
                 <span className="font-bold text-slate-800 dark:text-white leading-none">Custom Volume</span>
-                <span className="text-[10px] text-slate-450 dark:text-slate-500 mt-1 leading-none font-medium">Enterprise CAPI custom</span>
-                <span className="text-xs font-mono font-extrabold mt-3 text-slate-705 dark:text-slate-300">Contact Us</span>
+                <span className="text-[10px] text-slate-400 dark:text-slate-500 mt-1 leading-none font-medium">Enterprise CAPI custom</span>
+                <span className="text-xs font-mono font-extrabold mt-3 text-slate-700 dark:text-slate-300">Contact Us</span>
                 <button 
                   onClick={() => showToast("Custom billing requests are not automated here. Contact support@buykori.app.", true)}
-                  className="mt-3 py-1 bg-slate-800 hover:bg-slate-900 dark:bg-slate-700 dark:hover:bg-slate-650 text-white rounded font-semibold text-[10px] cursor-pointer"
+                  className="mt-3 py-1 bg-slate-800 hover:bg-slate-900 dark:bg-slate-700 dark:hover:bg-slate-600 text-white rounded font-semibold text-[10px] cursor-pointer"
                   type="button"
                 >
                   Contact Support
@@ -273,10 +273,10 @@ export function AccountView({
         </div>
 
         {/* Reset demo sandbox context values widget */}
-        <div className="rounded-xl border border-slate-205 bg-white p-5 shadow-sm space-y-3 dark:bg-slate-900 dark:border-slate-800">
+        <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm space-y-3 dark:bg-slate-900 dark:border-slate-800">
           <div>
             <h4 className="font-bold text-slate-800 dark:text-white text-xs uppercase tracking-wider">Demonstration controls</h4>
-            <p className="text-xs text-slate-400 dark:text-slate-550">Restore test values or delete analytics mock arrays</p>
+            <p className="text-xs text-slate-400 dark:text-slate-500">Restore test values or delete analytics mock arrays</p>
           </div>
 
           <button 

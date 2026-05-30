@@ -49,7 +49,7 @@ export function ApiLogsView({
             <p className="text-xs text-slate-400 dark:text-slate-500">Upstream connection telemetry latency parameters in milliseconds</p>
           </div>
           <div className="text-xs text-slate-500 font-mono dark:text-slate-400">
-            Avg Latency: <span className="font-bold text-indigo-650 dark:text-indigo-400">142ms</span>
+            Avg Latency: <span className="font-bold text-indigo-600 dark:text-indigo-400">142ms</span>
           </div>
         </div>
 
@@ -81,7 +81,7 @@ export function ApiLogsView({
       </div>
 
       {/* Outbound logs table */}
-      <div className="rounded-xl border border-slate-205 bg-white shadow-sm overflow-hidden dark:bg-slate-900 dark:border-slate-800">
+      <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden dark:bg-slate-900 dark:border-slate-800">
         <div className="overflow-x-auto overflow-y-auto max-h-[calc(100vh-320px)] min-h-[300px]">
           <table className="w-full text-left text-xs divide-y divide-slate-100 dark:divide-slate-800 min-w-[850px]">
             <thead className="bg-slate-50 dark:bg-slate-950 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 sticky top-0 z-10">

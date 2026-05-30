@@ -63,7 +63,7 @@ export function CodProtectionView({
                 <Truck className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="font-bold text-slate-850 text-sm dark:text-white">Order Management</h3>
+                <h3 className="font-bold text-slate-800 text-sm dark:text-white">Order Management</h3>
                 <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">Courier Integration</p>
               </div>
             </div>
@@ -122,7 +122,7 @@ export function CodProtectionView({
                 <Zap className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="font-bold text-slate-850 text-sm dark:text-white">COD Protection</h3>
+                <h3 className="font-bold text-slate-800 text-sm dark:text-white">COD Protection</h3>
                 <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">Hold & Release Triggers</p>
               </div>
             </div>
@@ -142,7 +142,7 @@ export function CodProtectionView({
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Auto Cutoff</label>
               <select 
@@ -212,7 +212,7 @@ export function CodProtectionView({
             <p className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
               {deferredData.pendingValue}
             </p>
-            <span className="text-xs font-semibold text-indigo-750/70 dark:text-indigo-300/70">Pending Telemetry</span>
+            <span className="text-xs font-semibold text-indigo-700/70 dark:text-indigo-300/70">Pending Telemetry</span>
           </div>
         </div>
 
@@ -248,7 +248,7 @@ export function CodProtectionView({
       <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm flex flex-col space-y-4 dark:bg-slate-900 dark:border-slate-800">
         <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
           <div>
-            <h3 className="font-bold text-slate-850 text-sm uppercase tracking-wide dark:text-white">COD Protected Purchases Queue</h3>
+            <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wide dark:text-white">COD Protected Purchases Queue</h3>
             <p className="text-xs text-slate-400 dark:text-slate-500">Verifying customer purchase events ensures Meta and TikTok optimize on genuine conversion signals only.</p>
           </div>
           <div className="flex gap-2">
@@ -270,8 +270,8 @@ export function CodProtectionView({
         </div>
 
         <div className="overflow-x-auto min-h-64">
-          <table className="w-full text-left text-xs text-slate-650 divide-y divide-slate-100 min-w-[750px] dark:text-slate-300 dark:divide-slate-800">
-            <thead className="bg-slate-50 text-[10px] font-bold uppercase tracking-wider text-slate-555 dark:bg-slate-950 dark:text-slate-400">
+          <table className="w-full text-left text-xs text-slate-600 divide-y divide-slate-100 min-w-[750px] dark:text-slate-300 dark:divide-slate-800">
+            <thead className="bg-slate-50 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:bg-slate-950 dark:text-slate-400">
               <tr>
                 <th className="px-6 py-3 w-10">
                   <input 
@@ -333,13 +333,13 @@ export function CodProtectionView({
                             className="rounded accent-indigo-600 cursor-pointer"
                           />
                         </td>
-                        <td className="px-6 py-3 font-mono font-bold text-slate-850 dark:text-slate-100">
+                        <td className="px-6 py-3 font-mono font-bold text-slate-800 dark:text-slate-100">
                           {order.orderId}
                         </td>
-                        <td className="px-6 py-3 font-mono text-slate-550 dark:text-slate-400">
+                        <td className="px-6 py-3 font-mono text-slate-500 dark:text-slate-400">
                           {order.customer}
                         </td>
-                        <td className="px-6 py-3 font-semibold text-slate-850 dark:text-slate-200">৳{order.amount.toLocaleString()}</td>
+                        <td className="px-6 py-3 font-semibold text-slate-800 dark:text-slate-200">৳{order.amount.toLocaleString()}</td>
                         <td className="px-6 py-3">
                           <span 
                             className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded text-[10px] font-bold border cursor-help ${

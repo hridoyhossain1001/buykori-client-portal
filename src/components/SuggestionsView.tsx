@@ -39,7 +39,7 @@ export function SuggestionsView({
         {/* Optimization score badge widget */}
         <div className="text-right shrink-0">
           <span className="block text-[10px] font-bold text-indigo-500 uppercase tracking-widest leading-none">Conversions Health Score</span>
-          <span className="text-4xl font-extrabold text-slate-850 dark:text-white font-mono inline-block mt-1">{optScore}%</span>
+          <span className="text-4xl font-extrabold text-slate-800 dark:text-white font-mono inline-block mt-1">{optScore}%</span>
           <div className="mt-1.5 h-1.5 w-24 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden ml-auto">
             <div className="h-full bg-indigo-600 rounded-full" style={{ width: `${optScore}%` }} />
           </div>
@@ -47,7 +47,7 @@ export function SuggestionsView({
       </div>
 
       {/* Live Diagnostics scan trigger CTA */}
-      <div className="bg-white border border-slate-205 dark:bg-slate-900 dark:border-slate-800 p-4 rounded-xl shadow-sm flex flex-col sm:flex-row gap-4 items-center justify-between">
+      <div className="bg-white border border-slate-200 dark:bg-slate-900 dark:border-slate-800 p-4 rounded-xl shadow-sm flex flex-col sm:flex-row gap-4 items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-lg bg-indigo-100 dark:bg-indigo-950/40 flex items-center justify-center text-indigo-700 dark:text-indigo-400 border border-indigo-150 dark:border-indigo-900/60 shrink-0">
             <Sparkles className="w-5 h-5" />
@@ -86,7 +86,7 @@ export function SuggestionsView({
             </div>
             <div>
               <h4 className="font-bold text-slate-800 dark:text-white">Excellent! All checklist resolved</h4>
-              <p className="text-xs text-slate-400 dark:text-slate-550 max-w-sm mx-auto mt-1">Telemetry payloads match Meta, TikTok, and GA4 parameters completely. Your tracking telemetry score represents flawless performance.</p>
+              <p className="text-xs text-slate-400 dark:text-slate-500 max-w-sm mx-auto mt-1">Telemetry payloads match Meta, TikTok, and GA4 parameters completely. Your tracking telemetry score represents flawless performance.</p>
             </div>
           </div>
         )}
@@ -134,16 +134,16 @@ export function SuggestionsView({
                   
                   <button 
                     onClick={() => dismissSuggestion(s.id)}
-                    className="p-1 text-slate-400 hover:text-slate-650 hover:bg-slate-50 dark:hover:bg-slate-800 rounded cursor-pointer"
+                    className="p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 rounded cursor-pointer"
                   >
                     <XCircle className="w-4 h-4" />
                   </button>
                 </div>
               </div>
 
-              <p className="text-xs text-slate-550 dark:text-slate-400 leading-relaxed max-w-4xl">{s.explanation}</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed max-w-4xl">{s.explanation}</p>
 
-              <div className="p-3 bg-slate-50 dark:bg-slate-950 border border-slate-150 dark:border-slate-850 rounded text-xs text-slate-600 dark:text-slate-350">
+              <div className="p-3 bg-slate-50 dark:bg-slate-950 border border-slate-150 dark:border-slate-800 rounded text-xs text-slate-600 dark:text-slate-350">
                 <span className="font-bold text-[10px] text-indigo-700 dark:text-indigo-400 uppercase tracking-wider block mb-1">How to fix in WordPress plugin config</span>
                 <p className="whitespace-pre-line leading-relaxed">{s.fixAction}</p>
               </div>

@@ -164,11 +164,11 @@ export function Sidebar({
     ? Math.min((profile.eventsUsed / profile.eventsQuota) * 100, 100)
     : 0;
   const quotaColor = usagePercent > 90 ? 'bg-rose-600' : usagePercent > 70 ? 'bg-amber-500' : 'bg-indigo-600';
-  const textQuotaColor = usagePercent > 90 ? 'text-rose-600' : usagePercent > 70 ? 'text-amber-655' : 'text-indigo-600';
+  const textQuotaColor = usagePercent > 90 ? 'text-rose-600' : usagePercent > 70 ? 'text-amber-600' : 'text-indigo-600';
 
   return (
     <aside
-      className={`fixed top-0 bottom-0 left-0 z-50 flex flex-col bg-white border-r border-slate-205 transition-transform duration-300 md:transition-all dark:bg-slate-900 dark:border-slate-800 ${
+      className={`fixed top-0 bottom-0 left-0 z-50 flex flex-col bg-white border-r border-slate-200 transition-transform duration-300 md:transition-all dark:bg-slate-900 dark:border-slate-800 ${
         collapsed ? 'md:w-20' : 'md:w-64'
       } ${
         mobileOpen ? 'translate-x-0 w-64' : '-translate-x-full md:translate-x-0'
@@ -196,7 +196,7 @@ export function Sidebar({
               setCollapsed(!collapsed);
             }
           }}
-          className="p-1 px-[5px] rounded-md text-slate-450 hover:text-slate-600 hover:bg-slate-50 dark:text-slate-400 dark:hover:text-slate-200 dark:hover:bg-slate-800 transition-colors"
+          className="p-1 px-[5px] rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-50 dark:text-slate-400 dark:hover:text-slate-200 dark:hover:bg-slate-800 transition-colors"
           title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         >
           <span className="md:hidden"><X className="w-4 h-4" /></span>
@@ -339,8 +339,8 @@ export function Sidebar({
                         strokeWidth={isActive ? 2.5 : 2}
                         className={`h-[18px] w-[18px] shrink-0 transition-colors ${
                           isActive
-                            ? 'text-indigo-650 dark:text-indigo-400'
-                            : 'text-slate-400 group-hover:text-slate-650 dark:group-hover:text-slate-205'
+                            ? 'text-indigo-600 dark:text-indigo-400'
+                            : 'text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-200'
                         }`}
                       />
 
@@ -376,7 +376,7 @@ export function Sidebar({
       </nav>
 
       {/* Usage Indicator */}
-      <div className={`p-4 border-t border-slate-100 bg-slate-50/50 dark:border-slate-800 dark:bg-slate-850/20 ${collapsed ? 'hidden md:block' : 'p-4'}`}>
+      <div className={`p-4 border-t border-slate-100 bg-slate-50/50 dark:border-slate-800 dark:bg-slate-800/20 ${collapsed ? 'hidden md:block' : 'p-4'}`}>
         {collapsed ? (
           <div className="flex flex-col items-center gap-1.5" title="Monthly Event Usage">
             <span className={`text-[10px] font-mono font-semibold leading-none ${textQuotaColor}`}>
@@ -404,7 +404,7 @@ export function Sidebar({
       </div>
 
       {/* User Profile & Logout */}
-      <div className="p-4 bg-slate-50/85 border-t border-slate-150 dark:bg-slate-850/40 dark:border-slate-800 space-y-3 shrink-0">
+      <div className="p-4 bg-slate-50/85 border-t border-slate-150 dark:bg-slate-800/40 dark:border-slate-800 space-y-3 shrink-0">
         {!collapsed && (
           <div className="flex items-center gap-3">
             <div className="flex items-center justify-center w-8 h-8 rounded-full bg-indigo-100 border border-indigo-200 text-indigo-700 text-xs font-semibold select-none shadow-sm dark:bg-indigo-950 dark:border-indigo-900/60 dark:text-indigo-300">

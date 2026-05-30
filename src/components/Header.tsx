@@ -128,7 +128,7 @@ export function Header({
             className="block lg:hidden p-2 rounded-full text-slate-500 hover:text-slate-800 hover:bg-slate-50 dark:text-slate-400 dark:hover:text-slate-200 dark:hover:bg-slate-800 transition-colors focus:outline-none focus:ring-1 focus:ring-indigo-500"
             title="Search logs"
           >
-            <Search className="w-4 h-4 text-slate-550" />
+            <Search className="w-4 h-4 text-slate-500" />
           </button>
 
           <div className="relative hidden lg:block group">
@@ -147,14 +147,15 @@ export function Header({
           {/* Theme Toggle - Glass Design */}
           <button
             onClick={onToggleTheme}
-            className="relative flex items-center w-[54px] h-[24px] rounded-full bg-black/5 dark:bg-white/5 transition-colors cursor-pointer mx-1 border border-black/10 dark:border-white/10"
+            className="relative flex items-center w-[64px] h-[32px] rounded-full bg-black/5 dark:bg-white/5 transition-colors cursor-pointer mx-1 border border-black/10 dark:border-white/10"
             title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
+            aria-label="Toggle dark mode"
           >
-            <span className="w-full text-center text-[9px] font-extrabold uppercase tracking-widest text-slate-600 dark:text-slate-300">
+            <span className="w-full text-center text-[8.5px] font-extrabold uppercase tracking-widest text-slate-600 dark:text-slate-300">
               {isDark ? (
-                <span className="pr-[18px] transition-opacity">Dark</span>
+                <span className="pr-[22px] transition-opacity">Dark</span>
               ) : (
-                <span className="pl-[16px] transition-opacity">Light</span>
+                <span className="pl-[22px] transition-opacity">Light</span>
               )}
             </span>
             
@@ -164,7 +165,7 @@ export function Header({
               border border-white/80 dark:border-white/10
               shadow-[0_4px_16px_rgba(0,0,0,0.1),inset_0_1px_2px_rgba(255,255,255,0.8)] 
               dark:shadow-[0_4px_16px_rgba(0,0,0,0.5),inset_0_1px_2px_rgba(255,255,255,0.2)]
-              ${isDark ? 'translate-x-[28px]' : 'translate-x-[-2px]'}`}
+              ${isDark ? 'translate-x-[33px]' : 'translate-x-[2px]'}`}
             >
               {isDark ? (
                 <Moon className="w-3.5 h-3.5 text-white drop-shadow-[0_0_4px_rgba(255,255,255,0.5)] fill-white/20" />
@@ -178,7 +179,7 @@ export function Header({
           <button
             onClick={triggerHeartbeat}
             disabled={testing}
-            className={`p-1.5 md:p-2 rounded-full text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-855 transition-colors ${
+            className={`p-1.5 md:p-2 rounded-full text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors ${
               testing ? 'animate-spin' : ''
             }`}
             title="Verify CAPI WordPress Connection"
@@ -188,12 +189,12 @@ export function Header({
 
           {/* Notifications & Help */}
           <div className="flex items-center gap-1 border-l border-slate-200 dark:border-slate-800 pl-2 md:pl-4">
-            <button className="relative rounded-full p-1.5 md:p-2 text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-855">
+            <button className="relative rounded-full p-1.5 md:p-2 text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800">
               <Bell className="w-4 h-4" />
               <span className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full border border-white dark:border-slate-900 bg-indigo-500"></span>
             </button>
             
-            <button className="hidden sm:block rounded-full p-1.5 md:p-2 text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-855" title="API Support">
+            <button className="hidden sm:block rounded-full p-1.5 md:p-2 text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800" title="API Support">
               <HelpCircle className="w-4 h-4" />
             </button>
           </div>
@@ -201,7 +202,7 @@ export function Header({
 
         {/* Notification Toast */}
         {toast.show && (
-          <div className="fixed top-14 right-4 z-50 flex items-center gap-3 px-4 py-2.5 rounded-lg border border-slate-100 shadow-lg bg-white dark:bg-slate-800 dark:border-slate-750 dark:text-white animate-slide-in-right">
+          <div className="fixed top-14 right-4 z-50 flex items-center gap-3 px-4 py-2.5 rounded-lg border border-slate-100 shadow-lg bg-white dark:bg-slate-800 dark:border-slate-700 dark:text-white animate-slide-in-right">
             {toast.err ? (
               <XCircle className="w-4 h-4 text-rose-500 shrink-0" />
             ) : (
@@ -243,7 +244,7 @@ export function Header({
                   placeholder="Filter by event name, ID, payload..."
                   value={searchVal}
                   onChange={(e) => setSearchVal(e.target.value)}
-                  className="w-full rounded-lg border border-slate-205 bg-slate-50 px-9 py-2.5 text-xs outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 text-slate-800 dark:text-slate-100 dark:bg-slate-850 dark:border-slate-700 font-mono transition-all"
+                  className="w-full rounded-lg border border-slate-200 bg-slate-50 px-9 py-2.5 text-xs outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 text-slate-800 dark:text-slate-100 dark:bg-slate-800 dark:border-slate-700 font-mono transition-all"
                   autoFocus
                 />
                 <Search className="absolute left-3 top-3 h-3.5 w-3.5 text-slate-400" />
@@ -275,7 +276,7 @@ export function Header({
                     setSearchVal('');
                     setIsSearchOpen(false);
                   }}
-                  className="px-3 py-1.5 bg-slate-50 hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-750 text-slate-600 dark:text-slate-200 rounded-lg text-xs font-bold transition-all border border-slate-200 dark:border-slate-700"
+                  className="px-3 py-1.5 bg-slate-50 hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-200 rounded-lg text-xs font-bold transition-all border border-slate-200 dark:border-slate-700"
                 >
                   Reset
                 </button>

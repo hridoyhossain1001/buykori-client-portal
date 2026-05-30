@@ -210,7 +210,7 @@ capi('track', 'AddToCart', {
           className={`flex items-center justify-center gap-2 flex-1 py-2.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
             activeTab === 'wordpress'
               ? 'bg-indigo-600 text-white shadow-sm'
-              : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-850'
+              : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800'
           }`}
         >
           <Globe className="w-4 h-4" />
@@ -221,7 +221,7 @@ capi('track', 'AddToCart', {
           className={`flex items-center justify-center gap-2 flex-1 py-2.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
             activeTab === 'shopify'
               ? 'bg-indigo-600 text-white shadow-sm'
-              : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-850'
+              : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800'
           }`}
         >
           <ShoppingBag className="w-4 h-4" />
@@ -232,7 +232,7 @@ capi('track', 'AddToCart', {
           className={`flex items-center justify-center gap-2 flex-1 py-2.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
             activeTab === 'custom'
               ? 'bg-indigo-600 text-white shadow-sm'
-              : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-850'
+              : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800'
           }`}
         >
           <Code className="w-4 h-4" />
@@ -298,7 +298,7 @@ capi('track', 'AddToCart', {
                 <p className="text-xs text-slate-500 dark:text-slate-400 max-w-3xl leading-relaxed">
                   Copy your unique API Key below and paste it in the <b>Buykori AdSync</b> settings page inside your WordPress panel.
                 </p>
-                <div className="flex items-center gap-2 bg-slate-55/50 dark:bg-slate-950 p-2 border border-slate-200 dark:border-slate-800 rounded font-mono text-xs text-slate-800 dark:text-slate-300 max-w-md">
+                <div className="flex items-center gap-2 bg-slate-50/50 dark:bg-slate-950 p-2 border border-slate-200 dark:border-slate-800 rounded font-mono text-xs text-slate-800 dark:text-slate-300 max-w-md">
                   <code className="truncate">{hasApiToken ? apiToken : 'Setup token unavailable'}</code>
                   <button 
                     onClick={() => hasApiToken && handleCopy(apiToken, 'c_g_tkn')}
@@ -322,7 +322,7 @@ capi('track', 'AddToCart', {
                 <p className="text-xs text-slate-500 dark:text-slate-400 max-w-3xl leading-relaxed">
                   Provide the API Gateway URL in your WordPress plugin settings to establish a pipeline connection:
                 </p>
-                <div className="flex items-center gap-2 bg-slate-55/50 dark:bg-slate-950 p-2 border border-slate-200 dark:border-slate-800 rounded font-mono text-xs text-slate-800 dark:text-slate-300 max-w-md">
+                <div className="flex items-center gap-2 bg-slate-50/50 dark:bg-slate-950 p-2 border border-slate-200 dark:border-slate-800 rounded font-mono text-xs text-slate-800 dark:text-slate-300 max-w-md">
                   <code className="truncate">{gatewayUrl}</code>
                   <button 
                     onClick={() => handleCopy(gatewayUrl, 'c_g_url')}
@@ -381,7 +381,7 @@ capi('track', 'AddToCart', {
             </p>
             
             <div className="relative rounded-lg overflow-hidden border border-slate-200 dark:border-slate-800">
-              <div className="bg-slate-55 dark:bg-slate-950 px-4 py-2 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs text-slate-500">
+              <div className="bg-slate-50 dark:bg-slate-950 px-4 py-2 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs text-slate-500">
                 <span>Shopify Custom Pixel JavaScript</span>
                 <button
                   onClick={() => handleCopy(shopifyPixelCode, 'shopify_px')}
@@ -425,7 +425,7 @@ capi('track', 'AddToCart', {
                 <code className="truncate">{`${gatewayUrl}/webhook/shopify?key=${apiToken || 'YOUR_API_KEY'}`}</code>
                 <button 
                   onClick={() => handleCopy(`${gatewayUrl}/webhook/shopify?key=${apiToken || 'YOUR_API_KEY'}`, 'sh_wh_url')}
-                  className="text-slate-455 hover:text-indigo-600 ml-auto shrink-0 cursor-pointer"
+                  className="text-slate-400 hover:text-indigo-600 ml-auto shrink-0 cursor-pointer"
                   title="Copy Shopify Webhook URL"
                 >
                   {copiedStates['sh_wh_url'] ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
@@ -481,7 +481,7 @@ capi('track', 'AddToCart', {
             </p>
 
             <div className="relative rounded-lg overflow-hidden border border-slate-200 dark:border-slate-800">
-              <div className="bg-slate-55 dark:bg-slate-950 px-4 py-2 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs text-slate-500">
+              <div className="bg-slate-50 dark:bg-slate-950 px-4 py-2 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs text-slate-500">
                 <span>Frontend JavaScript API Usage</span>
                 <button
                   onClick={() => handleCopy(customCapiCode, 'custom_capi')}
@@ -508,7 +508,7 @@ capi('track', 'AddToCart', {
             </p>
             
             <div className="relative rounded-lg overflow-hidden border border-slate-200 dark:border-slate-800">
-              <div className="bg-slate-55 dark:bg-slate-950 px-4 py-2 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs text-slate-500">
+              <div className="bg-slate-50 dark:bg-slate-950 px-4 py-2 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs text-slate-500">
                 <span>REST API Event Payload (JSON)</span>
                 <button
                   onClick={() => handleCopy(customBackendCode, 'custom_backend')}
@@ -547,7 +547,7 @@ capi('track', 'AddToCart', {
                   <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${expanded ? 'rotate-180' : ''}`} />
                 </button>
                 {expanded && (
-                  <div className="p-4 border-t border-slate-150 dark:border-slate-800 text-xs leading-relaxed text-slate-550 dark:text-slate-400 bg-white dark:bg-slate-900 max-w-4xl">
+                  <div className="p-4 border-t border-slate-150 dark:border-slate-800 text-xs leading-relaxed text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-900 max-w-4xl">
                     {faq.a}
                   </div>
                 )}

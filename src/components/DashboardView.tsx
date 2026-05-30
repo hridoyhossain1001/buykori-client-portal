@@ -264,7 +264,7 @@ export function DashboardView({
 
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs text-slate-600 dark:text-slate-350 divide-y divide-slate-100 dark:divide-slate-800 min-w-[800px]">
-            <thead className="bg-slate-50 dark:bg-slate-950 text-[10px] font-bold uppercase tracking-wider text-slate-550 dark:text-slate-400">
+            <thead className="bg-slate-50 dark:bg-slate-950 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
               <tr>
                 <th className="px-6 py-3">Timestamp</th>
                 <th className="px-6 py-3">Event Name</th>
@@ -291,7 +291,7 @@ export function DashboardView({
                         onClick={() => setExpandedEventId(isExpanded ? null : e.id)}
                         className="hover:bg-slate-50/50 dark:hover:bg-slate-800/40 cursor-pointer transition-colors"
                       >
-                        <td className="px-6 py-3.5 font-mono text-slate-450 dark:text-slate-500">
+                        <td className="px-6 py-3.5 font-mono text-slate-400 dark:text-slate-500">
                           {new Date(e.timestamp).toLocaleTimeString()}
                         </td>
                         <td className="px-6 py-3.5 font-semibold text-slate-800 dark:text-slate-100">
@@ -318,7 +318,7 @@ export function DashboardView({
                         <td className="px-6 py-3.5 font-mono font-medium text-slate-500 dark:text-slate-400">
                           {e.httpCode}
                         </td>
-                        <td className="px-6 py-3.5 font-mono text-right text-slate-450 dark:text-slate-500">
+                        <td className="px-6 py-3.5 font-mono text-right text-slate-400 dark:text-slate-500">
                           {e.deduplicationKey}
                         </td>
                       </tr>

@@ -224,7 +224,7 @@ export function SettingsView({
 
                 <div className={`grid grid-cols-1 ${plat === 'GA4' ? 'md:grid-cols-2' : 'md:grid-cols-3'} gap-4`}>
                   <div>
-                    <label className="block text-[10px] font-semibold text-slate-450 uppercase mb-1">Pixel ID / Measurement ID</label>
+                    <label className="block text-[10px] font-semibold text-slate-400 uppercase mb-1">Pixel ID / Measurement ID</label>
                     <input 
                       type="text"
                       value={localPixelIds[plat]}
@@ -232,12 +232,12 @@ export function SettingsView({
                       onChange={(e) => setLocalPixelIds(prev => ({ ...prev, [plat]: e.target.value }))}
                       onBlur={() => handleUpdatePlatform(plat, { pixelIdOrMeasurementId: localPixelIds[plat] })}
                       onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); }}
-                      className="w-full p-2 text-xs bg-white border border-slate-205 rounded font-mono text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-slate-900 dark:border-slate-800 dark:text-white"
+                      className="w-full p-2 text-xs bg-white border border-slate-200 rounded font-mono text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-slate-900 dark:border-slate-800 dark:text-white"
                     />
                   </div>
                   
                   <div>
-                    <label className="block text-[10px] font-semibold text-slate-455 uppercase mb-1">CAPI Access secret Token</label>
+                    <label className="block text-[10px] font-semibold text-slate-400 uppercase mb-1">CAPI Access secret Token</label>
                     <input 
                       type="password"
                       value={localTokens[plat]}
@@ -245,13 +245,13 @@ export function SettingsView({
                       onChange={(e) => setLocalTokens(prev => ({ ...prev, [plat]: e.target.value }))}
                       onBlur={() => handleUpdatePlatform(plat, { accessToken: localTokens[plat] })}
                       onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); }}
-                      className="w-full p-2 text-xs bg-white border border-slate-205 rounded font-mono text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-slate-900 dark:border-slate-800 dark:text-white"
+                      className="w-full p-2 text-xs bg-white border border-slate-200 rounded font-mono text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-slate-900 dark:border-slate-800 dark:text-white"
                     />
                   </div>
 
                   {plat !== 'GA4' && (
                     <div>
-                      <label className="block text-[10px] font-semibold text-slate-455 uppercase mb-1">Test Event Code (Optional)</label>
+                      <label className="block text-[10px] font-semibold text-slate-400 uppercase mb-1">Test Event Code (Optional)</label>
                       <input 
                         type="text"
                         value={localTestCodes[plat]}
@@ -259,7 +259,7 @@ export function SettingsView({
                         onChange={(e) => setLocalTestCodes(prev => ({ ...prev, [plat]: e.target.value }))}
                         onBlur={() => handleUpdatePlatform(plat, { testEventCode: localTestCodes[plat] })}
                         onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); }}
-                        className="w-full p-2 text-xs bg-white border border-slate-205 rounded font-mono text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-slate-900 dark:border-slate-800 dark:text-white"
+                        className="w-full p-2 text-xs bg-white border border-slate-200 rounded font-mono text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-slate-900 dark:border-slate-800 dark:text-white"
                       />
                     </div>
                   )}
@@ -306,7 +306,7 @@ export function SettingsView({
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* SteadFast section */}
                 <div className="p-4 rounded-lg border border-slate-150 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/20 space-y-4">
-                  <h4 className="font-bold text-xs text-indigo-650 dark:text-indigo-400 uppercase tracking-wider pb-2 border-b border-slate-100 dark:border-slate-850">
+                  <h4 className="font-bold text-xs text-indigo-600 dark:text-indigo-400 uppercase tracking-wider pb-2 border-b border-slate-100 dark:border-slate-800">
                     SteadFast Courier API
                   </h4>
                   
@@ -317,7 +317,7 @@ export function SettingsView({
                       value={courierSettings.steadfast_api_key || ''}
                       onChange={(e) => setCourierSettings((prev: any) => ({ ...prev, steadfast_api_key: e.target.value }))}
                       placeholder="Enter SteadFast Api-Key"
-                      className="w-full p-2 text-xs bg-white border border-slate-205 rounded font-mono text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-slate-900 dark:border-slate-800 dark:text-white"
+                      className="w-full p-2 text-xs bg-white border border-slate-200 rounded font-mono text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-slate-900 dark:border-slate-800 dark:text-white"
                     />
                   </div>
 
@@ -328,14 +328,14 @@ export function SettingsView({
                       value={courierSettings.steadfast_secret_key || ''}
                       onChange={(e) => setCourierSettings((prev: any) => ({ ...prev, steadfast_secret_key: e.target.value }))}
                       placeholder="************************"
-                      className="w-full p-2 text-xs bg-white border border-slate-205 rounded font-mono text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-slate-900 dark:border-slate-800 dark:text-white"
+                      className="w-full p-2 text-xs bg-white border border-slate-200 rounded font-mono text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-slate-900 dark:border-slate-800 dark:text-white"
                     />
                   </div>
                 </div>
 
                 {/* Pathao section */}
                 <div className="p-4 rounded-lg border border-slate-150 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/20 space-y-4">
-                  <h4 className="font-bold text-xs text-indigo-650 dark:text-indigo-400 uppercase tracking-wider pb-2 border-b border-slate-100 dark:border-slate-850">
+                  <h4 className="font-bold text-xs text-indigo-600 dark:text-indigo-400 uppercase tracking-wider pb-2 border-b border-slate-100 dark:border-slate-800">
                     Pathao Courier API
                   </h4>
                   
@@ -349,7 +349,7 @@ export function SettingsView({
                         value={courierSettings.pathao_client_id || ''}
                         onChange={(e) => setCourierSettings((prev: any) => ({ ...prev, pathao_client_id: e.target.value }))}
                         placeholder="Client ID"
-                        className="w-full p-2 text-xs bg-white border border-slate-205 rounded font-mono text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-slate-900 dark:border-slate-800 dark:text-white"
+                        className="w-full p-2 text-xs bg-white border border-slate-200 rounded font-mono text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-slate-900 dark:border-slate-800 dark:text-white"
                       />
                     </div>
                     <div>
@@ -361,7 +361,7 @@ export function SettingsView({
                         value={courierSettings.pathao_email || ''}
                         onChange={(e) => setCourierSettings((prev: any) => ({ ...prev, pathao_email: e.target.value }))}
                         placeholder="owner@example.com"
-                        className="w-full p-2 text-xs bg-white border border-slate-205 rounded font-mono text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-slate-900 dark:border-slate-800 dark:text-white"
+                        className="w-full p-2 text-xs bg-white border border-slate-200 rounded font-mono text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-slate-900 dark:border-slate-800 dark:text-white"
                       />
                     </div>
                   </div>
@@ -376,7 +376,7 @@ export function SettingsView({
                         value={courierSettings.pathao_client_secret || ''}
                         onChange={(e) => setCourierSettings((prev: any) => ({ ...prev, pathao_client_secret: e.target.value }))}
                         placeholder="************************"
-                        className="w-full p-2 text-xs bg-white border border-slate-205 rounded font-mono text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-slate-900 dark:border-slate-800 dark:text-white"
+                        className="w-full p-2 text-xs bg-white border border-slate-200 rounded font-mono text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-slate-900 dark:border-slate-800 dark:text-white"
                       />
                     </div>
                     <div>
@@ -388,7 +388,7 @@ export function SettingsView({
                         value={courierSettings.pathao_password || ''}
                         onChange={(e) => setCourierSettings((prev: any) => ({ ...prev, pathao_password: e.target.value }))}
                         placeholder="************************"
-                        className="w-full p-2 text-xs bg-white border border-slate-205 rounded font-mono text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-slate-900 dark:border-slate-800 dark:text-white"
+                        className="w-full p-2 text-xs bg-white border border-slate-200 rounded font-mono text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-slate-900 dark:border-slate-800 dark:text-white"
                       />
                     </div>
                   </div>
@@ -400,7 +400,7 @@ export function SettingsView({
                       value={courierSettings.pathao_store_id || ''}
                       onChange={(e) => setCourierSettings((prev: any) => ({ ...prev, pathao_store_id: e.target.value }))}
                       placeholder="Store ID"
-                      className="w-full p-2 text-xs bg-white border border-slate-205 rounded font-mono text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-slate-900 dark:border-slate-800 dark:text-white"
+                      className="w-full p-2 text-xs bg-white border border-slate-200 rounded font-mono text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-slate-900 dark:border-slate-800 dark:text-white"
                     />
                   </div>
                 </div>
@@ -424,7 +424,7 @@ export function SettingsView({
                   <button
                     type="submit"
                     disabled={savingCourier}
-                    className="w-full py-2.5 bg-gradient-to-r from-indigo-650 to-violet-650 hover:from-indigo-750 hover:to-violet-750 disabled:opacity-50 text-white text-xs font-bold rounded-lg shadow-md transition-all cursor-pointer text-center"
+                    className="w-full py-2.5 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 disabled:opacity-50 text-white text-xs font-bold rounded-lg shadow-md transition-all cursor-pointer text-center"
                   >
                     {savingCourier ? 'Updating settings...' : 'Save Courier Settings'}
                   </button>
@@ -443,12 +443,12 @@ export function SettingsView({
               <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wide dark:text-white">WordPress event routing rules</h3>
               <p className="text-xs text-slate-400 dark:text-slate-500">Keep active routes short. Add WooCommerce presets or a custom event from the dropdown.</p>
             </div>
-            <div className="flex flex-col gap-2 rounded-lg border border-slate-150 bg-slate-50/70 p-3 dark:border-slate-850 dark:bg-slate-950/30 xl:w-[520px]">
+            <div className="flex flex-col gap-2 rounded-lg border border-slate-150 bg-slate-50/70 p-3 dark:border-slate-800 dark:bg-slate-950/30 xl:w-[520px]">
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
                 <select
                   value={selectedEventRoute}
                   onChange={(e) => setSelectedEventRoute(e.target.value)}
-                  className="w-full rounded-lg border border-slate-205 bg-white px-3 py-2 text-xs font-semibold text-slate-700 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 dark:border-slate-800 dark:bg-slate-900 dark:text-white"
+                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 dark:border-slate-800 dark:bg-slate-900 dark:text-white"
                 >
                   <option value="">Add event route...</option>
                   {availablePresetRoutes.map((preset) => (
@@ -472,7 +472,7 @@ export function SettingsView({
                   value={customEventRoute}
                   onChange={(e) => setCustomEventRoute(e.target.value)}
                   placeholder="Custom event, e.g. BookDemo or WholesaleLead"
-                  className="w-full rounded-lg border border-slate-205 bg-white px-3 py-2 font-mono text-xs text-slate-800 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 dark:border-slate-800 dark:bg-slate-900 dark:text-white"
+                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 font-mono text-xs text-slate-800 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 dark:border-slate-800 dark:bg-slate-900 dark:text-white"
                 />
               )}
               <p className="text-[10px] leading-normal text-slate-400 dark:text-slate-500">
@@ -483,7 +483,7 @@ export function SettingsView({
 
           <div className="overflow-x-auto">
             <table className="w-full text-xs text-slate-600 text-left min-w-[760px] dark:text-slate-300">
-              <thead className="bg-slate-50 text-[10px] font-bold uppercase tracking-wider text-slate-555 border-b border-slate-100 dark:bg-slate-950 dark:border-slate-800 dark:text-slate-400">
+              <thead className="bg-slate-50 text-[10px] font-bold uppercase tracking-wider text-slate-500 border-b border-slate-100 dark:bg-slate-950 dark:border-slate-800 dark:text-slate-400">
                 <tr>
                   <th className="px-4 py-3">Active event route</th>
                   <th className="px-4 py-3 text-center">Meta CAPI</th>
@@ -497,7 +497,7 @@ export function SettingsView({
                   <tr key={idx} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/40">
                     <td className="px-4 py-3.5">
                       <div className="flex flex-col">
-                        <span className="font-mono text-xs font-semibold text-slate-850 dark:text-white">{rule.eventName}</span>
+                        <span className="font-mono text-xs font-semibold text-slate-800 dark:text-white">{rule.eventName}</span>
                         {!coreEventRoutes.has(rule.eventName) && (
                           <span className="mt-0.5 text-[10px] font-semibold uppercase tracking-wider text-indigo-500 dark:text-indigo-400">Custom / optional route</span>
                         )}
@@ -562,9 +562,9 @@ export function SettingsView({
             <p className="text-xs text-slate-400 dark:text-slate-500">Credentials bridge utilized by WooCommerce server webhook plugins</p>
           </div>
 
-          <div className="p-4 rounded-lg bg-slate-50 border border-slate-150 dark:bg-slate-950 dark:border-slate-850 space-y-3 font-mono text-xs text-slate-700 dark:text-slate-305">
+          <div className="p-4 rounded-lg bg-slate-50 border border-slate-150 dark:bg-slate-950 dark:border-slate-800 space-y-3 font-mono text-xs text-slate-700 dark:text-slate-305">
             <div>
-              <span className="block text-[9px] font-semibold text-slate-455 dark:text-slate-500 uppercase tracking-wider mb-0.5">REST API Access key token</span>
+              <span className="block text-[9px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-0.5">REST API Access key token</span>
               <div className="flex items-center gap-2 bg-white dark:bg-slate-900 px-2 py-1.5 rounded border border-slate-200 dark:border-slate-800">
                 <span className="truncate select-all">{connection.api_key || connection.token}</span>
                 <button 
@@ -580,11 +580,11 @@ export function SettingsView({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[10px]">
               <div>
                 <span className="block text-[9px] text-slate-400 dark:text-slate-500 uppercase mb-0.5">Plugin detected version</span>
-                <span className="font-semibold text-slate-850 dark:text-white">v{connection.wpVersion}</span>
+                <span className="font-semibold text-slate-800 dark:text-white">v{connection.wpVersion}</span>
               </div>
               <div>
                 <span className="block text-[9px] text-slate-400 dark:text-slate-500 uppercase mb-0.5">Last query heartbeat</span>
-                <span className="font-semibold text-slate-850 dark:text-white">{new Date(connection.lastHeartbeat).toLocaleTimeString()}</span>
+                <span className="font-semibold text-slate-800 dark:text-white">{new Date(connection.lastHeartbeat).toLocaleTimeString()}</span>
               </div>
             </div>
           </div>
@@ -592,8 +592,8 @@ export function SettingsView({
           <div className="rounded-lg border border-slate-200 bg-white p-3 text-xs dark:border-slate-800 dark:bg-slate-950">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <p className="text-[9px] font-semibold uppercase tracking-wider text-slate-455 dark:text-slate-500">Latest plugin package</p>
-                <p className="mt-1 font-semibold text-slate-850 dark:text-white">
+                <p className="text-[9px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">Latest plugin package</p>
+                <p className="mt-1 font-semibold text-slate-800 dark:text-white">
                   {pluginReleaseInfo ? `v${pluginReleaseInfo.version}` : 'Checking release...'}
                 </p>
                 {pluginReleaseInfo && (
@@ -621,7 +621,7 @@ export function SettingsView({
                 .then(() => showToast("WordPress synchronization active.", false))
                 .catch(() => showToast("Failed payload ping parameters.", true));
             }}
-            className="w-full py-2 bg-indigo-650 hover:bg-indigo-700 text-white text-xs font-semibold rounded-lg transition-colors border border-indigo-700/20 cursor-pointer dark:bg-indigo-600 dark:hover:bg-indigo-750"
+            className="w-full py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-lg transition-colors border border-indigo-700/20 cursor-pointer dark:bg-indigo-600 dark:hover:bg-indigo-700"
           >
             Test Connection Heartbeat
           </button>

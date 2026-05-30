@@ -194,14 +194,14 @@ export function EventLogsView({
             <div className="flex items-center rounded-lg border border-slate-200 bg-white overflow-hidden shrink-0 dark:bg-slate-900 dark:border-slate-800">
               <button 
                 onClick={() => handleExportData('json', 'events')} 
-                className="px-3 py-1.5 text-[11px] text-slate-650 hover:bg-slate-50 border-r border-slate-200 dark:border-slate-800 flex items-center gap-1.5 font-medium cursor-pointer dark:text-slate-300 dark:hover:bg-slate-800"
+                className="px-3 py-1.5 text-[11px] text-slate-600 hover:bg-slate-50 border-r border-slate-200 dark:border-slate-800 flex items-center gap-1.5 font-medium cursor-pointer dark:text-slate-300 dark:hover:bg-slate-800"
               >
                 <Download className="w-3.5 h-3.5 text-slate-400" />
                 JSON
               </button>
               <button 
                 onClick={() => handleExportData('csv', 'events')} 
-                className="px-3 py-1.5 text-[11px] text-slate-650 hover:bg-slate-50 flex items-center gap-1.5 font-medium cursor-pointer dark:text-slate-300 dark:hover:bg-slate-800"
+                className="px-3 py-1.5 text-[11px] text-slate-600 hover:bg-slate-50 flex items-center gap-1.5 font-medium cursor-pointer dark:text-slate-300 dark:hover:bg-slate-800"
               >
                 CSV
               </button>
@@ -225,7 +225,7 @@ export function EventLogsView({
                 className={`px-2.5 py-1 rounded-full text-xs font-medium cursor-pointer border transition-colors ${
                   active 
                     ? 'bg-indigo-600 border-indigo-600 text-white dark:bg-indigo-600 dark:border-indigo-600' 
-                    : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50 dark:bg-slate-900 dark:border-slate-850 dark:text-slate-300 dark:hover:bg-slate-800'
+                    : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50 dark:bg-slate-900 dark:border-slate-800 dark:text-slate-300 dark:hover:bg-slate-800'
                 }`}
               >
                 {p}
@@ -247,7 +247,7 @@ export function EventLogsView({
                 className={`px-2.5 py-1 rounded-full text-xs font-medium cursor-pointer border transition-colors ${
                   active 
                     ? 'bg-indigo-600 border-indigo-600 text-white dark:bg-indigo-600 dark:border-indigo-600' 
-                    : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50 dark:bg-slate-900 dark:border-slate-850 dark:text-slate-300 dark:hover:bg-slate-800'
+                    : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50 dark:bg-slate-900 dark:border-slate-800 dark:text-slate-300 dark:hover:bg-slate-800'
                 }`}
               >
                 {s}
@@ -264,7 +264,7 @@ export function EventLogsView({
                 setSearchFilter('');
                 setSearchVal('');
               }}
-              className="text-indigo-650 hover:text-indigo-800 text-[11px] font-bold flex items-center gap-1 ml-auto shrink-0 self-center dark:text-indigo-400 dark:hover:text-indigo-350"
+              className="text-indigo-600 hover:text-indigo-800 text-[11px] font-bold flex items-center gap-1 ml-auto shrink-0 self-center dark:text-indigo-400 dark:hover:text-indigo-350"
             >
               <RotateCcw className="w-3 h-3" />
               Clear Filter
@@ -282,7 +282,7 @@ export function EventLogsView({
 
         {filteredEventsForTable.length === 0 ? (
           <div className="p-16 text-center space-y-4">
-            <div className="w-12 h-12 rounded-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 flex items-center justify-center mx-auto text-slate-450">
+            <div className="w-12 h-12 rounded-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 flex items-center justify-center mx-auto text-slate-400">
               <ListChecks className="w-6 h-6 text-slate-300" />
             </div>
             <div>
@@ -293,7 +293,7 @@ export function EventLogsView({
         ) : (
           <div className="overflow-x-auto overflow-y-auto max-h-[calc(100vh-280px)] min-h-[400px]">
             <table className="w-full text-left text-xs text-slate-660 divide-y divide-slate-100 dark:text-slate-300 dark:divide-slate-800 min-w-[900px]">
-              <thead className="bg-slate-50 dark:bg-slate-950 text-[10px] font-bold uppercase tracking-wider text-slate-555 dark:text-slate-400 sticky top-0 z-10">
+              <thead className="bg-slate-50 dark:bg-slate-950 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 sticky top-0 z-10">
                 <tr>
                   <th className="px-6 py-3">Timestamp / Age</th>
                   <th className="px-6 py-3">Event ID</th>
@@ -313,13 +313,13 @@ export function EventLogsView({
                         onClick={() => setExpandedEventId(isExpanded ? null : e.id)}
                         className="hover:bg-indigo-50/20 dark:hover:bg-slate-800/40 cursor-pointer transition-colors"
                       >
-                        <td className="px-6 py-4 font-mono text-slate-500 dark:text-slate-450">
+                        <td className="px-6 py-4 font-mono text-slate-500 dark:text-slate-400">
                           {new Date(e.timestamp).toLocaleTimeString()}<br/>
                           <span className="text-[9px] text-slate-400 dark:text-slate-500">
                             {new Date(e.timestamp).toLocaleDateString()}
                           </span>
                         </td>
-                        <td className="px-6 py-4 font-mono font-bold text-indigo-650 dark:text-indigo-400">
+                        <td className="px-6 py-4 font-mono font-bold text-indigo-600 dark:text-indigo-400">
                           {highlightText(e.id, searchFilter)}
                         </td>
                         <td className="px-6 py-4 font-semibold text-slate-800 dark:text-slate-100">
@@ -343,7 +343,7 @@ export function EventLogsView({
                             {highlightText(e.status, searchFilter)}
                           </span>
                         </td>
-                        <td className="px-6 py-4 font-mono text-slate-550 dark:text-slate-400">
+                        <td className="px-6 py-4 font-mono text-slate-500 dark:text-slate-400">
                           {highlightText(String(e.httpCode), searchFilter)}
                         </td>
                         <td className="px-6 py-4 font-mono text-right text-slate-400 dark:text-slate-500">

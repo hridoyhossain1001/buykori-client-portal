@@ -100,7 +100,7 @@ export function AnalyticsView({
               <p className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
                 {analyticsOverview.total_events?.toLocaleString() || 0}
               </p>
-              <span className="text-xs font-semibold text-indigo-750/70 dark:text-indigo-300/70">Raw packets</span>
+              <span className="text-xs font-semibold text-indigo-700/70 dark:text-indigo-300/70">Raw packets</span>
             </div>
           </div>
 
@@ -155,7 +155,7 @@ export function AnalyticsView({
           {/* Conversion Funnel */}
           <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm flex flex-col dark:bg-slate-900 dark:border-slate-800">
             <div className="mb-6">
-              <h3 className="font-bold text-slate-850 text-sm uppercase tracking-wide dark:text-white">Pixel Conversion Funnel</h3>
+              <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wide dark:text-white">Pixel Conversion Funnel</h3>
               <p className="text-xs text-slate-400 dark:text-slate-500">Visualizing customer flow drops from first page interaction to ultimate checkout conversion.</p>
             </div>
 
@@ -199,13 +199,13 @@ export function AnalyticsView({
           <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm flex flex-col dark:bg-slate-900 dark:border-slate-800">
             <div className="mb-6 flex justify-between items-center">
               <div>
-                <h3 className="font-bold text-slate-850 text-sm uppercase tracking-wide dark:text-white">Telemetry Match Quality Index</h3>
+                <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wide dark:text-white">Telemetry Match Quality Index</h3>
                 <p className="text-xs text-slate-400 dark:text-slate-500">Distribution of customer parameter matching ratios sent across active pipelines.</p>
               </div>
               {signalDoctor?.score !== undefined && (
                 <div className="px-3 py-1.5 rounded-xl border border-indigo-100 bg-indigo-50/50 dark:bg-indigo-950/20 dark:border-indigo-900/40 text-right">
                   <span className="block text-[8px] font-bold text-indigo-500 uppercase tracking-widest leading-none">EMQ Score</span>
-                  <span className="text-lg font-black text-slate-850 dark:text-white font-mono leading-none">{signalDoctor.score}%</span>
+                  <span className="text-lg font-black text-slate-800 dark:text-white font-mono leading-none">{signalDoctor.score}%</span>
                 </div>
               )}
             </div>
@@ -286,13 +286,13 @@ export function AnalyticsView({
       {/* Campaign UTM Performance Table */}
       <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm flex flex-col space-y-4 dark:bg-slate-900 dark:border-slate-800">
         <div>
-          <h3 className="font-bold text-slate-850 text-sm uppercase tracking-wide dark:text-white">Marketing Campaign Performance (UTM)</h3>
+          <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wide dark:text-white">Marketing Campaign Performance (UTM)</h3>
           <p className="text-xs text-slate-400 dark:text-slate-500">Live source and campaign attribution statistics captured from incoming customer navigation.</p>
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs text-slate-650 divide-y divide-slate-100 min-w-[700px] dark:text-slate-300 dark:divide-slate-800">
-            <thead className="bg-slate-50 text-[10px] font-bold uppercase tracking-wider text-slate-555 dark:bg-slate-950 dark:text-slate-400">
+          <table className="w-full text-left text-xs text-slate-600 divide-y divide-slate-100 min-w-[700px] dark:text-slate-300 dark:divide-slate-800">
+            <thead className="bg-slate-50 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:bg-slate-950 dark:text-slate-400">
               <tr>
                 <th className="px-6 py-3">Source Channel</th>
                 <th className="px-6 py-3">Campaign Identifier</th>
@@ -306,20 +306,20 @@ export function AnalyticsView({
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {!analyticsCampaigns?.campaigns || analyticsCampaigns.campaigns.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-12 text-center text-slate-400 font-medium dark:text-slate-550">
+                  <td colSpan={7} className="px-6 py-12 text-center text-slate-400 font-medium dark:text-slate-500">
                     No UTM campaign details captured yet. Use the Campaign URL Builder below to setup ad tracking parameters.
                   </td>
                 </tr>
               ) : (
                 analyticsCampaigns.campaigns.map((row: any, idx: number) => (
                   <tr key={idx} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/40 transition-colors">
-                    <td className="px-6 py-3.5 font-bold text-indigo-750 dark:text-indigo-400">{row.source}</td>
+                    <td className="px-6 py-3.5 font-bold text-indigo-700 dark:text-indigo-400">{row.source}</td>
                     <td className="px-6 py-3.5 font-mono text-slate-800 dark:text-slate-100">{row.campaign}</td>
                     <td className="px-6 py-3.5 font-semibold">{row.view_content.toLocaleString()}</td>
                     <td className="px-6 py-3.5 font-semibold">{row.add_to_cart.toLocaleString()}</td>
                     <td className="px-6 py-3.5 font-semibold">{row.initiate_checkout.toLocaleString()}</td>
-                    <td className="px-6 py-3.5 font-bold text-slate-850 dark:text-white">{row.purchase.toLocaleString()}</td>
-                    <td className="px-6 py-3.5 font-bold text-indigo-650 dark:text-indigo-400 text-right">৳{row.revenue.toLocaleString()}</td>
+                    <td className="px-6 py-3.5 font-bold text-slate-800 dark:text-white">{row.purchase.toLocaleString()}</td>
+                    <td className="px-6 py-3.5 font-bold text-indigo-600 dark:text-indigo-400 text-right">৳{row.revenue.toLocaleString()}</td>
                   </tr>
                 ))
               )}
@@ -331,7 +331,7 @@ export function AnalyticsView({
       {/* Campaign URL Builder widget */}
       <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm flex flex-col space-y-4 dark:bg-slate-900 dark:border-slate-800">
         <div>
-          <h3 className="font-bold text-slate-850 text-sm uppercase tracking-wide dark:text-white">Campaign URL Builder</h3>
+          <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wide dark:text-white">Campaign URL Builder</h3>
           <p className="text-xs text-slate-400 dark:text-slate-500">Generate clean campaign destination links embedded with standard tracking UTMs to maintain accurate marketing performance reporting.</p>
         </div>
 
@@ -348,12 +348,12 @@ export function AnalyticsView({
                 placeholder="https://your-domain.com/shop/item"
                 value={urlBuilderBaseUrl}
                 onChange={(e) => setUrlBuilderBaseUrl(e.target.value)}
-                className="w-full p-2.5 text-xs text-slate-800 placeholder-slate-450 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:ring-1 focus:ring-indigo-500 font-mono dark:bg-slate-950 dark:border-slate-800 dark:text-white"
+                className="w-full p-2.5 text-xs text-slate-800 placeholder-slate-400 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:ring-1 focus:ring-indigo-500 font-mono dark:bg-slate-950 dark:border-slate-800 dark:text-white"
               />
             </div>
 
             {/* Source & Medium grid */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">Campaign Source</label>
                 <select 
@@ -381,7 +381,7 @@ export function AnalyticsView({
                   placeholder="paid_social"
                   value={urlBuilderMedium}
                   onChange={(e) => setUrlBuilderMedium(e.target.value)}
-                  className="w-full p-2.5 text-xs text-slate-800 placeholder-slate-450 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-slate-950 dark:border-slate-800 dark:text-white"
+                  className="w-full p-2.5 text-xs text-slate-800 placeholder-slate-400 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-slate-950 dark:border-slate-800 dark:text-white"
                 />
               </div>
             </div>
@@ -394,12 +394,12 @@ export function AnalyticsView({
                 placeholder="eid_sale_promotion"
                 value={urlBuilderCampaign}
                 onChange={(e) => setUrlBuilderCampaign(e.target.value)}
-                className="w-full p-2.5 text-xs text-slate-800 placeholder-slate-450 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-slate-950 dark:border-slate-800 dark:text-white"
+                className="w-full p-2.5 text-xs text-slate-800 placeholder-slate-400 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-slate-950 dark:border-slate-800 dark:text-white"
               />
             </div>
 
             {/* Optional parameters Content & Term */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">Ad Content (Optional)</label>
                 <input 
@@ -407,7 +407,7 @@ export function AnalyticsView({
                   placeholder="video_ad_1"
                   value={urlBuilderContent}
                   onChange={(e) => setUrlBuilderContent(e.target.value)}
-                  className="w-full p-2.5 text-xs text-slate-800 placeholder-slate-450 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-slate-950 dark:border-slate-800 dark:text-white"
+                  className="w-full p-2.5 text-xs text-slate-800 placeholder-slate-400 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-slate-950 dark:border-slate-800 dark:text-white"
                 />
               </div>
               <div>
@@ -417,14 +417,14 @@ export function AnalyticsView({
                   placeholder="buy_shoes"
                   value={urlBuilderTerm}
                   onChange={(e) => setUrlBuilderTerm(e.target.value)}
-                  className="w-full p-2.5 text-xs text-slate-800 placeholder-slate-450 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-slate-950 dark:border-slate-800 dark:text-white"
+                  className="w-full p-2.5 text-xs text-slate-800 placeholder-slate-400 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-slate-950 dark:border-slate-800 dark:text-white"
                 />
               </div>
             </div>
 
             <button 
               onClick={handleGenerateCampaignUrl}
-              className="px-4 py-2 bg-indigo-650 hover:bg-indigo-700 text-white text-xs font-bold rounded-lg transition-colors cursor-pointer dark:bg-indigo-600 dark:hover:bg-indigo-700"
+              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-lg transition-colors cursor-pointer dark:bg-indigo-600 dark:hover:bg-indigo-700"
             >
               Generate Campaign URL
             </button>
@@ -444,7 +444,7 @@ export function AnalyticsView({
                   {generatedCampaignUrl}
                   <button 
                     onClick={() => handleCopy(generatedCampaignUrl, 'generated_campaign_url')}
-                    className="absolute top-2 right-2 p-1.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-650 cursor-pointer dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-300"
+                    className="absolute top-2 right-2 p-1.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-600 cursor-pointer dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-300"
                     title="Copy URL"
                   >
                     {copiedStates['generated_campaign_url'] ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
@@ -455,7 +455,7 @@ export function AnalyticsView({
               )}
             </div>
 
-            <div className="text-[10px] text-slate-400 leading-normal flex items-start gap-1.5 dark:text-slate-550">
+            <div className="text-[10px] text-slate-400 leading-normal flex items-start gap-1.5 dark:text-slate-500">
               <Info className="w-3.5 h-3.5 shrink-0 text-slate-350 mt-0.5" />
               <span>Applying proper UTM discipline ensures tracking data cleanly attributes purchase value directly to campaigns.</span>
             </div>
