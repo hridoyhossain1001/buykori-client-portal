@@ -48,154 +48,141 @@ export function CodProtectionView({
   return (
     <div className="space-y-6">
 
-      {/* ── Order Management Toggle Card ──────────────────────────────── */}
-      <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:bg-slate-900 dark:border-slate-800">
-        <div className="flex flex-col sm:flex-row gap-5 sm:items-start justify-between">
-          <div className="flex items-start gap-3">
-            <div className={`mt-0.5 flex items-center justify-center w-9 h-9 rounded-lg shrink-0 ${
-              orderManagementDraftEnabled
-                ? 'bg-indigo-100 dark:bg-indigo-950/40'
-                : 'bg-slate-100 dark:bg-slate-800'
-            }`}>
-              <Truck className={`w-5 h-5 ${
-                orderManagementDraftEnabled ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400'
-              }`} />
-            </div>
-            <div>
-              <h3 className="font-bold text-slate-850 text-sm dark:text-white">
-                Order Management &amp; Courier Integration
-              </h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-lg">
-                {orderManagementDraftEnabled ? (
-                  <span>
-                    <span className="font-semibold text-indigo-600 dark:text-indigo-400">Enabled</span> — Confirm করলে Pathao/SteadFast-এ auto courier booking হবে।
-                    Courier delivered করলে তারপর Purchase event fire হবে।
-                    Sidebar-এ "Orders &amp; Courier" tab দেখাবে।
-                  </span>
-                ) : (
-                  <span>
-                    <span className="font-semibold text-slate-500">Disabled</span> — Confirm করলে সাথে সাথে Purchase event fire হবে।
-                    Courier booking, tracking বা delivery wait নেই।
-                    "Orders &amp; Courier" tab hidden থাকবে।
-                  </span>
-                )}
-              </p>
-
-              {/* Mode Comparison */}
-              <div className="mt-3 flex flex-wrap gap-2">
-                <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold border transition-all ${
-                  !orderManagementDraftEnabled
-                    ? 'bg-emerald-50 border-emerald-200 text-emerald-700 dark:bg-emerald-950/20 dark:border-emerald-900/50 dark:text-emerald-400'
-                    : 'bg-slate-50 border-slate-200 text-slate-400 dark:bg-slate-800/40 dark:border-slate-700 dark:text-slate-500'
-                }`}>
-                  <Zap className="w-3 h-3" />
-                  Simple Mode: Confirm → Purchase
-                </div>
-                <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold border transition-all ${
-                  orderManagementDraftEnabled
-                    ? 'bg-indigo-50 border-indigo-200 text-indigo-700 dark:bg-indigo-950/20 dark:border-indigo-900/50 dark:text-indigo-400'
-                    : 'bg-slate-50 border-slate-200 text-slate-400 dark:bg-slate-800/40 dark:border-slate-700 dark:text-slate-500'
-                }`}>
-                  <Truck className="w-3 h-3" />
-                  Full Mode: Confirm → Courier → Delivered → Purchase
-                </div>
+      {/* ── Unified Settings Card (Split Layout) ──────────────────────────────── */}
+      <div className="rounded-xl border border-slate-200 bg-white shadow-sm dark:bg-slate-900 dark:border-slate-800 flex flex-col md:flex-row divide-y md:divide-y-0 md:divide-x divide-slate-200 dark:divide-slate-800 mb-6">
+        
+        {/* Left Side: Order Management */}
+        <div className="flex-1 p-6 flex flex-col justify-between gap-5">
+          <div className="flex items-start justify-between">
+            <div className="flex items-center gap-3">
+              <div className={`flex items-center justify-center w-10 h-10 rounded-lg shrink-0 transition-colors ${
+                orderManagementDraftEnabled
+                  ? 'bg-indigo-100 text-indigo-600 dark:bg-indigo-900/40 dark:text-indigo-400'
+                  : 'bg-slate-100 text-slate-400 dark:bg-slate-800'
+              }`}>
+                <Truck className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="font-bold text-slate-850 text-sm dark:text-white">Order Management</h3>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">Courier Integration</p>
               </div>
             </div>
-          </div>
-
-          {/* Toggle + Save */}
-          <div className="flex flex-col items-end gap-3 shrink-0">
-            <label className="relative inline-flex items-center cursor-pointer select-none">
-              <input
-                type="checkbox"
-                checked={orderManagementDraftEnabled}
-                onChange={(e) => setOrderManagementDraftEnabled(e.target.checked)}
-                className="sr-only peer"
-              />
-              <div className="w-11 h-6 bg-slate-200 dark:bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[3px] after:left-[3px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-[18px] after:w-[18px] after:transition-all peer-checked:bg-indigo-600" />
-              <span className="ml-2.5 text-xs font-bold text-slate-700 dark:text-slate-300">
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400">
                 {orderManagementDraftEnabled ? 'ON' : 'OFF'}
               </span>
-            </label>
+              <label className="relative inline-flex items-center cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={orderManagementDraftEnabled}
+                  onChange={(e) => setOrderManagementDraftEnabled(e.target.checked)}
+                  className="sr-only peer"
+                />
+                <div className="w-10 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600" />
+              </label>
+            </div>
+          </div>
+          
+          <div className="text-[11px] text-slate-600 dark:text-slate-300 leading-relaxed bg-slate-50 dark:bg-slate-800/40 p-3.5 rounded-lg border border-slate-100 dark:border-slate-800">
+            {orderManagementDraftEnabled ? (
+              <span><span className="font-semibold text-indigo-600 dark:text-indigo-400">Enabled:</span> Auto-book courier on Confirm. Conversion event fires upon Courier Delivery.</span>
+            ) : (
+              <span><span className="font-semibold text-slate-500">Disabled:</span> Instant conversion on Confirm. No courier tracking or automation active.</span>
+            )}
+          </div>
+
+          <div className="flex items-center justify-between mt-auto">
+             <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-bold ${
+              orderManagementDraftEnabled
+                ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-900/20 dark:text-indigo-400'
+                : 'bg-slate-50 text-slate-500 dark:bg-slate-800/60 dark:text-slate-400'
+            }`}>
+              {orderManagementDraftEnabled ? <><Truck className="w-3 h-3" /> Full Flow Active</> : <><Zap className="w-3 h-3" /> Simple Flow Active</>}
+            </div>
             <button
               type="button"
               disabled={savingOrderMgmt}
               onClick={handleSaveOrderManagement}
-              className="px-4 py-1.5 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 disabled:opacity-50 text-white text-[10px] font-bold rounded-lg transition-all shadow-md cursor-pointer whitespace-nowrap"
+              className="px-4 py-1.5 bg-slate-900 hover:bg-slate-800 text-white dark:bg-white dark:hover:bg-slate-200 dark:text-slate-900 text-[10px] font-bold rounded-lg transition-colors disabled:opacity-50"
             >
-              {savingOrderMgmt ? 'Saving...' : 'Save'}
+              {savingOrderMgmt ? 'Saving...' : 'Save Settings'}
             </button>
           </div>
         </div>
-      </div>
 
-      {/* ── COD Protection Settings Card ─────────────────────────────── */}
-      <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:bg-slate-900 dark:border-slate-800 space-y-6">
-        <div>
-          <h3 className="font-bold text-slate-850 text-sm uppercase tracking-wide dark:text-white">COD Protection Settings</h3>
-          <p className="text-xs text-slate-405 dark:text-slate-500">Configure parameters for holding and releasing Cash-on-Delivery conversion triggers.</p>
-        </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
-          {/* Toggle COD Protection */}
-          <div className="space-y-2">
-            <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">COD Protection status</label>
-            <label className="relative inline-flex items-center cursor-pointer select-none">
-              <input 
-                type="checkbox" 
-                checked={deferredEnabled}
-                onChange={(e) => setDeferredEnabled(e.target.checked)} 
-                className="sr-only peer"
-              />
-              <div className="w-9 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600" />
-              <span className="ml-2 text-xs font-semibold text-slate-650 dark:text-slate-350">
-                {deferredEnabled ? 'Enabled (Hold COD Orders)' : 'Disabled (Instant Dispatch)'}
+        {/* Right Side: COD Protection */}
+        <div className="flex-1 p-6 flex flex-col justify-between gap-5">
+          <div className="flex items-start justify-between">
+            <div className="flex items-center gap-3">
+              <div className={`flex items-center justify-center w-10 h-10 rounded-lg shrink-0 transition-colors ${
+                deferredEnabled
+                  ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-400'
+                  : 'bg-slate-100 text-slate-400 dark:bg-slate-800'
+              }`}>
+                <Zap className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="font-bold text-slate-850 text-sm dark:text-white">COD Protection</h3>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">Hold & Release Triggers</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400">
+                {deferredEnabled ? 'ON' : 'OFF'}
               </span>
-            </label>
+              <label className="relative inline-flex items-center cursor-pointer select-none">
+                <input 
+                  type="checkbox" 
+                  checked={deferredEnabled}
+                  onChange={(e) => setDeferredEnabled(e.target.checked)} 
+                  className="sr-only peer"
+                />
+                <div className="w-10 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-600" />
+              </label>
+            </div>
           </div>
 
-          {/* Auto-Verification Cutoff */}
-          <div>
-            <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Auto-Verification Cutoff</label>
-            <select 
-              value={autoConfirmDays}
-              onChange={(e) => setAutoConfirmDays(Number(e.target.value))}
-              disabled={!deferredEnabled}
-              className="w-full p-2.5 text-xs text-slate-800 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all duration-200 dark:bg-slate-950 dark:border-slate-800 dark:text-white cursor-pointer disabled:opacity-50"
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Auto Cutoff</label>
+              <select 
+                value={autoConfirmDays}
+                onChange={(e) => setAutoConfirmDays(Number(e.target.value))}
+                disabled={!deferredEnabled}
+                className="w-full p-2 text-xs text-slate-800 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all duration-200 dark:bg-slate-950 dark:border-slate-800 dark:text-white cursor-pointer disabled:opacity-50"
+              >
+                <option value="0">Off (Manual only)</option>
+                <option value="1">1 Day</option>
+                <option value="2">2 Days</option>
+                <option value="3">3 Days</option>
+                <option value="5">5 Days</option>
+                <option value="7">7 Days</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Trigger Status</label>
+              <select 
+                value={autoConfirmStatus}
+                onChange={(e) => setAutoConfirmStatus(e.target.value)}
+                disabled={!deferredEnabled}
+                className="w-full p-2 text-xs text-slate-800 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all duration-200 dark:bg-slate-950 dark:border-slate-800 dark:text-white cursor-pointer disabled:opacity-50"
+              >
+                <option value="completed">Completed / Delivered</option>
+                <option value="processing">Processing / Confirmed</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="flex justify-end mt-auto">
+            <button
+              type="button"
+              disabled={savingDeferredSettings}
+              onClick={handleSaveDeferredSettings}
+              className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-[10px] font-bold rounded-lg transition-colors"
             >
-              <option value="0">Off (Verify manually only)</option>
-              <option value="1">1 Day</option>
-              <option value="2">2 Days</option>
-              <option value="3">3 Days</option>
-              <option value="5">5 Days</option>
-              <option value="7">7 Days</option>
-            </select>
+              {savingDeferredSettings ? 'Saving...' : 'Save COD Settings'}
+            </button>
           </div>
-
-          {/* Trigger Order Status */}
-          <div>
-            <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Trigger Order Status</label>
-            <select 
-              value={autoConfirmStatus}
-              onChange={(e) => setAutoConfirmStatus(e.target.value)}
-              disabled={!deferredEnabled}
-              className="w-full p-2.5 text-xs text-slate-800 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all duration-200 dark:bg-slate-950 dark:border-slate-800 dark:text-white cursor-pointer disabled:opacity-50"
-            >
-              <option value="completed">Completed / Delivered</option>
-              <option value="processing">Processing / Confirmed</option>
-            </select>
-          </div>
-        </div>
-
-        <div className="pt-2">
-          <button
-            type="button"
-            disabled={savingDeferredSettings}
-            onClick={handleSaveDeferredSettings}
-            className="px-5 py-2.5 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 disabled:opacity-50 text-white text-xs font-bold rounded-lg transition-all duration-300 transform hover:-translate-y-0.5 shadow-md shadow-indigo-500/10 hover:shadow-indigo-500/20 cursor-pointer"
-          >
-            {savingDeferredSettings ? 'Saving Configurations...' : 'Save COD Settings'}
-          </button>
         </div>
       </div>
 
