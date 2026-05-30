@@ -1160,9 +1160,9 @@ export default function App() {
             )}
 
             {/* PAGE 2: COD PROTECTION */}
-            {activePage === 'pending-purchases' && deferredData && (
+            {activePage === 'pending-purchases' && (
               <CodProtectionView 
-                deferredData={deferredData}
+                deferredData={deferredData ?? { pendingList: [], pendingCount: 0, pendingValue: '৳0', confirmedToday: 0, oldestPending: 'N/A' }}
                 selectedOrderIds={selectedOrderIds}
                 setSelectedOrderIds={setSelectedOrderIds}
                 handleBulkConfirm={handleBulkConfirm}
