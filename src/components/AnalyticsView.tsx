@@ -36,6 +36,8 @@ interface AnalyticsViewProps {
   handleGenerateCampaignUrl: () => void;
   copiedStates: Record<string, boolean>;
   handleCopy: (text: string, labelId: string) => void;
+  analyticsDays: number;
+  setAnalyticsDays: (days: number) => void;
 }
 
 export function AnalyticsView({
@@ -57,10 +59,33 @@ export function AnalyticsView({
   generatedCampaignUrl,
   handleGenerateCampaignUrl,
   copiedStates,
-  handleCopy
+  handleCopy,
+  analyticsDays,
+  setAnalyticsDays
 }: AnalyticsViewProps) {
   return (
     <div className="space-y-6">
+      
+      {/* Page Heading & Timeframe Selector */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h2 className="text-xl font-bold text-slate-900 dark:text-white">Active Insights</h2>
+          <p className="text-xs text-slate-400 dark:text-slate-500">Advanced diagnostic signals and campaign performance attribution</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">Timeframe:</span>
+          <select 
+            value={analyticsDays} 
+            onChange={(e) => setAnalyticsDays(Number(e.target.value))}
+            className="text-xs font-bold text-slate-700 bg-white border border-slate-200 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-100 rounded-lg px-3 py-1.5 outline-none focus:ring-1 focus:ring-indigo-500 cursor-pointer shadow-sm"
+          >
+            <option value="7">Last 7 Days</option>
+            <option value="14">Last 14 Days</option>
+            <option value="30">Last 30 Days</option>
+            <option value="90">Last 90 Days</option>
+          </select>
+        </div>
+      </div>
       
       {/* 4 Stats Cards */}
       {analyticsOverview && (

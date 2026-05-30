@@ -83,6 +83,7 @@ export default function App() {
   const [analyticsCampaigns, setAnalyticsCampaigns] = useState<any>(null);
   const [analyticsHourly, setAnalyticsHourly] = useState<any>(null);
   const [signalDoctor, setSignalDoctor] = useState<any>(null);
+  const [analyticsDays, setAnalyticsDays] = useState<number>(7);
 
   // Async Lifecycle States
   const [loading, setLoading] = useState<boolean>(true);
@@ -354,13 +355,13 @@ export default function App() {
     }
   };
 
-  const loadAnalyticsData = async () => {
+  const loadAnalyticsData = async (days = 7) => {
     try {
       const [resAnOver, resAnCamp, resAnHour, resAnDoc] = await Promise.all([
-        fetch('/api/v1/analytics/overview?days=7'),
-        fetch('/api/v1/analytics/campaigns?days=30'),
-        fetch('/api/v1/analytics/hourly?days=7'),
-        fetch('/api/v1/analytics/signal-doctor?days=7')
+        fetch(`/api/v1/analytics/overview?days=${days}`),
+        fetch(`/api/v1/analytics/campaigns?days=${days}`),
+        fetch(`/api/v1/analytics/hourly?days=${days}`),
+        fetch(`/api/v1/analytics/signal-doctor?days=${days}`)
       ]);
       if (resAnOver.ok) setAnalyticsOverview(await resAnOver.json());
       if (resAnCamp.ok) setAnalyticsCampaigns(await resAnCamp.json());
@@ -373,9 +374,14 @@ export default function App() {
 
   useEffect(() => {
     loadSystemData(true);
-    loadAnalyticsData();
     fetchStores();
   }, []);
+
+  useEffect(() => {
+    if (profile) {
+      loadAnalyticsData(analyticsDays);
+    }
+  }, [analyticsDays, profile]);
 
   const fetchStores = async () => {
     try {
@@ -1156,6 +1162,8 @@ export default function App() {
                 setExpandedEventId={setExpandedEventId}
                 copiedStates={copiedStates}
                 handleCopy={handleCopy}
+                analyticsDays={analyticsDays}
+                setAnalyticsDays={setAnalyticsDays}
               />
             )}
 
@@ -1218,6 +1226,8 @@ export default function App() {
                 handleGenerateCampaignUrl={handleGenerateCampaignUrl}
                 copiedStates={copiedStates}
                 handleCopy={handleCopy}
+                analyticsDays={analyticsDays}
+                setAnalyticsDays={setAnalyticsDays}
               />
             )}
 
