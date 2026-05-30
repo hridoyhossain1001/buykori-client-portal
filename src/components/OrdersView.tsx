@@ -39,6 +39,7 @@ export function OrdersView({
   const [courierSettings, setCourierSettings] = useState<CourierSettings | null>(null);
   const [loadingOrders, setLoadingOrders] = useState<boolean>(false);
   const [submittingCourier, setSubmittingCourier] = useState<boolean>(false);
+  const [cancellingOrderId, setCancellingOrderId] = useState<number | null>(null); // which order is being cancelled
   
   // Search & Filters
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -207,6 +208,38 @@ export function OrdersView({
       showToast("Network error while sending order to courier.", true);
     } finally {
       setSubmittingCourier(false);
+    }
+  };
+
+  // ─── Cancel Courier Order ───────────────────────────────────────────────
+  const handleCancelCourierOrder = async (order: CourierOrder) => {
+    const providerName = order.courier_provider === 'pathao' ? 'Pathao' : 'SteadFast';
+    const confirmMsg =
+      order.courier_provider === 'steadfast'
+        ? `এই order টি locally cancelled হবে।\nSteadFast merchant panel থেকেও manually cancel করুন।\n\nCancel করবেন?`
+        : `Pathao-তে Order ID "${order.order_id}" cancel করবেন?\nShুধু Pending/Pickup status-এ cancel সম্ভব।`;
+
+    if (!window.confirm(confirmMsg)) return;
+
+    setCancellingOrderId(order.id);
+    try {
+      const res = await fetch(`/api/courier/cancel/${order.id}`, { method: 'POST' });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        const toastMsg = data.local_only
+          ? `Order cancelled locally. Please also cancel from ${providerName} merchant panel.`
+          : `Order ${order.order_id} successfully cancelled on ${providerName}!`;
+        showToast(toastMsg, data.local_only);
+        fetchCourierOrders();
+        fetchDeferred();
+      } else {
+        showToast(data.detail || data.message || `Failed to cancel order on ${providerName}.`, true);
+      }
+    } catch (err) {
+      console.error('Cancel error:', err);
+      showToast('Network error while cancelling order.', true);
+    } finally {
+      setCancellingOrderId(null);
     }
   };
 
@@ -457,7 +490,7 @@ export function OrdersView({
 
           {/* Table */}
           <div className="overflow-x-auto min-h-64">
-            <table className="w-full text-left text-xs text-slate-650 divide-y divide-slate-100 min-w-[900px] dark:text-slate-300 dark:divide-slate-800">
+            <table className="w-full text-left text-xs text-slate-650 divide-y divide-slate-100 min-w-[1000px] dark:text-slate-300 dark:divide-slate-800">
               <thead className="bg-slate-50 text-[10px] font-bold uppercase tracking-wider text-slate-555 dark:bg-slate-950 dark:text-slate-400">
                 <tr>
                   <th className="px-5 py-3">Order ID</th>
@@ -467,6 +500,7 @@ export function OrdersView({
                   <th className="px-5 py-3">Courier Status</th>
                   <th className="px-5 py-3">CAPI Telemetry</th>
                   <th className="px-5 py-3">Booked Date</th>
+                  <th className="px-5 py-3 text-right">Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -484,7 +518,12 @@ export function OrdersView({
                     </td>
                   </tr>
                 ) : (
-                  filteredCourierOrders.map((order) => (
+                  filteredCourierOrders.map((order) => {
+                    const isCancellable = !['cancelled', 'delivered', 'returned'].includes(
+                      (order.courier_status || '').toLowerCase()
+                    );
+                    const isCancelling = cancellingOrderId === order.id;
+                    return (
                     <tr key={order.id} className="hover:bg-slate-50/50 transition-colors dark:hover:bg-slate-800/40">
                       <td className="px-5 py-3 font-mono font-bold text-slate-850 dark:text-slate-100">{order.order_id}</td>
                       <td className="px-5 py-3">
@@ -535,8 +574,32 @@ export function OrdersView({
                       <td className="px-5 py-3 text-slate-400 font-mono text-[10px]">
                         {new Date(order.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                       </td>
+                      <td className="px-5 py-3 text-right">
+                        {isCancellable ? (
+                          <button
+                            id={`cancel-courier-order-${order.id}`}
+                            onClick={() => handleCancelCourierOrder(order)}
+                            disabled={isCancelling}
+                            title={`Cancel this ${order.courier_provider} order`}
+                            className="inline-flex items-center gap-1 px-2.5 py-1 text-[10px] font-bold rounded border border-rose-300 bg-rose-50 text-rose-700 hover:bg-rose-100 hover:border-rose-400 disabled:opacity-50 disabled:cursor-not-allowed transition-all cursor-pointer dark:bg-rose-950/20 dark:border-rose-900/40 dark:text-rose-400 dark:hover:bg-rose-950/40"
+                          >
+                            {isCancelling ? (
+                              <Loader2 className="w-2.5 h-2.5 animate-spin" />
+                            ) : (
+                              <XCircle className="w-2.5 h-2.5" />
+                            )}
+                            {isCancelling ? 'Cancelling...' : 'Cancel'}
+                          </button>
+                        ) : (
+                          <span className="text-[10px] text-slate-350 dark:text-slate-600 italic">
+                            {(order.courier_status || '').toLowerCase() === 'cancelled' ? 'Cancelled' :
+                             (order.courier_status || '').toLowerCase() === 'delivered' ? 'Delivered' : 'Returned'}
+                          </span>
+                        )}
+                      </td>
                     </tr>
-                  ))
+                    );
+                  })
                 )}
               </tbody>
             </table>
