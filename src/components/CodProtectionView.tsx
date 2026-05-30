@@ -306,7 +306,6 @@ export function CodProtectionView({
               ) : (
                 deferredData.pendingList.map((order: any) => {
                   const isSelected = selectedOrderIds.includes(order.orderId);
-                  const isExpanded = expandedOrderId === order.orderId;
                   const activeChecks = [];
                   if (order.fraudDetails) {
                     if (order.fraudDetails.ip_mismatch) activeChecks.push('IP Mismatch');
