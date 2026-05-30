@@ -80,8 +80,14 @@ export function OrdersView({
   const [recipientName, setRecipientName] = useState<string>('');
   const [recipientPhone, setRecipientPhone] = useState<string>('');
   const [recipientAddress, setRecipientAddress] = useState<string>('');
-  const [codAmount, setCodAmount] = useState<number>(0);
   const [itemId, setItemId] = useState<number>(0); // Pending Event ID
+  
+  // Pathao Store and Package details states
+  const [pathaoStores, setPathaoStores] = useState<Array<{store_id: number, store_name: string}>>([]);
+  const [selectedStoreId, setSelectedStoreId] = useState<number | ''>('');
+  const [loadingStores, setLoadingStores] = useState<boolean>(false);
+  const [itemWeight, setItemWeight] = useState<number>(0.5);
+  const [itemQuantity, setItemQuantity] = useState<number>(1);
 
   const fetchCourierOrders = async () => {
     setLoadingOrders(true);
@@ -116,10 +122,42 @@ export function OrdersView({
     }
   };
 
+  const fetchPathaoStores = async () => {
+    setLoadingStores(true);
+    try {
+      const res = await fetch('/api/courier/pathao/stores');
+      if (res.ok) {
+        const data = await res.json();
+        setPathaoStores(data);
+        if (data.length > 0) {
+          const defaultStore = data.find((s: any) => String(s.store_id) === String(courierSettings?.pathao_store_id));
+          if (defaultStore) {
+            setSelectedStoreId(defaultStore.store_id);
+          } else {
+            setSelectedStoreId(data[0].store_id);
+          }
+        }
+      } else {
+        showToast("Failed to fetch Pathao stores.", true);
+      }
+    } catch (err) {
+      console.error(err);
+      showToast("Error loading Pathao stores.", true);
+    } finally {
+      setLoadingStores(false);
+    }
+  };
+
   useEffect(() => {
     fetchCourierSettings();
     fetchCourierOrders();
   }, []);
+
+  useEffect(() => {
+    if (isSendModalOpen && courierProvider === 'pathao') {
+      fetchPathaoStores();
+    }
+  }, [isSendModalOpen, courierProvider, courierSettings]);
 
   const openSendModal = (order: any) => {
     // Find the original pending event from deferredData or fallback to fields
@@ -206,14 +244,20 @@ export function OrdersView({
         return;
       }
 
-      const payload = {
+      const payload: any = {
         pending_event_id: dbId,
         courier_provider: courierProvider,
         recipient_name: recipientName,
         recipient_phone: recipientPhone,
         recipient_address: recipientAddress,
-        cod_amount: Number(codAmount)
+        cod_amount: Number(codAmount),
+        item_weight: Number(itemWeight),
+        item_quantity: Number(itemQuantity)
       };
+
+      if (courierProvider === 'pathao' && selectedStoreId) {
+        payload.store_id = Number(selectedStoreId);
+      }
 
       const res = await fetch('/api/courier/send', {
         method: 'POST',
@@ -1074,15 +1118,62 @@ export function OrdersView({
                   
                   {courierProvider === 'pathao' && (
                     <div>
-                      <label className="block text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase mb-1">Pathao Store ID</label>
-                      <input
-                        type="text"
-                        disabled
-                        value={courierSettings?.pathao_store_id || 'Not Set'}
-                        className="w-full px-3 py-2 text-xs bg-slate-100 border border-slate-200 rounded-lg text-slate-500 dark:bg-slate-900 dark:border-slate-850 dark:text-slate-450"
-                      />
+                      <label className="block text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase mb-1">Select Pickup Store</label>
+                      {loadingStores ? (
+                        <div className="flex items-center gap-2 py-2 px-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-400">
+                          <Loader2 className="w-3.5 h-3.5 animate-spin text-indigo-500" />
+                          Loading stores...
+                        </div>
+                      ) : pathaoStores.length === 0 ? (
+                        <div className="py-2 px-3 bg-rose-50 dark:bg-rose-950/20 border border-rose-200 dark:border-rose-900/40 rounded-lg text-xs text-rose-600 dark:text-rose-400 font-semibold">
+                          No stores found. Configure in Settings.
+                        </div>
+                      ) : (
+                        <select
+                          required
+                          value={selectedStoreId}
+                          onChange={(e) => setSelectedStoreId(Number(e.target.value))}
+                          className="w-full p-2 text-xs bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-lg text-slate-800 dark:text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 cursor-pointer font-semibold"
+                        >
+                          {pathaoStores.map((store) => (
+                            <option key={store.store_id} value={store.store_id}>
+                              {store.store_name} (ID: {store.store_id})
+                            </option>
+                          ))}
+                        </select>
+                      )}
                     </div>
                   )}
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase mb-1">Parcel Weight (KG)</label>
+                    <select
+                      value={itemWeight}
+                      onChange={(e) => setItemWeight(Number(e.target.value))}
+                      className="w-full p-2 text-xs bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-lg text-slate-800 dark:text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 cursor-pointer"
+                    >
+                      <option value={0.5}>0.5 KG (Standard)</option>
+                      <option value={1.0}>1.0 KG</option>
+                      <option value={2.0}>2.0 KG</option>
+                      <option value={3.0}>3.0 KG</option>
+                      <option value={4.0}>4.0 KG</option>
+                      <option value={5.0}>5.0 KG</option>
+                    </select>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase mb-1">Parcel Quantity</label>
+                    <input
+                      type="number"
+                      required
+                      min={1}
+                      value={itemQuantity}
+                      onChange={(e) => setItemQuantity(Math.max(1, Number(e.target.value)))}
+                      className="w-full p-2 text-xs bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-lg text-slate-800 dark:text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 font-bold"
+                    />
+                  </div>
                 </div>
               </div>
 
