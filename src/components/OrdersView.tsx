@@ -523,24 +523,50 @@ export function OrdersView({
 
                   {webhookGuideExpanded['pathao'] && (
                     <div className="mt-2 space-y-1.5 border-t border-slate-100 dark:border-slate-800 pt-2">
-                      <p className="text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Step-by-step Setup:</p>
+                      {/* Critical warning banner */}
+                      <div className="flex items-start gap-2 p-2.5 rounded-lg bg-rose-50 dark:bg-rose-950/30 border border-rose-300 dark:border-rose-800">
+                        <span className="text-rose-600 dark:text-rose-400 text-sm shrink-0 font-bold">⚠️</span>
+                        <p className="text-[10px] text-rose-700 dark:text-rose-400 leading-relaxed font-semibold">
+                          সতর্কতা: নিচের Callback URL-এ আপনার নিজের ওয়েবসাইটের URL দেওয়া যাবে না।
+                          উপরে দেওয়া <strong>আমাদের Webhook URL</strong> কপি করে হুবহু বসান।
+                        </p>
+                      </div>
+
+                      <p className="text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider mt-2">Step-by-step Setup:</p>
                       {[
-                        { step: '1', text: 'Pathao Merchant Panel-এ login করুন' },
-                        { step: '2', text: 'Settings → Webhook বা API Settings-এ যান' },
-                        { step: '3', text: 'উপরের Webhook URL টি paste করুন' },
-                        { step: '4', text: 'Events: "Delivered", "Returned", "Cancelled" সব enable করুন' },
-                        { step: '5', text: 'Save করুন — এখন থেকে real-time update পাবেন!' },
+                        { step: '1', text: 'Pathao Merchant Panel-এ login করুন (parcel.pathao.com)' },
+                        { step: '2', text: 'Developer API → Webhook Integration section-এ যান' },
+                        { step: '3', text: 'Callback URL-এ উপরের আমাদের Webhook URL টি copy করে paste করুন' },
                       ].map(({ step, text }) => (
                         <div key={step} className="flex items-start gap-2">
                           <span className="shrink-0 w-4 h-4 rounded-full bg-indigo-100 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-400 text-[9px] font-bold flex items-center justify-center">{step}</span>
                           <span className="text-[10px] text-slate-600 dark:text-slate-400 leading-relaxed">{text}</span>
                         </div>
                       ))}
-                      <div className="flex items-start gap-2 mt-2 p-2 rounded-lg bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/30">
-                        <Info className="w-3 h-3 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
-                        <p className="text-[9px] text-amber-700 dark:text-amber-400">
-                          Pathao Webhook Secret হিসেবে আপনার Pathao <strong>Client Secret</strong> ব্যবহার হয় (যেটা Settings-এ দিয়েছেন)। আলাদাভাবে কিছু দিতে হবে না।
+
+                      {/* Secret field instructions */}
+                      <div className="mt-1.5 p-2.5 rounded-lg bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/30 space-y-1">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-amber-600 dark:text-amber-400 text-xs font-bold">🔑</span>
+                          <p className="text-[10px] font-bold text-amber-700 dark:text-amber-400">
+                            Step 4 — Secret / Signature Key field-এ কী দেবেন?
+                          </p>
+                        </div>
+                        <p className="text-[10px] text-amber-700 dark:text-amber-400 leading-relaxed">
+                          এই portal-এর <strong>Settings → Courier Settings → "Pathao Client Secret"</strong> field-এ যে secret দিয়েছেন, সেটিই হুবহু copy করে Pathao Panel-এর Secret field-এ দিন।
                         </p>
+                        <p className="text-[9px] text-amber-600/80 dark:text-amber-500/70 italic">
+                          (আমাদের সার্ভার এই same Client Secret দিয়েই Pathao-র ডেটা verify করে।)
+                        </p>
+                      </div>
+
+                      <div className="flex items-start gap-2">
+                        <span className="shrink-0 w-4 h-4 rounded-full bg-indigo-100 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-400 text-[9px] font-bold flex items-center justify-center">5</span>
+                        <span className="text-[10px] text-slate-600 dark:text-slate-400 leading-relaxed">Events: "Delivered", "Returned", "Cancelled" সব enable করুন</span>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <span className="shrink-0 w-4 h-4 rounded-full bg-indigo-100 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-400 text-[9px] font-bold flex items-center justify-center">6</span>
+                        <span className="text-[10px] text-slate-600 dark:text-slate-400 leading-relaxed">Save করুন — এখন থেকে real-time update পাবেন! ✅</span>
                       </div>
                     </div>
                   )}
