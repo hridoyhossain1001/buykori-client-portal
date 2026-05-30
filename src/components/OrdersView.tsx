@@ -88,6 +88,7 @@ export function OrdersView({
   const [loadingStores, setLoadingStores] = useState<boolean>(false);
   const [itemWeight, setItemWeight] = useState<number>(0.5);
   const [itemQuantity, setItemQuantity] = useState<number>(1);
+  const [codAmount, setCodAmount] = useState<number>(0);
 
   const fetchCourierOrders = async () => {
     setLoadingOrders(true);
