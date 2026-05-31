@@ -275,9 +275,8 @@ function InvoiceContent({ onClose, order, storeName = "Buykori AdSync Shop", sto
                   color: black !important;
                   margin: 0 !important;
                   padding: 0 !important;
-                  width: 100% !important;
-                  height: 100% !important;
-                  overflow: hidden !important;
+                  height: auto !important;
+                  overflow: visible !important;
                   -webkit-print-color-adjust: exact !important;
                   print-color-adjust: exact !important;
                 }
@@ -334,7 +333,7 @@ function InvoiceContent({ onClose, order, storeName = "Buykori AdSync Shop", sto
                 /* Structure the invoice sheet cleanly for printing */
                 .print-invoice-area {
                   display: block !important;
-                  position: absolute !important;
+                  position: fixed !important;
                   left: 0 !important;
                   top: 0 !important;
                   width: 100% !important;
