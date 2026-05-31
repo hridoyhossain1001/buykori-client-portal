@@ -126,6 +126,10 @@ export interface CourierSettings {
   pathao_store_id?: string;
   steadfast_api_key?: string;
   steadfast_secret_key?: string;
+  redx_access_token?: string;
+  redx_pickup_store_id?: string;
+  redx_delivery_area_id?: string;
+  redx_delivery_area_name?: string;
   courier_auto_send: boolean;
   default_courier?: string;
 }

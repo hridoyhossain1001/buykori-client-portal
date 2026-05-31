@@ -24,6 +24,7 @@ import {
   Printer
 } from 'lucide-react';
 import { CourierOrder, CourierSettings } from '../types';
+import { CourierLabelModal } from './CourierLabelModal';
 import { InvoiceModal } from './InvoiceModal';
 
 // ─── BD Phone Normalizer ────────────────────────────────────────────────────
@@ -107,6 +108,11 @@ export function OrdersView({
   // Pathao Store and Package details states
   const [pathaoStores, setPathaoStores] = useState<Array<{store_id: number, store_name: string}>>([]);
   const [selectedStoreId, setSelectedStoreId] = useState<number | ''>('');
+  const [redxDeliveryAreaId, setRedxDeliveryAreaId] = useState<string>('');
+  const [redxDeliveryAreaName, setRedxDeliveryAreaName] = useState<string>('');
+  const [redxPickupStoreId, setRedxPickupStoreId] = useState<string>('');
+  const [redxAreas, setRedxAreas] = useState<Array<{id: number, name: string, post_code?: number}>>([]);
+  const [loadingRedxAreas, setLoadingRedxAreas] = useState<boolean>(false);
   const [loadingStores, setLoadingStores] = useState<boolean>(false);
   const [itemWeight, setItemWeight] = useState<number>(0.5);
   const [itemQuantity, setItemQuantity] = useState<number>(1);
@@ -132,6 +138,9 @@ export function OrdersView({
   // Invoice Modal State
   const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState<boolean>(false);
   const [invoiceOrder, setInvoiceOrder] = useState<any>(null);
+  const [isLabelModalOpen, setIsLabelModalOpen] = useState<boolean>(false);
+  const [labelOrder, setLabelOrder] = useState<any>(null);
+  const [labelOrders, setLabelOrders] = useState<any[] | null>(null);
 
   const openInvoice = (order: any) => {
     setInvoiceOrder(order);
@@ -143,6 +152,18 @@ export function OrdersView({
     setInvoiceOrders(ordersList);
     setInvoiceOrder(null);
     setIsInvoiceModalOpen(true);
+  };
+
+  const openLabel = (order: any) => {
+    setLabelOrder(order);
+    setLabelOrders(null);
+    setIsLabelModalOpen(true);
+  };
+
+  const openBulkLabels = (ordersList: any[]) => {
+    setLabelOrders(ordersList);
+    setLabelOrder(null);
+    setIsLabelModalOpen(true);
   };
 
   const fetchCourierOrders = async () => {
@@ -172,6 +193,9 @@ export function OrdersView({
         if (data.default_courier) {
           setCourierProvider(data.default_courier);
         }
+        setRedxDeliveryAreaId(data.redx_delivery_area_id || '');
+        setRedxDeliveryAreaName(data.redx_delivery_area_name || '');
+        setRedxPickupStoreId(data.redx_pickup_store_id || '');
       }
     } catch (err) {
       console.error(err);
@@ -204,6 +228,20 @@ export function OrdersView({
     }
   };
 
+  const fetchRedxAreas = async () => {
+    setLoadingRedxAreas(true);
+    try {
+      const res = await fetch('/api/courier/redx/areas');
+      if (res.ok) setRedxAreas(await res.json());
+      else showToast("Failed to fetch RedX delivery areas.", true);
+    } catch (err) {
+      console.error(err);
+      showToast("Error loading RedX delivery areas.", true);
+    } finally {
+      setLoadingRedxAreas(false);
+    }
+  };
+
   useEffect(() => {
     fetchCourierSettings();
     fetchCourierOrders();
@@ -212,6 +250,9 @@ export function OrdersView({
   useEffect(() => {
     if (isSendModalOpen && courierProvider === 'pathao') {
       fetchPathaoStores();
+    }
+    if (isSendModalOpen && courierProvider === 'redx') {
+      fetchRedxAreas();
     }
   }, [isSendModalOpen, courierProvider, courierSettings]);
 
@@ -318,6 +359,11 @@ export function OrdersView({
         // fallback: settings-এ store_id থাকলে সেটা ব্যবহার করো
         payload.store_id = Number(courierSettings.pathao_store_id);
       }
+      if (courierProvider === 'redx') {
+        payload.delivery_area_id = Number(redxDeliveryAreaId);
+        payload.delivery_area_name = redxDeliveryAreaName;
+        if (redxPickupStoreId) payload.pickup_store_id = Number(redxPickupStoreId);
+      }
 
       const res = await fetch('/api/courier/send', {
         method: 'POST',
@@ -326,8 +372,20 @@ export function OrdersView({
       });
 
       if (res.ok) {
-        showToast(`✅ অর্ডার সফলভাবে ${courierProvider === 'pathao' ? 'Pathao' : 'SteadFast'}-এ পাঠানো হয়েছে!`, false);
+        const booking = await res.json();
+        const providerName = courierProvider === 'pathao' ? 'Pathao' : courierProvider === 'redx' ? 'RedX' : 'SteadFast';
+        showToast(`✅ অর্ডার সফলভাবে ${providerName}-এ পাঠানো হয়েছে!`, false);
         setIsSendModalOpen(false);
+        openLabel({
+          order_id: selectedOrder?.orderId || selectedOrder?.order_id,
+          courier_provider: courierProvider,
+          courier_order_id: booking.courier_order_id,
+          courier_tracking_id: booking.tracking_id,
+          recipient_name: recipientName,
+          recipient_phone: recipientPhone,
+          recipient_address: recipientAddress,
+          cod_amount: Number(codAmount),
+        });
         fetchDeferred();
         fetchCourierOrders();
       } else {
@@ -344,7 +402,7 @@ export function OrdersView({
 
   // ─── Cancel Courier Order ───────────────────────────────────────────────
   const handleCancelCourierOrder = async (order: CourierOrder) => {
-    const providerName = order.courier_provider === 'pathao' ? 'Pathao' : 'SteadFast';
+    const providerName = order.courier_provider === 'pathao' ? 'Pathao' : order.courier_provider === 'redx' ? 'RedX' : 'SteadFast';
     const confirmMsg =
       order.courier_provider === 'steadfast'
         ? `এই order টি locally cancelled হবে।\nSteadFast merchant panel থেকেও manually cancel করুন।\n\nCancel করবেন?`
@@ -690,7 +748,7 @@ export function OrdersView({
             <div>
               <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wide dark:text-white">Shipped Consignment Log</h3>
               <p className="text-xs text-slate-400 dark:text-slate-500">
-                Track delivery statuses on SteadFast or Pathao. Delivery completion triggers a CAPI Purchase event; Returns fire a Refund event.
+                Track delivery statuses on SteadFast, Pathao, or RedX. Delivery completion triggers a CAPI Purchase event; Returns fire a Refund event.
               </p>
             </div>
           </div>
@@ -880,6 +938,7 @@ export function OrdersView({
                 <option value="all">All Couriers</option>
                 <option value="steadfast">SteadFast</option>
                 <option value="pathao">Pathao</option>
+                <option value="redx">RedX</option>
               </select>
             </div>
 
@@ -909,6 +968,16 @@ export function OrdersView({
                 </span>
               </div>
               <div className="flex items-center gap-2">
+                <button
+                  onClick={() => {
+                    const selectedOrders = courierOrders.filter(o => selectedShippedOrderIds.includes(o.id));
+                    openBulkLabels(selectedOrders);
+                  }}
+                  className="px-3.5 py-1.5 bg-violet-600 hover:bg-violet-700 text-white text-xs font-bold rounded-lg shadow-md hover:shadow-lg transition-all cursor-pointer flex items-center gap-1.5"
+                >
+                  <Package className="w-3.5 h-3.5" />
+                  Bulk Print Labels ({selectedShippedOrderIds.length})
+                </button>
                 <button
                   onClick={() => {
                     const selectedOrders = courierOrders.filter(o => selectedShippedOrderIds.includes(o.id));
@@ -1038,6 +1107,13 @@ export function OrdersView({
                           title="View and Print Invoice"
                         >
                           <FileText className="w-2.5 h-2.5" /> Invoice
+                        </button>
+                        <button
+                          onClick={() => openLabel(order)}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 text-[10px] font-bold rounded border border-violet-200 bg-violet-50 text-violet-700 hover:bg-violet-100 transition-all cursor-pointer dark:bg-violet-950/20 dark:border-violet-900/50 dark:text-violet-400 dark:hover:bg-violet-950/40"
+                          title="Preview and Print Courier Label"
+                        >
+                          <Package className="w-2.5 h-2.5" /> Label
                         </button>
                         {isCancellable ? (
                           <button
@@ -1177,6 +1253,25 @@ export function OrdersView({
                       className="accent-indigo-600 cursor-pointer h-4 w-4"
                     />
                   </label>
+
+                  <label className={`border rounded-xl p-3 flex items-center justify-between cursor-pointer transition-all duration-200 ${
+                    courierProvider === 'redx'
+                      ? 'border-indigo-600 bg-indigo-50/10 text-indigo-700 dark:border-indigo-500 dark:bg-indigo-950/20 dark:text-indigo-400'
+                      : 'border-slate-200 hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-950/20'
+                  }`}>
+                    <div className="flex flex-col">
+                      <span className="text-xs font-bold text-slate-800 dark:text-slate-200">RedX Courier</span>
+                      <span className="text-[9px] text-slate-400 mt-0.5">Token-secured OpenAPI Booking</span>
+                    </div>
+                    <input
+                      type="radio"
+                      name="provider"
+                      value="redx"
+                      checked={courierProvider === 'redx'}
+                      onChange={() => setCourierProvider('redx')}
+                      className="accent-indigo-600 cursor-pointer h-4 w-4"
+                    />
+                  </label>
                 </div>
               </div>
 
@@ -1282,6 +1377,38 @@ export function OrdersView({
                       )}
                     </div>
                   )}
+                  {courierProvider === 'redx' && (
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:col-span-2">
+                      <div>
+                        <label className="block text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase mb-1">RedX Delivery Area ID</label>
+                        {loadingRedxAreas ? (
+                          <div className="py-2 px-3 text-xs bg-slate-50 border border-slate-200 rounded-lg dark:bg-slate-950 dark:border-slate-700 dark:text-slate-400">Loading areas...</div>
+                        ) : (
+                          <select
+                            required
+                            value={redxDeliveryAreaId}
+                            onChange={(e) => {
+                              const area = redxAreas.find((item) => String(item.id) === e.target.value);
+                              setRedxDeliveryAreaId(e.target.value);
+                              if (area) setRedxDeliveryAreaName(area.name);
+                            }}
+                            className="w-full py-2 px-3 text-xs bg-slate-50 border border-slate-200 rounded-lg dark:bg-slate-950 dark:border-slate-700 dark:text-white"
+                          >
+                            <option value="">Select delivery area</option>
+                            {redxAreas.map((area) => <option key={area.id} value={area.id}>{area.name}{area.post_code ? ` (${area.post_code})` : ''}</option>)}
+                          </select>
+                        )}
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase mb-1">RedX Delivery Area Name</label>
+                        <input required type="text" value={redxDeliveryAreaName} onChange={(e) => setRedxDeliveryAreaName(e.target.value)} className="w-full py-2 px-3 text-xs bg-slate-50 border border-slate-200 rounded-lg dark:bg-slate-950 dark:border-slate-700 dark:text-white" />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase mb-1">RedX Pickup Store ID</label>
+                        <input type="number" value={redxPickupStoreId} onChange={(e) => setRedxPickupStoreId(e.target.value)} className="w-full py-2 px-3 text-xs bg-slate-50 border border-slate-200 rounded-lg dark:bg-slate-950 dark:border-slate-700 dark:text-white" />
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -1360,6 +1487,20 @@ export function OrdersView({
           orders={invoiceOrders}
           storeName={storeName} 
           storeEmail={storeEmail} 
+        />
+      )}
+
+      {isLabelModalOpen && (
+        <CourierLabelModal
+          isOpen={isLabelModalOpen}
+          onClose={() => {
+            setIsLabelModalOpen(false);
+            setLabelOrder(null);
+            setLabelOrders(null);
+          }}
+          order={labelOrder}
+          orders={labelOrders}
+          storeName={storeName}
         />
       )}
 

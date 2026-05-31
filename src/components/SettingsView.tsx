@@ -114,6 +114,10 @@ export function SettingsView({
     pathao_store_id: '',
     steadfast_api_key: '',
     steadfast_secret_key: '',
+    redx_access_token: '',
+    redx_pickup_store_id: '',
+    redx_delivery_area_id: '',
+    redx_delivery_area_name: '',
     courier_auto_send: false,
     default_courier: 'steadfast'
   });
@@ -404,6 +408,55 @@ export function SettingsView({
                     />
                   </div>
                 </div>
+
+                {/* RedX section */}
+                <div className="p-4 rounded-lg border border-slate-150 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/20 space-y-4 md:col-span-2">
+                  <h4 className="font-bold text-xs text-indigo-600 dark:text-indigo-400 uppercase tracking-wider pb-2 border-b border-slate-100 dark:border-slate-800">
+                    RedX Courier API
+                  </h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase mb-1">RedX Access Token</label>
+                      <input
+                        type="password"
+                        value={courierSettings.redx_access_token || ''}
+                        onChange={(e) => setCourierSettings((prev: any) => ({ ...prev, redx_access_token: e.target.value }))}
+                        placeholder="Paste RedX OpenAPI token"
+                        className="w-full p-2 text-xs bg-white border border-slate-200 rounded font-mono text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-slate-900 dark:border-slate-800 dark:text-white"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase mb-1">Default Pickup Store ID (Optional)</label>
+                      <input
+                        type="text"
+                        value={courierSettings.redx_pickup_store_id || ''}
+                        onChange={(e) => setCourierSettings((prev: any) => ({ ...prev, redx_pickup_store_id: e.target.value }))}
+                        placeholder="e.g. 1"
+                        className="w-full p-2 text-xs bg-white border border-slate-200 rounded font-mono text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-slate-900 dark:border-slate-800 dark:text-white"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase mb-1">Default Delivery Area ID</label>
+                      <input
+                        type="text"
+                        value={courierSettings.redx_delivery_area_id || ''}
+                        onChange={(e) => setCourierSettings((prev: any) => ({ ...prev, redx_delivery_area_id: e.target.value }))}
+                        placeholder="e.g. 12"
+                        className="w-full p-2 text-xs bg-white border border-slate-200 rounded font-mono text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-slate-900 dark:border-slate-800 dark:text-white"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase mb-1">Default Delivery Area Name</label>
+                      <input
+                        type="text"
+                        value={courierSettings.redx_delivery_area_name || ''}
+                        onChange={(e) => setCourierSettings((prev: any) => ({ ...prev, redx_delivery_area_name: e.target.value }))}
+                        placeholder="e.g. Mirpur DOHS"
+                        className="w-full p-2 text-xs bg-white border border-slate-200 rounded font-mono text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-slate-900 dark:border-slate-800 dark:text-white"
+                      />
+                    </div>
+                  </div>
+                </div>
               </div>
 
               {/* General courier choices */}
@@ -416,7 +469,8 @@ export function SettingsView({
                     className="w-full p-2 text-xs bg-white border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 dark:bg-slate-900 dark:border-slate-800 dark:text-white cursor-pointer"
                   >
                     <option value="steadfast">SteadFast Courier</option>
-                    <option value="pathao">Pathao Courier</option>
+                  <option value="pathao">Pathao Courier</option>
+                  <option value="redx">RedX Courier</option>
                   </select>
                 </div>
                 
