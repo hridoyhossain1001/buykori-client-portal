@@ -20,7 +20,8 @@ import {
   Copy,
   ChevronDown,
   ChevronUp,
-  Info
+  Info,
+  Printer
 } from 'lucide-react';
 import { CourierOrder, CourierSettings } from '../types';
 import { InvoiceModal } from './InvoiceModal';
@@ -111,12 +112,36 @@ export function OrdersView({
   const [itemQuantity, setItemQuantity] = useState<number>(1);
   const [codAmount, setCodAmount] = useState<number>(0);
 
+  // Selection state & functions for Shipped Courier Log
+  const [selectedShippedOrderIds, setSelectedShippedOrderIds] = useState<number[]>([]);
+  const [invoiceOrders, setInvoiceOrders] = useState<any[] | null>(null);
+
+  // Clear selection on tab, search, or filter changes to avoid stale/hidden selections
+  useEffect(() => {
+    setSelectedShippedOrderIds([]);
+  }, [activeTab, searchQuery, providerFilter, statusFilter]);
+
+  const toggleSelectShippedOrder = (orderId: number) => {
+    setSelectedShippedOrderIds(prev => 
+      prev.includes(orderId) 
+        ? prev.filter(id => id !== orderId) 
+        : [...prev, orderId]
+    );
+  };
+
   // Invoice Modal State
   const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState<boolean>(false);
   const [invoiceOrder, setInvoiceOrder] = useState<any>(null);
 
   const openInvoice = (order: any) => {
     setInvoiceOrder(order);
+    setInvoiceOrders(null);
+    setIsInvoiceModalOpen(true);
+  };
+
+  const openBulkInvoices = (ordersList: any[]) => {
+    setInvoiceOrders(ordersList);
+    setInvoiceOrder(null);
     setIsInvoiceModalOpen(true);
   };
 
@@ -362,6 +387,18 @@ export function OrdersView({
 
     return matchesSearch && matchesProvider && matchesStatus;
   });
+
+  const filteredShippedIds = filteredCourierOrders.map(o => o.id);
+  const areAllFilteredSelected = filteredShippedIds.length > 0 && 
+    filteredShippedIds.every(id => selectedShippedOrderIds.includes(id));
+
+  const toggleSelectAllFilteredShipped = () => {
+    if (areAllFilteredSelected) {
+      setSelectedShippedOrderIds(prev => prev.filter(id => !filteredShippedIds.includes(id)));
+    } else {
+      setSelectedShippedOrderIds(prev => Array.from(new Set([...prev, ...filteredShippedIds])));
+    }
+  };
 
   const getStatusBadge = (status: string) => {
     const s = status.toLowerCase();
@@ -862,11 +899,49 @@ export function OrdersView({
             </div>
           </div>
 
+          {/* Bulk Action Bar */}
+          {selectedShippedOrderIds.length > 0 && (
+            <div className="flex items-center justify-between p-3.5 bg-indigo-50 dark:bg-indigo-950/40 rounded-xl border border-indigo-200 dark:border-indigo-900/50 animate-fade-in mb-3">
+              <div className="flex items-center gap-2">
+                <span className="flex h-2 w-2 rounded-full bg-indigo-650 dark:bg-indigo-400" />
+                <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                  {selectedShippedOrderIds.length} {selectedShippedOrderIds.length === 1 ? 'order' : 'orders'} selected for bulk actions
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => {
+                    const selectedOrders = courierOrders.filter(o => selectedShippedOrderIds.includes(o.id));
+                    openBulkInvoices(selectedOrders);
+                  }}
+                  className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-lg shadow-md hover:shadow-lg transition-all cursor-pointer flex items-center gap-1.5"
+                >
+                  <Printer className="w-3.5 h-3.5" />
+                  Bulk Print Invoices ({selectedShippedOrderIds.length})
+                </button>
+                <button
+                  onClick={() => setSelectedShippedOrderIds([])}
+                  className="px-3 py-1.5 border border-slate-200 text-slate-655 hover:bg-slate-100 dark:border-slate-850 dark:text-slate-400 dark:hover:bg-slate-800 rounded-lg text-xs font-semibold transition-all cursor-pointer"
+                >
+                  Clear Selection
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Table */}
           <div className="overflow-x-auto min-h-64">
             <table className="w-full text-left text-xs text-slate-600 divide-y divide-slate-100 min-w-[1000px] dark:text-slate-300 dark:divide-slate-800">
               <thead className="bg-slate-50 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:bg-slate-950 dark:text-slate-400">
                 <tr>
+                  <th className="px-5 py-3 w-10 text-center">
+                    <input 
+                      type="checkbox" 
+                      checked={areAllFilteredSelected} 
+                      onChange={toggleSelectAllFilteredShipped}
+                      className="rounded border-slate-300 text-indigo-650 focus:ring-indigo-500 w-3.5 h-3.5 cursor-pointer accent-indigo-600"
+                    />
+                  </th>
                   <th className="px-5 py-3">Order ID</th>
                   <th className="px-5 py-3">Courier / Tracking</th>
                   <th className="px-5 py-3">Recipient Info</th>
@@ -880,14 +955,14 @@ export function OrdersView({
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                 {loadingOrders ? (
                   <tr>
-                    <td colSpan={7} className="px-6 py-12 text-center text-slate-400">
+                    <td colSpan={9} className="px-6 py-12 text-center text-slate-400">
                       <Loader2 className="w-6 h-6 mx-auto animate-spin text-indigo-500 mb-2" />
                       Fetching consignment details...
                     </td>
                   </tr>
                 ) : filteredCourierOrders.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="px-6 py-12 text-center text-slate-400 font-medium">
+                    <td colSpan={9} className="px-6 py-12 text-center text-slate-400 font-medium">
                       No matching courier consignments found.
                     </td>
                   </tr>
@@ -899,6 +974,14 @@ export function OrdersView({
                     const isCancelling = cancellingOrderId === order.id;
                     return (
                     <tr key={order.id} className="hover:bg-slate-50/50 transition-colors dark:hover:bg-slate-800/40">
+                      <td className="px-5 py-3 text-center">
+                        <input 
+                          type="checkbox" 
+                          checked={selectedShippedOrderIds.includes(order.id)} 
+                          onChange={() => toggleSelectShippedOrder(order.id)}
+                          className="rounded border-slate-300 text-indigo-650 focus:ring-indigo-500 w-3.5 h-3.5 cursor-pointer accent-indigo-600"
+                        />
+                      </td>
                       <td className="px-5 py-3 font-mono font-bold text-slate-800 dark:text-slate-100">{order.order_id}</td>
                       <td className="px-5 py-3">
                         <div className="flex flex-col">
@@ -1268,8 +1351,13 @@ export function OrdersView({
       {isInvoiceModalOpen && (
         <InvoiceModal 
           isOpen={isInvoiceModalOpen} 
-          onClose={() => setIsInvoiceModalOpen(false)} 
+          onClose={() => {
+            setIsInvoiceModalOpen(false);
+            setInvoiceOrder(null);
+            setInvoiceOrders(null);
+          }} 
           order={invoiceOrder} 
+          orders={invoiceOrders}
           storeName={storeName} 
           storeEmail={storeEmail} 
         />
