@@ -23,6 +23,7 @@ import {
   Info
 } from 'lucide-react';
 import { CourierOrder, CourierSettings } from '../types';
+import { InvoiceModal } from './InvoiceModal';
 
 // ─── BD Phone Normalizer ────────────────────────────────────────────────────
 // Accepts any Bangladeshi phone format and returns clean 01XXXXXXXXX (11 digits)
@@ -47,6 +48,8 @@ interface OrdersViewProps {
   handleCancelOrder: (orderId: string) => Promise<void>;
   showToast: (msg: string, isErr?: boolean) => void;
   apiKey?: string; // Client-এর api_key — webhook URL তৈরিতে ব্যবহার হয়
+  storeName?: string;
+  storeEmail?: string;
 }
 
 export function OrdersView({
@@ -56,6 +59,8 @@ export function OrdersView({
   handleCancelOrder,
   showToast,
   apiKey,
+  storeName,
+  storeEmail,
 }: OrdersViewProps) {
   const [activeTab, setActiveTab] = useState<'pending' | 'shipped'>('pending');
   const [webhookGuideExpanded, setWebhookGuideExpanded] = useState<Record<string, boolean>>({});
@@ -105,6 +110,15 @@ export function OrdersView({
   const [itemWeight, setItemWeight] = useState<number>(0.5);
   const [itemQuantity, setItemQuantity] = useState<number>(1);
   const [codAmount, setCodAmount] = useState<number>(0);
+
+  // Invoice Modal State
+  const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState<boolean>(false);
+  const [invoiceOrder, setInvoiceOrder] = useState<any>(null);
+
+  const openInvoice = (order: any) => {
+    setInvoiceOrder(order);
+    setIsInvoiceModalOpen(true);
+  };
 
   const fetchCourierOrders = async () => {
     setLoadingOrders(true);
@@ -510,6 +524,13 @@ export function OrdersView({
                           </td>
                           <td className="px-6 py-3 text-slate-400 font-mono dark:text-slate-500">{order.ageHours}h ago</td>
                           <td className="px-6 py-3 text-right space-x-2 whitespace-nowrap">
+                            <button 
+                              onClick={() => openInvoice(order)}
+                              className="btn-touch-expand px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-300 text-[10px] font-bold rounded shadow-sm transition-colors cursor-pointer inline-flex items-center gap-1"
+                              title="View and Print Invoice"
+                            >
+                              <FileText className="w-2.5 h-2.5" /> Invoice
+                            </button>
                             <button
                               onClick={() => {
                                 // order.id = PendingEvent DB primary key (from /api/deferred)
@@ -927,7 +948,14 @@ export function OrdersView({
                       <td className="px-5 py-3 text-slate-400 font-mono text-[10px]">
                         {new Date(order.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                       </td>
-                      <td className="px-5 py-3 text-right">
+                      <td className="px-5 py-3 text-right space-x-2 whitespace-nowrap">
+                        <button 
+                          onClick={() => openInvoice(order)}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 text-[10px] font-bold rounded border border-slate-200 bg-slate-100 text-slate-700 hover:bg-slate-200 transition-all cursor-pointer dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-700"
+                          title="View and Print Invoice"
+                        >
+                          <FileText className="w-2.5 h-2.5" /> Invoice
+                        </button>
                         {isCancellable ? (
                           <button
                             id={`cancel-courier-order-${order.id}`}
@@ -1235,6 +1263,16 @@ export function OrdersView({
 
           </div>
         </div>
+      )}
+
+      {isInvoiceModalOpen && (
+        <InvoiceModal 
+          isOpen={isInvoiceModalOpen} 
+          onClose={() => setIsInvoiceModalOpen(false)} 
+          order={invoiceOrder} 
+          storeName={storeName} 
+          storeEmail={storeEmail} 
+        />
       )}
 
     </div>

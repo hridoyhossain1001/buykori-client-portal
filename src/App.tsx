@@ -1201,6 +1201,8 @@ export default function App() {
                 handleCancelOrder={handleCancelOrder}
                 showToast={showToast}
                 apiKey={connection?.api_key}
+                storeName={profile?.name}
+                storeEmail={profile?.email}
               />
             )}
 
