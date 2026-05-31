@@ -405,16 +405,30 @@ export function Sidebar({
 
       {/* User Profile & Logout */}
       <div className="p-4 bg-slate-50/85 border-t border-slate-150 dark:bg-slate-800/40 dark:border-slate-800 space-y-3 shrink-0">
-        {!collapsed && (
-          <div className="flex items-center gap-3">
-            <div className="flex items-center justify-center w-8 h-8 rounded-full bg-indigo-100 border border-indigo-200 text-indigo-700 text-xs font-semibold select-none shadow-sm dark:bg-indigo-950 dark:border-indigo-900/60 dark:text-indigo-300">
+        {collapsed ? (
+          <div className="flex justify-center">
+            <button
+              onClick={() => setActivePage('account')}
+              className="flex items-center justify-center w-8 h-8 rounded-full bg-indigo-100 border border-indigo-200 text-indigo-700 text-xs font-semibold select-none shadow-sm dark:bg-indigo-950 dark:border-indigo-900/60 dark:text-indigo-300 hover:bg-indigo-200 dark:hover:bg-indigo-900 transition-colors cursor-pointer"
+              title="Account Settings"
+            >
+              {profile.name.split(' ').map(n => n[0]).join('')}
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={() => setActivePage('account')}
+            className="w-full flex items-center gap-3 text-left hover:bg-slate-100 dark:hover:bg-slate-800 p-1.5 rounded-lg transition-colors cursor-pointer"
+            title="Account Settings"
+          >
+            <div className="flex items-center justify-center w-8 h-8 rounded-full bg-indigo-100 border border-indigo-200 text-indigo-700 text-xs font-semibold select-none shadow-sm dark:bg-indigo-950 dark:border-indigo-900/60 dark:text-indigo-300 shrink-0">
               {profile.name.split(' ').map(n => n[0]).join('')}
             </div>
             <div className="flex flex-col overflow-hidden leading-tight">
               <span className="text-xs font-semibold text-slate-700 dark:text-slate-200 truncate">{profile.name}</span>
               <span className="text-[10px] text-slate-400 dark:text-slate-500 truncate">{profile.plan}</span>
             </div>
-          </div>
+          </button>
         )}
 
         <button

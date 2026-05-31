@@ -16,6 +16,8 @@ interface AccountViewProps {
   setPassCurrent: (v: string) => void;
   passNew: string;
   setPassNew: (v: string) => void;
+  passConfirm: string;
+  setPassConfirm: (v: string) => void;
   submitPasswordUpdate: () => Promise<void>;
   confirmRevokeText: string;
   setConfirmRevokeText: (v: string) => void;
@@ -41,6 +43,8 @@ export function AccountView({
   setPassCurrent,
   passNew,
   setPassNew,
+  passConfirm,
+  setPassConfirm,
   submitPasswordUpdate,
   confirmRevokeText,
   setConfirmRevokeText,
@@ -111,7 +115,7 @@ export function AccountView({
           <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wide mb-4 dark:text-white">Change Account Password</h3>
           
           <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <label className="block text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase mb-1">Current Password</label>
                 <input 
@@ -130,6 +134,17 @@ export function AccountView({
                   value={passNew} 
                   placeholder="Enter secure password"
                   onChange={(e) => setPassNew(e.target.value)}
+                  className="w-full p-2 text-xs bg-slate-50 border border-slate-200 dark:bg-slate-950 dark:border-slate-800 dark:text-white rounded font-mono"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase mb-1">Confirm New Password</label>
+                <input 
+                  type="password" 
+                  value={passConfirm} 
+                  placeholder="Confirm secure password"
+                  onChange={(e) => setPassConfirm(e.target.value)}
                   className="w-full p-2 text-xs bg-slate-50 border border-slate-200 dark:bg-slate-950 dark:border-slate-800 dark:text-white rounded font-mono"
                 />
               </div>

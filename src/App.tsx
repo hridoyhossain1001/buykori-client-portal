@@ -175,6 +175,7 @@ export default function App() {
   const [profUpdating, setProfUpdating] = useState<boolean>(false);
   const [passCurrent, setPassCurrent] = useState<string>('');
   const [passNew, setPassNew] = useState<string>('');
+  const [passConfirm, setPassConfirm] = useState<string>('');
   const [confirmDeleteText, setConfirmDeleteText] = useState<string>('');
   const [confirmRevokeText, setConfirmRevokeText] = useState<string>('');
 
@@ -876,8 +877,12 @@ export default function App() {
   };
 
   const submitPasswordUpdate = async () => {
-    if (!passCurrent || !passNew) {
-      showToast("Please enter your current and new password.", true);
+    if (!passCurrent || !passNew || !passConfirm) {
+      showToast("Please enter all fields.", true);
+      return;
+    }
+    if (passNew !== passConfirm) {
+      showToast("New passwords do not match.", true);
       return;
     }
     if (passNew.length < 8) {
@@ -896,6 +901,7 @@ export default function App() {
       }
       setPassCurrent('');
       setPassNew('');
+      setPassConfirm('');
       showToast("Password updated successfully.", false);
     } catch (err) {
       showToast(err instanceof Error ? err.message : "Password update failed.", true);
@@ -1373,6 +1379,8 @@ export default function App() {
                 setPassCurrent={setPassCurrent}
                 passNew={passNew}
                 setPassNew={setPassNew}
+                passConfirm={passConfirm}
+                setPassConfirm={setPassConfirm}
                 submitPasswordUpdate={submitPasswordUpdate}
                 confirmRevokeText={confirmRevokeText}
                 setConfirmRevokeText={setConfirmRevokeText}
