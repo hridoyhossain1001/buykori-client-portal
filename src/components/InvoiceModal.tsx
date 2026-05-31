@@ -151,15 +151,17 @@ function InvoiceContent({ onClose, order, storeName = "Buykori AdSync Shop", sto
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
   <style>
-    @page { size: auto; margin: 10mm; }
+    @page { size: auto; margin: 5mm 8mm; }
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
       font-family: 'Inter', system-ui, sans-serif;
       color: #0f172a;
       background: white;
-      padding: 15px 20px;
+      padding: 4px 8px;
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
+      font-size: 11px;
+      line-height: 1.4;
     }
     .font-mono { font-family: 'JetBrains Mono', monospace; }
     .font-bold { font-weight: 700; }
@@ -171,18 +173,18 @@ function InvoiceContent({ onClose, order, storeName = "Buykori AdSync Shop", sto
     .tracking-tight { letter-spacing: -0.025em; }
     .tracking-wider { letter-spacing: 0.05em; }
     .tracking-widest { letter-spacing: 0.1em; }
-    .text-xs { font-size: 12px; line-height: 16px; }
-    .text-sm { font-size: 14px; line-height: 20px; }
-    .text-base { font-size: 16px; line-height: 24px; }
-    .text-xl { font-size: 20px; line-height: 28px; }
-    .text-2xl { font-size: 24px; line-height: 32px; }
-    .text-\\[9px\\] { font-size: 9px; }
-    .text-\\[10px\\] { font-size: 10px; }
-    .text-\\[11px\\] { font-size: 11px; line-height: 1.5; }
+    .text-xs { font-size: 10px; line-height: 14px; }
+    .text-sm { font-size: 11px; line-height: 16px; }
+    .text-base { font-size: 13px; line-height: 18px; }
+    .text-xl { font-size: 16px; line-height: 22px; }
+    .text-2xl { font-size: 18px; line-height: 24px; }
+    .text-\\[9px\\] { font-size: 8px; }
+    .text-\\[10px\\] { font-size: 9px; }
+    .text-\\[11px\\] { font-size: 10px; line-height: 1.4; }
     .text-left { text-align: left; }
     .text-center { text-align: center; }
     .text-right { text-align: right; }
-    .leading-relaxed { line-height: 1.625; }
+    .leading-relaxed { line-height: 1.5; }
     .text-slate-400 { color: #94a3b8; }
     .text-slate-500 { color: #64748b; }
     .text-slate-600 { color: #475569; }
@@ -205,8 +207,8 @@ function InvoiceContent({ onClose, order, storeName = "Buykori AdSync Shop", sto
     .border-slate-100 { border-color: #f1f5f9; }
     .border-slate-150, .border-slate-200 { border-color: #e2e8f0; }
     .border-dashed { border-style: dashed; }
-    .rounded-lg { border-radius: 8px; }
-    .rounded-xl { border-radius: 12px; }
+    .rounded-lg { border-radius: 6px; }
+    .rounded-xl { border-radius: 8px; }
     .overflow-hidden { overflow: hidden; }
     .shrink-0 { flex-shrink: 0; }
     .flex { display: flex; }
@@ -219,43 +221,43 @@ function InvoiceContent({ onClose, order, storeName = "Buykori AdSync Shop", sto
     .justify-between { justify-content: space-between; }
     .flex-col { flex-direction: column; }
     .flex-1 { flex: 1 1 0%; }
-    .gap-1 { gap: 4px; }
-    .gap-1\\.5 { gap: 6px; }
-    .gap-2 { gap: 8px; }
-    .gap-6 { gap: 24px; }
-    .space-y-0\\.5 > :not([hidden]) ~ :not([hidden]) { margin-top: 2px; }
-    .space-y-1 > :not([hidden]) ~ :not([hidden]) { margin-top: 4px; }
-    .space-y-1\\.5 > :not([hidden]) ~ :not([hidden]) { margin-top: 6px; }
-    .space-y-2 > :not([hidden]) ~ :not([hidden]) { margin-top: 8px; }
-    .space-y-2\\.5 > :not([hidden]) ~ :not([hidden]) { margin-top: 10px; }
-    .space-y-8 > :not([hidden]) ~ :not([hidden]) { margin-top: 14px; }
-    .w-3 { width: 12px; } .h-3 { height: 12px; }
-    .w-4 { width: 16px; } .h-4 { height: 16px; }
-    .w-8 { width: 32px; } .h-8 { height: 32px; }
-    .w-20 { width: 80px; }
-    .w-28 { width: 112px; } .h-28 { height: 112px; }
-    .w-40 { width: 160px; }
-    .w-48 { width: 192px; }
-    .w-64 { width: 256px; }
+    .gap-1 { gap: 2px; }
+    .gap-1\\.5 { gap: 3px; }
+    .gap-2 { gap: 5px; }
+    .gap-6 { gap: 10px; }
+    .space-y-0\\.5 > :not([hidden]) ~ :not([hidden]) { margin-top: 1px; }
+    .space-y-1 > :not([hidden]) ~ :not([hidden]) { margin-top: 2px; }
+    .space-y-1\\.5 > :not([hidden]) ~ :not([hidden]) { margin-top: 3px; }
+    .space-y-2 > :not([hidden]) ~ :not([hidden]) { margin-top: 4px; }
+    .space-y-2\\.5 > :not([hidden]) ~ :not([hidden]) { margin-top: 5px; }
+    .space-y-8 > :not([hidden]) ~ :not([hidden]) { margin-top: 6px; }
+    .w-3 { width: 10px; } .h-3 { height: 10px; }
+    .w-4 { width: 14px; } .h-4 { height: 14px; }
+    .w-8 { width: 24px; } .h-8 { height: 24px; }
+    .w-20 { width: 60px; }
+    .w-28 { width: 80px; } .h-28 { height: 80px; }
+    .w-40 { width: 130px; }
+    .w-48 { width: 140px; }
+    .w-64 { width: 210px; }
     .w-full { width: 100%; }
-    .p-1\\.5 { padding: 6px; }
-    .p-3 { padding: 12px; }
-    .p-4 { padding: 16px; }
-    .px-4 { padding-left: 16px; padding-right: 16px; }
-    .py-3 { padding-top: 12px; padding-bottom: 12px; }
-    .py-4 { padding-top: 16px; padding-bottom: 16px; }
-    .pb-6 { padding-bottom: 24px; }
-    .pt-2 { padding-top: 8px; }
-    .pt-4 { padding-top: 16px; }
-    .pt-16 { padding-top: 24px; }
-    .mb-2 { margin-bottom: 8px; }
+    .p-1\\.5 { padding: 3px; }
+    .p-3 { padding: 6px; }
+    .p-4 { padding: 8px; }
+    .px-4 { padding-left: 8px; padding-right: 8px; }
+    .py-3 { padding-top: 4px; padding-bottom: 4px; }
+    .py-4 { padding-top: 6px; padding-bottom: 6px; }
+    .pb-6 { padding-bottom: 8px; }
+    .pt-2 { padding-top: 4px; }
+    .pt-4 { padding-top: 6px; }
+    .pt-16 { padding-top: 10px; }
+    .mb-2 { margin-bottom: 4px; }
     .divide-y > :not([hidden]) ~ :not([hidden]) { border-top: 1px solid #e2e8f0; }
-    table { width: 100%; font-size: 12px; text-align: left; border-collapse: collapse; }
-    th { padding: 6px 16px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; font-size: 10px; color: #64748b; background: #f8fafc; border-bottom: 1px solid #e2e8f0; }
-    td { padding: 6px 16px; }
+    table { width: 100%; font-size: 10px; text-align: left; border-collapse: collapse; }
+    th { padding: 3px 8px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; font-size: 9px; color: #64748b; background: #f8fafc; border-bottom: 1px solid #e2e8f0; }
+    td { padding: 3px 8px; }
     tbody tr { border-top: 1px solid #f1f5f9; }
     svg { display: none; }
-    .w-2\\.5 { width: 10px; } .h-2\\.5 { height: 10px; }
+    .w-2\\.5 { width: 8px; } .h-2\\.5 { height: 8px; }
     img { display: inline-block; }
   </style>
 </head>
