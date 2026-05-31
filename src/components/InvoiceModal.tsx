@@ -131,15 +131,172 @@ function InvoiceContent({ onClose, order, storeName = "Buykori AdSync Shop", sto
   }, [courierId]);
 
   const handlePrint = () => {
-    // Standard client print
-    window.print();
+    const printArea = document.querySelector('.print-invoice-area');
+    if (!printArea) return;
+
+    const printContent = printArea.innerHTML;
+    const printWindow = window.open('', '_blank', 'width=800,height=900');
+    if (!printWindow) {
+      // Popup blocked fallback
+      window.print();
+      return;
+    }
+
+    printWindow.document.write(`<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Invoice Print</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <style>
+    @page { size: auto; margin: 10mm; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      color: #0f172a;
+      background: white;
+      padding: 15px 20px;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    .font-mono { font-family: 'JetBrains Mono', monospace; }
+    .font-bold { font-weight: 700; }
+    .font-black { font-weight: 900; }
+    .font-semibold { font-weight: 600; }
+    .font-medium { font-weight: 500; }
+    .italic { font-style: italic; }
+    .uppercase { text-transform: uppercase; }
+    .tracking-tight { letter-spacing: -0.025em; }
+    .tracking-wider { letter-spacing: 0.05em; }
+    .tracking-widest { letter-spacing: 0.1em; }
+    .text-xs { font-size: 12px; line-height: 16px; }
+    .text-sm { font-size: 14px; line-height: 20px; }
+    .text-base { font-size: 16px; line-height: 24px; }
+    .text-xl { font-size: 20px; line-height: 28px; }
+    .text-2xl { font-size: 24px; line-height: 32px; }
+    .text-\\[9px\\] { font-size: 9px; }
+    .text-\\[10px\\] { font-size: 10px; }
+    .text-\\[11px\\] { font-size: 11px; line-height: 1.5; }
+    .text-left { text-align: left; }
+    .text-center { text-align: center; }
+    .text-right { text-align: right; }
+    .leading-relaxed { line-height: 1.625; }
+    .text-slate-400 { color: #94a3b8; }
+    .text-slate-500 { color: #64748b; }
+    .text-slate-600 { color: #475569; }
+    .text-slate-700 { color: #334155; }
+    .text-slate-800 { color: #1e293b; }
+    .text-slate-900 { color: #0f172a; }
+    .text-indigo-600, .text-indigo-650 { color: #4f46e5; }
+    .text-emerald-600 { color: #059669; }
+    .text-emerald-700 { color: #047857; }
+    .text-white { color: white; }
+    .text-black { color: black; }
+    .bg-white { background-color: white; }
+    .bg-slate-50 { background-color: #f8fafc; }
+    .bg-slate-100 { background-color: #f1f5f9; }
+    .bg-indigo-600 { background-color: #4f46e5; }
+    .border-collapse { border-collapse: collapse; }
+    .border { border: 1px solid #e2e8f0; }
+    .border-t { border-top: 1px solid #e2e8f0; }
+    .border-b { border-bottom: 1px solid #e2e8f0; }
+    .border-slate-100 { border-color: #f1f5f9; }
+    .border-slate-150, .border-slate-200 { border-color: #e2e8f0; }
+    .border-dashed { border-style: dashed; }
+    .rounded-lg { border-radius: 8px; }
+    .rounded-xl { border-radius: 12px; }
+    .overflow-hidden { overflow: hidden; }
+    .shrink-0 { flex-shrink: 0; }
+    .flex { display: flex; }
+    .inline-flex { display: inline-flex; }
+    .grid { display: grid; }
+    .grid-cols-2 { grid-template-columns: repeat(2, 1fr); }
+    .items-center { align-items: center; }
+    .items-start { align-items: flex-start; }
+    .justify-center { justify-content: center; }
+    .justify-between { justify-content: space-between; }
+    .flex-col { flex-direction: column; }
+    .flex-1 { flex: 1 1 0%; }
+    .gap-1 { gap: 4px; }
+    .gap-1\\.5 { gap: 6px; }
+    .gap-2 { gap: 8px; }
+    .gap-6 { gap: 24px; }
+    .space-y-0\\.5 > :not([hidden]) ~ :not([hidden]) { margin-top: 2px; }
+    .space-y-1 > :not([hidden]) ~ :not([hidden]) { margin-top: 4px; }
+    .space-y-1\\.5 > :not([hidden]) ~ :not([hidden]) { margin-top: 6px; }
+    .space-y-2 > :not([hidden]) ~ :not([hidden]) { margin-top: 8px; }
+    .space-y-2\\.5 > :not([hidden]) ~ :not([hidden]) { margin-top: 10px; }
+    .space-y-8 > :not([hidden]) ~ :not([hidden]) { margin-top: 14px; }
+    .w-3 { width: 12px; } .h-3 { height: 12px; }
+    .w-4 { width: 16px; } .h-4 { height: 16px; }
+    .w-8 { width: 32px; } .h-8 { height: 32px; }
+    .w-20 { width: 80px; }
+    .w-28 { width: 112px; } .h-28 { height: 112px; }
+    .w-40 { width: 160px; }
+    .w-48 { width: 192px; }
+    .w-64 { width: 256px; }
+    .w-full { width: 100%; }
+    .p-1\\.5 { padding: 6px; }
+    .p-3 { padding: 12px; }
+    .p-4 { padding: 16px; }
+    .px-4 { padding-left: 16px; padding-right: 16px; }
+    .py-3 { padding-top: 12px; padding-bottom: 12px; }
+    .py-4 { padding-top: 16px; padding-bottom: 16px; }
+    .pb-6 { padding-bottom: 24px; }
+    .pt-2 { padding-top: 8px; }
+    .pt-4 { padding-top: 16px; }
+    .pt-16 { padding-top: 24px; }
+    .mb-2 { margin-bottom: 8px; }
+    .divide-y > :not([hidden]) ~ :not([hidden]) { border-top: 1px solid #e2e8f0; }
+    table { width: 100%; font-size: 12px; text-align: left; border-collapse: collapse; }
+    th { padding: 6px 16px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; font-size: 10px; color: #64748b; background: #f8fafc; border-bottom: 1px solid #e2e8f0; }
+    td { padding: 6px 16px; }
+    tbody tr { border-top: 1px solid #f1f5f9; }
+    svg { display: none; }
+    .w-2\\.5 { width: 10px; } .h-2\\.5 { height: 10px; }
+    img { display: inline-block; }
+  </style>
+</head>
+<body>${printContent}</body>
+</html>`);
+
+    printWindow.document.close();
+
+    // Wait for QR code images (data URLs) to be ready, then print
+    const images = printWindow.document.querySelectorAll('img');
+    let loadCount = 0;
+    const totalImages = images.length;
+
+    const tryPrint = () => {
+      printWindow.focus();
+      setTimeout(() => {
+        printWindow.print();
+        printWindow.close();
+      }, 100);
+    };
+
+    if (totalImages === 0) {
+      tryPrint();
+    } else {
+      images.forEach((img) => {
+        if (img.complete) {
+          loadCount++;
+          if (loadCount >= totalImages) tryPrint();
+        } else {
+          img.onload = () => { loadCount++; if (loadCount >= totalImages) tryPrint(); };
+          img.onerror = () => { loadCount++; if (loadCount >= totalImages) tryPrint(); };
+        }
+      });
+    }
   };
 
   return (
-    <div className="fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm overflow-y-auto print:p-0 print:bg-white print:static print:h-auto">
+    <div className="fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm overflow-y-auto">
       
       {/* Modal Container */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-4xl shadow-2xl flex flex-col my-8 print:shadow-none print:border-none print:my-0 print:rounded-none dark:print:bg-white dark:print:text-black">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-4xl shadow-2xl flex flex-col my-8 dark:print:bg-white dark:print:text-black">
         
         {/* Modal Header - Hidden on Print */}
         <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3 p-6 print:hidden">
@@ -258,142 +415,7 @@ function InvoiceContent({ onClose, order, storeName = "Buykori AdSync Shop", sto
           )}
 
           {/* Printable Invoice Container */}
-          <div className="print-invoice-area-parent flex-1 p-6 md:p-10 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 print:text-black print:bg-white print:p-0 print:dark:bg-white print:dark:text-black">
-            
-            {/* Inject print-only stylesheet block */}
-            <style dangerouslySetInnerHTML={{__html: `
-              @page {
-                size: auto;
-                margin: 10mm;
-              }
-              @media print {
-                /* Reset html & body styles to default printable canvas */
-                html, body {
-                  background-color: white !important;
-                  background-image: none !important;
-                  color: black !important;
-                  margin: 0 !important;
-                  padding: 0 !important;
-                  height: auto !important;
-                  min-height: 0 !important;
-                  overflow: visible !important;
-                  -webkit-print-color-adjust: exact !important;
-                  print-color-adjust: exact !important;
-                }
-
-                /* Override global dark mode body background styles during print */
-                .dark body,
-                .dark #root,
-                .dark .bg-white,
-                .dark .print-invoice-area {
-                  background-color: white !important;
-                  background-image: none !important;
-                  color: black !important;
-                }
-
-                /* Hide all page content by default */
-                body * {
-                  visibility: hidden !important;
-                }
-
-                /* Make the print invoice area and its descendants visible */
-                .print-invoice-area, .print-invoice-area * {
-                  visibility: visible !important;
-                }
-
-                /* Reset all spacing, paddings, margins, shadows, and flex bounds on parent chain */
-                #root,
-                #root > div,
-                div[class*="md:pl-"],
-                .fixed.inset-0,
-                div[class*="rounded-2xl"],
-                div[class*="rounded-2xl"] > div,
-                .print-invoice-area-parent {
-                  position: static !important;
-                  margin: 0 !important;
-                  padding: 0 !important;
-                  border: none !important;
-                  box-shadow: none !important;
-                  width: 100% !important;
-                  max-width: none !important;
-                  height: auto !important;
-                  min-height: 0 !important;
-                  max-height: none !important;
-                  transform: none !important;
-                  display: block !important;
-                  overflow: visible !important;
-                }
-
-                /* Explicitly drop sidebars, customizers, headers, and navigation */
-                aside,
-                header,
-                nav,
-                .print\\:hidden,
-                button,
-                div[class*="lg:w-80"],
-                div[class*="Customize Invoice Print"] {
-                  display: none !important;
-                }
-
-                /* Structure the invoice sheet cleanly for printing */
-                .print-invoice-area {
-                  display: block !important;
-                  position: relative !important;
-                  width: 100% !important;
-                  max-width: 100% !important;
-                  margin: 0 !important;
-                  padding: 10px 15px !important;
-                  box-sizing: border-box !important;
-                  background-color: white !important;
-                  color: black !important;
-                  border: none !important;
-                  page-break-inside: avoid !important;
-                  page-break-after: avoid !important;
-                }
-
-                /* Override spacing between direct children of printable area to save vertical space */
-                .print-invoice-area.space-y-8 > :not([hidden]) ~ :not([hidden]) {
-                  margin-top: 12px !important;
-                }
-
-                /* Adjust cell paddings inside the table during print to keep it compact */
-                .print-invoice-area table th,
-                .print-invoice-area table td {
-                  padding-top: 5px !important;
-                  padding-bottom: 5px !important;
-                }
-
-                /* Enforce high-contrast black text and soft borders for standard tables */
-                .print-invoice-area * {
-                  color: black !important;
-                  border-color: #cbd5e1 !important;
-                }
-
-                /* Reduce vertical padding for signatures block */
-                .print-invoice-area .invoice-signatures {
-                  padding-top: 20px !important;
-                }
-
-                /* Keep the invoice total box well-balanced */
-                .print-invoice-area .w-64 {
-                  border-top: 1px solid #cbd5e1 !important;
-                  padding-top: 10px !important;
-                }
-
-                .print-invoice-area .courier-qr-card {
-                  padding: 6px !important;
-                  width: 150px !important;
-                  page-break-inside: avoid !important;
-                  break-inside: avoid !important;
-                }
-
-                .print-invoice-area .courier-qr-image {
-                  width: 82px !important;
-                  height: 82px !important;
-                  padding: 3px !important;
-                }
-              }
-            `}} />
+          <div className="print-invoice-area-parent flex-1 p-6 md:p-10 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100">
 
             {/* Invoice Printable Sheet */}
             <div className="print-invoice-area space-y-8 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100">
