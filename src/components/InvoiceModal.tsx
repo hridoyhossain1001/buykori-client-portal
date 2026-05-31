@@ -332,17 +332,34 @@ function InvoiceContent({ onClose, order, storeName = "Buykori AdSync Shop", sto
                   width: 100% !important;
                   max-width: 100% !important;
                   margin: 0 !important;
-                  padding: 30px !important;
+                  padding: 15px 25px !important;
                   box-sizing: border-box !important;
                   background-color: white !important;
                   color: black !important;
                   border: none !important;
                 }
 
+                /* Override spacing between direct children of printable area to save vertical space */
+                .print-invoice-area.space-y-8 > :not([hidden]) ~ :not([hidden]) {
+                  margin-top: 14px !important;
+                }
+
+                /* Adjust cell paddings inside the table during print to keep it compact */
+                .print-invoice-area table th,
+                .print-invoice-area table td {
+                  padding-top: 6px !important;
+                  padding-bottom: 6px !important;
+                }
+
                 /* Enforce high-contrast black text and soft borders for standard tables */
                 .print-invoice-area * {
                   color: black !important;
                   border-color: #cbd5e1 !important;
+                }
+
+                /* Reduce vertical padding for signatures block */
+                .print-invoice-area .invoice-signatures {
+                  padding-top: 24px !important;
                 }
 
                 /* Keep the invoice total box well-balanced */
@@ -501,7 +518,7 @@ function InvoiceContent({ onClose, order, storeName = "Buykori AdSync Shop", sto
               </div>
 
               {/* Signatures */}
-              <div className="flex justify-between pt-16 text-xs text-slate-400 dark:text-slate-500 print:text-slate-655">
+              <div className="invoice-signatures flex justify-between pt-16 text-xs text-slate-400 dark:text-slate-500 print:text-slate-655">
                 <div className="border-t border-slate-100 dark:border-slate-800 pt-2 w-40 text-center print:border-slate-350">
                   Customer Signature
                 </div>
