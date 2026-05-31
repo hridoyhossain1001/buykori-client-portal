@@ -834,7 +834,7 @@ export function OrdersView({
                     <div className="mt-2 space-y-1.5 border-t border-slate-100 dark:border-slate-800 pt-2">
                       <p className="text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Step-by-step Setup:</p>
                       {[
-                        { step: '1', text: 'SteadFast Merchant Portal-এ login করুন (portal.steadfast.com.bd)' },
+                        { step: '1', text: 'SteadFast Merchant Portal-এ login করুন (portal.packzy.com)' },
                         { step: '2', text: 'Profile / Settings → Webhook Configuration-এ যান' },
                         { step: '3', text: 'উপরের Webhook URL টি paste করুন' },
                         { step: '4', text: 'Status Events: সব enable করুন' },
@@ -994,7 +994,7 @@ export function OrdersView({
                               <a
                                 href={
                                   order.courier_provider === 'steadfast'
-                                    ? `https://portal.steadfast.com.bd/tracking/${order.courier_tracking_id}`
+                                    ? `https://portal.packzy.com/tracking/${order.courier_tracking_id}`
                                     : `https://pathao.com/courier/tracking`
                                 }
                                 target="_blank"
