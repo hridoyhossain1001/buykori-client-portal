@@ -258,16 +258,15 @@ function InvoiceContent({ onClose, order, storeName = "Buykori AdSync Shop", sto
           )}
 
           {/* Printable Invoice Container */}
-          <div className="flex-1 p-6 md:p-10 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 print:text-black print:bg-white print:p-0 print:dark:bg-white print:dark:text-black">
+          <div className="print-invoice-area-parent flex-1 p-6 md:p-10 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 print:text-black print:bg-white print:p-0 print:dark:bg-white print:dark:text-black">
             
             {/* Inject print-only stylesheet block */}
             <style dangerouslySetInnerHTML={{__html: `
+              @page {
+                size: auto;
+                margin: 10mm;
+              }
               @media print {
-                @page {
-                  size: A4 portrait;
-                  margin: 5mm;
-                }
-
                 /* Reset html & body styles to default printable canvas */
                 html, body {
                   background-color: white !important;
@@ -276,16 +275,10 @@ function InvoiceContent({ onClose, order, storeName = "Buykori AdSync Shop", sto
                   margin: 0 !important;
                   padding: 0 !important;
                   height: auto !important;
+                  min-height: 0 !important;
                   overflow: visible !important;
                   -webkit-print-color-adjust: exact !important;
                   print-color-adjust: exact !important;
-                }
-
-                /* Collapse the hidden dashboard so it cannot create blank print pages. */
-                body,
-                #root {
-                  min-height: 0 !important;
-                  height: 0 !important;
                 }
 
                 /* Override global dark mode body background styles during print */
@@ -313,14 +306,19 @@ function InvoiceContent({ onClose, order, storeName = "Buykori AdSync Shop", sto
                 #root > div,
                 div[class*="md:pl-"],
                 .fixed.inset-0,
-                div[class*="rounded-2xl"] {
+                div[class*="rounded-2xl"],
+                div[class*="rounded-2xl"] > div,
+                .print-invoice-area-parent {
                   position: static !important;
                   margin: 0 !important;
                   padding: 0 !important;
                   border: none !important;
                   box-shadow: none !important;
-                  width: auto !important;
+                  width: 100% !important;
+                  max-width: none !important;
                   height: auto !important;
+                  min-height: 0 !important;
+                  max-height: none !important;
                   transform: none !important;
                   display: block !important;
                   overflow: visible !important;
@@ -340,31 +338,29 @@ function InvoiceContent({ onClose, order, storeName = "Buykori AdSync Shop", sto
                 /* Structure the invoice sheet cleanly for printing */
                 .print-invoice-area {
                   display: block !important;
-                  position: absolute !important;
-                  left: 0 !important;
-                  top: 0 !important;
+                  position: relative !important;
                   width: 100% !important;
                   max-width: 100% !important;
                   margin: 0 !important;
-                  padding: 0 !important;
+                  padding: 10px 15px !important;
                   box-sizing: border-box !important;
                   background-color: white !important;
                   color: black !important;
                   border: none !important;
                   page-break-inside: avoid !important;
-                  break-inside: avoid !important;
+                  page-break-after: avoid !important;
                 }
 
                 /* Override spacing between direct children of printable area to save vertical space */
                 .print-invoice-area.space-y-8 > :not([hidden]) ~ :not([hidden]) {
-                  margin-top: 10px !important;
+                  margin-top: 12px !important;
                 }
 
                 /* Adjust cell paddings inside the table during print to keep it compact */
                 .print-invoice-area table th,
                 .print-invoice-area table td {
-                  padding-top: 6px !important;
-                  padding-bottom: 6px !important;
+                  padding-top: 5px !important;
+                  padding-bottom: 5px !important;
                 }
 
                 /* Enforce high-contrast black text and soft borders for standard tables */
@@ -375,15 +371,13 @@ function InvoiceContent({ onClose, order, storeName = "Buykori AdSync Shop", sto
 
                 /* Reduce vertical padding for signatures block */
                 .print-invoice-area .invoice-signatures {
-                  padding-top: 16px !important;
-                  page-break-inside: avoid !important;
-                  break-inside: avoid !important;
+                  padding-top: 20px !important;
                 }
 
                 /* Keep the invoice total box well-balanced */
                 .print-invoice-area .w-64 {
                   border-top: 1px solid #cbd5e1 !important;
-                  padding-top: 12px !important;
+                  padding-top: 10px !important;
                 }
 
                 .print-invoice-area .courier-qr-card {
