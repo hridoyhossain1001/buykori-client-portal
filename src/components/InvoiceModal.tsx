@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import QRCode from 'qrcode';
 import { 
   Printer, 
   X, 
@@ -33,6 +34,9 @@ interface InvoiceOrder {
   created_at?: string;
   timestamp?: string;
   products?: ProductItem[];
+  courier_provider?: string;
+  courier_order_id?: string;
+  courier_tracking_id?: string;
 }
 
 interface InvoiceModalProps {
@@ -45,6 +49,18 @@ interface InvoiceModalProps {
 
 export function InvoiceModal({ isOpen, onClose, order, storeName = "Buykori AdSync Shop", storeEmail = "" }: InvoiceModalProps) {
   if (!isOpen || !order) return null;
+
+  return (
+    <InvoiceContent
+      onClose={onClose}
+      order={order}
+      storeName={storeName}
+      storeEmail={storeEmail}
+    />
+  );
+}
+
+function InvoiceContent({ onClose, order, storeName = "Buykori AdSync Shop", storeEmail = "" }: Omit<InvoiceModalProps, 'isOpen' | 'order'> & { order: InvoiceOrder }) {
 
   // Invoice Order ID
   const orderId = order.orderId || order.order_id || 'N/A';
@@ -87,6 +103,32 @@ export function InvoiceModal({ isOpen, onClose, order, storeName = "Buykori AdSy
 
   // Toggle edit state
   const [isEditingBiz, setIsEditingBiz] = useState(false);
+  const [qrCodeDataUrl, setQrCodeDataUrl] = useState('');
+
+  const [courierId, setCourierId] = useState(order.courier_tracking_id || order.courier_order_id || '');
+
+  useEffect(() => {
+    let cancelled = false;
+
+    if (!courierId.trim()) {
+      setQrCodeDataUrl('');
+      return;
+    }
+
+    QRCode.toDataURL(courierId.trim(), {
+      errorCorrectionLevel: 'M',
+      margin: 1,
+      width: 144,
+    }).then((dataUrl) => {
+      if (!cancelled) setQrCodeDataUrl(dataUrl);
+    }).catch(() => {
+      if (!cancelled) setQrCodeDataUrl('');
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [courierId]);
 
   const handlePrint = () => {
     // Standard client print
@@ -193,6 +235,16 @@ export function InvoiceModal({ isOpen, onClose, order, storeName = "Buykori AdSy
                   />
                 </div>
                 <div>
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Courier Consignment ID</label>
+                  <input
+                    type="text"
+                    value={courierId}
+                    onChange={(e) => setCourierId(e.target.value)}
+                    placeholder="e.g. 26E0531XXXX"
+                    className="w-full px-3 py-1.5 text-xs bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-slate-900 dark:border-slate-800 dark:text-white"
+                  />
+                </div>
+                <div>
                   <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Invoice Notes</label>
                   <textarea
                     value={bizInvoiceNote}
@@ -211,30 +263,92 @@ export function InvoiceModal({ isOpen, onClose, order, storeName = "Buykori AdSy
             {/* Inject print-only stylesheet block */}
             <style dangerouslySetInnerHTML={{__html: `
               @media print {
+                /* Reset html & body styles to default printable canvas */
+                html, body {
+                  background-color: white !important;
+                  background-image: none !important;
+                  color: black !important;
+                  margin: 0 !important;
+                  padding: 0 !important;
+                  height: auto !important;
+                  overflow: visible !important;
+                  -webkit-print-color-adjust: exact !important;
+                  print-color-adjust: exact !important;
+                }
+
+                /* Override global dark mode body background styles during print */
+                .dark body,
+                .dark #root,
+                .dark .bg-white,
+                .dark .print-invoice-area {
+                  background-color: white !important;
+                  background-image: none !important;
+                  color: black !important;
+                }
+
+                /* Hide all page content by default */
                 body * {
-                  visibility: hidden;
+                  visibility: hidden !important;
                 }
+
+                /* Make the print invoice area and its descendants visible */
                 .print-invoice-area, .print-invoice-area * {
-                  visibility: visible;
+                  visibility: visible !important;
                 }
-                .print-invoice-area {
-                  position: absolute;
-                  left: 0;
-                  top: 0;
-                  width: 100%;
-                  margin: 0;
-                  padding: 20px;
-                  box-sizing: border-box;
+
+                /* Reset all spacing, paddings, margins, shadows, and flex bounds on parent chain */
+                #root,
+                #root > div,
+                div[class*="md:pl-"],
+                .fixed.inset-0,
+                div[class*="rounded-2xl"] {
+                  position: static !important;
+                  margin: 0 !important;
+                  padding: 0 !important;
+                  border: none !important;
+                  box-shadow: none !important;
+                  width: auto !important;
+                  height: auto !important;
+                  transform: none !important;
+                  display: block !important;
+                  overflow: visible !important;
                 }
-                /* Hide dark mode styles during print */
+
+                /* Explicitly drop sidebars, customizers, headers, and navigation */
+                aside,
+                header,
+                nav,
+                .print\\:hidden,
+                button,
+                div[class*="lg:w-80"],
+                div[class*="Customize Invoice Print"] {
+                  display: none !important;
+                }
+
+                /* Structure the invoice sheet cleanly for printing */
                 .print-invoice-area {
+                  display: block !important;
+                  position: relative !important;
+                  width: 100% !important;
+                  max-width: 100% !important;
+                  margin: 0 !important;
+                  padding: 30px !important;
+                  box-sizing: border-box !important;
                   background-color: white !important;
                   color: black !important;
                   border: none !important;
                 }
+
+                /* Enforce high-contrast black text and soft borders for standard tables */
                 .print-invoice-area * {
                   color: black !important;
-                  border-color: #e2e8f0 !important;
+                  border-color: #cbd5e1 !important;
+                }
+
+                /* Keep the invoice total box well-balanced */
+                .print-invoice-area .w-64 {
+                  border-top: 1px solid #cbd5e1 !important;
+                  padding-top: 12px !important;
                 }
               }
             `}} />
@@ -337,17 +451,40 @@ export function InvoiceModal({ isOpen, onClose, order, storeName = "Buykori AdSy
               </div>
 
               {/* Total calculations */}
-              <div className="flex justify-between items-start pt-2">
-                {/* Note Area */}
-                <div className="w-1/2 text-xs space-y-1.5">
+              <div className="flex justify-between items-start pt-4 gap-6 border-t border-slate-100 dark:border-slate-800 print:border-slate-200">
+                {/* Column 1: Note Area */}
+                <div className="flex-1 text-xs space-y-2">
                   <p className="font-bold text-[10px] uppercase text-slate-400 dark:text-slate-500 print:text-slate-655 tracking-wider">Terms & Notes</p>
                   <p className="text-[11px] text-slate-500 dark:text-slate-400 print:text-black leading-relaxed italic">
                     {bizInvoiceNote}
                   </p>
                 </div>
 
-                {/* Subtotal & Total calculations */}
-                <div className="w-1/3 text-xs space-y-2 border-t border-slate-100 dark:border-slate-800 pt-3 print:border-slate-200">
+                {/* Column 2: Courier QR Code Card */}
+                {courierId.trim() && (
+                  <div className="w-48 bg-slate-50 dark:bg-slate-950/20 p-3 rounded-xl border border-slate-150 dark:border-slate-800 flex flex-col items-center justify-center text-center space-y-1.5 shrink-0 print:bg-slate-50 print:border-slate-200">
+                    <span className="text-[9px] font-bold text-indigo-650 dark:text-indigo-400 uppercase tracking-widest print:text-indigo-600">
+                      Courier ID QR
+                    </span>
+                    {qrCodeDataUrl ? (
+                      <img
+                        src={qrCodeDataUrl}
+                        alt={`Courier QR for ${courierId}`}
+                        className="w-28 h-28 shrink-0 bg-white p-1.5 rounded-lg border border-slate-200"
+                      />
+                    ) : (
+                      <div className="w-28 h-28 shrink-0 border border-dashed border-slate-200 bg-white flex items-center justify-center text-[10px] text-slate-400">
+                        Generating QR...
+                      </div>
+                    )}
+                    <span className="font-mono text-xs font-black text-slate-800 dark:text-white print:text-black tracking-wider">
+                      #{courierId.trim()}
+                    </span>
+                  </div>
+                )}
+
+                {/* Column 3: Subtotal & Total calculations */}
+                <div className="w-64 text-xs space-y-2.5 shrink-0">
                   <div className="flex justify-between text-slate-500 dark:text-slate-400 print:text-slate-655 font-mono">
                     <span>Subtotal:</span>
                     <span>৳{subtotal.toLocaleString()}</span>
@@ -356,7 +493,7 @@ export function InvoiceModal({ isOpen, onClose, order, storeName = "Buykori AdSy
                     <span>Delivery Charge:</span>
                     <span>৳{deliveryCharge.toLocaleString()}</span>
                   </div>
-                  <div className="flex justify-between text-base font-bold text-slate-855 dark:text-white border-t border-slate-100 dark:border-slate-800 pt-2 print:border-slate-200 print:text-black">
+                  <div className="flex justify-between text-base font-bold text-slate-855 dark:text-white border-t border-slate-150 dark:border-slate-800 pt-2 print:border-slate-200 print:text-black">
                     <span>Total (COD):</span>
                     <span className="font-mono text-indigo-650 dark:text-indigo-400 print:text-black">৳{finalTotal.toLocaleString()}</span>
                   </div>
