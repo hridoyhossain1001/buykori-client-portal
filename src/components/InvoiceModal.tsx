@@ -302,6 +302,8 @@ function InvoiceContent({ onClose, ordersList, storeName = "Buykori AdSync Shop"
     svg { display: none; }
     .w-2\\.5 { width: 8px; } .h-2\\.5 { height: 8px; }
     img { display: inline-block; }
+
+    /* === SINGLE PRINT MODE (1 invoice = 1 page) === */
     .print-invoice-page {
       page-break-after: always;
       break-after: page;
@@ -312,6 +314,72 @@ function InvoiceContent({ onClose, ordersList, storeName = "Buykori AdSync Shop"
     }
     .print-invoice-page * {
       page-break-inside: avoid;
+    }
+
+    /* === BULK PRINT MODE (2 invoices per page) === */
+    .bulk-print-mode .print-invoice-page {
+      page-break-after: auto;
+      break-after: auto;
+      padding: 3px 0;
+      margin-bottom: 0;
+      font-size: 8px;
+      line-height: 1.2;
+    }
+    .bulk-print-mode .print-invoice-page .space-y-6 > *,
+    .bulk-print-mode .print-invoice-page.space-y-6 {
+      margin-top: 0;
+    }
+    /* Make each invoice take ~48% of page height */
+    .bulk-print-mode .print-invoice-page {
+      max-height: 48%;
+      overflow: hidden;
+    }
+    /* Compact header */
+    .bulk-print-mode .print-invoice-page .text-lg {
+      font-size: 12px;
+      line-height: 16px;
+    }
+    .bulk-print-mode .print-invoice-page .text-base {
+      font-size: 10px;
+      line-height: 14px;
+    }
+    /* Compact spacing */
+    .bulk-print-mode .print-invoice-page .p-3 { padding: 3px; }
+    .bulk-print-mode .print-invoice-page .pb-4,
+    .bulk-print-mode .print-invoice-page .pb-6 { padding-bottom: 3px; }
+    .bulk-print-mode .print-invoice-page .pt-3,
+    .bulk-print-mode .print-invoice-page .pt-4 { padding-top: 2px; }
+    .bulk-print-mode .print-invoice-page .gap-4 { gap: 4px; }
+    .bulk-print-mode .print-invoice-page .rounded-xl { border-radius: 4px; }
+    .bulk-print-mode .print-invoice-page .rounded-2xl { border-radius: 6px; }
+    /* Compact QR code */
+    .bulk-print-mode .courier-qr-card { width: 80px; padding: 2px; }
+    .bulk-print-mode .courier-qr-card .courier-qr-image { width: 40px; height: 40px; }
+    .bulk-print-mode .courier-qr-card .w-20 { width: 40px; }
+    .bulk-print-mode .courier-qr-card .h-20 { height: 40px; }
+    /* Compact signatures */
+    .bulk-print-mode .invoice-signatures { padding-top: 6px; }
+    .bulk-print-mode .invoice-signatures .w-32 { width: 80px; }
+    /* Hide notes in bulk mode to save space */
+    .bulk-print-mode .invoice-notes-area { display: none; }
+    /* Separator between 2 invoices on same page */
+    .bulk-print-mode .bulk-separator {
+      border-top: 1px dashed #94a3b8;
+      margin: 4px 0;
+      display: block;
+    }
+    /* Page break after every 2nd invoice */
+    .bulk-print-mode .bulk-page-break {
+      page-break-after: always;
+      break-after: page;
+      height: 0;
+      margin: 0;
+      padding: 0;
+    }
+    /* Last page break should not force extra blank page */
+    .bulk-print-mode .bulk-page-break:last-child {
+      page-break-after: avoid;
+      break-after: avoid;
     }
   </style>
 </head>
@@ -529,7 +597,7 @@ function InvoiceContent({ onClose, ordersList, storeName = "Buykori AdSync Shop"
           <div className="print-invoice-area-parent flex-1 p-6 md:p-10 bg-slate-100 dark:bg-slate-950 text-slate-800 dark:text-slate-100 max-h-[85vh] overflow-y-auto">
 
             {/* Invoice Printable Sheet */}
-            <div className="print-invoice-area space-y-8 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 print:bg-white print:text-black">
+            <div className={`print-invoice-area ${ordersList.length > 1 ? 'bulk-print-mode' : ''} space-y-8 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 print:bg-white print:text-black`}>
               
               {ordersList.map((ord, idx) => {
                 const oId = String(ord.orderId || ord.order_id || 'N/A');
@@ -557,9 +625,15 @@ function InvoiceContent({ onClose, ordersList, storeName = "Buykori AdSync Shop"
                 const subtotal = calculatedSubtotal > 0 ? calculatedSubtotal : Math.max(0, codTotal - deliveryCharge);
                 const finalTotal = calculatedSubtotal > 0 ? (calculatedSubtotal + deliveryCharge) : codTotal;
 
+                // In bulk mode: insert separator before odd-indexed invoices, page break after every 2nd
+                const isBulk = ordersList.length > 1;
+                const showSeparator = isBulk && idx > 0 && idx % 2 === 1; // before 2nd invoice on the page
+                const showPageBreak = isBulk && idx % 2 === 1 && idx < ordersList.length - 1; // after 2nd invoice (not last)
+
                 return (
+                  <React.Fragment key={oId}>
+                    {showSeparator && <div className="bulk-separator" />}
                   <div 
-                    key={oId} 
                     className="print-invoice-page bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 md:p-8 space-y-6 print:border-0 print:p-0 print:rounded-none border-b border-dashed pb-8 mb-8 last:border-b-0 last:pb-0 last:mb-0 print:border-b-0 print:pb-0 print:mb-0"
                   >
                     {/* Header: Store details and Invoice No */}
@@ -659,7 +733,7 @@ function InvoiceContent({ onClose, ordersList, storeName = "Buykori AdSync Shop"
                     {/* Total calculations */}
                     <div className="flex justify-between items-start pt-3 gap-4 border-t border-slate-100 dark:border-slate-800 print:border-slate-200">
                       {/* Column 1: Note Area */}
-                      <div className="flex-1 text-[10px] space-y-1">
+                      <div className="invoice-notes-area flex-1 text-[10px] space-y-1">
                         <p className="font-bold text-[8px] uppercase text-slate-400 dark:text-slate-500 print:text-slate-655 tracking-wider">Terms & Notes</p>
                         <p className="text-[10px] text-slate-500 dark:text-slate-400 print:text-black leading-relaxed italic">
                           {bizInvoiceNote}
@@ -717,6 +791,8 @@ function InvoiceContent({ onClose, ordersList, storeName = "Buykori AdSync Shop"
                     </div>
 
                   </div>
+                  {showPageBreak && <div className="bulk-page-break" />}
+                  </React.Fragment>
                 );
               })}
 
