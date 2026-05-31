@@ -263,6 +263,11 @@ function InvoiceContent({ onClose, order, storeName = "Buykori AdSync Shop", sto
             {/* Inject print-only stylesheet block */}
             <style dangerouslySetInnerHTML={{__html: `
               @media print {
+                @page {
+                  size: A4 portrait;
+                  margin: 8mm;
+                }
+
                 /* Reset html & body styles to default printable canvas */
                 html, body {
                   background-color: white !important;
@@ -270,8 +275,9 @@ function InvoiceContent({ onClose, order, storeName = "Buykori AdSync Shop", sto
                   color: black !important;
                   margin: 0 !important;
                   padding: 0 !important;
-                  height: auto !important;
-                  overflow: visible !important;
+                  width: 100% !important;
+                  height: 100% !important;
+                  overflow: hidden !important;
                   -webkit-print-color-adjust: exact !important;
                   print-color-adjust: exact !important;
                 }
@@ -328,20 +334,24 @@ function InvoiceContent({ onClose, order, storeName = "Buykori AdSync Shop", sto
                 /* Structure the invoice sheet cleanly for printing */
                 .print-invoice-area {
                   display: block !important;
-                  position: relative !important;
+                  position: absolute !important;
+                  left: 0 !important;
+                  top: 0 !important;
                   width: 100% !important;
                   max-width: 100% !important;
                   margin: 0 !important;
-                  padding: 15px 25px !important;
+                  padding: 0 !important;
                   box-sizing: border-box !important;
                   background-color: white !important;
                   color: black !important;
                   border: none !important;
+                  page-break-inside: avoid !important;
+                  break-inside: avoid !important;
                 }
 
                 /* Override spacing between direct children of printable area to save vertical space */
                 .print-invoice-area.space-y-8 > :not([hidden]) ~ :not([hidden]) {
-                  margin-top: 14px !important;
+                  margin-top: 10px !important;
                 }
 
                 /* Adjust cell paddings inside the table during print to keep it compact */
@@ -359,13 +369,28 @@ function InvoiceContent({ onClose, order, storeName = "Buykori AdSync Shop", sto
 
                 /* Reduce vertical padding for signatures block */
                 .print-invoice-area .invoice-signatures {
-                  padding-top: 24px !important;
+                  padding-top: 16px !important;
+                  page-break-inside: avoid !important;
+                  break-inside: avoid !important;
                 }
 
                 /* Keep the invoice total box well-balanced */
                 .print-invoice-area .w-64 {
                   border-top: 1px solid #cbd5e1 !important;
                   padding-top: 12px !important;
+                }
+
+                .print-invoice-area .courier-qr-card {
+                  padding: 6px !important;
+                  width: 150px !important;
+                  page-break-inside: avoid !important;
+                  break-inside: avoid !important;
+                }
+
+                .print-invoice-area .courier-qr-image {
+                  width: 82px !important;
+                  height: 82px !important;
+                  padding: 3px !important;
                 }
               }
             `}} />
@@ -479,7 +504,7 @@ function InvoiceContent({ onClose, order, storeName = "Buykori AdSync Shop", sto
 
                 {/* Column 2: Courier QR Code Card */}
                 {courierId.trim() && (
-                  <div className="w-48 bg-slate-50 dark:bg-slate-950/20 p-3 rounded-xl border border-slate-150 dark:border-slate-800 flex flex-col items-center justify-center text-center space-y-1.5 shrink-0 print:bg-slate-50 print:border-slate-200">
+                  <div className="courier-qr-card w-48 bg-slate-50 dark:bg-slate-950/20 p-3 rounded-xl border border-slate-150 dark:border-slate-800 flex flex-col items-center justify-center text-center space-y-1.5 shrink-0 print:bg-slate-50 print:border-slate-200">
                     <span className="text-[9px] font-bold text-indigo-650 dark:text-indigo-400 uppercase tracking-widest print:text-indigo-600">
                       Courier ID QR
                     </span>
@@ -487,7 +512,7 @@ function InvoiceContent({ onClose, order, storeName = "Buykori AdSync Shop", sto
                       <img
                         src={qrCodeDataUrl}
                         alt={`Courier QR for ${courierId}`}
-                        className="w-28 h-28 shrink-0 bg-white p-1.5 rounded-lg border border-slate-200"
+                        className="courier-qr-image w-28 h-28 shrink-0 bg-white p-1.5 rounded-lg border border-slate-200"
                       />
                     ) : (
                       <div className="w-28 h-28 shrink-0 border border-dashed border-slate-200 bg-white flex items-center justify-center text-[10px] text-slate-400">
