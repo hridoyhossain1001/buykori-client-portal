@@ -265,7 +265,7 @@ function InvoiceContent({ onClose, order, storeName = "Buykori AdSync Shop", sto
               @media print {
                 @page {
                   size: A4 portrait;
-                  margin: 8mm;
+                  margin: 5mm;
                 }
 
                 /* Reset html & body styles to default printable canvas */
@@ -279,6 +279,13 @@ function InvoiceContent({ onClose, order, storeName = "Buykori AdSync Shop", sto
                   overflow: visible !important;
                   -webkit-print-color-adjust: exact !important;
                   print-color-adjust: exact !important;
+                }
+
+                /* Collapse the hidden dashboard so it cannot create blank print pages. */
+                body,
+                #root {
+                  min-height: 0 !important;
+                  height: 0 !important;
                 }
 
                 /* Override global dark mode body background styles during print */
@@ -333,7 +340,7 @@ function InvoiceContent({ onClose, order, storeName = "Buykori AdSync Shop", sto
                 /* Structure the invoice sheet cleanly for printing */
                 .print-invoice-area {
                   display: block !important;
-                  position: fixed !important;
+                  position: absolute !important;
                   left: 0 !important;
                   top: 0 !important;
                   width: 100% !important;
