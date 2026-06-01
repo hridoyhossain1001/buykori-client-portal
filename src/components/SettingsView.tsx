@@ -181,6 +181,27 @@ export function SettingsView({
     }
   };
 
+  const courierWebhookUrls = [
+    {
+      id: 'steadfast',
+      name: 'SteadFast',
+      url: 'https://api.buykori.app/v1/webhook/steadfast',
+      note: 'Paste this in SteadFast / Packzy webhook configuration.'
+    },
+    {
+      id: 'pathao',
+      name: 'Pathao',
+      url: 'https://api.buykori.app/v1/webhook/pathao',
+      note: 'Paste this in Pathao Merchant Panel webhook integration.'
+    },
+    {
+      id: 'redx',
+      name: 'RedX',
+      url: 'https://api.buykori.app/v1/webhook/redx',
+      note: 'Paste this in RedX webhook / callback configuration.'
+    }
+  ];
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
       
@@ -296,6 +317,45 @@ export function SettingsView({
                   Auto-Book Courier: {courierSettings.courier_auto_send ? 'On' : 'Off'}
                 </span>
               </label>
+            </div>
+          </div>
+
+          <div className="rounded-xl border border-indigo-200 bg-indigo-50/60 p-4 space-y-3 dark:border-indigo-900/40 dark:bg-indigo-950/20">
+            <div>
+              <h4 className="text-xs font-bold uppercase tracking-wide text-indigo-800 dark:text-indigo-300">
+                Shipped Consignment Tracking Webhooks
+              </h4>
+              <p className="mt-1 text-[10px] leading-relaxed text-indigo-600/80 dark:text-indigo-400/80">
+                Add these callback URLs inside each courier merchant panel. Delivery updates will sync into Shipped Consignment Log and can trigger Purchase or Refund signals.
+              </p>
+            </div>
+            <div className="grid grid-cols-1 xl:grid-cols-3 gap-3">
+              {courierWebhookUrls.map((webhook) => {
+                const copyId = `courier_webhook_${webhook.id}`;
+                return (
+                  <div key={webhook.id} className="rounded-lg border border-white/80 bg-white p-3 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+                    <div className="mb-2 flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                        <span className="text-xs font-bold text-slate-800 dark:text-slate-200">{webhook.name} Webhook</span>
+                      </div>
+                    </div>
+                    <p className="mb-2 text-[9px] font-bold uppercase tracking-wider text-slate-400">Webhook URL</p>
+                    <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 dark:border-slate-800 dark:bg-slate-950">
+                      <code className="flex-1 truncate font-mono text-[10px] text-indigo-700 dark:text-indigo-400">{webhook.url}</code>
+                      <button
+                        type="button"
+                        onClick={() => handleCopy(webhook.url, copyId)}
+                        className="shrink-0 rounded p-1 text-slate-400 transition-colors hover:bg-indigo-50 hover:text-indigo-600 dark:hover:bg-indigo-950/30"
+                        title={`Copy ${webhook.name} webhook URL`}
+                      >
+                        {copiedStates[copyId] ? <Check className="h-3.5 w-3.5 text-emerald-500" /> : <Copy className="h-3.5 w-3.5" />}
+                      </button>
+                    </div>
+                    <p className="mt-2 text-[10px] leading-relaxed text-slate-500 dark:text-slate-400">{webhook.note}</p>
+                  </div>
+                );
+              })}
             </div>
           </div>
 

@@ -71,6 +71,7 @@ export function OrdersView({
   // Webhook URLs
   const PATHAO_WEBHOOK_URL = `https://api.buykori.app/v1/webhook/pathao`;
   const STEADFAST_WEBHOOK_URL = `https://api.buykori.app/v1/webhook/steadfast`;
+  const REDX_WEBHOOK_URL = `https://api.buykori.app/v1/webhook/redx`;
   const WEBHOOK_SECRET = apiKey ? apiKey.slice(0, 32) : ''; // api_key-এর প্রথম 32 char
 
   const handleCopyWebhook = (url: string, label: string) => {
@@ -767,7 +768,7 @@ export function OrdersView({
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 xl:grid-cols-3 gap-3">
               {/* Pathao Webhook */}
               <div className="bg-white dark:bg-slate-900 rounded-xl border border-indigo-100 dark:border-indigo-900/30 overflow-hidden">
                 <div className="px-4 py-3 flex items-center justify-between border-b border-indigo-50 dark:border-indigo-900/20">
@@ -907,6 +908,66 @@ export function OrdersView({
                         <Info className="w-3 h-3 text-blue-600 dark:text-blue-400 mt-0.5 shrink-0" />
                         <p className="text-[9px] text-blue-700 dark:text-blue-400">
                           Webhook না করলেও প্রতি <strong>৩০ মিনিট</strong> পর পর আমাদের system automatically status check করে।
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* RedX Webhook */}
+              <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-800/60 overflow-hidden">
+                <div className="px-4 py-3 flex items-center justify-between border-b border-slate-50 dark:border-slate-800/40">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200">RedX Courier Webhook</span>
+                  </div>
+                  <button
+                    onClick={() => toggleWebhookGuide('redx')}
+                    className="text-[10px] font-semibold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1 cursor-pointer"
+                  >
+                    {webhookGuideExpanded['redx'] ? 'Hide Guide' : 'How to Setup'}
+                    {webhookGuideExpanded['redx'] ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                  </button>
+                </div>
+                <div className="px-4 py-3 space-y-2">
+                  <div>
+                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-1">Webhook URL (Copy করুন)</p>
+                    <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-950 rounded-lg border border-slate-200 dark:border-slate-800 px-2.5 py-1.5">
+                      <code className="flex-1 text-[10px] font-mono text-slate-700 dark:text-slate-400 truncate">{REDX_WEBHOOK_URL}</code>
+                      <button
+                        onClick={() => handleCopyWebhook(REDX_WEBHOOK_URL, 'redx')}
+                        className="shrink-0 p-1 rounded text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950/30 transition-colors cursor-pointer"
+                        title="Copy RedX Webhook URL"
+                      >
+                        {copiedWebhookUrl === 'redx' ? (
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+                        ) : (
+                          <Copy className="w-3.5 h-3.5" />
+                        )}
+                      </button>
+                    </div>
+                  </div>
+
+                  {webhookGuideExpanded['redx'] && (
+                    <div className="mt-2 space-y-1.5 border-t border-slate-100 dark:border-slate-800 pt-2">
+                      <p className="text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Step-by-step Setup:</p>
+                      {[
+                        { step: '1', text: 'RedX Merchant Panel-এ login করুন' },
+                        { step: '2', text: 'Webhook / Callback settings section-এ যান' },
+                        { step: '3', text: 'উপরের Buykori RedX Webhook URL copy করে paste করুন' },
+                        { step: '4', text: 'Delivered, Returned এবং Cancelled status events enable করুন' },
+                        { step: '5', text: 'Save করুন — RedX delivery status Shipped Consignment Log-এ sync হবে' },
+                      ].map(({ step, text }) => (
+                        <div key={step} className="flex items-start gap-2">
+                          <span className="shrink-0 w-4 h-4 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-400 text-[9px] font-bold flex items-center justify-center">{step}</span>
+                          <span className="text-[10px] text-slate-600 dark:text-slate-400 leading-relaxed">{text}</span>
+                        </div>
+                      ))}
+                      <div className="flex items-start gap-2 mt-2 p-2 rounded-lg bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900/30">
+                        <Info className="w-3 h-3 text-blue-600 dark:text-blue-400 mt-0.5 shrink-0" />
+                        <p className="text-[9px] text-blue-700 dark:text-blue-400">
+                          Webhook না থাকলেও system scheduled status check করবে, তবে webhook দিলে update দ্রুত আসবে।
                         </p>
                       </div>
                     </div>
