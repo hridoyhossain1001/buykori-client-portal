@@ -45,6 +45,9 @@ export function CodProtectionView({
   savingOrderMgmt,
   handleSaveOrderManagement,
 }: CodProtectionViewProps) {
+  const protectedOrders = deferredData?.deferredPendingList
+    ?? (deferredData?.pendingList || []).filter((order: any) => !order.operationsOnly);
+
   return (
     <div className="space-y-6">
 
@@ -197,7 +200,7 @@ export function CodProtectionView({
           </div>
           <div className="mt-8 flex items-baseline gap-2">
             <p className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-              {deferredData.pendingCount}
+              {deferredData.deferredPendingCount ?? protectedOrders.length}
             </p>
             <span className="text-xs font-semibold text-amber-750/70 dark:text-amber-300/70">Orders Pending</span>
           </div>
@@ -210,7 +213,7 @@ export function CodProtectionView({
           </div>
           <div className="mt-8 flex items-baseline gap-2">
             <p className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-              {deferredData.pendingValue}
+              {deferredData.deferredPendingValue ?? deferredData.pendingValue}
             </p>
             <span className="text-xs font-semibold text-indigo-700/70 dark:text-indigo-300/70">Pending Telemetry</span>
           </div>
@@ -236,7 +239,7 @@ export function CodProtectionView({
           </div>
           <div className="mt-8 flex items-baseline gap-2">
             <p className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-              {deferredData.oldestPending}
+              {deferredData.deferredOldestPending ?? deferredData.oldestPending}
             </p>
             <span className="text-xs font-semibold text-rose-750/70 dark:text-rose-300/70">Needs Audit</span>
           </div>
@@ -276,10 +279,10 @@ export function CodProtectionView({
                 <th className="px-6 py-3 w-10">
                   <input 
                     type="checkbox"
-                    checked={deferredData.pendingList.length > 0 && selectedOrderIds.length === deferredData.pendingList.length}
+                    checked={protectedOrders.length > 0 && selectedOrderIds.length === protectedOrders.length}
                     onChange={(el) => {
                       if (el.target.checked) {
-                        setSelectedOrderIds(deferredData.pendingList.map((o: any) => o.orderId));
+                        setSelectedOrderIds(protectedOrders.map((o: any) => o.orderId));
                       } else {
                         setSelectedOrderIds([]);
                       }
@@ -296,7 +299,7 @@ export function CodProtectionView({
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-              {deferredData.pendingList.length === 0 ? (
+              {protectedOrders.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="px-6 py-12 text-center text-slate-400 font-medium dark:text-slate-500">
                     <CheckCircle2 className="w-8 h-8 mx-auto text-emerald-400 mb-2" />
@@ -304,7 +307,7 @@ export function CodProtectionView({
                   </td>
                 </tr>
               ) : (
-                deferredData.pendingList.map((order: any) => {
+                protectedOrders.map((order: any) => {
                   const isSelected = selectedOrderIds.includes(order.orderId);
                   const activeChecks = [];
                   if (order.fraudDetails) {

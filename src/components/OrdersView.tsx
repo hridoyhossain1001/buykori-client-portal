@@ -521,7 +521,7 @@ export function OrdersView({
           }`}
         >
           <Package className="w-4 h-4" />
-          Pending COD Queue ({deferredData?.pendingCount || 0})
+          Pending Orders ({deferredData?.pendingCount || 0})
         </button>
         <button
           onClick={() => setActiveTab('shipped')}
@@ -551,9 +551,9 @@ export function OrdersView({
       {activeTab === 'pending' && (
         <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm flex flex-col space-y-4 dark:bg-slate-900 dark:border-slate-800">
           <div>
-            <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wide dark:text-white">COD Hold Queue (Awaiting Verification)</h3>
+            <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wide dark:text-white">Order Management Queue</h3>
             <p className="text-xs text-slate-400 dark:text-slate-500">
-              Orders placed via Cash on Delivery are held here. You can manually confirm them, cancel them, or automatically book them onto couriers.
+              Book a courier manually for any order. Growth customers can also verify or cancel held Purchase signals.
             </p>
           </div>
 
@@ -640,19 +640,27 @@ export function OrdersView({
                             >
                               <Send className="w-2.5 h-2.5" /> Book Courier
                             </button>
-                            <button 
-                              onClick={() => handleConfirmOrder(order.orderId)}
-                              className="btn-touch-expand px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold rounded shadow-sm transition-colors cursor-pointer"
-                              title="Confirm order. If auto courier is enabled, Purchase waits for delivery."
-                            >
-                              Confirm
-                            </button>
-                            <button 
-                              onClick={() => handleCancelOrder(order.orderId)}
-                              className="btn-touch-expand px-2.5 py-1 bg-rose-600 hover:bg-rose-700 text-white text-[10px] font-bold rounded shadow-sm transition-colors cursor-pointer"
-                            >
-                              Cancel
-                            </button>
+                            {order.operationsOnly ? (
+                              <span className="inline-flex items-center px-2.5 py-1 rounded text-[10px] font-bold bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400">
+                                Manual flow
+                              </span>
+                            ) : (
+                              <>
+                                <button
+                                  onClick={() => handleConfirmOrder(order.orderId)}
+                                  className="btn-touch-expand px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold rounded shadow-sm transition-colors cursor-pointer"
+                                  title="Confirm order. If auto courier is enabled, Purchase waits for delivery."
+                                >
+                                  Confirm
+                                </button>
+                                <button
+                                  onClick={() => handleCancelOrder(order.orderId)}
+                                  className="btn-touch-expand px-2.5 py-1 bg-rose-600 hover:bg-rose-700 text-white text-[10px] font-bold rounded shadow-sm transition-colors cursor-pointer"
+                                >
+                                  Cancel
+                                </button>
+                              </>
+                            )}
                           </td>
                         </tr>
 

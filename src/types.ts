@@ -91,7 +91,13 @@ export interface UserProfile {
   plan: string;
   eventsUsed: number;
   eventsQuota: number;
+  ordersQuota: number;
   renewalDate: string;
+  planTier: 'free' | 'growth' | 'scale' | 'agency';
+  isTrial: boolean;
+  trialEndsAt?: string | null;
+  trialDaysRemaining: number;
+  growthFeaturesEnabled: boolean;
 }
 
 export interface Suggestion {

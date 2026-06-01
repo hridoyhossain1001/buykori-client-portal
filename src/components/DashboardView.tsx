@@ -59,6 +59,8 @@ export function DashboardView({
   analyticsDays,
   setAnalyticsDays
 }: DashboardViewProps) {
+  const showTrialEndingBanner = profile.isTrial && profile.trialDaysRemaining <= 3;
+
   return (
     <>
       {/* Page Heading & Timeframe Selector */}
@@ -81,6 +83,33 @@ export function DashboardView({
           </select>
         </div>
       </div>
+
+      {showTrialEndingBanner && (
+        <div className="rounded-2xl border border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50 p-4 shadow-sm dark:border-amber-900/60 dark:from-amber-950/30 dark:to-slate-900/60">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-start gap-3">
+              <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300">
+                <AlertTriangle className="h-4.5 w-4.5" />
+              </div>
+              <div>
+                <p className="text-sm font-extrabold text-slate-900 dark:text-white">
+                  Your Growth trial ends in {profile.trialDaysRemaining} day{profile.trialDaysRemaining === 1 ? '' : 's'}.
+                </p>
+                <p className="mt-1 text-xs font-medium text-slate-600 dark:text-slate-300">
+                  Continue with Founder Price BDT 899/month to keep Deferred Purchase, bulk courier booking, and automatic delivery signal sync.
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setActivePage('account')}
+              className="shrink-0 rounded-xl bg-slate-900 px-4 py-2 text-xs font-bold text-white shadow-sm transition-colors hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-200"
+            >
+              Keep Founder Price
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* 4 KPI Top metrics grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
