@@ -231,16 +231,14 @@ export function AccountView({
         {/* Current Active Plan summary card */}
         <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-4 dark:bg-slate-900 dark:border-slate-800">
           <div>
-            <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider block">Subscription details</span>
+            <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider block">Enterprise Account details</span>
             <h3 className="text-lg font-bold text-slate-800 dark:text-white mt-1">{profile.plan}</h3>
-            <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">
-              {profile.isTrial ? `${profile.trialDaysRemaining} day(s) remaining. No card required.` : 'Billing changes are handled by support'}
-            </p>
+            <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">Billing changes are handled by support</p>
           </div>
 
           <div className="space-y-2 text-xs text-slate-700 dark:text-slate-300 font-medium">
             <div className="flex justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
-              <span className="text-slate-400 dark:text-slate-500">{profile.isTrial ? 'Trial ends:' : 'Monthly renewal date:'}</span>
+              <span className="text-slate-400 dark:text-slate-500">Monthly renewal date:</span>
               <span className="font-semibold text-slate-800 dark:text-white">{profile.renewalDate}</span>
             </div>
             
@@ -261,9 +259,9 @@ export function AccountView({
             <span className="block text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wide mb-2">Upgrade Subscription level</span>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-center text-xs">
               <div className="p-3 border border-indigo-200 dark:border-indigo-900/60 rounded bg-indigo-50/50 dark:bg-indigo-950/20 flex flex-col justify-between">
-                <span className="font-bold text-slate-800 dark:text-white leading-none">Growth Tier</span>
-                <span className="text-[10px] text-indigo-600 dark:text-indigo-400 mt-1 leading-none">500k Events / mo</span>
-                <span className="text-xs font-mono font-extrabold mt-3 text-indigo-700 dark:text-indigo-400">BDT 899 / mo</span>
+                <span className="font-bold text-slate-800 dark:text-white leading-none">Scale Tier</span>
+                <span className="text-[10px] text-indigo-600 dark:text-indigo-400 mt-1 leading-none">250k Events / mo</span>
+                <span className="text-xs font-mono font-extrabold mt-3 text-indigo-700 dark:text-indigo-400">$99 / mo</span>
                 <button 
                   onClick={() => showToast("Billing checkout is not connected yet. Contact support@buykori.app to change plans.", true)}
                   className="mt-3 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded font-semibold text-[10px] cursor-pointer"
@@ -274,9 +272,9 @@ export function AccountView({
               </div>
 
               <div className="p-3 border border-slate-200 dark:border-slate-800 rounded hover:bg-slate-50 dark:hover:bg-slate-800/60 flex flex-col justify-between">
-                <span className="font-bold text-slate-800 dark:text-white leading-none">Agency Tier</span>
-                <span className="text-[10px] text-slate-400 dark:text-slate-500 mt-1 leading-none font-medium">Multi-store custom volume</span>
-                <span className="text-xs font-mono font-extrabold mt-3 text-slate-700 dark:text-slate-300">Custom pricing</span>
+                <span className="font-bold text-slate-800 dark:text-white leading-none">Custom Volume</span>
+                <span className="text-[10px] text-slate-400 dark:text-slate-500 mt-1 leading-none font-medium">Enterprise CAPI custom</span>
+                <span className="text-xs font-mono font-extrabold mt-3 text-slate-700 dark:text-slate-300">Contact Us</span>
                 <button 
                   onClick={() => showToast("Custom billing requests are not automated here. Contact support@buykori.app.", true)}
                   className="mt-3 py-1 bg-slate-800 hover:bg-slate-900 dark:bg-slate-700 dark:hover:bg-slate-600 text-white rounded font-semibold text-[10px] cursor-pointer"

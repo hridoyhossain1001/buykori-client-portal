@@ -12,13 +12,7 @@ export const initialProfile: UserProfile = {
   plan: "Growth Plan",
   eventsUsed: 12450,
   eventsQuota: 50000,
-  ordersQuota: 2000,
   renewalDate: "2026-06-24",
-  planTier: "growth",
-  isTrial: false,
-  trialEndsAt: null,
-  trialDaysRemaining: 0,
-  growthFeaturesEnabled: true,
 };
 
 export const initialConnection: ClientConnection = {
