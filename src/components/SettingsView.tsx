@@ -113,6 +113,7 @@ export function SettingsView({
     pathao_password: '',
     pathao_store_id: '',
     pathao_environment: 'live',
+    pathao_webhook_secret: '',
     steadfast_api_key: '',
     steadfast_secret_key: '',
     redx_access_token: '',
@@ -186,19 +187,19 @@ export function SettingsView({
     {
       id: 'steadfast',
       name: 'SteadFast',
-      url: 'https://api.buykori.app/v1/webhook/steadfast',
+      url: 'https://api.buykori.app/api/v1/webhook/steadfast',
       note: 'Paste this in SteadFast / Packzy webhook configuration.'
     },
     {
       id: 'pathao',
       name: 'Pathao',
-      url: 'https://api.buykori.app/v1/webhook/pathao',
+      url: 'https://api.buykori.app/api/v1/webhook/pathao',
       note: 'Paste this in Pathao Merchant Panel webhook integration.'
     },
     {
       id: 'redx',
       name: 'RedX',
-      url: 'https://api.buykori.app/v1/webhook/redx',
+      url: 'https://api.buykori.app/api/v1/webhook/redx',
       note: 'Paste this in RedX webhook / callback configuration.'
     }
   ];
@@ -480,6 +481,17 @@ export function SettingsView({
                         className="w-full p-2 text-xs bg-white border border-slate-200 rounded font-mono text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-slate-900 dark:border-slate-800 dark:text-white"
                       />
                     </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase mb-1">Pathao Webhook Secret</label>
+                    <input
+                      type="password"
+                      value={courierSettings.pathao_webhook_secret || ''}
+                      onChange={(e) => setCourierSettings((prev: any) => ({ ...prev, pathao_webhook_secret: e.target.value }))}
+                      placeholder="Paste the secret configured in Pathao Webhook Integration"
+                      className="w-full p-2 text-xs bg-white border border-slate-200 rounded font-mono text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-slate-900 dark:border-slate-800 dark:text-white"
+                    />
                   </div>
                 </div>
 

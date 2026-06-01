@@ -69,9 +69,9 @@ export function OrdersView({
   const [copiedWebhookUrl, setCopiedWebhookUrl] = useState<string | null>(null);
 
   // Webhook URLs
-  const PATHAO_WEBHOOK_URL = `https://api.buykori.app/v1/webhook/pathao`;
-  const STEADFAST_WEBHOOK_URL = `https://api.buykori.app/v1/webhook/steadfast`;
-  const REDX_WEBHOOK_URL = `https://api.buykori.app/v1/webhook/redx`;
+  const PATHAO_WEBHOOK_URL = `https://api.buykori.app/api/v1/webhook/pathao`;
+  const STEADFAST_WEBHOOK_URL = `https://api.buykori.app/api/v1/webhook/steadfast`;
+  const REDX_WEBHOOK_URL = `https://api.buykori.app/api/v1/webhook/redx`;
   const WEBHOOK_SECRET = apiKey ? apiKey.slice(0, 32) : ''; // api_key-এর প্রথম 32 char
 
   const handleCopyWebhook = (url: string, label: string) => {
