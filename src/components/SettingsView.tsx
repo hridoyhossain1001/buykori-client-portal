@@ -112,6 +112,7 @@ export function SettingsView({
     pathao_client_secret: '',
     pathao_password: '',
     pathao_store_id: '',
+    pathao_environment: 'live',
     steadfast_api_key: '',
     steadfast_secret_key: '',
     redx_access_token: '',
@@ -457,15 +458,28 @@ export function SettingsView({
                     </div>
                   </div>
 
-                  <div>
-                    <label className="block text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase mb-1">Pathao Store ID</label>
-                    <input 
-                      type="text"
-                      value={courierSettings.pathao_store_id || ''}
-                      onChange={(e) => setCourierSettings((prev: any) => ({ ...prev, pathao_store_id: e.target.value }))}
-                      placeholder="Store ID"
-                      className="w-full p-2 text-xs bg-white border border-slate-200 rounded font-mono text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-slate-900 dark:border-slate-800 dark:text-white"
-                    />
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase mb-1">Pathao Environment</label>
+                      <select
+                        value={courierSettings.pathao_environment || 'live'}
+                        onChange={(e) => setCourierSettings((prev: any) => ({ ...prev, pathao_environment: e.target.value }))}
+                        className="w-full p-2 text-xs bg-white border border-slate-200 rounded text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-slate-900 dark:border-slate-800 dark:text-white"
+                      >
+                        <option value="live">Live</option>
+                        <option value="sandbox">Sandbox / Test</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase mb-1">Pathao Store ID</label>
+                      <input
+                        type="text"
+                        value={courierSettings.pathao_store_id || ''}
+                        onChange={(e) => setCourierSettings((prev: any) => ({ ...prev, pathao_store_id: e.target.value }))}
+                        placeholder="Store ID"
+                        className="w-full p-2 text-xs bg-white border border-slate-200 rounded font-mono text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-slate-900 dark:border-slate-800 dark:text-white"
+                      />
+                    </div>
                   </div>
                 </div>
 

@@ -124,6 +124,7 @@ export interface CourierSettings {
   pathao_client_secret?: string;
   pathao_password?: string;
   pathao_store_id?: string;
+  pathao_environment?: 'live' | 'sandbox';
   steadfast_api_key?: string;
   steadfast_secret_key?: string;
   redx_access_token?: string;
