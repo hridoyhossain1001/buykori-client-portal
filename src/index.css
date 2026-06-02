@@ -75,141 +75,211 @@
 }
 
 /* Base input liquid glass */
-input, select, textarea {
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]),
+select,
+textarea {
   background-color: rgba(255, 255, 255, 0.65) !important;
   backdrop-filter: blur(20px) saturate(160%) !important;
   -webkit-backdrop-filter: blur(20px) saturate(160%) !important;
-  border: 1.5px solid rgba(255, 255, 255, 0.6) !important;
-  border-top-color: rgba(255, 255, 255, 0.8) !important;
-  border-radius: 9999px !important;
-  padding-left: 1rem !important;
-  padding-right: 1rem !important;
+  border: 1.5px solid rgba(255, 255, 255, 0.55) !important;
+  border-top-color: rgba(255, 255, 255, 0.85) !important;
+  border-radius: 10px !important;
   box-shadow: 
-    0 4px 15px rgba(0, 0, 0, 0.03),
+    0 4px 15px rgba(0, 0, 0, 0.04),
     inset 0 2px 3px rgba(0, 0, 0, 0.05),
     inset 0 -1.5px 2px rgba(255, 255, 255, 0.8) !important;
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
-textarea {
-  border-radius: 16px !important;
-}
-
-.dark input, .dark select, .dark textarea {
-  background-color: rgba(15, 23, 42, 0.5) !important;
+.dark input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]),
+.dark select,
+.dark textarea {
+  background-color: rgba(15, 23, 42, 0.55) !important;
   border-color: rgba(255, 255, 255, 0.1) !important;
-  border-top-color: rgba(255, 255, 255, 0.2) !important;
+  border-top-color: rgba(255, 255, 255, 0.18) !important;
   box-shadow: 
     0 4px 15px rgba(0, 0, 0, 0.2),
     inset 0 2px 4px rgba(0, 0, 0, 0.3) !important;
 }
 
-/* Liquid Glass buttons (Violet Glass Capsule) */
-button.bg-indigo-600, button.bg-indigo-700 {
-  background: linear-gradient(135deg, rgba(163, 152, 248, 0.35) 0%, rgba(147, 134, 245, 0.55) 100%) !important;
-  backdrop-filter: blur(20px) saturate(180%) !important;
-  -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
-  border: 1.5px solid rgba(255, 255, 255, 0.45) !important;
-  border-top-color: rgba(255, 255, 255, 0.8) !important;
-  box-shadow: 
-    0 8px 30px rgba(163, 152, 248, 0.35),
-    inset 0 3px 4px rgba(255, 255, 255, 0.65),
-    inset 0 -3px 4px rgba(0, 0, 0, 0.15) !important;
-  color: #1e1b4b !important;
-  font-weight: 600 !important;
-  border-radius: 9999px !important;
-}
+/* =====================================================
+   PREMIUM 3D GLOSSY GLASS BUTTONS
+   Uses @layer to ensure these override Tailwind utilities
+   ===================================================== */
+@layer utilities {
 
-.dark button.bg-indigo-600, .dark button.bg-indigo-700 {
-  background: linear-gradient(135deg, rgba(163, 152, 248, 0.2) 0%, rgba(147, 134, 245, 0.35) 100%) !important;
-  border-color: rgba(255, 255, 255, 0.15) !important;
-  border-top-color: rgba(255, 255, 255, 0.35) !important;
-  color: #f1f5f9 !important;
-  box-shadow: 
-    0 8px 30px rgba(0, 0, 0, 0.4),
-    inset 0 2px 3px rgba(255, 255, 255, 0.25),
-    inset 0 -2px 3px rgba(0, 0, 0, 0.3) !important;
-}
+  /* ── Indigo / Primary buttons ── */
+  button[class*="bg-indigo-"] {
+    background: linear-gradient(160deg, rgba(200, 196, 255, 0.55) 0%, rgba(139, 124, 245, 0.75) 100%) !important;
+    border: 1.5px solid rgba(255, 255, 255, 0.55) !important;
+    border-top-color: rgba(255, 255, 255, 0.9) !important;
+    box-shadow:
+      0 6px 24px rgba(99, 82, 255, 0.3),
+      inset 0 2px 5px rgba(255, 255, 255, 0.7),
+      inset 0 -2px 4px rgba(60, 40, 180, 0.25) !important;
+    color: #1e1b4b !important;
+    font-weight: 700 !important;
+    border-radius: 9999px !important;
+    backdrop-filter: blur(16px) saturate(180%) !important;
+    -webkit-backdrop-filter: blur(16px) saturate(180%) !important;
+    text-shadow: 0 1px 2px rgba(255,255,255,0.5);
+  }
+  .dark button[class*="bg-indigo-"] {
+    background: linear-gradient(160deg, rgba(139, 124, 245, 0.35) 0%, rgba(99, 82, 255, 0.55) 100%) !important;
+    border-color: rgba(255, 255, 255, 0.18) !important;
+    border-top-color: rgba(255, 255, 255, 0.35) !important;
+    color: #e0e7ff !important;
+    box-shadow:
+      0 6px 24px rgba(0, 0, 0, 0.5),
+      inset 0 2px 4px rgba(255, 255, 255, 0.2),
+      inset 0 -2px 4px rgba(0, 0, 0, 0.35) !important;
+    text-shadow: none;
+  }
 
-/* Upgraded Success Buttons (Mint/Teal Glass Capsule) */
-button.bg-emerald-600, button.bg-emerald-700, button.bg-emerald-50 {
-  background: linear-gradient(135deg, rgba(162, 230, 219, 0.35) 0%, rgba(135, 216, 203, 0.55) 100%) !important;
-  backdrop-filter: blur(20px) saturate(180%) !important;
-  -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
-  border: 1.5px solid rgba(255, 255, 255, 0.45) !important;
-  border-top-color: rgba(255, 255, 255, 0.8) !important;
-  box-shadow: 
-    0 8px 30px rgba(135, 216, 203, 0.35),
-    inset 0 3px 4px rgba(255, 255, 255, 0.65),
-    inset 0 -3px 4px rgba(0, 0, 0, 0.15) !important;
-  color: #042f2e !important;
-  font-weight: 600 !important;
-  border-radius: 9999px !important;
-}
+  /* ── Emerald / Success buttons ── */
+  button[class*="bg-emerald-"] {
+    background: linear-gradient(160deg, rgba(167, 243, 208, 0.6) 0%, rgba(5, 150, 105, 0.75) 100%) !important;
+    border: 1.5px solid rgba(255, 255, 255, 0.55) !important;
+    border-top-color: rgba(255, 255, 255, 0.9) !important;
+    box-shadow:
+      0 6px 24px rgba(5, 150, 105, 0.3),
+      inset 0 2px 5px rgba(255, 255, 255, 0.7),
+      inset 0 -2px 4px rgba(0, 100, 70, 0.25) !important;
+    color: #022c22 !important;
+    font-weight: 700 !important;
+    border-radius: 9999px !important;
+    backdrop-filter: blur(16px) saturate(180%) !important;
+    -webkit-backdrop-filter: blur(16px) saturate(180%) !important;
+    text-shadow: 0 1px 2px rgba(255,255,255,0.5);
+  }
+  .dark button[class*="bg-emerald-"] {
+    background: linear-gradient(160deg, rgba(52, 211, 153, 0.25) 0%, rgba(5, 150, 105, 0.45) 100%) !important;
+    border-color: rgba(255, 255, 255, 0.15) !important;
+    border-top-color: rgba(255, 255, 255, 0.3) !important;
+    color: #d1fae5 !important;
+    box-shadow:
+      0 6px 24px rgba(0, 0, 0, 0.5),
+      inset 0 2px 4px rgba(255, 255, 255, 0.15),
+      inset 0 -2px 4px rgba(0, 0, 0, 0.35) !important;
+    text-shadow: none;
+  }
 
-.dark button.bg-emerald-600, .dark button.bg-emerald-700 {
-  background: linear-gradient(135deg, rgba(162, 230, 219, 0.15) 0%, rgba(135, 216, 203, 0.3) 100%) !important;
-  border-color: rgba(255, 255, 255, 0.15) !important;
-  border-top-color: rgba(255, 255, 255, 0.3) !important;
-  color: #f1f5f9 !important;
-  box-shadow: 
-    0 8px 30px rgba(0, 0, 0, 0.4),
-    inset 0 2px 3px rgba(255, 255, 255, 0.2),
-    inset 0 -2px 3px rgba(0, 0, 0, 0.3) !important;
-}
+  /* ── Green buttons (bg-green-*) ── */
+  button[class*="bg-green-"] {
+    background: linear-gradient(160deg, rgba(187, 247, 208, 0.6) 0%, rgba(22, 163, 74, 0.75) 100%) !important;
+    border: 1.5px solid rgba(255, 255, 255, 0.55) !important;
+    border-top-color: rgba(255, 255, 255, 0.9) !important;
+    box-shadow:
+      0 6px 24px rgba(22, 163, 74, 0.3),
+      inset 0 2px 5px rgba(255, 255, 255, 0.7),
+      inset 0 -2px 4px rgba(0, 100, 40, 0.25) !important;
+    color: #14532d !important;
+    font-weight: 700 !important;
+    border-radius: 9999px !important;
+    backdrop-filter: blur(16px) saturate(180%) !important;
+    -webkit-backdrop-filter: blur(16px) saturate(180%) !important;
+    text-shadow: 0 1px 2px rgba(255,255,255,0.5);
+  }
+  .dark button[class*="bg-green-"] {
+    background: linear-gradient(160deg, rgba(74, 222, 128, 0.2) 0%, rgba(22, 163, 74, 0.4) 100%) !important;
+    border-color: rgba(255, 255, 255, 0.15) !important;
+    border-top-color: rgba(255, 255, 255, 0.3) !important;
+    color: #bbf7d0 !important;
+    box-shadow:
+      0 6px 24px rgba(0, 0, 0, 0.5),
+      inset 0 2px 4px rgba(255, 255, 255, 0.12),
+      inset 0 -2px 4px rgba(0, 0, 0, 0.35) !important;
+    text-shadow: none;
+  }
 
-/* Upgraded Destructive Buttons (Rose Glass Capsule) */
-button.bg-rose-600, button.bg-rose-700, button.bg-rose-50 {
-  background: linear-gradient(135deg, rgba(244, 63, 94, 0.35) 0%, rgba(225, 29, 72, 0.55) 100%) !important;
-  backdrop-filter: blur(20px) saturate(180%) !important;
-  -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
-  border: 1.5px solid rgba(255, 255, 255, 0.45) !important;
-  border-top-color: rgba(255, 255, 255, 0.8) !important;
-  box-shadow: 
-    0 8px 30px rgba(225, 29, 72, 0.35),
-    inset 0 3px 4px rgba(255, 255, 255, 0.65),
-    inset 0 -3px 4px rgba(0, 0, 0, 0.15) !important;
-  color: #4c0519 !important;
-  font-weight: 600 !important;
-  border-radius: 9999px !important;
-}
+  /* ── Rose / Danger buttons ── */
+  button[class*="bg-rose-"] {
+    background: linear-gradient(160deg, rgba(254, 205, 211, 0.6) 0%, rgba(225, 29, 72, 0.75) 100%) !important;
+    border: 1.5px solid rgba(255, 255, 255, 0.55) !important;
+    border-top-color: rgba(255, 255, 255, 0.9) !important;
+    box-shadow:
+      0 6px 24px rgba(225, 29, 72, 0.3),
+      inset 0 2px 5px rgba(255, 255, 255, 0.7),
+      inset 0 -2px 4px rgba(160, 0, 30, 0.25) !important;
+    color: #4c0519 !important;
+    font-weight: 700 !important;
+    border-radius: 9999px !important;
+    backdrop-filter: blur(16px) saturate(180%) !important;
+    -webkit-backdrop-filter: blur(16px) saturate(180%) !important;
+    text-shadow: 0 1px 2px rgba(255,255,255,0.5);
+  }
+  .dark button[class*="bg-rose-"] {
+    background: linear-gradient(160deg, rgba(254, 205, 211, 0.18) 0%, rgba(225, 29, 72, 0.4) 100%) !important;
+    border-color: rgba(255, 255, 255, 0.15) !important;
+    border-top-color: rgba(255, 255, 255, 0.3) !important;
+    color: #fecdd3 !important;
+    box-shadow:
+      0 6px 24px rgba(0, 0, 0, 0.5),
+      inset 0 2px 4px rgba(255, 255, 255, 0.12),
+      inset 0 -2px 4px rgba(0, 0, 0, 0.35) !important;
+    text-shadow: none;
+  }
 
-.dark button.bg-rose-600, .dark button.bg-rose-700 {
-  background: linear-gradient(135deg, rgba(244, 63, 94, 0.2) 0%, rgba(225, 29, 72, 0.35) 100%) !important;
-  border-color: rgba(255, 255, 255, 0.15) !important;
-  border-top-color: rgba(255, 255, 255, 0.3) !important;
-  color: #f1f5f9 !important;
-  box-shadow: 
-    0 8px 30px rgba(0, 0, 0, 0.4),
-    inset 0 2px 3px rgba(255, 255, 255, 0.2),
-    inset 0 -2px 3px rgba(0, 0, 0, 0.3) !important;
-}
+  /* ── Dark / Slate-900 buttons (e.g. "Save Settings") ── */
+  button[class*="bg-slate-900"],
+  button[class*="bg-slate-800"] {
+    background: linear-gradient(160deg, rgba(100, 116, 139, 0.55) 0%, rgba(15, 23, 42, 0.85) 100%) !important;
+    border: 1.5px solid rgba(255, 255, 255, 0.3) !important;
+    border-top-color: rgba(255, 255, 255, 0.55) !important;
+    box-shadow:
+      0 6px 24px rgba(0, 0, 0, 0.4),
+      inset 0 2px 5px rgba(255, 255, 255, 0.3),
+      inset 0 -2px 4px rgba(0, 0, 0, 0.35) !important;
+    color: #f8fafc !important;
+    font-weight: 700 !important;
+    border-radius: 9999px !important;
+    backdrop-filter: blur(16px) saturate(180%) !important;
+    -webkit-backdrop-filter: blur(16px) saturate(180%) !important;
+  }
+  .dark button[class*="bg-slate-900"],
+  .dark button[class*="bg-slate-800"] {
+    background: linear-gradient(160deg, rgba(248, 250, 252, 0.2) 0%, rgba(226, 232, 240, 0.35) 100%) !important;
+    border-color: rgba(255, 255, 255, 0.2) !important;
+    border-top-color: rgba(255, 255, 255, 0.45) !important;
+    color: #0f172a !important;
+    box-shadow:
+      0 6px 24px rgba(0, 0, 0, 0.2),
+      inset 0 2px 5px rgba(255, 255, 255, 0.7),
+      inset 0 -2px 4px rgba(0, 0, 0, 0.1) !important;
+  }
 
-/* Upgraded Secondary Buttons (Warm Peach/Apricot Glass Capsule) */
-button.bg-white, button.bg-slate-50, button.bg-slate-100, button.bg-indigo-50 {
-  background: linear-gradient(135deg, rgba(255, 224, 212, 0.3) 0%, rgba(255, 204, 188, 0.5) 100%) !important;
-  backdrop-filter: blur(20px) saturate(160%) !important;
-  -webkit-backdrop-filter: blur(20px) saturate(160%) !important;
-  border: 1.5px solid rgba(255, 255, 255, 0.5) !important;
-  border-top-color: rgba(255, 255, 255, 0.85) !important;
-  box-shadow: 
-    0 8px 25px rgba(255, 204, 188, 0.2),
-    inset 0 3px 4px rgba(255, 255, 255, 0.7),
-    inset 0 -2px 3px rgba(0, 0, 0, 0.1) !important;
-  color: #431407 !important;
-  font-weight: 600 !important;
-  border-radius: 9999px !important;
-}
+  /* ── White / Secondary buttons ── */
+  button[class*="bg-white"],
+  button[class*="bg-slate-50"],
+  button[class*="bg-slate-100"],
+  button[class*="bg-indigo-50"] {
+    background: linear-gradient(160deg, rgba(255, 255, 255, 0.85) 0%, rgba(241, 245, 249, 0.7) 100%) !important;
+    border: 1.5px solid rgba(255, 255, 255, 0.7) !important;
+    border-top-color: rgba(255, 255, 255, 0.95) !important;
+    box-shadow:
+      0 6px 20px rgba(148, 163, 184, 0.18),
+      inset 0 2px 5px rgba(255, 255, 255, 0.9),
+      inset 0 -2px 3px rgba(0, 0, 0, 0.06) !important;
+    color: #1e293b !important;
+    font-weight: 700 !important;
+    border-radius: 9999px !important;
+    backdrop-filter: blur(16px) saturate(160%) !important;
+    -webkit-backdrop-filter: blur(16px) saturate(160%) !important;
+  }
+  .dark button[class*="bg-white"],
+  .dark button[class*="bg-slate-50"],
+  .dark button[class*="bg-slate-100"],
+  .dark button[class*="bg-indigo-50"] {
+    background: linear-gradient(160deg, rgba(51, 65, 85, 0.6) 0%, rgba(30, 41, 59, 0.8) 100%) !important;
+    border-color: rgba(255, 255, 255, 0.12) !important;
+    border-top-color: rgba(255, 255, 255, 0.25) !important;
+    color: #f1f5f9 !important;
+    box-shadow:
+      0 6px 20px rgba(0, 0, 0, 0.4),
+      inset 0 2px 4px rgba(255, 255, 255, 0.1),
+      inset 0 -2px 3px rgba(0, 0, 0, 0.3) !important;
+  }
 
-.dark button.bg-white, .dark button.bg-slate-50, .dark button.bg-slate-100, .dark button.bg-indigo-50 {
-  background: linear-gradient(135deg, rgba(255, 224, 212, 0.1) 0%, rgba(255, 204, 188, 0.2) 100%) !important;
-  border-color: rgba(255, 255, 255, 0.1) !important;
-  border-top-color: rgba(255, 255, 255, 0.2) !important;
-  color: #f1f5f9 !important;
-  box-shadow: 
-    0 8px 25px rgba(0, 0, 0, 0.4),
-    inset 0 2px 3px rgba(255, 255, 255, 0.15),
-    inset 0 -2px 3px rgba(0, 0, 0, 0.3) !important;
 }
 
 /* Custom scrollbars for dashboard and terminal elements */
