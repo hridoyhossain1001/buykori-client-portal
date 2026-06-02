@@ -455,6 +455,14 @@ export function SettingsView({
                       className="w-full p-2 text-xs bg-white border border-slate-200 rounded font-mono text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-slate-900 dark:border-slate-800 dark:text-white"
                     />
                   </div>
+                  <div className="rounded-lg border border-indigo-100 bg-indigo-50/50 p-3 dark:border-indigo-900/40 dark:bg-indigo-950/20">
+                    <p className="text-[10px] font-semibold uppercase text-slate-500 dark:text-slate-400">SteadFast Webhook Setup</p>
+                    <p className="mt-1 text-[10px] text-slate-500 dark:text-slate-400">Copy callback URL and bearer auth token for the SteadFast panel.</p>
+                    <button type="button" onClick={() => handleCopyCourierWebhookSetup('steadfast')} disabled={copyingCourierSecret === 'steadfast'} className="mt-3 inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-3 py-2 text-[10px] font-bold text-white hover:bg-indigo-700 disabled:opacity-50">
+                      <Copy className="h-3.5 w-3.5" />
+                      {copyingCourierSecret === 'steadfast' ? 'Preparing...' : courierSettings.steadfast_webhook_token_configured ? 'Copy Setup Again' : 'Copy Setup Secret'}
+                    </button>
+                  </div>
                 </div>
 
                 {/* Pathao section */}
@@ -571,14 +579,6 @@ export function SettingsView({
                     >
                       <Copy className="h-3.5 w-3.5" />
                       {copyingPathaoSecret ? 'Preparing secret...' : 'Copy Setup Secret'}
-                    </button>
-                  </div>
-                  <div className="rounded-lg border border-indigo-100 bg-indigo-50/50 p-3 dark:border-indigo-900/40 dark:bg-indigo-950/20">
-                    <p className="text-[10px] font-semibold uppercase text-slate-500 dark:text-slate-400">SteadFast Webhook Setup</p>
-                    <p className="mt-1 text-[10px] text-slate-500 dark:text-slate-400">Copy callback URL and bearer auth token for the SteadFast panel.</p>
-                    <button type="button" onClick={() => handleCopyCourierWebhookSetup('steadfast')} disabled={copyingCourierSecret === 'steadfast'} className="mt-3 inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-3 py-2 text-[10px] font-bold text-white hover:bg-indigo-700 disabled:opacity-50">
-                      <Copy className="h-3.5 w-3.5" />
-                      {copyingCourierSecret === 'steadfast' ? 'Preparing...' : courierSettings.steadfast_webhook_token_configured ? 'Copy Setup Again' : 'Copy Setup Secret'}
                     </button>
                   </div>
                 </div>

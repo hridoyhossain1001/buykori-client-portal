@@ -131,10 +131,12 @@ export interface CourierSettings {
   pathao_webhook_verified_at?: string;
   steadfast_api_key?: string;
   steadfast_secret_key?: string;
+  steadfast_webhook_token_configured?: boolean;
   redx_access_token?: string;
   redx_pickup_store_id?: string;
   redx_delivery_area_id?: string;
   redx_delivery_area_name?: string;
+  redx_webhook_secret_configured?: boolean;
   courier_auto_send: boolean;
   default_courier?: string;
 }
