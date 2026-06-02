@@ -261,6 +261,51 @@ button.bg-white, button.bg-slate-50, button.bg-slate-100, button.bg-indigo-50 {
     inset 0 -1px 2px rgba(255, 120, 60, 0.15) !important;
 }
 
+/* Premium Sidebar Active Glowing Pulse Styles */
+@keyframes active-sidebar-glow {
+  0% {
+    opacity: 0.35;
+    box-shadow: 0 0 8px 0px rgba(255, 120, 60, 0.2);
+  }
+  50% {
+    opacity: 0.85;
+    box-shadow: 0 0 16px 2px rgba(255, 120, 60, 0.5);
+  }
+  100% {
+    opacity: 0.35;
+    box-shadow: 0 0 8px 0px rgba(255, 120, 60, 0.2);
+  }
+}
+
+.sidebar-active-glow {
+  position: relative;
+  background: linear-gradient(135deg, rgba(255, 120, 60, 0.1) 0%, rgba(255, 158, 125, 0.03) 100%) !important;
+  border: 1px solid rgba(255, 120, 60, 0.25) !important;
+  color: rgb(235, 95, 20) !important;
+}
+
+.dark .sidebar-active-glow {
+  background: linear-gradient(135deg, rgba(255, 120, 60, 0.16) 0%, rgba(255, 158, 125, 0.03) 100%) !important;
+  border-color: rgba(255, 120, 60, 0.4) !important;
+  color: rgb(255, 150, 100) !important;
+}
+
+.sidebar-active-glow::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: rgba(255, 120, 60, 0.05);
+  animation: active-sidebar-glow 3s ease-in-out infinite;
+  pointer-events: none;
+  z-index: -1;
+}
+
+.sidebar-active-indicator {
+  background-color: rgb(255, 110, 50) !important;
+  box-shadow: 0 0 8px rgba(255, 110, 50, 0.8) !important;
+}
+
 
 /* Core Dark mode state utility overrides */
 .dark body {

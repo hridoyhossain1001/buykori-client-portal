@@ -141,6 +141,24 @@ export function Header({
           <div className="hidden sm:block shrink-0">{getStatusBadge()}</div>
         </div>
 
+        {/* Centered Glowing Search Capsule */}
+        <div className="relative hidden lg:flex flex-1 justify-center max-w-xs xl:max-w-md mx-auto group">
+          {/* Soft ambient orange glow beneath */}
+          <div className="ambient-glow-capsule"></div>
+          
+          {/* Input container */}
+          <div className="orange-glow-capsule-input relative z-10 flex items-center justify-between w-full max-w-[320px] rounded-full px-5 py-2">
+            <input
+              type="text"
+              placeholder="Search"
+              value={searchVal}
+              onChange={(e) => setSearchVal(e.target.value)}
+              className="text-xs text-slate-800 dark:text-slate-100 placeholder-slate-850 dark:placeholder-slate-100 font-semibold"
+            />
+            <Search className="absolute right-4 top-3 h-3.5 w-3.5 text-slate-700 dark:text-slate-300 pointer-events-none" />
+          </div>
+        </div>
+
         {/* Query Search / Controls */}
         <div className="flex items-center gap-2 md:gap-4 shrink-0">
           {/* Mobile Search Button (Visible only on <1024px screens / lg:hidden) */}
@@ -152,23 +170,6 @@ export function Header({
           >
             <Search className="w-4 h-4 text-slate-500" />
           </button>
-
-          <div className="relative hidden lg:block group">
-            {/* Soft ambient orange glow beneath */}
-            <div className="ambient-glow-capsule"></div>
-            
-            {/* Input container */}
-            <div className="orange-glow-capsule-input relative z-10 flex items-center justify-between w-56 lg:w-64 xl:w-72 rounded-full px-5 py-2.5">
-              <input
-                type="text"
-                placeholder="Actome"
-                value={searchVal}
-                onChange={(e) => setSearchVal(e.target.value)}
-                className="text-xs text-slate-800 dark:text-slate-100 placeholder-slate-850 dark:placeholder-slate-100 font-semibold"
-              />
-              <Search className="absolute right-4 top-3.5 h-3.5 w-3.5 text-slate-700 dark:text-slate-300 pointer-events-none" />
-            </div>
-          </div>
 
           {/* Theme Toggle - Glass Design */}
           <button

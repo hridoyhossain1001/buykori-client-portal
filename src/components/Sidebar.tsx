@@ -339,19 +339,19 @@ export function Sidebar({
                       }}
                       className={`group relative flex w-full overflow-visible rounded-md text-sm transition-all duration-205 ${
                         isActive
-                          ? 'bg-gradient-to-r from-indigo-50/95 to-violet-50/60 font-semibold text-indigo-700 shadow-sm dark:from-indigo-950/45 dark:to-violet-950/25 dark:text-indigo-200'
+                          ? 'sidebar-active-glow font-semibold shadow-sm'
                           : 'font-medium text-slate-600 hover:bg-white/70 hover:text-slate-900 hover:shadow-sm dark:text-slate-300 dark:hover:bg-slate-800/80 dark:hover:text-slate-100'
                       } ${collapsed ? 'justify-center px-0 py-2.5' : 'items-center gap-3 px-3 py-2.5'}`}
                     >
                       {isActive && (
-                        <span className="absolute left-0 top-1/2 h-6 w-[3px] -translate-y-1/2 rounded-r-full bg-indigo-500 dark:bg-indigo-400" />
+                        <span className="sidebar-active-indicator absolute left-0 top-1/2 h-6 w-[3px] -translate-y-1/2 rounded-r-full" />
                       )}
 
                       <Icon
                         strokeWidth={isActive ? 2.5 : 2}
                         className={`h-[18px] w-[18px] shrink-0 transition-colors ${
                           isActive
-                            ? 'text-indigo-600 dark:text-indigo-400'
+                            ? 'text-orange-600 dark:text-orange-400'
                             : 'text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-200'
                         }`}
                       />
