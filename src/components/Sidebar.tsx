@@ -351,7 +351,7 @@ export function Sidebar({
                         strokeWidth={isActive ? 2.5 : 2}
                         className={`h-[18px] w-[18px] shrink-0 transition-colors ${
                           isActive
-                            ? 'text-orange-600 dark:text-orange-400'
+                            ? 'text-indigo-600 dark:text-indigo-400'
                             : 'text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-200'
                         }`}
                       />

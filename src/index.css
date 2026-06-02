@@ -108,8 +108,10 @@ textarea {
    ===================================================== */
 @layer utilities {
 
-  /* ── Indigo / Primary buttons ── */
-  button[class*="bg-indigo-"] {
+  /* ── Indigo / Primary, Emerald, and Green buttons ── */
+  button[class*="bg-indigo-"],
+  button[class*="bg-emerald-"],
+  button[class*="bg-green-"] {
     background: linear-gradient(160deg, rgba(200, 196, 255, 0.55) 0%, rgba(139, 124, 245, 0.75) 100%) !important;
     border: 1.5px solid rgba(255, 255, 255, 0.55) !important;
     border-top-color: rgba(255, 255, 255, 0.9) !important;
@@ -124,7 +126,9 @@ textarea {
     -webkit-backdrop-filter: blur(16px) saturate(180%) !important;
     text-shadow: 0 1px 2px rgba(255,255,255,0.5);
   }
-  .dark button[class*="bg-indigo-"] {
+  .dark button[class*="bg-indigo-"],
+  .dark button[class*="bg-emerald-"],
+  .dark button[class*="bg-green-"] {
     background: linear-gradient(160deg, rgba(139, 124, 245, 0.35) 0%, rgba(99, 82, 255, 0.55) 100%) !important;
     border-color: rgba(255, 255, 255, 0.18) !important;
     border-top-color: rgba(255, 255, 255, 0.35) !important;
@@ -136,88 +140,30 @@ textarea {
     text-shadow: none;
   }
 
-  /* ── Emerald / Success buttons ── */
-  button[class*="bg-emerald-"] {
-    background: linear-gradient(160deg, rgba(167, 243, 208, 0.6) 0%, rgba(5, 150, 105, 0.75) 100%) !important;
-    border: 1.5px solid rgba(255, 255, 255, 0.55) !important;
-    border-top-color: rgba(255, 255, 255, 0.9) !important;
-    box-shadow:
-      0 6px 24px rgba(5, 150, 105, 0.3),
-      inset 0 2px 5px rgba(255, 255, 255, 0.7),
-      inset 0 -2px 4px rgba(0, 100, 70, 0.25) !important;
-    color: #022c22 !important;
-    font-weight: 700 !important;
-    border-radius: 9999px !important;
-    backdrop-filter: blur(16px) saturate(180%) !important;
-    -webkit-backdrop-filter: blur(16px) saturate(180%) !important;
-    text-shadow: 0 1px 2px rgba(255,255,255,0.5);
-  }
-  .dark button[class*="bg-emerald-"] {
-    background: linear-gradient(160deg, rgba(52, 211, 153, 0.25) 0%, rgba(5, 150, 105, 0.45) 100%) !important;
-    border-color: rgba(255, 255, 255, 0.15) !important;
-    border-top-color: rgba(255, 255, 255, 0.3) !important;
-    color: #d1fae5 !important;
-    box-shadow:
-      0 6px 24px rgba(0, 0, 0, 0.5),
-      inset 0 2px 4px rgba(255, 255, 255, 0.15),
-      inset 0 -2px 4px rgba(0, 0, 0, 0.35) !important;
-    text-shadow: none;
-  }
-
-  /* ── Green buttons (bg-green-*) ── */
-  button[class*="bg-green-"] {
-    background: linear-gradient(160deg, rgba(187, 247, 208, 0.6) 0%, rgba(22, 163, 74, 0.75) 100%) !important;
-    border: 1.5px solid rgba(255, 255, 255, 0.55) !important;
-    border-top-color: rgba(255, 255, 255, 0.9) !important;
-    box-shadow:
-      0 6px 24px rgba(22, 163, 74, 0.3),
-      inset 0 2px 5px rgba(255, 255, 255, 0.7),
-      inset 0 -2px 4px rgba(0, 100, 40, 0.25) !important;
-    color: #14532d !important;
-    font-weight: 700 !important;
-    border-radius: 9999px !important;
-    backdrop-filter: blur(16px) saturate(180%) !important;
-    -webkit-backdrop-filter: blur(16px) saturate(180%) !important;
-    text-shadow: 0 1px 2px rgba(255,255,255,0.5);
-  }
-  .dark button[class*="bg-green-"] {
-    background: linear-gradient(160deg, rgba(74, 222, 128, 0.2) 0%, rgba(22, 163, 74, 0.4) 100%) !important;
-    border-color: rgba(255, 255, 255, 0.15) !important;
-    border-top-color: rgba(255, 255, 255, 0.3) !important;
-    color: #bbf7d0 !important;
-    box-shadow:
-      0 6px 24px rgba(0, 0, 0, 0.5),
-      inset 0 2px 4px rgba(255, 255, 255, 0.12),
-      inset 0 -2px 4px rgba(0, 0, 0, 0.35) !important;
-    text-shadow: none;
-  }
-
   /* ── Rose / Danger buttons ── */
   button[class*="bg-rose-"] {
-    background: linear-gradient(160deg, rgba(254, 205, 211, 0.6) 0%, rgba(225, 29, 72, 0.75) 100%) !important;
-    border: 1.5px solid rgba(255, 255, 255, 0.55) !important;
-    border-top-color: rgba(255, 255, 255, 0.9) !important;
+    background: linear-gradient(160deg, rgba(255, 255, 255, 0.85) 0%, rgba(254, 242, 242, 0.85) 100%) !important;
+    border: 1.5px solid rgba(239, 68, 68, 0.3) !important;
+    border-top-color: rgba(255, 255, 255, 0.95) !important;
     box-shadow:
-      0 6px 24px rgba(225, 29, 72, 0.3),
-      inset 0 2px 5px rgba(255, 255, 255, 0.7),
-      inset 0 -2px 4px rgba(160, 0, 30, 0.25) !important;
-    color: #4c0519 !important;
+      0 6px 20px rgba(239, 68, 68, 0.08),
+      inset 0 2px 5px rgba(255, 255, 255, 0.9),
+      inset 0 -2px 3px rgba(239, 68, 68, 0.05) !important;
+    color: #991b1b !important;
     font-weight: 700 !important;
     border-radius: 9999px !important;
-    backdrop-filter: blur(16px) saturate(180%) !important;
-    -webkit-backdrop-filter: blur(16px) saturate(180%) !important;
-    text-shadow: 0 1px 2px rgba(255,255,255,0.5);
+    backdrop-filter: blur(16px) saturate(160%) !important;
+    -webkit-backdrop-filter: blur(16px) saturate(160%) !important;
   }
   .dark button[class*="bg-rose-"] {
-    background: linear-gradient(160deg, rgba(254, 205, 211, 0.18) 0%, rgba(225, 29, 72, 0.4) 100%) !important;
-    border-color: rgba(255, 255, 255, 0.15) !important;
-    border-top-color: rgba(255, 255, 255, 0.3) !important;
-    color: #fecdd3 !important;
+    background: linear-gradient(160deg, rgba(30, 41, 59, 0.7) 0%, rgba(15, 23, 42, 0.8) 100%) !important;
+    border-color: rgba(239, 68, 68, 0.4) !important;
+    border-top-color: rgba(255, 255, 255, 0.15) !important;
+    color: #fca5a5 !important;
     box-shadow:
-      0 6px 24px rgba(0, 0, 0, 0.5),
-      inset 0 2px 4px rgba(255, 255, 255, 0.12),
-      inset 0 -2px 4px rgba(0, 0, 0, 0.35) !important;
-    text-shadow: none;
+      0 6px 20px rgba(0, 0, 0, 0.3),
+      inset 0 2px 4px rgba(255, 255, 255, 0.05),
+      inset 0 -2px 3px rgba(0, 0, 0, 0.2) !important;
   }
 
   /* ── Dark / Slate-900 buttons (e.g. "Save Settings") ── */
@@ -333,19 +279,19 @@ textarea {
     transform: scale(0.96);
     opacity: 0.3;
     filter: blur(14px);
-    box-shadow: 0 8px 24px rgba(255, 120, 60, 0.35);
+    box-shadow: 0 8px 24px rgba(79, 70, 229, 0.35);
   }
   50% {
     transform: scale(1.08);
     opacity: 0.85;
     filter: blur(24px);
-    box-shadow: 0 16px 48px rgba(255, 120, 60, 0.75);
+    box-shadow: 0 16px 48px rgba(79, 70, 229, 0.75);
   }
   100% {
     transform: scale(0.96);
     opacity: 0.3;
     filter: blur(14px);
-    box-shadow: 0 8px 24px rgba(255, 120, 60, 0.35);
+    box-shadow: 0 8px 24px rgba(79, 70, 229, 0.35);
   }
 }
 
@@ -353,7 +299,7 @@ textarea {
   position: absolute;
   inset: -2px;
   border-radius: 9999px;
-  background: radial-gradient(circle, rgba(255, 120, 60, 0.75) 0%, rgba(255, 160, 120, 0.35) 60%, rgba(255, 120, 60, 0) 100%);
+  background: radial-gradient(circle, rgba(79, 70, 229, 0.75) 0%, rgba(99, 102, 241, 0.35) 60%, rgba(79, 70, 229, 0) 100%);
   animation: ambient-glow-pulse 3s cubic-bezier(0.4, 0, 0.2, 1) infinite;
   z-index: 0;
   pointer-events: none;
@@ -365,35 +311,35 @@ textarea {
     transform: scale(0.96);
     opacity: 0.15;
     filter: blur(16px);
-    box-shadow: 0 6px 18px rgba(255, 120, 60, 0.15);
+    box-shadow: 0 6px 18px rgba(79, 70, 229, 0.15);
   }
   50% {
     transform: scale(1.06);
     opacity: 0.4;
     filter: blur(28px);
-    box-shadow: 0 10px 30px rgba(255, 120, 60, 0.35);
+    box-shadow: 0 10px 30px rgba(79, 70, 229, 0.35);
   }
   100% {
     transform: scale(0.96);
     opacity: 0.15;
     filter: blur(16px);
-    box-shadow: 0 6px 18px rgba(255, 120, 60, 0.15);
+    box-shadow: 0 6px 18px rgba(79, 70, 229, 0.15);
   }
 }
 
 .dark .ambient-glow-capsule {
-  background: radial-gradient(circle, rgba(255, 120, 60, 0.45) 0%, rgba(255, 160, 120, 0.18) 60%, rgba(255, 120, 60, 0) 100%);
+  background: radial-gradient(circle, rgba(79, 70, 229, 0.45) 0%, rgba(99, 102, 241, 0.18) 60%, rgba(79, 70, 229, 0) 100%);
   animation: dark-ambient-glow-pulse 3s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 }
 
 .orange-glow-capsule-input {
   position: relative;
   background-color: rgba(255, 255, 255, 0.96) !important;
-  border: 1px solid rgba(255, 120, 60, 0.2) !important;
+  border: 1px solid rgba(79, 70, 229, 0.2) !important;
   box-shadow: 
-    0 10px 30px rgba(255, 120, 60, 0.08),
+    0 10px 30px rgba(79, 70, 229, 0.08),
     inset 0 1px 2px rgba(255, 255, 255, 0.95),
-    inset 0 -1.5px 2px rgba(255, 120, 60, 0.12) !important;
+    inset 0 -1.5px 2px rgba(79, 70, 229, 0.12) !important;
 }
 
 .orange-glow-capsule-input input {
@@ -430,41 +376,41 @@ textarea {
 
 .dark .orange-glow-capsule-input {
   background-color: rgba(15, 23, 42, 0.96) !important;
-  border-color: rgba(255, 120, 60, 0.3) !important;
+  border-color: rgba(79, 70, 229, 0.3) !important;
   box-shadow: 
     0 10px 30px rgba(0, 0, 0, 0.4),
     inset 0 1px 1px rgba(255, 255, 255, 0.05),
-    inset 0 -1px 2px rgba(255, 120, 60, 0.15) !important;
+    inset 0 -1px 2px rgba(79, 70, 229, 0.15) !important;
 }
 
 /* Premium Sidebar Active Glowing Pulse Styles */
 @keyframes active-sidebar-glow {
   0% {
     opacity: 0.35;
-    box-shadow: 0 0 8px 0px rgba(255, 120, 60, 0.2);
+    box-shadow: 0 0 8px 0px rgba(79, 70, 229, 0.2);
   }
   50% {
     opacity: 0.85;
-    box-shadow: 0 0 16px 2px rgba(255, 120, 60, 0.5);
+    box-shadow: 0 0 16px 2px rgba(79, 70, 229, 0.5);
   }
   100% {
     opacity: 0.35;
-    box-shadow: 0 0 8px 0px rgba(255, 120, 60, 0.2);
+    box-shadow: 0 0 8px 0px rgba(79, 70, 229, 0.2);
   }
 }
 
 .sidebar-active-glow {
   position: relative;
-  background: linear-gradient(135deg, rgba(255, 120, 60, 0.08) 0%, rgba(255, 158, 125, 0.02) 100%) !important;
-  border: 1.5px solid rgba(255, 120, 60, 0.25) !important;
-  color: rgb(235, 95, 20) !important;
+  background: linear-gradient(135deg, rgba(79, 70, 229, 0.08) 0%, rgba(99, 102, 241, 0.02) 100%) !important;
+  border: 1.5px solid rgba(79, 70, 229, 0.25) !important;
+  color: #4f46e5 !important;
 }
 
 /* Sidebar matches the exact soft dark glow and color tone */
 .dark .sidebar-active-glow {
-  background: linear-gradient(135deg, rgba(255, 120, 60, 0.12) 0%, rgba(255, 160, 120, 0.02) 100%) !important;
-  border-color: rgba(255, 120, 60, 0.2) !important;
-  color: rgb(255, 160, 120) !important;
+  background: linear-gradient(135deg, rgba(79, 70, 229, 0.12) 0%, rgba(99, 102, 241, 0.02) 100%) !important;
+  border-color: rgba(79, 70, 229, 0.2) !important;
+  color: #a5b4fc !important;
 }
 
 .sidebar-active-glow::before {
@@ -472,15 +418,15 @@ textarea {
   position: absolute;
   inset: 0;
   border-radius: inherit;
-  background: rgba(255, 120, 60, 0.04);
+  background: rgba(79, 70, 229, 0.04);
   animation: active-sidebar-glow 3s ease-in-out infinite;
   pointer-events: none;
   z-index: -1;
 }
 
 .sidebar-active-indicator {
-  background-color: rgb(255, 120, 60) !important;
-  box-shadow: 0 0 6px rgba(255, 120, 60, 0.6) !important;
+  background-color: #4f46e5 !important;
+  box-shadow: 0 0 6px rgba(79, 70, 229, 0.6) !important;
 }
 
 

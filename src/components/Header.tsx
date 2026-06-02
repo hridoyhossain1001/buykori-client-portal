@@ -257,9 +257,8 @@ export function Header({
                 className="relative rounded-full p-1.5 md:p-2 text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors focus:outline-none cursor-pointer"
                 title="System Notifications & Issues"
               >
-                <Bell className="w-4 h-4" />
-                {unresolvedSuggestions.length > 0 && (
-                  <span className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full border border-white dark:border-slate-900 bg-orange-500 animate-pulse"></span>
+                <Bell className="w-4 h-4" />                 {unresolvedSuggestions.length > 0 && (
+                  <span className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full border border-white dark:border-slate-900 bg-indigo-500 animate-pulse"></span>
                 )}
               </button>
 
@@ -269,7 +268,7 @@ export function Header({
                   {/* Dropdown Header */}
                   <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/40">
                     <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Active Diagnostics Issues</span>
-                    <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-orange-100 dark:bg-orange-950/40 text-orange-600 dark:text-orange-400 font-mono">
+                    <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-indigo-100 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 font-mono">
                       {unresolvedSuggestions.length} Pending
                     </span>
                   </div>
