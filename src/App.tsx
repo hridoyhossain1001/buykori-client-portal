@@ -252,6 +252,60 @@ export default function App() {
     }
   };
 
+  const fetchEvents = async () => {
+    const res = await fetch('/api/events?limit=100');
+    if (res.ok) {
+      const data = await res.json();
+      setEvents(data.events || []);
+    }
+  };
+
+  const fetchApiLogs = async () => {
+    const res = await fetch('/api/api-logs?limit=100');
+    if (res.ok) {
+      const data = await res.json();
+      setApiLogs(data.logs || []);
+    }
+  };
+
+  const fetchOutbox = async () => {
+    const res = await fetch('/api/outbox?limit=25');
+    if (res.ok) {
+      const data = await res.json();
+      setOutboxItems(data.items || []);
+    }
+  };
+
+  const fetchSettingsData = async () => {
+    const [resCreds, resRules] = await Promise.all([
+      fetch('/api/credentials'),
+      fetch('/api/rules'),
+    ]);
+    if (isAuthFailure([resCreds, resRules])) {
+      redirectToClientLogin();
+      return;
+    }
+    if (!resCreds.ok || !resRules.ok) {
+      throw new Error('Failed to load tracking settings.');
+    }
+    setCredentials(await resCreds.json());
+    setRules(await resRules.json());
+  };
+
+  const loadActivePageData = async (page: string) => {
+    if (page === 'pending-purchases' || page === 'orders') {
+      await fetchDeferred();
+    } else if (page === 'incomplete-checkouts') {
+      await fetchIncompleteCheckouts();
+    } else if (page === 'event-logs') {
+      await Promise.all([fetchEvents(), fetchOutbox()]);
+    } else if (page === 'api-logs') {
+      await fetchApiLogs();
+    } else if (page === 'settings') {
+      await fetchSettingsData();
+    }
+  };
+
   const handleIncompleteCheckoutStatus = async (id: number, status: string) => {
     const res = await fetch(`/api/incomplete-checkouts/${id}/status`, {
       method: 'POST',
@@ -309,66 +363,42 @@ export default function App() {
   const loadSystemData = async (showShimmer = true) => {
     if (showShimmer) setLoading(true);
     try {
-      // Parallel pull
+      // Route-specific payloads load when their workspace opens.
       const [
-        resProf, resConn, resCreds, resRules, resSugg, resLogs, resApi, resDef, resOutbox, resCourier, resCourierOrders, resSidebar, resPlugin, resIncomplete
+        resProf, resConn, resSugg, resLogs, resCourier, resSidebar, resPlugin
       ] = await Promise.all([
         fetch('/api/profile'),
         fetch('/api/connection'),
-        fetch('/api/credentials'),
-        fetch('/api/rules'),
         fetch('/api/suggestions'),
         fetch(`/api/events?limit=100`),
-        fetch(`/api/api-logs?limit=100`),
-        fetch('/api/deferred'),
-        fetch('/api/outbox?limit=25'),
         fetch('/api/courier/settings'),
-        fetch('/api/courier/orders'),
         fetch('/api/sidebar/status'),
         fetch('/api/v1/plugin/info'),
-        fetch('/api/incomplete-checkouts'),
       ]);
 
-      if (isAuthFailure([resProf, resConn, resCreds, resRules])) {
+      if (isAuthFailure([resProf, resConn])) {
         redirectToClientLogin();
         return;
       }
 
-      if (!resProf.ok || !resConn.ok || !resCreds.ok || !resRules.ok) {
+      if (!resProf.ok || !resConn.ok) {
         throw new Error("HTTP Handshake failed. Connection proxy is not fully responding.");
       }
 
       const dProf = await resProf.json();
       const dConn = await resConn.json();
-      const dCreds = await resCreds.json();
-      const dRules = await resRules.json();
-      const dSugg = await resSugg.json();
-      const dLogs = await resLogs.json();
-      const dApi = await resApi.json();
-      const dDef = await resDef.json();
-      const dOutbox = resOutbox.ok ? await resOutbox.json() : { items: [] };
+      const dSugg = resSugg.ok ? await resSugg.json() : [];
+      const dLogs = resLogs.ok ? await resLogs.json() : { events: [] };
       const dCourier = resCourier.ok ? await resCourier.json() : {};
-      const dCourierOrders = resCourierOrders.ok ? await resCourierOrders.json() : [];
       const dSidebar = resSidebar.ok ? await resSidebar.json() : null;
       const dPlugin = resPlugin.ok ? await resPlugin.json() : null;
-      const dIncomplete = resIncomplete.ok ? await resIncomplete.json() : { items: [], counts: {}, restricted: resIncomplete.status === 403 };
 
       setProfile(dProf);
       setConnection(dConn);
-      setCredentials(dCreds);
-      setRules(dRules);
       setSuggestions(dSugg);
       setEvents(dLogs.events);
-      setApiLogs(dApi.logs);
-      setOutboxItems(dOutbox.items || []);
-      setCourierOrders(Array.isArray(dCourierOrders) ? dCourierOrders : []);
       setSidebarStatus(dSidebar);
       setPluginReleaseInfo(dPlugin);
-      setIncompleteCheckoutData(dIncomplete);
-      setDeferredData(dDef);
-      setDeferredEnabled(dDef.deferredEnabled);
-      setAutoConfirmDays(dDef.autoConfirmDays);
-      setAutoConfirmStatus(dDef.autoConfirmStatus);
       setOrderManagementEnabled(dCourier.courier_auto_send ?? false);
       setOrderManagementDraftEnabled(dCourier.courier_auto_send ?? false);
       
@@ -378,6 +408,7 @@ export default function App() {
       setProfNotifEmail(dProf.notificationEmail || dProf.email);
 
       setErrState(null);
+      await loadActivePageData(activePage);
     } catch (e: any) {
       console.error(e);
       setErrState(e.message || "An unresolved network error occurred while rendering diagnostics.");
@@ -409,10 +440,10 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    if (profile) {
+    if (profile && activePage === 'analytics') {
       loadAnalyticsData(analyticsDays);
     }
-  }, [analyticsDays, profile]);
+  }, [analyticsDays, profile, activePage]);
 
   const fetchStores = async () => {
     try {
@@ -482,6 +513,11 @@ export default function App() {
       markSidebarSeen('order_verification');
     } else if (activePage === 'orders') {
       markSidebarSeen('orders_delivery');
+    }
+    if (activePage !== 'dashboard') {
+      loadActivePageData(activePage).catch(err => {
+        console.error(`Failed to load ${activePage} workspace`, err);
+      });
     }
   }, [activePage]);
 
