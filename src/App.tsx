@@ -86,6 +86,7 @@ export default function App() {
   const [analyticsHourly, setAnalyticsHourly] = useState<any>(null);
   const [signalDoctor, setSignalDoctor] = useState<any>(null);
   const [analyticsDays, setAnalyticsDays] = useState<number>(7);
+  const [trendData, setTrendData] = useState<any[]>([]);
 
   // Async Lifecycle States
   const [loading, setLoading] = useState<boolean>(true);
@@ -268,6 +269,18 @@ export default function App() {
     }
   };
 
+  const fetchTrendData = async (days = 7) => {
+    try {
+      const res = await fetch(`/api/events/trend?days=${days}`);
+      if (res.ok) {
+        const data = await res.json();
+        setTrendData(data.trend || []);
+      }
+    } catch (err) {
+      console.error("Failed to fetch trend data", err);
+    }
+  };
+
   const fetchOutbox = async () => {
     const res = await fetch('/api/outbox?limit=25');
     if (res.ok) {
@@ -365,7 +378,7 @@ export default function App() {
     try {
       // Route-specific payloads load when their workspace opens.
       const [
-        resProf, resConn, resSugg, resLogs, resCourier, resSidebar, resPlugin
+        resProf, resConn, resSugg, resLogs, resCourier, resSidebar, resPlugin, resTrend
       ] = await Promise.all([
         fetch('/api/profile'),
         fetch('/api/connection'),
@@ -374,6 +387,7 @@ export default function App() {
         fetch('/api/courier/settings'),
         fetch('/api/sidebar/status'),
         fetch('/api/v1/plugin/info'),
+        fetch(`/api/events/trend?days=${analyticsDays}`)
       ]);
 
       if (isAuthFailure([resProf, resConn])) {
@@ -392,6 +406,7 @@ export default function App() {
       const dCourier = resCourier.ok ? await resCourier.json() : {};
       const dSidebar = resSidebar.ok ? await resSidebar.json() : null;
       const dPlugin = resPlugin.ok ? await resPlugin.json() : null;
+      const dTrend = resTrend.ok ? await resTrend.json() : { trend: [] };
 
       setProfile(dProf);
       setConnection(dConn);
@@ -401,6 +416,7 @@ export default function App() {
       setPluginReleaseInfo(dPlugin);
       setOrderManagementEnabled(dCourier.courier_auto_send ?? false);
       setOrderManagementDraftEnabled(dCourier.courier_auto_send ?? false);
+      setTrendData(dTrend.trend || []);
       
       // Initialize text fields
       setProfName(dProf.name);
@@ -440,8 +456,12 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    if (profile && activePage === 'analytics') {
-      loadAnalyticsData(analyticsDays);
+    if (profile) {
+      if (activePage === 'analytics') {
+        loadAnalyticsData(analyticsDays);
+      } else if (activePage === 'dashboard') {
+        fetchTrendData(analyticsDays);
+      }
     }
   }, [analyticsDays, profile, activePage]);
 
@@ -1050,47 +1070,7 @@ export default function App() {
   const tiktokStats = getPlatformStats('TikTok Events API');
   const ga4Stats = getPlatformStats('GA4');
 
-  // Chart Generation: Events volume over last 10 calendar days (padded so chart always renders properly)
-  const getTrendData = () => {
-    // Use ISO date keys (YYYY-MM-DD) for reliable chronological sorting
-    const dateCount: Record<string, { total: number; meta: number; tiktok: number; ga4: number }> = {};
 
-    events.forEach(e => {
-      const d = new Date(e.timestamp);
-      const isoKey = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
-      if (!dateCount[isoKey]) {
-        dateCount[isoKey] = { total: 0, meta: 0, tiktok: 0, ga4: 0 };
-      }
-      dateCount[isoKey].total++;
-      if (e.platform === 'Meta CAPI') dateCount[isoKey].meta++;
-      else if (e.platform === 'TikTok Events API') dateCount[isoKey].tiktok++;
-      else if (e.platform === 'GA4') dateCount[isoKey].ga4++;
-    });
-
-    // Always render last 10 calendar days (pads empty days so area chart has enough points)
-    const today = new Date();
-    const last10Days: string[] = [];
-    for (let i = 9; i >= 0; i--) {
-      const d = new Date(today);
-      d.setDate(today.getDate() - i);
-      const isoKey = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
-      last10Days.push(isoKey);
-    }
-
-    return last10Days.map(isoKey => {
-      const displayLabel = new Date(isoKey + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-      const counts = dateCount[isoKey] || { total: 0, meta: 0, tiktok: 0, ga4: 0 };
-      return {
-        name: displayLabel,
-        'Meta CAPI': counts.meta,
-        'TikTok Events': counts.tiktok,
-        'GA4': counts.ga4,
-        'Total': counts.total
-      };
-    });
-  };
-
-  const trendData = getTrendData();
 
   // Suggestions optimization score
   const unresolvedSuggestions = suggestions.filter(s => !s.resolved);
