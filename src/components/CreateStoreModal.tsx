@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Store, Globe, Loader2, Check } from 'lucide-react';
+import { X, Store, Globe, Loader2, Check, AlertCircle } from 'lucide-react';
 
 interface CreateStoreModalProps {
   open: boolean;
@@ -12,12 +12,17 @@ export function CreateStoreModal({ open, onClose, onCreated, showToast }: Create
   const [businessName, setBusinessName] = useState('');
   const [domain, setDomain] = useState('');
   const [loading, setLoading] = useState(false);
+  const [inlineError, setInlineError] = useState<{ title: string; message: string } | null>(null);
 
   const handleCreate = async () => {
     if (!businessName.trim()) {
-      showToast('Business name is required.', true);
+      setInlineError({
+        title: 'Store name required',
+        message: 'Please enter a Business / Store Name before creating the store.',
+      });
       return;
     }
+    setInlineError(null);
     setLoading(true);
     try {
       const res = await fetch('/api/create-store', {
@@ -30,13 +35,21 @@ export function CreateStoreModal({ open, onClose, onCreated, showToast }: Create
         showToast(`Store "${businessName}" created! Switching...`, false);
         setBusinessName('');
         setDomain('');
+        setInlineError(null);
         onCreated();
         onClose();
       } else {
-        showToast(data.detail || 'Failed to create store.', true);
+        const message = data.detail || 'Failed to create store. Please try again.';
+        setInlineError({
+          title: res.status === 403 ? 'Store limit reached' : 'Could not create store',
+          message,
+        });
+        showToast(message, true);
       }
     } catch {
-      showToast('Network error. Please try again.', true);
+      const message = 'Network error. Please check your connection and try again.';
+      setInlineError({ title: 'Connection problem', message });
+      showToast(message, true);
     } finally {
       setLoading(false);
     }
@@ -75,6 +88,23 @@ export function CreateStoreModal({ open, onClose, onCreated, showToast }: Create
 
         {/* Body */}
         <div className="px-6 py-5 space-y-4">
+          {inlineError && (
+            <div
+              role="alert"
+              className="flex items-start gap-2.5 rounded-xl border border-rose-200 bg-rose-50 p-3.5 dark:border-rose-900/60 dark:bg-rose-950/30"
+            >
+              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-rose-600 dark:text-rose-400" />
+              <div className="space-y-1">
+                <p className="text-xs font-bold text-rose-700 dark:text-rose-300">
+                  {inlineError.title}
+                </p>
+                <p className="text-[11px] leading-relaxed text-rose-700 dark:text-rose-300">
+                  {inlineError.message}
+                </p>
+              </div>
+            </div>
+          )}
+
           {/* Info Banner */}
           <div className="flex items-start gap-2.5 p-3 rounded-xl bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-900/40">
             <Check className="w-4 h-4 text-indigo-500 mt-0.5 shrink-0" />
@@ -93,7 +123,10 @@ export function CreateStoreModal({ open, onClose, onCreated, showToast }: Create
               <input
                 type="text"
                 value={businessName}
-                onChange={e => setBusinessName(e.target.value)}
+                onChange={e => {
+                  setBusinessName(e.target.value);
+                  setInlineError(null);
+                }}
                 placeholder="e.g. My Fashion Store"
                 className="w-full pl-9 pr-4 py-2.5 text-sm bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 text-slate-800 dark:text-white transition-all"
                 disabled={loading}
@@ -111,7 +144,10 @@ export function CreateStoreModal({ open, onClose, onCreated, showToast }: Create
               <input
                 type="text"
                 value={domain}
-                onChange={e => setDomain(e.target.value)}
+                onChange={e => {
+                  setDomain(e.target.value);
+                  setInlineError(null);
+                }}
                 placeholder="e.g. myfashionstore.com"
                 className="w-full pl-9 pr-4 py-2.5 text-sm bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 text-slate-800 dark:text-white transition-all"
                 disabled={loading}
