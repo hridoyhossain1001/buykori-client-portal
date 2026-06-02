@@ -295,9 +295,6 @@ export default function App() {
             : 'Order Management disabled. Confirm → Purchase direct flow active.',
           false
         );
-        if (!orderManagementDraftEnabled && activePage === 'orders') {
-          setActivePage('pending-purchases');
-        }
       } else {
         showToast('Failed to save Order Management setting.', true);
       }
@@ -1232,11 +1229,12 @@ export default function App() {
                 setOrderManagementDraftEnabled={setOrderManagementDraftEnabled}
                 savingOrderMgmt={savingOrderMgmt}
                 handleSaveOrderManagement={handleSaveOrderManagement}
+                growthFeaturesEnabled={profile?.growthFeaturesEnabled}
               />
             )}
 
             {/* PAGE 11: ORDERS & COURIER — only when Order Management is enabled */}
-            {activePage === 'orders' && deferredData && orderManagementEnabled && (
+            {activePage === 'orders' && deferredData && (
               <OrdersView 
                 deferredData={deferredData}
                 fetchDeferred={fetchDeferred}
@@ -1336,6 +1334,7 @@ export default function App() {
                 handleCopy={handleCopy}
                 showToast={showToast}
                 orderManagementEnabled={orderManagementEnabled}
+                growthFeaturesEnabled={profile?.growthFeaturesEnabled}
                 pluginReleaseInfo={pluginReleaseInfo}
               />
             )}

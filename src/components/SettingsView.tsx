@@ -15,6 +15,7 @@ interface SettingsViewProps {
   handleCopy: (text: string, labelId: string) => void;
   showToast: (msg: string, isErr?: boolean) => void;
   orderManagementEnabled: boolean;
+  growthFeaturesEnabled?: boolean;
   pluginReleaseInfo?: PluginReleaseInfo | null;
 }
 
@@ -31,6 +32,7 @@ export function SettingsView({
   handleCopy,
   showToast,
   orderManagementEnabled,
+  growthFeaturesEnabled = false,
   pluginReleaseInfo
 }: SettingsViewProps) {
   // Local state for inputs to prevent key-stroke POST spamming
@@ -130,11 +132,6 @@ export function SettingsView({
   const [copyingPathaoSecret, setCopyingPathaoSecret] = useState<boolean>(false);
 
   useEffect(() => {
-    if (!orderManagementEnabled) {
-      setLoadingCourier(false);
-      return;
-    }
-
     setLoadingCourier(true);
     const fetchCourierSettings = async () => {
       try {
@@ -157,7 +154,7 @@ export function SettingsView({
       }
     };
     fetchCourierSettings();
-  }, [orderManagementEnabled]);
+  }, []);
 
   const handleSaveCourierSettings = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -325,7 +322,6 @@ export function SettingsView({
         </div>
 
         {/* Courier Settings Panel */}
-        {orderManagementEnabled && (
         <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-6 dark:bg-slate-900 dark:border-slate-800">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
@@ -339,8 +335,9 @@ export function SettingsView({
                 <input 
                   type="checkbox" 
                   checked={courierSettings.courier_auto_send}
+                  disabled={!growthFeaturesEnabled}
                   onChange={(e) => setCourierSettings((prev: any) => ({ ...prev, courier_auto_send: e.target.checked }))} 
-                  className="sr-only peer"
+                  className="sr-only peer disabled:cursor-not-allowed"
                 />
                 <div className="w-9 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600" />
                 <span className="ml-2 text-[10px] font-semibold text-slate-500 uppercase dark:text-slate-400">
@@ -349,6 +346,11 @@ export function SettingsView({
               </label>
             </div>
           </div>
+          {!growthFeaturesEnabled && (
+            <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] text-amber-700 dark:border-amber-900/50 dark:bg-amber-950/20 dark:text-amber-300">
+              Free plan includes manual courier booking. Auto-booking and automatic delivery Purchase sync require an active Growth trial or paid plan.
+            </p>
+          )}
 
           <div className="rounded-xl border border-indigo-200 bg-indigo-50/60 p-4 space-y-3 dark:border-indigo-900/40 dark:bg-indigo-950/20">
             <div>
@@ -624,7 +626,6 @@ export function SettingsView({
             </form>
           )}
         </div>
-        )}
 
         {/* WordPress Custom tracking rules */}
         <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-4 dark:bg-slate-900 dark:border-slate-800">

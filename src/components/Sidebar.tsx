@@ -24,6 +24,7 @@ import {
   Store,
   Check,
   PhoneCall,
+  LockKeyhole,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { UserProfile } from '../types';
@@ -42,6 +43,7 @@ interface SidebarItem {
   subtitle?: string;
   requireOrderMgmt?: boolean;
   count?: number;
+  locked?: boolean;
 }
 
 interface SidebarGroup {
@@ -135,7 +137,6 @@ export function Sidebar({
           id: 'orders',
           name: 'Orders & Delivery',
           icon: Truck,
-          requireOrderMgmt: true,
           count: deliveryBadgeCount,
         },
         {
@@ -144,6 +145,7 @@ export function Sidebar({
           icon: PhoneCall,
           subtitle: 'Recover checkout drafts with a valid phone',
           count: incompleteCheckoutCount,
+          locked: !profile.growthFeaturesEnabled,
         },
       ],
     },
@@ -369,6 +371,10 @@ export function Sidebar({
                         <span className="ml-auto rounded-full border border-indigo-200/60 bg-indigo-100 px-1.5 py-0.5 text-[10px] font-bold text-indigo-700 dark:border-indigo-900/60 dark:bg-indigo-950 dark:text-indigo-300">
                           {item.count}
                         </span>
+                      )}
+
+                      {item.locked && !collapsed && (
+                        <LockKeyhole className="ml-auto h-3.5 w-3.5 shrink-0 text-amber-500" />
                       )}
 
                       {collapsed && (

@@ -92,6 +92,7 @@ export interface UserProfile {
   eventsUsed: number;
   eventsQuota: number;
   renewalDate: string;
+  growthFeaturesEnabled?: boolean;
 }
 
 export interface Suggestion {

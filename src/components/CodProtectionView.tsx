@@ -22,6 +22,7 @@ interface CodProtectionViewProps {
   setOrderManagementDraftEnabled: (val: boolean) => void;
   savingOrderMgmt: boolean;
   handleSaveOrderManagement: () => Promise<void>;
+  growthFeaturesEnabled?: boolean;
 }
 
 export function CodProtectionView({
@@ -44,6 +45,7 @@ export function CodProtectionView({
   setOrderManagementDraftEnabled,
   savingOrderMgmt,
   handleSaveOrderManagement,
+  growthFeaturesEnabled = false,
 }: CodProtectionViewProps) {
   return (
     <div className="space-y-6">
@@ -75,6 +77,7 @@ export function CodProtectionView({
                 <input
                   type="checkbox"
                   checked={orderManagementDraftEnabled}
+                  disabled={!growthFeaturesEnabled}
                   onChange={(e) => setOrderManagementDraftEnabled(e.target.checked)}
                   className="sr-only peer"
                 />
@@ -101,13 +104,18 @@ export function CodProtectionView({
             </div>
             <button
               type="button"
-              disabled={savingOrderMgmt}
+              disabled={savingOrderMgmt || !growthFeaturesEnabled}
               onClick={handleSaveOrderManagement}
               className="px-4 py-1.5 bg-slate-900 hover:bg-slate-800 text-white dark:bg-white dark:hover:bg-slate-200 dark:text-slate-900 text-[10px] font-bold rounded-lg transition-colors disabled:opacity-50"
             >
               {savingOrderMgmt ? 'Saving...' : 'Save Settings'}
             </button>
           </div>
+          {!growthFeaturesEnabled && (
+            <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] text-amber-700 dark:border-amber-900/50 dark:bg-amber-950/20 dark:text-amber-300">
+              Manual courier booking is available in Orders & Delivery. Automatic courier workflow requires a Growth trial or paid plan.
+            </p>
+          )}
         </div>
 
         {/* Right Side: COD Protection */}
@@ -134,13 +142,19 @@ export function CodProtectionView({
                 <input 
                   type="checkbox" 
                   checked={deferredEnabled}
+                  disabled={!growthFeaturesEnabled}
                   onChange={(e) => setDeferredEnabled(e.target.checked)} 
                   className="sr-only peer"
-                />
+              />
                 <div className="w-10 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-600" />
               </label>
             </div>
           </div>
+          {!growthFeaturesEnabled && (
+            <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] text-amber-700 dark:border-amber-900/50 dark:bg-amber-950/20 dark:text-amber-300">
+              Deferred Purchase control is available with a Growth trial or paid plan.
+            </p>
+          )}
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
@@ -176,7 +190,7 @@ export function CodProtectionView({
           <div className="flex justify-end mt-auto">
             <button
               type="button"
-              disabled={savingDeferredSettings}
+              disabled={savingDeferredSettings || !growthFeaturesEnabled}
               onClick={handleSaveDeferredSettings}
               className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-[10px] font-bold rounded-lg transition-colors"
             >
