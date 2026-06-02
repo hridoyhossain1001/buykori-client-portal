@@ -23,6 +23,7 @@ import {
   Plus,
   Store,
   Check,
+  PhoneCall,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { UserProfile } from '../types';
@@ -61,6 +62,7 @@ interface SidebarProps {
   suggestionsCount: number;
   orderVerificationCount: number;
   deliveryBadgeCount: number;
+  incompleteCheckoutCount: number;
   stores?: StoreInfo[];
   onSwitchStore?: (clientId: number) => Promise<void>;
   onCreateStore?: () => void;
@@ -79,6 +81,7 @@ export function Sidebar({
   suggestionsCount,
   orderVerificationCount,
   deliveryBadgeCount,
+  incompleteCheckoutCount,
   stores = [],
   onSwitchStore,
   onCreateStore,
@@ -134,6 +137,13 @@ export function Sidebar({
           icon: Truck,
           requireOrderMgmt: true,
           count: deliveryBadgeCount,
+        },
+        {
+          id: 'incomplete-checkouts',
+          name: 'Incomplete Checkouts',
+          icon: PhoneCall,
+          subtitle: 'Recover checkout drafts with a valid phone',
+          count: incompleteCheckoutCount,
         },
       ],
     },

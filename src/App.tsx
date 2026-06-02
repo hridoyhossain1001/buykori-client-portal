@@ -27,6 +27,7 @@ const SuggestionsView = lazy(() => import('./components/SuggestionsView').then(m
 const CampaignBuilderView = lazy(() => import('./components/CampaignBuilderView').then(m => ({ default: m.CampaignBuilderView })));
 const AccountView = lazy(() => import('./components/AccountView').then(m => ({ default: m.AccountView })));
 const OrdersView = lazy(() => import('./components/OrdersView').then(m => ({ default: m.OrdersView })));
+const IncompleteCheckoutsView = lazy(() => import('./components/IncompleteCheckoutsView').then(m => ({ default: m.IncompleteCheckoutsView })));
 
 export default function App() {
   const [activePage, setActivePage] = useState<string>('dashboard');
@@ -62,6 +63,7 @@ export default function App() {
   const [deferredData, setDeferredData] = useState<any>(null);
   const [courierOrders, setCourierOrders] = useState<any[]>([]);
   const [sidebarStatus, setSidebarStatus] = useState<any>(null);
+  const [incompleteCheckoutData, setIncompleteCheckoutData] = useState<any>({ items: [], counts: {} });
   const [pluginReleaseInfo, setPluginReleaseInfo] = useState<PluginReleaseInfo | null>(null);
   const [selectedOrderIds, setSelectedOrderIds] = useState<string[]>([]);
   const [deferredEnabled, setDeferredEnabled] = useState<boolean>(false);
@@ -237,6 +239,34 @@ export default function App() {
     }
   };
 
+  const fetchIncompleteCheckouts = async () => {
+    try {
+      const res = await fetch('/api/incomplete-checkouts');
+      if (res.ok) {
+        setIncompleteCheckoutData(await res.json());
+      } else if (res.status === 403) {
+        setIncompleteCheckoutData({ items: [], counts: {}, restricted: true });
+      }
+    } catch (err) {
+      console.error('Failed to fetch incomplete checkouts', err);
+    }
+  };
+
+  const handleIncompleteCheckoutStatus = async (id: number, status: string) => {
+    const res = await fetch(`/api/incomplete-checkouts/${id}/status`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status }),
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      showToast(body.detail || 'Failed to update recovery status.', true);
+      return;
+    }
+    showToast('Recovery status updated.');
+    await fetchIncompleteCheckouts();
+  };
+
   const handleSaveOrderManagement = async () => {
     setSavingOrderMgmt(true);
     try {
@@ -284,7 +314,7 @@ export default function App() {
     try {
       // Parallel pull
       const [
-        resProf, resConn, resCreds, resRules, resSugg, resLogs, resApi, resDef, resOutbox, resCourier, resCourierOrders, resSidebar, resPlugin
+        resProf, resConn, resCreds, resRules, resSugg, resLogs, resApi, resDef, resOutbox, resCourier, resCourierOrders, resSidebar, resPlugin, resIncomplete
       ] = await Promise.all([
         fetch('/api/profile'),
         fetch('/api/connection'),
@@ -299,6 +329,7 @@ export default function App() {
         fetch('/api/courier/orders'),
         fetch('/api/sidebar/status'),
         fetch('/api/v1/plugin/info'),
+        fetch('/api/incomplete-checkouts'),
       ]);
 
       if (isAuthFailure([resProf, resConn, resCreds, resRules])) {
@@ -323,6 +354,7 @@ export default function App() {
       const dCourierOrders = resCourierOrders.ok ? await resCourierOrders.json() : [];
       const dSidebar = resSidebar.ok ? await resSidebar.json() : null;
       const dPlugin = resPlugin.ok ? await resPlugin.json() : null;
+      const dIncomplete = resIncomplete.ok ? await resIncomplete.json() : { items: [], counts: {}, restricted: resIncomplete.status === 403 };
 
       setProfile(dProf);
       setConnection(dConn);
@@ -335,6 +367,7 @@ export default function App() {
       setCourierOrders(Array.isArray(dCourierOrders) ? dCourierOrders : []);
       setSidebarStatus(dSidebar);
       setPluginReleaseInfo(dPlugin);
+      setIncompleteCheckoutData(dIncomplete);
       setDeferredData(dDef);
       setDeferredEnabled(dDef.deferredEnabled);
       setAutoConfirmDays(dDef.autoConfirmDays);
@@ -1038,6 +1071,7 @@ export default function App() {
   }).length;
   const orderVerificationCount = Number(sidebarStatus?.orderVerificationNew ?? totalOrderVerificationCount);
   const deliveryBadgeCount = Number(sidebarStatus?.ordersDeliveryNew ?? totalDeliveryBadgeCount);
+  const incompleteCheckoutCount = Number(incompleteCheckoutData?.counts?.incomplete ?? 0);
   const severityPenalty = unresolvedSuggestions.reduce((total, suggestion) => {
     if (suggestion.severity === 'Critical') return total + 25;
     if (suggestion.severity === 'Warning') return total + 15;
@@ -1049,6 +1083,7 @@ export default function App() {
     analytics: 'Insights',
     'pending-purchases': 'Order Verification',
     orders: 'Orders & Delivery',
+    'incomplete-checkouts': 'Incomplete Checkouts',
     'campaign-builder': 'Campaigns',
     suggestions: 'Optimization Audit',
     'event-logs': 'Event History',
@@ -1075,6 +1110,7 @@ export default function App() {
           suggestionsCount={suggestionsCount}
           orderVerificationCount={orderVerificationCount}
           deliveryBadgeCount={deliveryBadgeCount}
+          incompleteCheckoutCount={incompleteCheckoutCount}
           stores={stores}
           onSwitchStore={handleSwitchStore}
           onCreateStore={() => setCreateStoreModalOpen(true)}
@@ -1210,6 +1246,15 @@ export default function App() {
                 apiKey={connection?.api_key}
                 storeName={profile?.name}
                 storeEmail={profile?.email}
+              />
+            )}
+
+            {activePage === 'incomplete-checkouts' && (
+              <IncompleteCheckoutsView
+                data={incompleteCheckoutData}
+                onStatusChange={handleIncompleteCheckoutStatus}
+                onRefresh={fetchIncompleteCheckouts}
+                showToast={showToast}
               />
             )}
 
