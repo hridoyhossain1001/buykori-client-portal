@@ -49,7 +49,11 @@ function getTrackingCode(order: CourierLabelOrder): string {
 }
 
 function getTrackingUrl(order: CourierLabelOrder): string {
-  return `https://api.buykori.app/api/track/${encodeURIComponent(getTrackingCode(order))}`;
+  const provider = String(order.courier_provider || '').trim().toLowerCase();
+  const trackingCode = encodeURIComponent(getTrackingCode(order));
+  return provider
+    ? `https://api.buykori.app/api/track/${encodeURIComponent(provider)}/${trackingCode}`
+    : `https://api.buykori.app/api/track/${trackingCode}`;
 }
 
 function makeBarcodeUrl(value: string): string {

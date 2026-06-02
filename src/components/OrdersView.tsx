@@ -375,6 +375,13 @@ export function OrdersView({
       if (res.ok) {
         const booking = await res.json();
         const providerName = courierProvider === 'pathao' ? 'Pathao' : courierProvider === 'redx' ? 'RedX' : 'SteadFast';
+        if (booking.queued || !booking.tracking_id) {
+          showToast(`Order queued for ${providerName}. Tracking details will appear shortly.`, false);
+          setIsSendModalOpen(false);
+          fetchDeferred();
+          fetchCourierOrders();
+          return;
+        }
         showToast(`✅ অর্ডার সফলভাবে ${providerName}-এ পাঠানো হয়েছে!`, false);
         setIsSendModalOpen(false);
         openLabel({
@@ -461,6 +468,20 @@ export function OrdersView({
 
   const getStatusBadge = (status: string) => {
     const s = status.toLowerCase();
+    if (s === 'booking_queued' || s === 'booking_processing') {
+      return (
+        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-sky-50 text-sky-700 border border-sky-200 dark:bg-sky-950/30 dark:text-sky-400 dark:border-sky-900/40">
+          {s === 'booking_processing' ? 'Booking Now' : 'Booking Queued'}
+        </span>
+      );
+    }
+    if (s === 'booking_failed') {
+      return (
+        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200 dark:bg-rose-950/30 dark:text-rose-400 dark:border-rose-900/40">
+          Booking Failed
+        </span>
+      );
+    }
     if (s === 'delivered' || s === 'completed') {
       return (
         <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-900/40">
