@@ -35,20 +35,15 @@ export default function App() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState<boolean>(false);
 
-  // Dark/Light Mode state
-  const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {
-    return localStorage.getItem('theme-capi-portal') === 'dark';
-  });
+  // Dark Mode disabled — always Light Mode
+  const isDarkMode = false;
+  const setIsDarkMode = (_: any) => {}; // no-op, kept for type compatibility
 
   useEffect(() => {
-    if (isDarkMode) {
-      document.documentElement.classList.add('dark');
-      localStorage.setItem('theme-capi-portal', 'dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-      localStorage.setItem('theme-capi-portal', 'light');
-    }
-  }, [isDarkMode]);
+    // Ensure dark class is never active
+    document.documentElement.classList.remove('dark');
+    localStorage.setItem('theme-capi-portal', 'light');
+  }, []);
 
   // Core Entity States
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -1149,7 +1144,7 @@ export default function App() {
             setSearchVal={setSearchVal}
             onMenuClick={() => setMobileSidebarOpen(true)}
             isDark={isDarkMode}
-            onToggleTheme={() => setIsDarkMode(!isDarkMode)}
+            onToggleTheme={() => {}} // dark mode disabled
             suggestions={suggestions}
             setActivePage={setActivePage}
           />

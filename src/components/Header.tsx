@@ -235,36 +235,7 @@ export function Header({
             <Search className="w-4 h-4 text-slate-500" />
           </button>
 
-          {/* Theme Toggle - Glass Design */}
-          <button
-            onClick={onToggleTheme}
-            className="relative flex items-center w-[64px] h-[32px] rounded-full bg-black/5 dark:bg-white/5 transition-colors cursor-pointer mx-1 border border-black/10 dark:border-white/10"
-            title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
-            aria-label="Toggle dark mode"
-          >
-            <span className="w-full text-center text-[8.5px] font-extrabold uppercase tracking-widest text-slate-600 dark:text-slate-300">
-              {isDark ? (
-                <span className="pr-[22px] transition-opacity">Dark</span>
-              ) : (
-                <span className="pl-[22px] transition-opacity">Light</span>
-              )}
-            </span>
-            
-            {/* Glass Handle */}
-            <div className={`absolute w-7 h-7 rounded-full flex items-center justify-center transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] 
-              bg-white/40 dark:bg-black/40 backdrop-blur-xl 
-              border border-white/80 dark:border-white/10
-              shadow-[0_4px_16px_rgba(0,0,0,0.1),inset_0_1px_2px_rgba(255,255,255,0.8)] 
-              dark:shadow-[0_4px_16px_rgba(0,0,0,0.5),inset_0_1px_2px_rgba(255,255,255,0.2)]
-              ${isDark ? 'translate-x-[33px]' : 'translate-x-[2px]'}`}
-            >
-              {isDark ? (
-                <Moon className="w-3.5 h-3.5 text-white drop-shadow-[0_0_4px_rgba(255,255,255,0.5)] fill-white/20" />
-              ) : (
-                <Sun className="w-3.5 h-3.5 text-white drop-shadow-[0_0_4px_rgba(255,255,255,0.8)] fill-white" />
-              )}
-            </div>
-          </button>
+
 
           {/* Sync trigger */}
           <button
