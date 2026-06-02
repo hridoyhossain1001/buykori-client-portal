@@ -413,9 +413,20 @@ export function Sidebar({
             </div>
             <div className="flex justify-between text-[10px] text-slate-400 dark:text-slate-500 leading-none mt-1">
               <span>{formatQuota(profile.eventsUsed)} / {formatQuota(profile.eventsQuota)} events</span>
-              <span>Reset in 30d</span>
+              {profile.renewalDate ? (() => {
+                const resetDate = new Date(profile.renewalDate);
+                const today = new Date();
+                const daysLeft = Math.ceil((resetDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+                const label = resetDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                return (
+                  <span className={daysLeft <= 5 ? 'text-rose-500 font-semibold' : ''}>
+                    Reset: {label} ({daysLeft}d)
+                  </span>
+                );
+              })() : <span>Reset monthly</span>}
             </div>
           </div>
+
         )}
       </div>
 
