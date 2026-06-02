@@ -55,6 +55,15 @@ export function AccountView({
   handleDemoReset,
   showToast
 }: AccountViewProps) {
+  const currentPlanLower = String(profile.plan || '').toLowerCase();
+  const isFreeOrTrial = currentPlanLower.includes('free') || currentPlanLower.includes('trial');
+  const isGrowth = currentPlanLower.includes('growth');
+  const isScale = currentPlanLower.includes('scale');
+  const isAgency = currentPlanLower.includes('agency');
+  
+  const isDemo = window.location.hostname.includes('localhost') || 
+                 window.location.hostname.includes('127.0.0.1');
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
       
@@ -257,51 +266,81 @@ export function AccountView({
 
           <div>
             <span className="block text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wide mb-2">Upgrade Subscription level</span>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-center text-xs">
-              <div className="p-3 border border-indigo-200 dark:border-indigo-900/60 rounded bg-indigo-50/50 dark:bg-indigo-950/20 flex flex-col justify-between">
-                <span className="font-bold text-slate-800 dark:text-white leading-none">Scale Tier</span>
-                <span className="text-[10px] text-indigo-600 dark:text-indigo-400 mt-1 leading-none">250k Events / mo</span>
-                <span className="text-xs font-mono font-extrabold mt-3 text-indigo-700 dark:text-indigo-400">$99 / mo</span>
-                <button 
-                  onClick={() => showToast("Billing checkout is not connected yet. Contact support@buykori.app to change plans.", true)}
-                  className="mt-3 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded font-semibold text-[10px] cursor-pointer"
-                  type="button"
-                >
-                  Contact Support
-                </button>
-              </div>
-
-              <div className="p-3 border border-slate-200 dark:border-slate-800 rounded hover:bg-slate-50 dark:hover:bg-slate-800/60 flex flex-col justify-between">
-                <span className="font-bold text-slate-800 dark:text-white leading-none">Custom Volume</span>
-                <span className="text-[10px] text-slate-400 dark:text-slate-500 mt-1 leading-none font-medium">Enterprise CAPI custom</span>
-                <span className="text-xs font-mono font-extrabold mt-3 text-slate-700 dark:text-slate-300">Contact Us</span>
+            {isScale ? (
+              <div className="p-4 border border-indigo-200 dark:border-indigo-900/60 rounded bg-indigo-50/20 dark:bg-indigo-950/10 text-center space-y-2">
+                <span className="font-bold text-slate-800 dark:text-white block text-xs uppercase tracking-wide">You are on our highest standard plan</span>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">For customized volume, custom webhook routes, or higher CAPI event volume, please contact support.</p>
                 <button 
                   onClick={() => showToast("Custom billing requests are not automated here. Contact support@buykori.app.", true)}
-                  className="mt-3 py-1 bg-slate-800 hover:bg-slate-900 dark:bg-slate-700 dark:hover:bg-slate-600 text-white rounded font-semibold text-[10px] cursor-pointer"
+                  className="w-full py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded font-semibold text-[10px] cursor-pointer shadow-sm transition-colors"
+                  type="button"
+                >
+                  Contact Enterprise Support
+                </button>
+              </div>
+            ) : isAgency ? (
+              <div className="p-4 border border-slate-200 dark:border-slate-800 rounded bg-slate-50/50 dark:bg-slate-900/40 text-center space-y-2">
+                <span className="font-bold text-slate-800 dark:text-white block text-xs uppercase tracking-wide">Active Premium Agency Plan</span>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">Your account is configured with a customized event volume capacity.</p>
+                <button 
+                  onClick={() => showToast("Contact support@buykori.app for any plan modifications.", true)}
+                  className="w-full py-1.5 bg-slate-800 hover:bg-slate-900 text-white rounded font-semibold text-[10px] cursor-pointer shadow-sm transition-colors"
                   type="button"
                 >
                   Contact Support
                 </button>
               </div>
-            </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-center text-xs">
+                {isFreeOrTrial && (
+                  <div className="p-3 border border-indigo-200 dark:border-indigo-900/60 rounded bg-indigo-50/50 dark:bg-indigo-950/20 flex flex-col justify-between">
+                    <span className="font-bold text-slate-800 dark:text-white leading-none">Growth Plan</span>
+                    <span className="text-[10px] text-indigo-600 dark:text-indigo-400 mt-1 leading-none">500k Events / mo</span>
+                    <span className="text-xs font-mono font-extrabold mt-3 text-indigo-700 dark:text-indigo-400">$49 / mo</span>
+                    <button 
+                      onClick={() => showToast("Billing checkout is not connected yet. Contact support@buykori.app to upgrade.", true)}
+                      className="mt-3 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded font-semibold text-[10px] cursor-pointer"
+                      type="button"
+                    >
+                      Upgrade Plan
+                    </button>
+                  </div>
+                )}
+                
+                <div className="p-3 border border-slate-200 dark:border-slate-800 rounded hover:bg-slate-50 dark:hover:bg-slate-800/60 flex flex-col justify-between">
+                  <span className="font-bold text-slate-800 dark:text-white leading-none">Scale Plan</span>
+                  <span className="text-[10px] text-slate-400 dark:text-slate-500 mt-1 leading-none font-medium">1M Events / mo</span>
+                  <span className="text-xs font-mono font-extrabold mt-3 text-slate-700 dark:text-slate-300">$99 / mo</span>
+                  <button 
+                    onClick={() => showToast("Billing checkout is not connected yet. Contact support@buykori.app to upgrade.", true)}
+                    className="mt-3 py-1 bg-slate-800 hover:bg-slate-900 dark:bg-slate-700 dark:hover:bg-slate-600 text-white rounded font-semibold text-[10px] cursor-pointer"
+                    type="button"
+                  >
+                    Upgrade Plan
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
         {/* Reset demo sandbox context values widget */}
-        <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm space-y-3 dark:bg-slate-900 dark:border-slate-800">
-          <div>
-            <h4 className="font-bold text-slate-800 dark:text-white text-xs uppercase tracking-wider">Demonstration controls</h4>
-            <p className="text-xs text-slate-400 dark:text-slate-500">Restore test values or delete analytics mock arrays</p>
-          </div>
+        {isDemo && (
+          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm space-y-3 dark:bg-slate-900 dark:border-slate-800">
+            <div>
+              <h4 className="font-bold text-slate-800 dark:text-white text-xs uppercase tracking-wider">Demonstration controls</h4>
+              <p className="text-xs text-slate-400 dark:text-slate-500">Restore test values or delete analytics mock arrays</p>
+            </div>
 
-          <button 
-            onClick={handleDemoReset}
-            className="w-full py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 dark:border-slate-800 text-slate-800 dark:text-slate-200 rounded text-xs font-semibold border border-slate-200 flex items-center justify-center gap-1.5 cursor-pointer"
-          >
-            <RotateCcw className="w-3.5 h-3.5" />
-            Restore original diagnostic mock traces
-          </button>
-        </div>
+            <button 
+              onClick={handleDemoReset}
+              className="w-full py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 dark:border-slate-800 text-slate-800 dark:text-slate-200 rounded text-xs font-semibold border border-slate-200 flex items-center justify-center gap-1.5 cursor-pointer"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              Restore original diagnostic mock traces
+            </button>
+          </div>
+        )}
 
       </div>
     </div>
