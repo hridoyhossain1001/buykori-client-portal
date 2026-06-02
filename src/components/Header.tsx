@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Bell, 
   Search, 
@@ -15,8 +15,10 @@ import {
   Sun,
   Moon,
   X,
+  AlertTriangle,
+  Sparkles,
 } from 'lucide-react';
-import { ClientConnection } from '../types';
+import { ClientConnection, Suggestion } from '../types';
 
 interface HeaderProps {
   title: string;
@@ -27,6 +29,8 @@ interface HeaderProps {
   onMenuClick?: () => void;
   isDark: boolean;
   onToggleTheme: () => void;
+  suggestions?: Suggestion[];
+  setActivePage?: (p: string) => void;
 }
 
 export function Header({ 
@@ -37,11 +41,29 @@ export function Header({
   setSearchVal, 
   onMenuClick,
   isDark,
-  onToggleTheme 
+  onToggleTheme,
+  suggestions = [],
+  setActivePage
 }: HeaderProps) {
   const [testing, setTesting] = useState(false);
   const [toast, setToast] = useState<{ show: boolean; msg: string; err: boolean }>({ show: false, msg: '', err: false });
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const notificationsRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (notificationsRef.current && !notificationsRef.current.contains(event.target as Node)) {
+        setIsNotificationsOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+  const unresolvedSuggestions = suggestions.filter(s => !s.resolved);
 
   const triggerHeartbeat = async () => {
     setTesting(true);
@@ -132,16 +154,20 @@ export function Header({
           </button>
 
           <div className="relative hidden lg:block group">
-            {/* Glow effect */}
-            <div className="absolute -inset-0.5 bg-gradient-to-r from-orange-400 via-amber-300 to-orange-400 rounded-full blur opacity-30 group-hover:opacity-60 transition duration-500"></div>
-            <input
-              type="text"
-              placeholder="Search activity, events..."
-              value={searchVal}
-              onChange={(e) => setSearchVal(e.target.value)}
-              className="relative w-56 lg:w-64 xl:w-72 rounded-full border-none bg-white px-5 py-2 pr-10 text-xs shadow-md outline-none text-slate-800 dark:text-slate-100 dark:bg-slate-900 transition-all focus:ring-2 focus:ring-orange-300/50"
-            />
-            <Search className="absolute right-4 top-2.5 h-4 w-4 text-slate-500 dark:text-slate-400" />
+            {/* Soft ambient orange glow beneath */}
+            <div className="ambient-glow-capsule"></div>
+            
+            {/* Input container */}
+            <div className="orange-glow-capsule-input relative z-10 flex items-center justify-between w-56 lg:w-64 xl:w-72 rounded-full px-5 py-2.5">
+              <input
+                type="text"
+                placeholder="Actome"
+                value={searchVal}
+                onChange={(e) => setSearchVal(e.target.value)}
+                className="text-xs text-slate-800 dark:text-slate-100 placeholder-slate-850 dark:placeholder-slate-100 font-semibold"
+              />
+              <Search className="absolute right-4 top-3.5 h-3.5 w-3.5 text-slate-700 dark:text-slate-300 pointer-events-none" />
+            </div>
           </div>
 
           {/* Theme Toggle - Glass Design */}
@@ -187,12 +213,83 @@ export function Header({
             <RefreshCw className="w-4 h-4" />
           </button>
 
-          {/* Notifications & Help */}
+           {/* Notifications & Help */}
           <div className="flex items-center gap-1 border-l border-slate-200 dark:border-slate-800 pl-2 md:pl-4">
-            <button className="relative rounded-full p-1.5 md:p-2 text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800">
-              <Bell className="w-4 h-4" />
-              <span className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full border border-white dark:border-slate-900 bg-indigo-500"></span>
-            </button>
+            <div className="relative" ref={notificationsRef}>
+              <button 
+                onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
+                className="relative rounded-full p-1.5 md:p-2 text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors focus:outline-none cursor-pointer"
+                title="System Notifications & Issues"
+              >
+                <Bell className="w-4 h-4" />
+                {unresolvedSuggestions.length > 0 && (
+                  <span className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full border border-white dark:border-slate-900 bg-orange-500 animate-pulse"></span>
+                )}
+              </button>
+
+              {/* Interactive notification dropdown menu listing diagnostics issues */}
+              {isNotificationsOpen && (
+                <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl z-50 overflow-hidden animate-slide-up">
+                  {/* Dropdown Header */}
+                  <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/40">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Active Diagnostics Issues</span>
+                    <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-orange-100 dark:bg-orange-950/40 text-orange-600 dark:text-orange-400 font-mono">
+                      {unresolvedSuggestions.length} Pending
+                    </span>
+                  </div>
+
+                  {/* Dropdown Content */}
+                  <div className="max-h-72 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800">
+                    {unresolvedSuggestions.length === 0 ? (
+                      <div className="p-6 text-center text-slate-400 font-medium">
+                        <CheckCircle2 className="w-6 h-6 mx-auto text-emerald-500 mb-2" />
+                        <p className="text-xs">All checklist resolved!</p>
+                        <p className="text-[10px] text-slate-400 mt-0.5">Your tracking telemetry is fully healthy.</p>
+                      </div>
+                    ) : (
+                      unresolvedSuggestions.map((s) => (
+                        <div 
+                          key={s.id} 
+                          onClick={() => {
+                            if (setActivePage) {
+                              setActivePage('suggestions');
+                              setIsNotificationsOpen(false);
+                            }
+                          }}
+                          className="p-3.5 hover:bg-slate-50 dark:hover:bg-slate-800/40 cursor-pointer transition-colors"
+                        >
+                          <div className="flex justify-between items-start gap-2">
+                            <span className={`px-1.5 py-0.5 rounded text-[8px] font-extrabold uppercase tracking-wider shrink-0 ${
+                              s.severity === 'Critical' ? 'bg-rose-50 text-rose-600 border border-rose-100 dark:bg-rose-950/20 dark:text-rose-400 dark:border-rose-900/40' : 
+                              s.severity === 'Warning' ? 'bg-amber-50 text-amber-600 border border-amber-100 dark:bg-amber-950/20 dark:text-amber-400 dark:border-amber-900/40' : 
+                              'bg-indigo-50 text-indigo-600 border border-indigo-100 dark:bg-indigo-950/20 dark:text-indigo-400 dark:border-indigo-900/40'
+                            }`}>
+                              {s.severity}
+                            </span>
+                            {s.platform && <span className="text-[9px] font-mono text-slate-400 dark:text-slate-500">{s.platform}</span>}
+                          </div>
+                          <h5 className="text-xs font-bold text-slate-800 dark:text-slate-200 mt-1.5">{s.title}</h5>
+                          <p className="text-[10.5px] text-slate-400 dark:text-slate-500 leading-normal mt-0.5 truncate">{s.explanation}</p>
+                        </div>
+                      ))
+                    )}
+                  </div>
+
+                  {/* Dropdown Footer */}
+                  {unresolvedSuggestions.length > 0 && setActivePage && (
+                    <div 
+                      onClick={() => {
+                        setActivePage('suggestions');
+                        setIsNotificationsOpen(false);
+                      }}
+                      className="block text-center py-2.5 bg-slate-50 dark:bg-slate-950/40 border-t border-slate-100 dark:border-slate-800 text-[10px] font-bold text-indigo-600 hover:text-indigo-750 dark:text-indigo-400 dark:hover:text-indigo-300 transition-colors uppercase tracking-wider cursor-pointer"
+                    >
+                      Audit optimization dashboard →
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
             
             <button className="hidden sm:block rounded-full p-1.5 md:p-2 text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800" title="API Support">
               <HelpCircle className="w-4 h-4" />

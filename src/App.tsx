@@ -1150,6 +1150,8 @@ export default function App() {
             onMenuClick={() => setMobileSidebarOpen(true)}
             isDark={isDarkMode}
             onToggleTheme={() => setIsDarkMode(!isDarkMode)}
+            suggestions={suggestions}
+            setActivePage={setActivePage}
           />
         )}
 

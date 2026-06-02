@@ -178,6 +178,90 @@ button.bg-white, button.bg-slate-50, button.bg-slate-100, button.bg-indigo-50 {
   pointer-events: none;
 }
 
+/* Premium Glowing Search Capsule Pulse Animation */
+@keyframes ambient-glow-pulse {
+  0% {
+    transform: scale(0.96);
+    opacity: 0.3;
+    filter: blur(14px);
+    box-shadow: 0 8px 24px rgba(255, 120, 60, 0.35);
+  }
+  50% {
+    transform: scale(1.08);
+    opacity: 0.85;
+    filter: blur(24px);
+    box-shadow: 0 16px 48px rgba(255, 120, 60, 0.75);
+  }
+  100% {
+    transform: scale(0.96);
+    opacity: 0.3;
+    filter: blur(14px);
+    box-shadow: 0 8px 24px rgba(255, 120, 60, 0.35);
+  }
+}
+
+.ambient-glow-capsule {
+  position: absolute;
+  inset: -2px;
+  border-radius: 9999px;
+  background: radial-gradient(circle, rgba(255, 120, 60, 0.75) 0%, rgba(255, 160, 120, 0.35) 60%, rgba(255, 120, 60, 0) 100%);
+  animation: ambient-glow-pulse 3s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.orange-glow-capsule-input {
+  position: relative;
+  background-color: rgba(255, 255, 255, 0.96) !important;
+  border: 1px solid rgba(255, 120, 60, 0.2) !important;
+  box-shadow: 
+    0 10px 30px rgba(255, 120, 60, 0.08),
+    inset 0 1px 2px rgba(255, 255, 255, 0.95),
+    inset 0 -1.5px 2px rgba(255, 120, 60, 0.12) !important;
+}
+
+.orange-glow-capsule-input input {
+  background-color: transparent !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  height: auto !important;
+  width: 100% !important;
+  outline: none !important;
+}
+
+.orange-glow-capsule-input input::placeholder {
+  color: #0f172a !important;
+  opacity: 0.9 !important;
+  font-weight: 500 !important;
+}
+
+.dark .orange-glow-capsule-input input::placeholder {
+  color: #f1f5f9 !important;
+  opacity: 0.95 !important;
+  font-weight: 500 !important;
+}
+
+.orange-glow-capsule-input input:focus {
+  background-color: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+  outline-offset: 0 !important;
+}
+
+.dark .orange-glow-capsule-input {
+  background-color: rgba(15, 23, 42, 0.96) !important;
+  border-color: rgba(255, 120, 60, 0.3) !important;
+  box-shadow: 
+    0 10px 30px rgba(0, 0, 0, 0.4),
+    inset 0 1px 1px rgba(255, 255, 255, 0.05),
+    inset 0 -1px 2px rgba(255, 120, 60, 0.15) !important;
+}
+
+
 /* Core Dark mode state utility overrides */
 .dark body {
   background-color: #0b1329 !important; /* deep black canvas */
