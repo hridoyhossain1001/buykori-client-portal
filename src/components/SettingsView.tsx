@@ -120,7 +120,9 @@ export function SettingsView({
     pathao_webhook_verified_at: '',
     steadfast_api_key: '',
     steadfast_secret_key: '',
+    steadfast_webhook_token_configured: false,
     redx_access_token: '',
+    redx_webhook_secret_configured: false,
     redx_pickup_store_id: '',
     redx_delivery_area_id: '',
     redx_delivery_area_name: '',
@@ -130,6 +132,7 @@ export function SettingsView({
   const [loadingCourier, setLoadingCourier] = useState<boolean>(false);
   const [savingCourier, setSavingCourier] = useState<boolean>(false);
   const [copyingPathaoSecret, setCopyingPathaoSecret] = useState<boolean>(false);
+  const [copyingCourierSecret, setCopyingCourierSecret] = useState<string>('');
 
   useEffect(() => {
     setLoadingCourier(true);
@@ -205,6 +208,31 @@ export function SettingsView({
       showToast('Failed to copy Pathao webhook secret.', true);
     } finally {
       setCopyingPathaoSecret(false);
+    }
+  };
+
+  const handleCopyCourierWebhookSetup = async (provider: 'steadfast' | 'redx') => {
+    setCopyingCourierSecret(provider);
+    try {
+      const res = await fetch(`/api/courier/${provider}/webhook-secret`, { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok) {
+        showToast(data.detail || `Failed to generate ${provider} webhook secret.`, true);
+        return;
+      }
+      const value = provider === 'redx'
+        ? data.callback_url
+        : `Callback URL: ${data.callback_url}\nAuth Token: ${data.secret}`;
+      await navigator.clipboard.writeText(value);
+      setCourierSettings((prev: any) => ({
+        ...prev,
+        [`${provider === 'steadfast' ? 'steadfast_webhook_token' : 'redx_webhook_secret'}_configured`]: true
+      }));
+      showToast(`${provider === 'steadfast' ? 'SteadFast' : 'RedX'} webhook setup copied.`, false);
+    } catch (err) {
+      showToast(`Failed to copy ${provider} webhook setup.`, true);
+    } finally {
+      setCopyingCourierSecret('');
     }
   };
 
@@ -545,6 +573,14 @@ export function SettingsView({
                       {copyingPathaoSecret ? 'Preparing secret...' : 'Copy Setup Secret'}
                     </button>
                   </div>
+                  <div className="rounded-lg border border-indigo-100 bg-indigo-50/50 p-3 dark:border-indigo-900/40 dark:bg-indigo-950/20">
+                    <p className="text-[10px] font-semibold uppercase text-slate-500 dark:text-slate-400">SteadFast Webhook Setup</p>
+                    <p className="mt-1 text-[10px] text-slate-500 dark:text-slate-400">Copy callback URL and bearer auth token for the SteadFast panel.</p>
+                    <button type="button" onClick={() => handleCopyCourierWebhookSetup('steadfast')} disabled={copyingCourierSecret === 'steadfast'} className="mt-3 inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-3 py-2 text-[10px] font-bold text-white hover:bg-indigo-700 disabled:opacity-50">
+                      <Copy className="h-3.5 w-3.5" />
+                      {copyingCourierSecret === 'steadfast' ? 'Preparing...' : courierSettings.steadfast_webhook_token_configured ? 'Copy Setup Again' : 'Copy Setup Secret'}
+                    </button>
+                  </div>
                 </div>
 
                 {/* RedX section */}
@@ -593,6 +629,14 @@ export function SettingsView({
                         className="w-full p-2 text-xs bg-white border border-slate-200 rounded font-mono text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-slate-900 dark:border-slate-800 dark:text-white"
                       />
                     </div>
+                  </div>
+                  <div className="rounded-lg border border-indigo-100 bg-indigo-50/50 p-3 dark:border-indigo-900/40 dark:bg-indigo-950/20">
+                    <p className="text-[10px] font-semibold uppercase text-slate-500 dark:text-slate-400">RedX Webhook Setup</p>
+                    <p className="mt-1 text-[10px] text-slate-500 dark:text-slate-400">Copy the callback URL with its dedicated token and paste it into RedX.</p>
+                    <button type="button" onClick={() => handleCopyCourierWebhookSetup('redx')} disabled={copyingCourierSecret === 'redx'} className="mt-3 inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-3 py-2 text-[10px] font-bold text-white hover:bg-indigo-700 disabled:opacity-50">
+                      <Copy className="h-3.5 w-3.5" />
+                      {copyingCourierSecret === 'redx' ? 'Preparing...' : courierSettings.redx_webhook_secret_configured ? 'Copy Callback URL Again' : 'Copy Callback URL'}
+                    </button>
                   </div>
                 </div>
               </div>
