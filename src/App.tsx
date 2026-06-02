@@ -607,6 +607,7 @@ export default function App() {
       await loadSystemData(false);
     } catch (err: any) {
       showToast(err.message || 'Could not queue retry.', true);
+      await loadSystemData(false);
     } finally {
       setRetryingOutboxIds(prev => prev.filter(x => x !== id));
     }

@@ -84,7 +84,7 @@ export function EventLogsView({
   retryingOutboxIds,
   handleRetryOutbox
 }: EventLogsViewProps) {
-  const failedOutboxItems = outboxItems.filter(item => item.status === 'dead' || item.status === 'queued' || item.status === 'processing');
+  const failedOutboxItems = outboxItems.filter(item => item.status === 'dead');
 
   return (
     <div className="space-y-6">
@@ -114,7 +114,7 @@ export function EventLogsView({
               <tbody className="divide-y divide-amber-200/70 dark:divide-amber-900/60 bg-white/60 dark:bg-slate-950/30">
                 {failedOutboxItems.map(item => {
                   const retrying = retryingOutboxIds.includes(item.id);
-                  const canRetry = item.status !== 'processing' && item.status !== 'sent';
+                  const canRetry = item.status === 'dead';
                   return (
                     <tr key={item.id}>
                       <td className="px-5 py-3 font-mono text-amber-950 dark:text-amber-100">
