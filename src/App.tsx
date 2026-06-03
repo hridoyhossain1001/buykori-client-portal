@@ -13,6 +13,7 @@ import {
 import { Sidebar } from './components/Sidebar';
 import { CreateStoreModal } from './components/CreateStoreModal';
 import { Header } from './components/Header';
+import { PluginConnectAuthorizeView } from './components/PluginConnectAuthorizeView';
 import { CAPIEvent, APILog, Suggestion, Platform, EventRule, PlatformConfig, UserProfile, ClientConnection, OutboxItem, PluginReleaseInfo } from './types';
 
 // Lazy-loaded modular views (code-splitting for smaller initial bundle)
@@ -30,6 +31,7 @@ const OrdersView = lazy(() => import('./components/OrdersView').then(m => ({ def
 const IncompleteCheckoutsView = lazy(() => import('./components/IncompleteCheckoutsView').then(m => ({ default: m.IncompleteCheckoutsView })));
 
 export default function App() {
+  const isPluginConnectRoute = window.location.pathname === '/plugin/connect';
   const [activePage, setActivePage] = useState<string>('dashboard');
   const [searchVal, setSearchVal] = useState<string>('');
   const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(false);
@@ -449,11 +451,13 @@ export default function App() {
   };
 
   useEffect(() => {
+    if (isPluginConnectRoute) return;
     loadSystemData(true);
     fetchStores();
   }, []);
 
   useEffect(() => {
+    if (isPluginConnectRoute) return;
     if (profile) {
       if (activePage === 'analytics') {
         loadAnalyticsData(analyticsDays);
@@ -1103,6 +1107,10 @@ export default function App() {
     'setup-guide': 'Setup Guide',
     account: 'Account',
   };
+
+  if (isPluginConnectRoute) {
+    return <PluginConnectAuthorizeView />;
+  }
 
   return (
     <div className={`flex min-h-screen bg-transparent font-sans text-slate-800 transition-colors duration-205 ${isDarkMode ? 'dark text-slate-100' : ''}`}>

@@ -29,7 +29,6 @@ export function SetupGuideView({
   const [activeTab, setActiveTab] = useState<TabType>('wordpress');
   
   const apiToken = api_key?.trim() || '';
-  const hasApiToken = apiToken.length > 0;
   const publicToken = public_key?.trim() || '';
   const hasPublicToken = publicToken.length > 0;
 
@@ -47,7 +46,7 @@ export function SetupGuideView({
   const apiDomain = resolveApiOrigin();
   const gatewayUrl = `${apiDomain}/api/v1`;
   const collectUrl = `${apiDomain}/c`;
-  const pluginDownloadUrl = `${gatewayUrl}/plugin/download${hasApiToken ? `?api_key=${encodeURIComponent(apiToken)}` : ''}`;
+  const pluginDownloadUrl = `${gatewayUrl}/plugin/download`;
   const packageSizeKb = pluginReleaseInfo?.package_size ? Math.round(pluginReleaseInfo.package_size / 1024) : 0;
 
   // Shopify Custom Pixel Script Template
@@ -266,11 +265,9 @@ capi('track', 'AddToCart', {
                 <a
                   href={pluginDownloadUrl}
                   className={`inline-flex items-center gap-2 px-3 py-1.5 rounded text-xs font-semibold border transition-colors ${
-                    hasApiToken
-                      ? 'bg-indigo-600 text-white border-indigo-700 hover:bg-indigo-700'
-                      : 'bg-slate-100 text-slate-400 border-slate-200 pointer-events-none dark:bg-slate-800 dark:border-slate-700'
+                    'bg-indigo-600 text-white border-indigo-700 hover:bg-indigo-700'
                   }`}
-                  aria-disabled={!hasApiToken}
+                  aria-disabled={false}
                 >
                   <Download className="w-3.5 h-3.5" />
                   Download Plugin ZIP
@@ -280,58 +277,32 @@ capi('track', 'AddToCart', {
                     Latest release v{pluginReleaseInfo.version} / tested up to WordPress {pluginReleaseInfo.tested} / {packageSizeKb} KB
                   </p>
                 )}
-                {!hasApiToken && (
-                  <p className="text-xs text-amber-700 dark:text-amber-400 max-w-3xl leading-relaxed">
-                    Server API key has not loaded for this account. Refresh the portal before downloading the configured plugin.
-                  </p>
-                )}
               </div>
             </div>
 
-            {/* Step 2: Paste Access Token */}
+            {/* Step 2: Connect Account */}
             <div className="flex gap-4 relative">
               <div className="w-8.5 h-8.5 rounded-full bg-indigo-100 dark:bg-indigo-950/40 border-2 border-white dark:border-slate-900 flex items-center justify-center text-xs font-bold text-indigo-700 dark:text-indigo-400 shadow-sm shrink-0">
                 2
               </div>
               <div className="space-y-2 flex-1">
-                <h4 className="font-bold text-slate-800 text-sm dark:text-white">Synchronize API Access Token</h4>
+                <h4 className="font-bold text-slate-800 text-sm dark:text-white">Connect Buykori Account</h4>
                 <p className="text-xs text-slate-500 dark:text-slate-400 max-w-3xl leading-relaxed">
-                  Copy your unique API Key below and paste it in the <b>Buykori AdSync</b> settings page inside your WordPress panel.
+                  Open <b>Buykori AdSync</b> settings inside WordPress and click <b>Connect Buykori Account</b>. Login, approve the site, and the plugin will save its server configuration automatically.
                 </p>
-                <div className="flex items-center gap-2 bg-slate-50/50 dark:bg-slate-950 p-2 border border-slate-200 dark:border-slate-800 rounded font-mono text-xs text-slate-800 dark:text-slate-300 max-w-md">
-                  <code className="truncate">{hasApiToken ? apiToken : 'Setup token unavailable'}</code>
-                  <button 
-                    onClick={() => hasApiToken && handleCopy(apiToken, 'c_g_tkn')}
-                    disabled={!hasApiToken}
-                    className="text-slate-400 hover:text-indigo-600 ml-auto shrink-0 cursor-pointer disabled:opacity-40"
-                    title="Copy API Key"
-                  >
-                    {copiedStates['c_g_tkn'] ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
-                  </button>
-                </div>
               </div>
             </div>
 
-            {/* Step 3: Configure Gateway URL */}
+            {/* Step 3: Confirm connection */}
             <div className="flex gap-4 relative">
               <div className="w-8.5 h-8.5 rounded-full bg-indigo-100 dark:bg-indigo-950/40 border-2 border-white dark:border-slate-900 flex items-center justify-center text-xs font-bold text-indigo-700 dark:text-indigo-400 shadow-sm shrink-0">
                 3
               </div>
               <div className="space-y-2 flex-1">
-                <h4 className="font-bold text-slate-800 text-sm dark:text-white">Set AdSync Gateway URL</h4>
+                <h4 className="font-bold text-slate-800 text-sm dark:text-white">Run WordPress Connection Test</h4>
                 <p className="text-xs text-slate-500 dark:text-slate-400 max-w-3xl leading-relaxed">
-                  Provide the API Gateway URL in your WordPress plugin settings to establish a pipeline connection:
+                  After authorization, use the plugin's <b>Test Connection</b> button to confirm the gateway handshake.
                 </p>
-                <div className="flex items-center gap-2 bg-slate-50/50 dark:bg-slate-950 p-2 border border-slate-200 dark:border-slate-800 rounded font-mono text-xs text-slate-800 dark:text-slate-300 max-w-md">
-                  <code className="truncate">{gatewayUrl}</code>
-                  <button 
-                    onClick={() => handleCopy(gatewayUrl, 'c_g_url')}
-                    className="text-slate-400 hover:text-indigo-600 ml-auto shrink-0 cursor-pointer"
-                    title="Copy Gateway URL"
-                  >
-                    {copiedStates['c_g_url'] ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
-                  </button>
-                </div>
               </div>
             </div>
 
