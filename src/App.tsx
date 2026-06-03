@@ -79,6 +79,7 @@ export default function App() {
   const [analyticsOverview, setAnalyticsOverview] = useState<any>(null);
   const [analyticsCampaigns, setAnalyticsCampaigns] = useState<any>(null);
   const [analyticsHourly, setAnalyticsHourly] = useState<any>(null);
+  const [analyticsAudience, setAnalyticsAudience] = useState<any>(null);
   const [signalDoctor, setSignalDoctor] = useState<any>(null);
   const [analyticsDays, setAnalyticsDays] = useState<number>(7);
   const [trendData, setTrendData] = useState<any[]>([]);
@@ -430,15 +431,17 @@ export default function App() {
 
   const loadAnalyticsData = async (days = 7) => {
     try {
-      const [resAnOver, resAnCamp, resAnHour, resAnDoc] = await Promise.all([
+      const [resAnOver, resAnCamp, resAnHour, resAnAudience, resAnDoc] = await Promise.all([
         fetch(`/api/v1/analytics/overview?days=${days}`),
         fetch(`/api/v1/analytics/campaigns?days=${days}`),
         fetch(`/api/v1/analytics/hourly?days=${days}`),
+        fetch(`/api/v1/analytics/audience?days=${days}`),
         fetch(`/api/v1/analytics/signal-doctor?days=${days}`)
       ]);
       if (resAnOver.ok) setAnalyticsOverview(await resAnOver.json());
       if (resAnCamp.ok) setAnalyticsCampaigns(await resAnCamp.json());
       if (resAnHour.ok) setAnalyticsHourly(await resAnHour.json());
+      if (resAnAudience.ok) setAnalyticsAudience(await resAnAudience.json());
       if (resAnDoc.ok) setSignalDoctor(await resAnDoc.json());
     } catch (err) {
       console.error("Failed to load analytics data", err);
@@ -1274,6 +1277,7 @@ export default function App() {
               <AnalyticsView 
                 analyticsOverview={analyticsOverview}
                 analyticsCampaigns={analyticsCampaigns}
+                analyticsAudience={analyticsAudience}
                 signalDoctor={signalDoctor}
                 urlBuilderBaseUrl={urlBuilderBaseUrl}
                 setUrlBuilderBaseUrl={setUrlBuilderBaseUrl}
