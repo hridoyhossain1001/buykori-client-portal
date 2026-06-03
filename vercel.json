@@ -14,6 +14,10 @@
       "destination": "https://api.buykori.app/api/:path*"
     },
     {
+      "source": "/plugin/connect",
+      "destination": "/index.html"
+    },
+    {
       "source": "/client",
       "destination": "https://api.buykori.app/client"
     },
