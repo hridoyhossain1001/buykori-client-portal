@@ -7,6 +7,28 @@ function appendReturnParam(returnUrl: string, params: Record<string, string>) {
   return url.toString();
 }
 
+function normalizeHost(value: string) {
+  return value.trim().toLowerCase().replace(/\.$/, '').replace(/^www\./, '');
+}
+
+function safeCancelUrl(returnUrl: string, siteUrl: string, state: string) {
+  const target = new URL(returnUrl);
+  const site = new URL(siteUrl);
+  const returnHost = normalizeHost(target.hostname);
+  const siteHost = normalizeHost(site.hostname);
+  const localHost = returnHost === 'localhost' || returnHost === '127.0.0.1';
+  if (returnHost !== siteHost) {
+    throw new Error('Return URL does not match this WordPress site.');
+  }
+  if (target.protocol !== 'https:' && !localHost) {
+    throw new Error('Return URL must use HTTPS.');
+  }
+  return appendReturnParam(target.toString(), {
+    error: 'access_denied',
+    state,
+  });
+}
+
 export function PluginConnectAuthorizeView() {
   const params = useMemo(() => new URLSearchParams(window.location.search), []);
   const siteUrl = params.get('site_url') || '';
@@ -56,10 +78,11 @@ export function PluginConnectAuthorizeView() {
       window.location.assign('/client/dashboard');
       return;
     }
-    window.location.assign(appendReturnParam(returnUrl, {
-      error: 'access_denied',
-      state,
-    }));
+    try {
+      window.location.assign(safeCancelUrl(returnUrl, siteUrl, state));
+    } catch {
+      window.location.assign('/client/dashboard?plugin_connect=cancelled');
+    }
   };
 
   return (

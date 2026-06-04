@@ -69,7 +69,11 @@ export function AnalyticsView({
 }: AnalyticsViewProps) {
   const topDistricts = analyticsAudience?.top_districts || [];
   const deviceMix = analyticsAudience?.device_mix || [];
-  const districtFunnel = analyticsAudience?.district_funnel || [];
+  const [districtFunnelMode, setDistrictFunnelMode] = React.useState<'events' | 'visitors'>('events');
+  const eventDistrictFunnel = analyticsAudience?.district_funnel || [];
+  const visitorDistrictFunnel = analyticsAudience?.visitor_district_funnel || [];
+  const districtFunnel = districtFunnelMode === 'visitors' ? visitorDistrictFunnel : eventDistrictFunnel;
+  const districtFunnelUnit = districtFunnelMode === 'visitors' ? 'visitors' : 'events';
 
   return (
     <div className="space-y-6">
@@ -231,9 +235,33 @@ export function AnalyticsView({
 
       {/* District Funnel Table */}
       <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm flex flex-col space-y-4 dark:bg-slate-900 dark:border-slate-800">
-        <div>
-          <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wide dark:text-white">Estimated District Funnel</h3>
-          <p className="text-xs text-slate-400 dark:text-slate-500">PageView to Purchase volume by approximate Bangladesh district bucket.</p>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wide dark:text-white">
+              {districtFunnelMode === 'visitors' ? 'Unique Visitor District Funnel' : 'District Event Funnel'}
+            </h3>
+            <p className="text-xs text-slate-400 dark:text-slate-500">
+              {districtFunnelMode === 'visitors'
+                ? 'Distinct visitor movement by approximate Bangladesh district bucket.'
+                : 'PageView to Purchase event volume by approximate Bangladesh district bucket.'}
+            </p>
+          </div>
+          <div className="inline-flex h-9 w-fit items-center rounded-lg border border-slate-200 bg-slate-50 p-1 text-[11px] font-bold dark:border-slate-800 dark:bg-slate-950">
+            <button
+              type="button"
+              onClick={() => setDistrictFunnelMode('events')}
+              className={`h-7 rounded-md px-3 transition-colors ${districtFunnelMode === 'events' ? 'bg-white text-indigo-700 shadow-sm dark:bg-slate-800 dark:text-indigo-300' : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100'}`}
+            >
+              Events
+            </button>
+            <button
+              type="button"
+              onClick={() => setDistrictFunnelMode('visitors')}
+              className={`h-7 rounded-md px-3 transition-colors ${districtFunnelMode === 'visitors' ? 'bg-white text-indigo-700 shadow-sm dark:bg-slate-800 dark:text-indigo-300' : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100'}`}
+            >
+              Visitors
+            </button>
+          </div>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs text-slate-600 divide-y divide-slate-100 min-w-[680px] dark:text-slate-300 dark:divide-slate-800">
@@ -267,6 +295,9 @@ export function AnalyticsView({
             </tbody>
           </table>
         </div>
+        <p className="text-[10px] leading-relaxed text-slate-400 dark:text-slate-500">
+          Showing {districtFunnelUnit}. Platform delivery mirror logs such as TikTok rows are excluded from double counting.
+        </p>
       </div>
 
       {/* Conversion Funnel & Signal Doctor Breakdown */}
