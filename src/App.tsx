@@ -479,6 +479,23 @@ export default function App() {
     }
   };
 
+  const currentStore = stores.find(store => store.is_current);
+
+  const handleSaveStoreDomain = async (domain: string) => {
+    const res = await fetch('/api/store/domain', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ domain: domain.trim() || null }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      showToast(data.detail || 'Could not save the store domain.', true);
+      return;
+    }
+    showToast(data.domain ? 'Store domain saved.' : 'Store domain cleared.', false);
+    await Promise.all([fetchStores(), fetchSettingsData()]);
+  };
+
   const handleSwitchStore = async (clientId: number) => {
     try {
       const res = await fetch('/api/switch-store', {
@@ -1361,6 +1378,8 @@ export default function App() {
                 orderManagementEnabled={orderManagementEnabled}
                 growthFeaturesEnabled={profile?.growthFeaturesEnabled}
                 pluginReleaseInfo={pluginReleaseInfo}
+                storeDomain={currentStore?.domain || ''}
+                onSaveStoreDomain={handleSaveStoreDomain}
               />
             )}
 

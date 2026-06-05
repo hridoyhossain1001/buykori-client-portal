@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Copy, Check, Plus, Trash2 } from 'lucide-react';
+import { Check, Copy, Globe2, Plus, Save, Trash2 } from 'lucide-react';
 import { Platform, PlatformConfig, EventRule, ClientConnection, PluginReleaseInfo } from '../types';
 
 interface SettingsViewProps {
@@ -17,6 +17,8 @@ interface SettingsViewProps {
   orderManagementEnabled: boolean;
   growthFeaturesEnabled?: boolean;
   pluginReleaseInfo?: PluginReleaseInfo | null;
+  storeDomain?: string;
+  onSaveStoreDomain?: (domain: string) => Promise<void>;
 }
 
 export function SettingsView({
@@ -33,7 +35,9 @@ export function SettingsView({
   showToast,
   orderManagementEnabled,
   growthFeaturesEnabled = false,
-  pluginReleaseInfo
+  pluginReleaseInfo,
+  storeDomain = '',
+  onSaveStoreDomain
 }: SettingsViewProps) {
   // Local state for inputs to prevent key-stroke POST spamming
   const [localPixelIds, setLocalPixelIds] = useState<Record<Platform, string>>({
@@ -53,6 +57,8 @@ export function SettingsView({
   });
   const [selectedEventRoute, setSelectedEventRoute] = useState<string>('');
   const [customEventRoute, setCustomEventRoute] = useState<string>('');
+  const [localStoreDomain, setLocalStoreDomain] = useState<string>(storeDomain || '');
+  const [savingStoreDomain, setSavingStoreDomain] = useState<boolean>(false);
 
   const presetEventRoutes = [
     { value: 'ViewContent', label: 'ViewContent - product/details viewed' },
@@ -82,6 +88,20 @@ export function SettingsView({
     await handleAddRule(routeToAdd);
     setSelectedEventRoute('');
     setCustomEventRoute('');
+  };
+
+  useEffect(() => {
+    setLocalStoreDomain(storeDomain || '');
+  }, [storeDomain]);
+
+  const saveStoreDomain = async () => {
+    if (!onSaveStoreDomain) return;
+    setSavingStoreDomain(true);
+    try {
+      await onSaveStoreDomain(localStoreDomain);
+    } finally {
+      setSavingStoreDomain(false);
+    }
   };
 
   // Sync with credentials prop when it loads/updates
@@ -243,6 +263,49 @@ export function SettingsView({
       
       {/* Fixed controls sidebar settings tabs */}
       <div className="space-y-6 lg:col-span-2">
+        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-4 dark:bg-slate-900 dark:border-slate-800">
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+            <div className="flex items-start gap-3">
+              <div className="h-9 w-9 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center dark:bg-indigo-950/40 dark:text-indigo-300">
+                <Globe2 className="h-4 w-4" />
+              </div>
+              <div>
+                <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wide dark:text-white">Website Domain</h3>
+                <p className="text-xs text-slate-400 dark:text-slate-500">Used for custom website tracking, domain locking, and setup diagnostics</p>
+              </div>
+            </div>
+            <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide ${
+              storeDomain
+                ? 'bg-emerald-50 text-emerald-700 border border-emerald-100 dark:bg-emerald-950/20 dark:text-emerald-300 dark:border-emerald-900/50'
+                : 'bg-amber-50 text-amber-700 border border-amber-100 dark:bg-amber-950/20 dark:text-amber-300 dark:border-amber-900/50'
+            }`}>
+              {storeDomain ? 'Configured' : 'Missing'}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-3">
+            <div>
+              <label className="block text-[10px] font-semibold text-slate-400 uppercase mb-1">Store Domain</label>
+              <input
+                type="text"
+                value={localStoreDomain}
+                placeholder="example.com"
+                onChange={(e) => setLocalStoreDomain(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') saveStoreDomain(); }}
+                className="w-full p-2.5 text-sm bg-white border border-slate-200 rounded-lg text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-slate-950 dark:border-slate-800 dark:text-white"
+              />
+            </div>
+            <button
+              type="button"
+              disabled={savingStoreDomain || localStoreDomain.trim() === (storeDomain || '').trim()}
+              onClick={saveStoreDomain}
+              className="inline-flex items-center justify-center gap-2 rounded-lg bg-slate-900 px-4 py-2.5 text-xs font-bold text-white disabled:cursor-not-allowed disabled:opacity-50 sm:self-end dark:bg-white dark:text-slate-950"
+            >
+              <Save className="h-3.5 w-3.5" />
+              {savingStoreDomain ? 'Saving' : 'Save Domain'}
+            </button>
+          </div>
+        </div>
         
         {/* Pipeline credentials card */}
         <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-6 dark:bg-slate-900 dark:border-slate-800">
