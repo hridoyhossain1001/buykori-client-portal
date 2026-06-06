@@ -165,7 +165,25 @@ capi('track', 'AddToCart', {
   currency: 'BDT',
   content_ids: ['prod_99'],
   content_type: 'product'
-});`;
+});
+
+// Fire only after meaningful checkout intent, not on checkout page load.
+const checkoutId = crypto.randomUUID();
+capi('track', 'InitiateCheckout', {
+  value: 1450,
+  currency: 'BDT',
+  content_ids: ['prod_99'],
+  content_type: 'product'
+}, { eventId: \`checkout:\${checkoutId}\` });
+
+// Use the exact same eventId for browser Purchase and server Purchase.
+capi('track', 'Purchase', {
+  value: 1450,
+  currency: 'BDT',
+  order_id: 'order_78891'
+}, { eventId: 'order_78891' });
+
+// Add ?buykori_debug=1 to the page URL to inspect SDK activity.`;
 
   const customBackendCode = `// Server-to-Server Conversions API (e.g. Node.js / Laravel / Python)
 // POST ${gatewayUrl}/events

@@ -24,7 +24,7 @@ export interface CAPIEvent {
 export interface APILog {
   id: string;
   timestamp: string;
-  platform: Platform;
+  platform: CAPIEvent['platform'];
   endpoint: string;
   method: 'POST' | 'GET' | 'PUT';
   statusCode: number;
