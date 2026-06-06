@@ -43,6 +43,25 @@ function normalizeBDPhone(phone: string): string {
   return clean; // Returns formatted 01XXXXXXXXX local string
 }
 
+function usablePhone(value: unknown): string {
+  const normalized = normalizeBDPhone(String(value || '').trim());
+  return /^01\d{9}$/.test(normalized) ? normalized : '';
+}
+
+function formatHeldAge(ageHours: unknown): string {
+  const hours = Math.max(0, Number(ageHours) || 0);
+  const minutes = Math.max(1, Math.round(hours * 60));
+  if (minutes < 60) return `${minutes} min ago`;
+  if (hours < 24) {
+    const wholeHours = Math.floor(hours);
+    const remainingMinutes = Math.round((hours - wholeHours) * 60);
+    return remainingMinutes > 0 ? `${wholeHours}h ${remainingMinutes}m ago` : `${wholeHours}h ago`;
+  }
+  const days = Math.floor(hours / 24);
+  const remainingHours = Math.floor(hours % 24);
+  return remainingHours > 0 ? `${days}d ${remainingHours}h ago` : `${days}d ago`;
+}
+
 interface OrdersViewProps {
   deferredData: any;
   fetchDeferred: () => Promise<void>;
@@ -118,6 +137,15 @@ export function OrdersView({
   const [itemWeight, setItemWeight] = useState<number>(0.5);
   const [itemQuantity, setItemQuantity] = useState<number>(1);
   const [codAmount, setCodAmount] = useState<number>(0);
+
+  const openPendingCourierModal = (order: any) => {
+    setSelectedOrder(order);
+    setRecipientName(order.recipientName && order.recipientName !== 'â€”' ? order.recipientName : '');
+    setRecipientPhone(usablePhone(order.recipientPhone) || usablePhone(order.customer));
+    setRecipientAddress(order.recipientAddress && order.recipientAddress !== 'â€”' ? order.recipientAddress : '');
+    setCodAmount(order.amount);
+    setIsSendModalOpen(true);
+  };
 
   // Selection state & functions for Shipped Courier Log
   const [selectedShippedOrderIds, setSelectedShippedOrderIds] = useState<number[]>([]);
@@ -618,9 +646,16 @@ export function OrdersView({
                           <td className="px-6 py-3">
                             <div className="flex flex-col gap-0.5">
                               {order.recipientName && order.recipientName !== '—' && (
-                                <span className="font-semibold text-slate-700 dark:text-slate-200">{order.recipientName}</span>
+                                <button
+                                  type="button"
+                                  onClick={() => toggleExpand(order.orderId)}
+                                  className="w-fit text-left font-semibold text-slate-700 hover:text-indigo-600 dark:text-slate-200 dark:hover:text-indigo-400 transition-colors cursor-pointer"
+                                  aria-expanded={isExpanded}
+                                  title="View customer and order details"
+                                >
+                                  {order.recipientName}
+                                </button>
                               )}
-                              <span className="font-mono text-slate-500 dark:text-slate-400 text-[11px]">{order.customer}</span>
                             </div>
                           </td>
                           <td className="px-6 py-3 font-semibold text-slate-800 dark:text-slate-200">৳{order.amount.toLocaleString()}</td>
@@ -639,7 +674,7 @@ export function OrdersView({
                               Score: {order.fraudScore}/100
                             </span>
                           </td>
-                          <td className="px-6 py-3 text-slate-400 font-mono dark:text-slate-500">{order.ageHours}h ago</td>
+                          <td className="px-6 py-3 text-slate-400 font-mono dark:text-slate-500">{formatHeldAge(order.ageHours)}</td>
                           <td className="px-6 py-3 text-right space-x-2 whitespace-nowrap">
                             <button 
                               onClick={() => openInvoice(order)}
@@ -649,15 +684,7 @@ export function OrdersView({
                               <FileText className="w-2.5 h-2.5" /> Invoice
                             </button>
                             <button
-                              onClick={() => {
-                                // order.id = PendingEvent DB primary key (from /api/deferred)
-                                setSelectedOrder(order);
-                                setRecipientName(order.recipientName && order.recipientName !== '—' ? order.recipientName : '');
-                                setRecipientPhone(order.recipientPhone && order.recipientPhone !== '—' ? order.recipientPhone : (order.customer && !order.customer.includes('@') ? order.customer : ''));
-                                setRecipientAddress(order.recipientAddress && order.recipientAddress !== '—' ? order.recipientAddress : '');
-                                setCodAmount(order.amount);
-                                setIsSendModalOpen(true);
-                              }}
+                              onClick={() => openPendingCourierModal(order)}
                               className="btn-touch-expand px-2.5 py-1 bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-bold rounded shadow-sm transition-colors cursor-pointer inline-flex items-center gap-1"
                             >
                               <Send className="w-2.5 h-2.5" /> Book Courier
@@ -702,7 +729,7 @@ export function OrdersView({
                                       </div>
                                       <div>
                                         <p className="text-[9px] text-slate-400 uppercase font-bold">Phone</p>
-                                        <p className="text-xs font-semibold text-slate-800 dark:text-slate-100 font-mono">{order.recipientPhone || order.customer || '—'}</p>
+                                        <p className="text-xs font-semibold text-slate-800 dark:text-slate-100 font-mono">{usablePhone(order.recipientPhone) || '—'}</p>
                                       </div>
                                     </div>
                                     <div className="flex items-start gap-2.5">
@@ -714,6 +741,23 @@ export function OrdersView({
                                         <p className="text-xs font-semibold text-slate-800 dark:text-slate-100">{order.recipientAddress || '—'}</p>
                                       </div>
                                     </div>
+                                  </div>
+                                  <div className="mt-4 flex flex-wrap items-center justify-end gap-2 border-t border-slate-200 pt-4 dark:border-slate-800">
+                                    {usablePhone(order.recipientPhone) && (
+                                      <a
+                                        href={`tel:${usablePhone(order.recipientPhone)}`}
+                                        className="btn-touch-expand inline-flex items-center gap-1.5 rounded bg-emerald-600 px-3 py-1.5 text-[10px] font-bold text-white shadow-sm transition-colors hover:bg-emerald-700"
+                                      >
+                                        <Phone className="w-3 h-3" /> Call Customer
+                                      </a>
+                                    )}
+                                    <button
+                                      type="button"
+                                      onClick={() => openPendingCourierModal(order)}
+                                      className="btn-touch-expand inline-flex items-center gap-1.5 rounded bg-indigo-600 px-3 py-1.5 text-[10px] font-bold text-white shadow-sm transition-colors hover:bg-indigo-700 cursor-pointer"
+                                    >
+                                      <Send className="w-3 h-3" /> Book Courier
+                                    </button>
                                   </div>
                                 </div>
 
