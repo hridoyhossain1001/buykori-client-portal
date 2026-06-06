@@ -214,7 +214,7 @@ export function EventLogsView({
           <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mr-2 shrink-0">Filters:</span>
           
           {/* Platforms lists */}
-          {['Meta CAPI', 'TikTok Events API', 'GA4'].map(p => {
+          {['Meta CAPI', 'TikTok Events API', 'TikTok Browser Pixel', 'GA4'].map(p => {
             const active = platformFilters.includes(p);
             return (
               <button
@@ -236,7 +236,7 @@ export function EventLogsView({
           <span className="h-4 w-px bg-slate-200 dark:bg-slate-800 mx-2 self-center" />
 
           {/* Status lists */}
-          {['Success', 'Failed', 'Retry'].map(s => {
+          {['Success', 'Fired', 'Failed', 'Retry'].map(s => {
             const active = statusFilters.includes(s);
             return (
               <button
@@ -329,7 +329,8 @@ export function EventLogsView({
                           <span className="flex items-center gap-1.5 font-medium text-slate-700 dark:text-slate-300">
                             <span className={`w-1.5 h-1.5 rounded-full ${
                               e.platform === 'Meta CAPI' ? 'bg-indigo-500' : 
-                              e.platform === 'TikTok Events API' ? 'bg-cyan-500' : 'bg-orange-500'
+                              e.platform === 'TikTok Events API' ? 'bg-cyan-500' :
+                              e.platform === 'TikTok Browser Pixel' ? 'bg-violet-500' : 'bg-orange-500'
                             }`} />
                             {highlightText(e.platform, searchFilter)}
                           </span>
@@ -337,6 +338,7 @@ export function EventLogsView({
                         <td className="px-6 py-4">
                           <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
                             e.status === 'Success' ? 'bg-green-50 text-green-700 border border-green-150 dark:bg-green-950/20 dark:text-green-400 dark:border-green-900/60' :
+                            e.status === 'Fired' ? 'bg-violet-50 text-violet-700 border border-violet-200 dark:bg-violet-950/20 dark:text-violet-400 dark:border-violet-900/60' :
                             e.status === 'Retry' ? 'bg-amber-50 text-amber-700 border border-amber-150 dark:bg-amber-950/20 dark:text-amber-400 dark:border-amber-900/60' : 
                             'bg-rose-50 text-rose-700 border border-rose-150 dark:bg-rose-950/20 dark:text-rose-400 dark:border-rose-900/60'
                           }`}>

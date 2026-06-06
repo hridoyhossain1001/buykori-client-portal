@@ -5,13 +5,13 @@
 
 export type Platform = 'Meta CAPI' | 'TikTok Events API' | 'GA4';
 
-export type EventStatus = 'Success' | 'Failed' | 'Retry';
+export type EventStatus = 'Success' | 'Failed' | 'Retry' | 'Fired';
 
 export interface CAPIEvent {
   id: string;
   timestamp: string;
   name: string;
-  platform: Platform;
+  platform: Platform | 'TikTok Browser Pixel';
   status: EventStatus;
   httpCode: number;
   deduplicationKey: string;
