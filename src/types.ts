@@ -11,7 +11,7 @@ export interface CAPIEvent {
   id: string;
   timestamp: string;
   name: string;
-  platform: Platform | 'TikTok Browser Pixel';
+  platform: Platform | 'TikTok Browser Pixel' | 'Gateway Ingest';
   status: EventStatus;
   httpCode: number;
   deduplicationKey: string;

@@ -252,11 +252,50 @@ export default function App() {
   };
 
   const fetchEvents = async () => {
-    const res = await fetch('/api/events?limit=100');
-    if (res.ok) {
-      const data = await res.json();
-      setEvents(data.events || []);
-    }
+    const [eventsRes, outboxRes] = await Promise.all([
+      fetch('/api/events?limit=100'),
+      fetch('/api/outbox?limit=100'),
+    ]);
+    const eventData = eventsRes.ok ? await eventsRes.json() : { events: [] };
+    const outboxData = outboxRes.ok ? await outboxRes.json() : { items: [] };
+    const loggedEvents: CAPIEvent[] = eventData.events || [];
+    const loggedKeys = new Set(loggedEvents.map(event => event.deduplicationKey));
+
+    const ingestEvents: CAPIEvent[] = (outboxData.items || []).flatMap((item: OutboxItem) =>
+      item.eventNames.map((eventName, index) => {
+        const eventId = item.eventIds[index] || `outbox-${item.id}-${index}`;
+        return {
+          id: `outbox_${item.id}_${index}`,
+          timestamp: item.createdAt,
+          name: eventName,
+          platform: 'Gateway Ingest',
+          status: item.status === 'dead' ? 'Failed' : item.status === 'processing' ? 'Retry' : 'Fired',
+          httpCode: item.status === 'dead' ? 500 : 202,
+          deduplicationKey: eventId,
+          payload: {
+            event_name: eventName,
+            event_id: eventId,
+            source: 'event_outbox',
+            event_count: item.eventCount,
+          },
+          headers: { 'X-Buykori-Queue': item.status },
+          responseBody: {
+            status: item.status,
+            attempts: item.attempts,
+            maxAttempts: item.maxAttempts,
+            nextAttemptAt: item.nextAttemptAt,
+            error: item.lastError || undefined,
+          },
+          latencyMs: null,
+        } as CAPIEvent;
+      })
+    ).filter((event: CAPIEvent) => !loggedKeys.has(event.deduplicationKey));
+
+    setEvents(
+      [...ingestEvents, ...loggedEvents]
+        .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+        .slice(0, 200)
+    );
   };
 
   const fetchApiLogs = async () => {
@@ -560,6 +599,17 @@ export default function App() {
     }
   }, [activePage]);
 
+  useEffect(() => {
+    if (activePage !== 'event-logs') return;
+    const refreshEventHistory = () => {
+      Promise.all([fetchEvents(), fetchOutbox()]).catch(err => {
+        console.error('Failed to refresh Event History', err);
+      });
+    };
+    const intervalId = window.setInterval(refreshEventHistory, 5000);
+    return () => window.clearInterval(intervalId);
+  }, [activePage]);
+
   // Live Tracking Mode Polling Simulator
   useEffect(() => {
     if (liveMode) {
@@ -604,7 +654,10 @@ export default function App() {
         const data = await res.json();
         setCredentials(data.credentials);
         showToast(`${platform} tracking settings updated.`, false);
+        return;
       }
+      const error = await res.json().catch(() => null);
+      showToast(error?.detail || `Failed to update ${platform} credentials.`, true);
     } catch {
       showToast(`Failed to update ${platform} credentials.`, true);
     }
