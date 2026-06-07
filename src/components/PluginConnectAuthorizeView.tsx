@@ -75,13 +75,13 @@ export function PluginConnectAuthorizeView() {
 
   const cancel = () => {
     if (!returnUrl) {
-      window.location.assign('/client/dashboard');
+      window.location.assign('/');
       return;
     }
     try {
       window.location.assign(safeCancelUrl(returnUrl, siteUrl, state));
     } catch {
-      window.location.assign('/client/dashboard?plugin_connect=cancelled');
+      window.location.assign('/?plugin_connect=cancelled');
     }
   };
 
