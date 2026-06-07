@@ -94,7 +94,7 @@ export function EventLogsView({
             <div className="flex items-center gap-2 min-w-0">
               <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
               <div className="min-w-0">
-                <h3 className="text-xs font-bold uppercase tracking-widest text-amber-900 dark:text-amber-250">Failed outbox recovery</h3>
+                <h3 className="text-xs font-bold uppercase tracking-widest text-amber-900 dark:text-amber-250">Failed Events</h3>
                 <p className="text-[11px] text-amber-800/70 dark:text-amber-300/70 truncate">{failedOutboxItems.length} delivery job{failedOutboxItems.length === 1 ? '' : 's'} need attention</p>
               </div>
             </div>
@@ -167,7 +167,7 @@ export function EventLogsView({
           <div className="relative w-full lg:max-w-md">
             <input 
               type="text" 
-              placeholder="Filter by keyword, event name or payload..."
+              placeholder="Filter by keyword, event name, or details..."
               value={searchFilter}
               onChange={(e) => setSearchFilter(e.target.value)}
               className="w-full py-2 pl-9 pr-4 text-xs text-slate-800 placeholder-slate-400 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-indigo-500 font-mono dark:bg-slate-950 dark:border-slate-800 dark:text-white"
@@ -276,8 +276,8 @@ export function EventLogsView({
       {/* Big full-width searchable logs list */}
       <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden flex flex-col dark:bg-slate-900 dark:border-slate-800">
         <div className="p-4 bg-slate-50/50 border-b border-slate-100 dark:bg-slate-950 dark:border-slate-800 flex justify-between items-center text-xs">
-          <span className="font-semibold text-slate-500 dark:text-slate-400">{filteredEventsForTable.length} events matching query parameters</span>
-          <span className="text-[10px] text-slate-400 dark:text-slate-500">Showing last 100 historical queries</span>
+          <span className="font-semibold text-slate-500 dark:text-slate-400">{filteredEventsForTable.length} events matching your search</span>
+          <span className="text-[10px] text-slate-400 dark:text-slate-500">Showing latest 100 events</span>
         </div>
 
         {filteredEventsForTable.length === 0 ? (
@@ -287,7 +287,7 @@ export function EventLogsView({
             </div>
             <div>
               <h4 className="font-bold text-slate-700 dark:text-white">No events found</h4>
-              <p className="text-xs text-slate-400 dark:text-slate-500 max-w-sm mx-auto mt-1">Try relaxing filters or change search queries keywords to display telemetry records.</p>
+              <p className="text-xs text-slate-400 dark:text-slate-500 max-w-sm mx-auto mt-1">No events match your filters. Try changing your search.</p>
             </div>
           </div>
         ) : (
@@ -298,10 +298,10 @@ export function EventLogsView({
                   <th className="px-6 py-3">Timestamp / Age</th>
                   <th className="px-6 py-3">Event ID</th>
                   <th className="px-6 py-3">Event Name</th>
-                  <th className="px-6 py-3">Platform Stream</th>
+                  <th className="px-6 py-3">Platform</th>
                   <th className="px-6 py-3">Status</th>
                   <th className="px-6 py-3">Code</th>
-                  <th className="px-6 py-3 text-right">Deduplication Key</th>
+                  <th className="px-6 py-3 text-right">Event Key</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -359,8 +359,8 @@ export function EventLogsView({
                             {/* Expanded Panel Structure */}
                             <div className="space-y-4">
                               <div className="flex justify-between items-center">
-                                <h5 className="font-bold text-xs text-slate-700 dark:text-slate-300 uppercase tracking-widest">Metadata payload raw analyzer</h5>
-                                <span className="text-[10px] text-slate-400 dark:text-slate-500 font-mono">Deduplication: {highlightText(e.deduplicationKey, searchFilter)}</span>
+                                <h5 className="font-bold text-xs text-slate-700 dark:text-slate-300 uppercase tracking-widest">Event Details</h5>
+                                <span className="text-[10px] text-slate-400 dark:text-slate-500 font-mono">Event Key: {highlightText(e.deduplicationKey, searchFilter)}</span>
                               </div>
 
                               <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
@@ -375,19 +375,19 @@ export function EventLogsView({
                                       {copiedStates[`evt_payload_${e.id}`] ? <Check className="w-3 h-3 text-emerald-450" /> : <Copy className="w-3 h-3" />}
                                     </button>
                                   </div>
-                                  <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-wider mb-2">Payload JSON parameters stream</p>
+                                  <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-wider mb-2">Raw Event Data</p>
                                   <pre className="whitespace-pre-wrap break-all">{highlightText(JSON.stringify(e.payload, null, 2), searchFilter)}</pre>
                                 </div>
 
                                 {/* Headers / Response */}
                                 <div className="space-y-4">
                                   <div className="bg-slate-900 leading-relaxed text-slate-250 text-[11px] font-mono p-4 rounded-lg overflow-auto max-h-40 relative group">
-                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Relay Client headers</p>
+                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Request Headers</p>
                                     <pre className="whitespace-pre-wrap break-all">{highlightText(JSON.stringify(e.headers, null, 2), searchFilter)}</pre>
                                   </div>
 
                                   <div className="bg-slate-900 leading-relaxed text-slate-255 text-[11px] font-mono p-4 rounded-lg overflow-auto max-h-40 relative group">
-                                    <p className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider mb-2">Raw upstream Response</p>
+                                    <p className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider mb-2">Platform Response</p>
                                     <pre className="whitespace-pre-wrap break-all">{highlightText(JSON.stringify(e.responseBody, null, 2), searchFilter)}</pre>
                                   </div>
                                 </div>

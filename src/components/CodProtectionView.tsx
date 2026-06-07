@@ -88,7 +88,7 @@ export function CodProtectionView({
           
           <div className="text-[11px] text-slate-600 dark:text-slate-300 leading-relaxed bg-slate-50 dark:bg-slate-800/40 p-3.5 rounded-lg border border-slate-100 dark:border-slate-800">
             {orderManagementDraftEnabled ? (
-              <span><span className="font-semibold text-indigo-600 dark:text-indigo-400">Enabled:</span> Auto-book courier on Confirm. Conversion event fires upon Courier Delivery.</span>
+              <span><span className="font-semibold text-indigo-600 dark:text-indigo-400">Enabled:</span> Auto-book courier when an order is confirmed. Send purchase data when courier delivery is complete.</span>
             ) : (
               <span><span className="font-semibold text-slate-500">Disabled:</span> Instant conversion on Confirm. No courier tracking or automation active.</span>
             )}
@@ -100,7 +100,7 @@ export function CodProtectionView({
                 ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-900/20 dark:text-indigo-400'
                 : 'bg-slate-50 text-slate-500 dark:bg-slate-800/60 dark:text-slate-400'
             }`}>
-              {orderManagementDraftEnabled ? <><Truck className="w-3 h-3" /> Full Flow Active</> : <><Zap className="w-3 h-3" /> Simple Flow Active</>}
+              {orderManagementDraftEnabled ? <><Truck className="w-3 h-3" /> Courier Tracking On</> : <><Zap className="w-3 h-3" /> Direct Confirm</>}
             </div>
             <button
               type="button"
@@ -131,7 +131,7 @@ export function CodProtectionView({
               </div>
               <div>
                 <h3 className="font-bold text-slate-800 text-sm dark:text-white">COD Protection</h3>
-                <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">Hold & Release Triggers</p>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">Verify before tracking</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -158,7 +158,7 @@ export function CodProtectionView({
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Auto Cutoff</label>
+              <label className="block text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Auto-confirm after</label>
               <select 
                 value={autoConfirmDays}
                 onChange={(e) => setAutoConfirmDays(Number(e.target.value))}
@@ -174,7 +174,7 @@ export function CodProtectionView({
               </select>
             </div>
             <div>
-              <label className="block text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Trigger Status</label>
+              <label className="block text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Confirm when status is</label>
               <select 
                 value={autoConfirmStatus}
                 onChange={(e) => setAutoConfirmStatus(e.target.value)}
@@ -226,7 +226,7 @@ export function CodProtectionView({
             <p className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
               {deferredData.pendingValue}
             </p>
-            <span className="text-xs font-semibold text-indigo-700/70 dark:text-indigo-300/70">Pending Telemetry</span>
+            <span className="text-xs font-semibold text-indigo-700/70 dark:text-indigo-300/70">Pending Orders</span>
           </div>
         </div>
 
@@ -239,7 +239,7 @@ export function CodProtectionView({
             <p className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
               {deferredData.confirmedToday}
             </p>
-            <span className="text-xs font-semibold text-emerald-750/70 dark:text-emerald-300/70">Transited Events</span>
+            <span className="text-xs font-semibold text-emerald-750/70 dark:text-emerald-300/70">Confirmed Today</span>
           </div>
         </div>
 
@@ -252,7 +252,7 @@ export function CodProtectionView({
             <p className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
               {deferredData.oldestPending}
             </p>
-            <span className="text-xs font-semibold text-rose-750/70 dark:text-rose-300/70">Needs Audit</span>
+            <span className="text-xs font-semibold text-rose-750/70 dark:text-rose-300/70">Needs Review</span>
           </div>
         </div>
 
@@ -262,8 +262,8 @@ export function CodProtectionView({
       <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm flex flex-col space-y-4 dark:bg-slate-900 dark:border-slate-800">
         <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
           <div>
-            <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wide dark:text-white">COD Protected Purchases Queue</h3>
-            <p className="text-xs text-slate-400 dark:text-slate-500">Verifying customer purchase events ensures Meta and TikTok optimize on genuine conversion signals only.</p>
+            <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wide dark:text-white">Pending COD Orders</h3>
+            <p className="text-xs text-slate-400 dark:text-slate-500">Verify orders before sending purchase data to your ad platforms.</p>
           </div>
           <div className="flex gap-2">
             <button 
@@ -302,9 +302,9 @@ export function CodProtectionView({
                   />
                 </th>
                 <th className="px-6 py-3">Order ID</th>
-                <th className="px-6 py-3">Customer Identifier</th>
-                <th className="px-6 py-3">Transaction Value</th>
-                <th className="px-6 py-3">Fraud Risk Index</th>
+                <th className="px-6 py-3">Customer</th>
+                <th className="px-6 py-3">Amount</th>
+                <th className="px-6 py-3">Risk Score</th>
                 <th className="px-6 py-3">Held Time</th>
                 <th className="px-6 py-3 text-right">Actions</th>
               </tr>

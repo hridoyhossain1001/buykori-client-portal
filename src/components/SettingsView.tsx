@@ -271,7 +271,7 @@ export function SettingsView({
               </div>
               <div>
                 <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wide dark:text-white">Website Domain</h3>
-                <p className="text-xs text-slate-400 dark:text-slate-500">Used for custom website tracking, domain locking, and setup diagnostics</p>
+                <p className="text-xs text-slate-400 dark:text-slate-500">Used for custom website tracking, domain lock, and setup checks.</p>
               </div>
             </div>
             <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide ${
@@ -311,7 +311,7 @@ export function SettingsView({
         <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-6 dark:bg-slate-900 dark:border-slate-800">
           <div>
             <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wide dark:text-white">Platform Credential Keys</h3>
-            <p className="text-xs text-slate-400 dark:text-slate-500">Manage API keys, tracking pixel ids and webhook tokens per target platform router</p>
+            <p className="text-xs text-slate-400 dark:text-slate-500">Manage API keys, pixel IDs, and tracking tokens for each platform.</p>
           </div>
 
           {Object.keys(credentials).map(platKey => {
@@ -361,7 +361,7 @@ export function SettingsView({
                   </div>
                   
                   <div>
-                    <label className="block text-[10px] font-semibold text-slate-400 uppercase mb-1">CAPI Access secret Token</label>
+                    <label className="block text-[10px] font-semibold text-slate-400 uppercase mb-1">Access Token</label>
                     <input 
                       type="password"
                       value={localTokens[plat]}
@@ -398,7 +398,7 @@ export function SettingsView({
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
               <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wide dark:text-white">Courier Integration Credentials</h3>
-              <p className="text-xs text-slate-400 dark:text-slate-500">Configure API credentials and settings for Pathao & SteadFast courier APIs</p>
+              <p className="text-xs text-slate-400 dark:text-slate-500">Configure courier API settings for Pathao, SteadFast, and RedX.</p>
             </div>
             
             {/* Auto send toggle */}
@@ -799,12 +799,12 @@ export function SettingsView({
         <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-4 dark:bg-slate-900 dark:border-slate-800">
           <div>
             <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wide dark:text-white">WordPress plugin bridge</h3>
-            <p className="text-xs text-slate-400 dark:text-slate-500">Credentials bridge utilized by WooCommerce server webhook plugins</p>
+            <p className="text-xs text-slate-400 dark:text-slate-500">Connection used by your WooCommerce tracking plugin.</p>
           </div>
 
           <div className="p-4 rounded-lg bg-slate-50 border border-slate-150 dark:bg-slate-950 dark:border-slate-800 space-y-3 font-mono text-xs text-slate-700 dark:text-slate-305">
             <div>
-              <span className="block text-[9px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-0.5">REST API Access key token</span>
+              <span className="block text-[9px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-0.5">API Access Key</span>
               <div className="flex items-center gap-2 bg-white dark:bg-slate-900 px-2 py-1.5 rounded border border-slate-200 dark:border-slate-800">
                 <span className="truncate select-all">{connection.api_key || connection.token}</span>
                 <button 
@@ -858,12 +858,12 @@ export function SettingsView({
             onClick={() => {
               showToast("Pinging WordPress plugin...", false);
               refreshWPHeartbeat()
-                .then(() => showToast("WordPress synchronization active.", false))
-                .catch(() => showToast("Failed payload ping parameters.", true));
+                .then(() => showToast("WordPress connection is active.", false))
+                .catch(() => showToast("Failed to ping WordPress plugin.", true));
             }}
             className="w-full py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-lg transition-colors border border-indigo-700/20 cursor-pointer dark:bg-indigo-600 dark:hover:bg-indigo-700"
           >
-            Test Connection Heartbeat
+            Test WordPress Connection
           </button>
         </div>
 
@@ -871,7 +871,7 @@ export function SettingsView({
         <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-4 dark:bg-slate-900 dark:border-slate-800">
           <div>
             <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wide dark:text-white">Threshold warnings</h3>
-            <p className="text-xs text-slate-400 dark:text-slate-500 leading-normal">Transmit alert metrics emails when account telemetry consumption levels peak</p>
+            <p className="text-xs text-slate-400 dark:text-slate-500 leading-normal">Send email alerts when your monthly tracking usage gets high.</p>
           </div>
 
           <div className="space-y-4">
@@ -888,7 +888,7 @@ export function SettingsView({
                 </label>
                 <label className="flex items-center gap-2 text-xs dark:text-slate-300 cursor-pointer">
                   <input type="checkbox" defaultChecked className="rounded border-slate-300 text-indigo-600 cursor-pointer" />
-                  <span>Notify immediately on REST stream errors</span>
+                  <span>Alert me on tracking errors</span>
                 </label>
               </div>
             </div>

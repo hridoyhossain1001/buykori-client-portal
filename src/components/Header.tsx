@@ -35,17 +35,17 @@ interface HeaderProps {
 
 const pageSuggestions = [
   { id: 'dashboard', name: 'Dashboard / Overview', keywords: ['dashboard', 'home', 'overview', 'main', 'quota'] },
-  { id: 'analytics', name: 'Insights & Analytics', keywords: ['insights', 'analytics', 'chart', 'trend', 'volume', 'doctor'] },
-  { id: 'pending-purchases', name: 'Order Verification (COD)', keywords: ['order verification', 'cod protection', 'verify', 'pending', 'cancel', 'hold'] },
-  { id: 'orders', name: 'Orders & Delivery', keywords: ['orders', 'delivery', 'courier', 'pathao', 'steadfast', 'redx'] },
-  { id: 'incomplete-checkouts', name: 'Incomplete Checkouts', keywords: ['incomplete checkouts', 'abandoned', 'recovery', 'checkout', 'phone'] },
-  { id: 'campaign-builder', name: 'Campaigns Builder', keywords: ['campaigns', 'builder', 'sandbox', 'url', 'utm', 'test'] },
-  { id: 'suggestions', name: 'Optimization Audit', keywords: ['optimization audit', 'suggestions', 'diagnostics', 'health', 'issues'] },
+  { id: 'analytics', name: 'Insights & Analytics', keywords: ['insights', 'analytics', 'chart', 'trend', 'volume', 'quality'] },
+  { id: 'pending-purchases', name: 'COD Order Holds', keywords: ['order verification', 'cod protection', 'verify', 'pending', 'cancel', 'hold'] },
+  { id: 'orders', name: 'Courier Shipping', keywords: ['orders', 'delivery', 'courier', 'pathao', 'steadfast', 'redx'] },
+  { id: 'incomplete-checkouts', name: 'Lost Sales Recovery', keywords: ['incomplete checkouts', 'abandoned', 'recovery', 'checkout', 'phone'] },
+  { id: 'campaign-builder', name: 'Campaign Helper', keywords: ['campaigns', 'builder', 'url', 'utm', 'test'] },
+  { id: 'suggestions', name: 'Smart Tips', keywords: ['suggestions', 'tips', 'health', 'issues'] },
   { id: 'setup-guide', name: 'Setup Guide / Docs', keywords: ['setup guide', 'docs', 'faq', 'wordpress', 'installation'] },
-  { id: 'event-logs', name: 'Event History Logs', keywords: ['event history', 'logs', 'payload', 'success', 'retry', 'deduplication'] },
-  { id: 'api-logs', name: 'Delivery Logs', keywords: ['delivery logs', 'api logs', 'endpoint', 'latency', 'responses'] },
-  { id: 'settings', name: 'Tracking Settings', keywords: ['settings', 'pixel', 'access token', 'rules', 'heartbeat'] },
-  { id: 'account', name: 'Account Details', keywords: ['account', 'profile', 'password', 'delete', 'revoke'] }
+  { id: 'event-logs', name: 'Event Logs', keywords: ['event history', 'logs', 'success', 'retry', 'event key'] },
+  { id: 'api-logs', name: 'API Logs', keywords: ['api logs', 'endpoint', 'latency', 'responses'] },
+  { id: 'settings', name: 'Settings', keywords: ['settings', 'pixel', 'access token', 'rules', 'connection'] },
+  { id: 'account', name: 'Account Details', keywords: ['account', 'profile', 'password', 'delete', 'reset'] }
 ];
 
 export function Header({ 
@@ -108,13 +108,13 @@ export function Header({
       await onRefreshConnection();
       setToast({
         show: true,
-        msg: "WordPress API heartbeat synced successfully. Telemetry routes healthy.",
+        msg: "WordPress connected! Everything looks good.",
         err: false
       });
     } catch {
       setToast({
         show: true,
-        msg: "Failed to connect to WordPress REST context stream.",
+        msg: "Couldn't reach your WordPress site. Please check your plugin.",
         err: true
       });
     } finally {
@@ -134,7 +134,7 @@ export function Header({
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75"></span>
               <span className="relative inline-flex h-2 w-2 rounded-full bg-green-500"></span>
             </span>
-            <span className="text-[10px] font-bold tracking-wider text-green-700 uppercase">System Active</span>
+            <span className="text-[10px] font-bold tracking-wider text-green-700 uppercase">Connected</span>
           </div>
         );
       case 'Degraded':
@@ -144,7 +144,7 @@ export function Header({
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-75"></span>
               <span className="relative inline-flex h-2 w-2 rounded-full bg-amber-500"></span>
             </span>
-            <span className="text-[10px] font-bold tracking-wider text-amber-700 uppercase">Degraded Connection</span>
+            <span className="text-[10px] font-bold tracking-wider text-amber-700 uppercase">Slow Connection</span>
           </div>
         );
       case 'Disconnected':
@@ -154,7 +154,7 @@ export function Header({
             <span className="relative flex h-1.5 w-1.5">
               <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-rose-500"></span>
             </span>
-            <span className="text-[10px] font-bold tracking-wider text-rose-700 uppercase">Gateway Inactive</span>
+            <span className="text-[10px] font-bold tracking-wider text-rose-700 uppercase">Disconnected</span>
           </div>
         );
     }
@@ -244,7 +244,7 @@ export function Header({
             className={`p-1.5 md:p-2 rounded-full text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors ${
               testing ? 'animate-spin' : ''
             }`}
-            title="Verify CAPI WordPress Connection"
+            title="Check Connection"
           >
             <RefreshCw className="w-4 h-4" />
           </button>
@@ -255,7 +255,7 @@ export function Header({
               <button 
                 onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
                 className="relative rounded-full p-1.5 md:p-2 text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors focus:outline-none cursor-pointer"
-                title="System Notifications & Issues"
+                title="Notifications"
               >
                 <Bell className="w-4 h-4" />                 {unresolvedSuggestions.length > 0 && (
                   <span className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full border border-white dark:border-slate-900 bg-indigo-500 animate-pulse"></span>
@@ -267,7 +267,7 @@ export function Header({
                 <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl z-50 overflow-hidden animate-slide-up">
                   {/* Dropdown Header */}
                   <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/40">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Active Diagnostics Issues</span>
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Issues Found</span>
                     <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-indigo-100 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 font-mono">
                       {unresolvedSuggestions.length} Pending
                     </span>
@@ -278,8 +278,8 @@ export function Header({
                     {unresolvedSuggestions.length === 0 ? (
                       <div className="p-6 text-center text-slate-400 font-medium">
                         <CheckCircle2 className="w-6 h-6 mx-auto text-emerald-500 mb-2" />
-                        <p className="text-xs">All checklist resolved!</p>
-                        <p className="text-[10px] text-slate-400 mt-0.5">Your tracking telemetry is fully healthy.</p>
+                        <p className="text-xs">Your tracking is healthy!</p>
+                        <p className="text-[10px] text-slate-400 mt-0.5">Your tracking looks healthy.</p>
                       </div>
                     ) : (
                       unresolvedSuggestions.map((s) => (
@@ -303,7 +303,7 @@ export function Header({
                             </span>
                             {s.platform && <span className="text-[9px] font-mono text-slate-400 dark:text-slate-500">{s.platform}</span>}
                           </div>
-                          <h5 className="text-xs font-bold text-slate-800 dark:text-slate-200 mt-1.5">{s.title}</h5>
+                          <h4 className="text-xs font-bold uppercase text-slate-800 dark:text-white tracking-wider">Issues Found</h4>
                           <p className="text-[10.5px] text-slate-400 dark:text-slate-500 leading-normal mt-0.5 truncate">{s.explanation}</p>
                         </div>
                       ))
@@ -319,14 +319,14 @@ export function Header({
                       }}
                       className="block text-center py-2.5 bg-slate-50 dark:bg-slate-950/40 border-t border-slate-100 dark:border-slate-800 text-[10px] font-bold text-indigo-600 hover:text-indigo-750 dark:text-indigo-400 dark:hover:text-indigo-300 transition-colors uppercase tracking-wider cursor-pointer"
                     >
-                      Audit optimization dashboard →
+                      View all suggestions →
                     </div>
                   )}
                 </div>
               )}
             </div>
             
-            <button className="hidden sm:block rounded-full p-1.5 md:p-2 text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800" title="API Support">
+            <button className="hidden sm:block rounded-full p-1.5 md:p-2 text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800" title="Help & Support">
               <HelpCircle className="w-4 h-4" />
             </button>
           </div>
@@ -359,7 +359,7 @@ export function Header({
           >
             {/* Modal Header */}
             <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/40">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Search log database</span>
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Search</span>
               <button 
                 onClick={() => setIsSearchOpen(false)}
                 className="p-1 rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
@@ -373,7 +373,7 @@ export function Header({
               <div className="relative">
                 <input
                   type="text"
-                  placeholder="Filter by event name, ID, payload..."
+                  placeholder="Search by event name, ID, or customer data..."
                   value={searchVal}
                   onChange={(e) => setSearchVal(e.target.value)}
                   className="w-full rounded-lg border border-slate-200 bg-slate-50 px-9 py-2.5 text-xs outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 text-slate-800 dark:text-slate-100 dark:bg-slate-800 dark:border-slate-700 font-mono transition-all"
@@ -392,7 +392,7 @@ export function Header({
 
               {/* Instant Highlight Feature Info */}
               <div className="text-[10px] text-slate-400 flex items-center justify-between">
-                <span>Real-time key highlights active</span>
+                <span>Results update as you type</span>
                 {searchVal && (
                   <span className="text-indigo-600 dark:text-indigo-400 font-mono text-[9px] bg-indigo-50 dark:bg-indigo-950/40 px-1.5 py-0.5 rounded">
                     "{searchVal}"
@@ -417,7 +417,7 @@ export function Header({
                   onClick={() => setIsSearchOpen(false)}
                   className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold transition-all shadow-sm"
                 >
-                  View Filtered Logs
+                  Apply Filter
                 </button>
               </div>
             </div>

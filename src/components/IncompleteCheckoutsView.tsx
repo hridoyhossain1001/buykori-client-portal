@@ -66,7 +66,7 @@ export function IncompleteCheckoutsView({ data, onStatusChange, onRefresh, showT
       <div className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900 md:flex-row md:items-center md:justify-between">
         <div>
           <h2 className="text-lg font-bold">Incomplete Checkout Recovery</h2>
-          <p className="mt-1 text-xs text-slate-500">Valid phone submissions appear here. Active drafts become incomplete after 20 minutes without an order.</p>
+          <p className="mt-1 text-xs text-slate-500">Customers who started checkout but didn't complete. Active ones become incomplete after 20 minutes.</p>
         </div>
         <button onClick={onRefresh} className="rounded-lg border border-slate-200 px-3 py-2 text-xs font-bold hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800">
           Refresh list
@@ -116,7 +116,15 @@ export function IncompleteCheckoutsView({ data, onStatusChange, onRefresh, showT
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {filtered.length === 0 ? (
-                <tr><td colSpan={7} className="px-4 py-12 text-center text-slate-400">No incomplete checkout drafts found.</td></tr>
+                <tr>
+                  <td colSpan={7} className="px-4 py-12 text-center text-slate-400">
+                    <div className="mx-auto flex max-w-sm flex-col items-center gap-2">
+                      <Phone className="h-7 w-7 text-slate-300" />
+                      <p className="font-bold text-slate-600 dark:text-slate-300">No recoverable checkouts yet</p>
+                      <p className="text-xs">Customers who leave checkout with a phone number will appear here after 20 minutes.</p>
+                    </div>
+                  </td>
+                </tr>
               ) : filtered.map(item => {
                 const product = item.products?.[0];
                 const source = item.campaignData?.utm_source || 'Direct';

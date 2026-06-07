@@ -8,7 +8,7 @@ import {
   Tooltip as ReChartsTooltip, 
   ResponsiveContainer 
 } from 'recharts';
-import { Download, AlertTriangle } from 'lucide-react';
+import { Download, AlertTriangle, Activity } from 'lucide-react';
 import { APILog } from '../types';
 
 interface ApiLogsViewProps {
@@ -45,8 +45,8 @@ export function ApiLogsView({
       <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:bg-slate-900 dark:border-slate-800">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wide dark:text-white">Interface latency analysis</h3>
-            <p className="text-xs text-slate-400 dark:text-slate-500">Upstream connection telemetry latency parameters in milliseconds</p>
+            <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wide dark:text-white">API Response Times</h3>
+            <p className="text-xs text-slate-400 dark:text-slate-500">Connection response times in milliseconds</p>
           </div>
           <div className="text-xs text-slate-500 font-mono dark:text-slate-400">
             Avg Latency: <span className="font-bold text-indigo-600 dark:text-indigo-400">142ms</span>
@@ -68,14 +68,14 @@ export function ApiLogsView({
 
       {/* Sub controls & export bar */}
       <div className="flex justify-between items-center">
-        <h4 className="font-bold text-slate-800 text-xs uppercase tracking-widest text-slate-500 dark:text-slate-400">Raw Endpoint Interface API logs</h4>
+        <h4 className="font-bold text-slate-800 text-xs uppercase tracking-widest text-slate-500 dark:text-slate-400">API Logs</h4>
         
         <div className="flex items-center gap-2">
           <button 
             onClick={() => handleExportData('json', 'apilogs')}
             className="px-2.5 py-1 text-xs font-semibold rounded bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 flex items-center gap-1.5 cursor-pointer dark:bg-slate-900 dark:border-slate-800 dark:text-slate-300 dark:hover:bg-slate-800"
           >
-            <Download className="w-3.5 h-3.5" /> Export logs dump
+            <Download className="w-3.5 h-3.5" /> Export Logs
           </button>
         </div>
       </div>
@@ -88,7 +88,7 @@ export function ApiLogsView({
               <tr>
                 <th className="px-6 py-3">Timestamp</th>
                 <th className="px-6 py-3">Platform</th>
-                <th className="px-6 py-3">Target Endpoint url</th>
+                <th className="px-6 py-3">Endpoint URL</th>
                 <th className="px-6 py-3">Method</th>
                 <th className="px-6 py-3">Status code</th>
                 <th className="px-6 py-3">Latency</th>
@@ -99,7 +99,11 @@ export function ApiLogsView({
               {filteredApiLogsForTable.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="px-6 py-8 text-center text-slate-400 font-medium">
-                    No outbound logs generated.
+                    <div className="mx-auto flex max-w-sm flex-col items-center gap-2">
+                      <Activity className="h-7 w-7 text-slate-300" />
+                      <p className="font-bold text-slate-600 dark:text-slate-300">No API logs yet</p>
+                      <p className="text-xs font-normal text-slate-400">Logs will appear after tracking events are sent to Meta, TikTok, or GA4.</p>
+                    </div>
                   </td>
                 </tr>
               ) : (
@@ -158,12 +162,12 @@ export function ApiLogsView({
                           <td colSpan={7} className="bg-slate-50 dark:bg-slate-950 border-t border-slate-100 dark:border-slate-800 px-6 py-4">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                               <div className="bg-slate-900 text-slate-200 text-[11px] font-mono p-4 rounded-lg overflow-auto max-h-60">
-                                <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-wider mb-2">Outgoing Payload JSON</p>
+                                <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-wider mb-2">Data Sent</p>
                                 <pre className="whitespace-pre-wrap break-all">{l.requestBody}</pre>
                               </div>
 
                               <div className="bg-slate-900 text-slate-250 text-[11px] font-mono p-4 rounded-lg overflow-auto max-h-60">
-                                <p className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider mb-2">Gateways response payload</p>
+                                <p className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider mb-2">Platform Response</p>
                                 <pre className="whitespace-pre-wrap break-all">{l.responseBody}</pre>
                               </div>
                             </div>

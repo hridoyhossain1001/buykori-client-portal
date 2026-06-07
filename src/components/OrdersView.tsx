@@ -108,6 +108,7 @@ export function OrdersView({
   const [loadingOrders, setLoadingOrders] = useState<boolean>(false);
   const [submittingCourier, setSubmittingCourier] = useState<boolean>(false);
   const [cancellingOrderId, setCancellingOrderId] = useState<number | null>(null); // which order is being cancelled
+  const [orderToCancel, setOrderToCancel] = useState<CourierOrder | null>(null);
   const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
   const toggleExpand = (id: string) => setExpandedOrderId(prev => prev === id ? null : id);
 
@@ -140,9 +141,9 @@ export function OrdersView({
 
   const openPendingCourierModal = (order: any) => {
     setSelectedOrder(order);
-    setRecipientName(order.recipientName && order.recipientName !== 'â€”' ? order.recipientName : '');
+    setRecipientName(order.recipientName && order.recipientName !== '-' ? order.recipientName : '');
     setRecipientPhone(usablePhone(order.recipientPhone) || usablePhone(order.customer));
-    setRecipientAddress(order.recipientAddress && order.recipientAddress !== 'â€”' ? order.recipientAddress : '');
+    setRecipientAddress(order.recipientAddress && order.recipientAddress !== '-' ? order.recipientAddress : '');
     setCodAmount(order.amount);
     setIsSendModalOpen(true);
   };
@@ -207,7 +208,7 @@ export function OrdersView({
       }
     } catch (err) {
       console.error(err);
-      showToast("Error loading courier orders.", true);
+      showToast("Network error. Please try again.", true);
     } finally {
       setLoadingOrders(false);
     }
@@ -356,7 +357,7 @@ export function OrdersView({
   const handleSendToCourierSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!recipientName.trim() || !recipientPhone.trim() || !recipientAddress.trim()) {
-      showToast("নাম, ফোন নম্বর এবং ঠিকানা অবশ্যই পূরণ করুন।", true);
+      showToast("Please enter recipient name, phone, and shipping address.", true);
       return;
     }
 
@@ -365,7 +366,7 @@ export function OrdersView({
       // 'id' field is the DB primary key of the PendingEvent
       const dbId = selectedOrder?.id;
       if (!dbId) {
-        showToast("Error: Pending Event ID পাওয়া যায়নি। পেজ রিফ্রেশ করুন।", true);
+        showToast("Order details are missing. Please refresh the page and try again.", true);
         setSubmittingCourier(false);
         return;
       }
@@ -385,7 +386,7 @@ export function OrdersView({
       if (courierProvider === 'pathao' && selectedStoreId !== '') {
         payload.store_id = Number(selectedStoreId);
       } else if (courierProvider === 'pathao' && courierSettings?.pathao_store_id) {
-        // fallback: settings-এ store_id থাকলে সেটা ব্যবহার করো
+        // Fallback to the saved Pathao store ID when the live store list is unavailable.
         payload.store_id = Number(courierSettings.pathao_store_id);
       }
       if (courierProvider === 'redx') {
@@ -410,7 +411,7 @@ export function OrdersView({
           fetchCourierOrders();
           return;
         }
-        showToast(`✅ অর্ডার সফলভাবে ${providerName}-এ পাঠানো হয়েছে!`, false);
+        showToast(`Order sent to ${providerName} successfully!`, false);
         setIsSendModalOpen(false);
         openLabel({
           order_id: selectedOrder?.orderId || selectedOrder?.order_id,
@@ -426,11 +427,11 @@ export function OrdersView({
         fetchCourierOrders();
       } else {
         const errData = await res.json();
-        showToast(errData.detail || "Courier-এ পাঠাতে সমস্যা হয়েছে।", true);
+        showToast(errData.detail || "Failed to send this order to the courier.", true);
       }
     } catch (err) {
       console.error(err);
-      showToast("নেটওয়ার্ক সমস্যা। আবার চেষ্টা করুন।", true);
+      showToast("Network error. Please try again.", true);
     } finally {
       setSubmittingCourier(false);
     }
@@ -438,13 +439,14 @@ export function OrdersView({
 
   // ─── Cancel Courier Order ───────────────────────────────────────────────
   const handleCancelCourierOrder = async (order: CourierOrder) => {
-    const providerName = order.courier_provider === 'pathao' ? 'Pathao' : order.courier_provider === 'redx' ? 'RedX' : 'SteadFast';
-    const confirmMsg =
-      order.courier_provider === 'steadfast'
-        ? `এই order টি locally cancelled হবে।\nSteadFast merchant panel থেকেও manually cancel করুন।\n\nCancel করবেন?`
-        : `Pathao-তে Order ID "${order.order_id}" cancel করবেন?\nShুধু Pending/Pickup status-এ cancel সম্ভব।`;
+    setOrderToCancel(order);
+  };
 
-    if (!window.confirm(confirmMsg)) return;
+  const confirmCancelCourierOrder = async () => {
+    const order = orderToCancel;
+    if (!order) return;
+    setOrderToCancel(null);
+    const providerName = order.courier_provider === 'pathao' ? 'Pathao' : order.courier_provider === 'redx' ? 'RedX' : 'SteadFast';
 
     setCancellingOrderId(order.id);
     try {
@@ -467,6 +469,12 @@ export function OrdersView({
       setCancellingOrderId(null);
     }
   };
+
+  const cancelProviderName = orderToCancel?.courier_provider === 'pathao'
+    ? 'Pathao'
+    : orderToCancel?.courier_provider === 'redx'
+      ? 'RedX'
+      : 'SteadFast';
 
   // Filtered courier orders
   const filteredCourierOrders = courierOrders.filter(order => {
@@ -812,9 +820,9 @@ export function OrdersView({
         <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm flex flex-col space-y-4 dark:bg-slate-900 dark:border-slate-800">
           <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
             <div>
-              <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wide dark:text-white">Shipped Consignment Log</h3>
+              <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wide dark:text-white">Shipped Orders & Delivery Tracking</h3>
               <p className="text-xs text-slate-400 dark:text-slate-500">
-                Track delivery statuses on SteadFast, Pathao, or RedX. Delivery completion triggers a CAPI Purchase event; Returns fire a Refund event.
+                Track delivery statuses on SteadFast, Pathao, or RedX. Delivered orders send purchase data; returned orders send refund data.
               </p>
             </div>
           </div>
@@ -920,7 +928,7 @@ export function OrdersView({
                   <th className="px-5 py-3">Recipient Info</th>
                   <th className="px-5 py-3">COD Amount</th>
                   <th className="px-5 py-3">Courier Status</th>
-                  <th className="px-5 py-3">CAPI Telemetry</th>
+                  <th className="px-5 py-3">Tracking Status</th>
                   <th className="px-5 py-3">Booked Date</th>
                   <th className="px-5 py-3 text-right">Action</th>
                 </tr>
@@ -930,13 +938,17 @@ export function OrdersView({
                   <tr>
                     <td colSpan={9} className="px-6 py-12 text-center text-slate-400">
                       <Loader2 className="w-6 h-6 mx-auto animate-spin text-indigo-500 mb-2" />
-                      Fetching consignment details...
+                      Fetching shipment details...
                     </td>
                   </tr>
                 ) : filteredCourierOrders.length === 0 ? (
                   <tr>
                     <td colSpan={9} className="px-6 py-12 text-center text-slate-400 font-medium">
-                      No matching courier consignments found.
+                      <div className="mx-auto flex max-w-sm flex-col items-center gap-2">
+                        <Truck className="h-7 w-7 text-slate-300" />
+                        <p className="font-bold text-slate-600 dark:text-slate-300">No courier orders found</p>
+                        <p className="text-xs font-normal text-slate-400">Confirmed COD orders will appear here after they are booked with a courier.</p>
+                      </div>
                     </td>
                   </tr>
                 ) : (
@@ -1239,7 +1251,7 @@ export function OrdersView({
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase mb-1">COD সংগ্রহ পরিমাণ (৳)</label>
+                    <label className="block text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase mb-1">Cash on Delivery Amount to Collect (BDT)</label>
                     <div className="relative">
                       <DollarSign className="absolute left-2.5 top-2.5 w-3.5 h-3.5 text-slate-400" />
                       <input
@@ -1252,7 +1264,7 @@ export function OrdersView({
                     </div>
                   </div>
                   
-                  {/* Pathao: Store — API থেকে auto-fetch করা */}
+                  {/* Pathao stores are fetched from the courier API when credentials are available. */}
                   {courierProvider === 'pathao' && (
                     <div>
                       <label className="block text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase mb-1">Pathao Store</label>
@@ -1276,7 +1288,7 @@ export function OrdersView({
                       ) : (
                         <div className="py-2 px-3 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/40 rounded-lg text-xs text-red-600 dark:text-red-400 font-semibold flex items-center gap-1.5">
                           <Truck className="w-3.5 h-3.5 shrink-0" />
-                          Pathao credentials সেট করা নেই — Settings এ যান
+                          Pathao credentials missing. Set them up in settings.
                         </div>
                       )}
                     </div>
@@ -1375,6 +1387,37 @@ export function OrdersView({
 
             </form>
 
+          </div>
+        </div>
+      )}
+
+      {orderToCancel && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-sm rounded-xl border border-slate-200 bg-white p-5 shadow-2xl dark:border-slate-800 dark:bg-slate-900">
+            <div className="space-y-1">
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white">Cancel courier order?</h3>
+              <p className="text-xs leading-relaxed text-slate-500 dark:text-slate-400">
+                {orderToCancel.courier_provider === 'steadfast'
+                  ? 'This cancels the order locally. Please also cancel it from the SteadFast merchant panel.'
+                  : `Cancel order ${orderToCancel.order_id} on ${cancelProviderName}? Pending or pickup orders can usually be cancelled.`}
+              </p>
+            </div>
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setOrderToCancel(null)}
+                className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-600 transition-colors hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-300 dark:hover:bg-slate-800"
+              >
+                Keep Order
+              </button>
+              <button
+                type="button"
+                onClick={confirmCancelCourierOrder}
+                className="rounded-lg bg-rose-600 px-3 py-2 text-xs font-bold text-white transition-colors hover:bg-rose-700"
+              >
+                Cancel Order
+              </button>
+            </div>
           </div>
         </div>
       )}

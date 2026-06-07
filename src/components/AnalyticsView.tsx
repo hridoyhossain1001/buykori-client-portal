@@ -81,8 +81,8 @@ export function AnalyticsView({
       {/* Page Heading & Timeframe Selector */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h2 className="text-xl font-bold text-slate-900 dark:text-white">Active Insights</h2>
-          <p className="text-xs text-slate-400 dark:text-slate-500">Advanced diagnostic signals and campaign performance attribution</p>
+          <h2 className="text-xl font-bold text-slate-900 dark:text-white">Insights & Analytics</h2>
+          <p className="text-xs text-slate-400 dark:text-slate-500">Your store's ad performance and visitor data</p>
         </div>
         <div className="flex items-center gap-2">
           <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">Timeframe:</span>
@@ -106,20 +106,20 @@ export function AnalyticsView({
           {/* Card 1: Total Events */}
           <div className="rounded-3xl border border-white/60 dark:border-white/10 bg-gradient-to-br from-indigo-100/70 to-indigo-50/20 dark:from-indigo-900/30 dark:to-slate-900/40 backdrop-blur-2xl p-6 shadow-xl shadow-indigo-900/5 transition-transform hover:scale-[1.02]">
             <div className="flex items-center justify-between">
-              <p className="text-xs font-bold text-indigo-800 dark:text-indigo-400 border border-indigo-300/30 bg-indigo-100/50 dark:bg-indigo-900/40 px-2 py-1 rounded-md">Total Telemetry</p>
+              <p className="text-xs font-bold text-indigo-800 dark:text-indigo-400 border border-indigo-300/30 bg-indigo-100/50 dark:bg-indigo-900/40 px-2 py-1 rounded-md">Total Events</p>
             </div>
             <div className="mt-8 flex items-baseline gap-2">
               <p className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
                 {analyticsOverview.total_events?.toLocaleString() || 0}
               </p>
-              <span className="text-xs font-semibold text-indigo-700/70 dark:text-indigo-300/70">Raw packets</span>
+              <span className="text-xs font-semibold text-indigo-700/70 dark:text-indigo-300/70">events tracked</span>
             </div>
           </div>
 
           {/* Card 2: Success Rate */}
           <div className="rounded-3xl border border-white/60 dark:border-white/10 bg-gradient-to-br from-emerald-100/70 to-emerald-50/20 dark:from-emerald-900/30 dark:to-slate-900/40 backdrop-blur-2xl p-6 shadow-xl shadow-emerald-900/5 transition-transform hover:scale-[1.02]">
             <div className="flex items-center justify-between">
-              <p className="text-xs font-bold text-emerald-800 dark:text-emerald-400 border border-emerald-300/30 bg-emerald-100/50 dark:bg-emerald-900/40 px-2 py-1 rounded-md">Sync Rate</p>
+              <p className="text-xs font-bold text-emerald-800 dark:text-emerald-400 border border-emerald-300/30 bg-emerald-100/50 dark:bg-emerald-900/40 px-2 py-1 rounded-md">Success Rate</p>
             </div>
             <div className="mt-8 flex items-baseline gap-2">
               <p className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
@@ -132,7 +132,7 @@ export function AnalyticsView({
           {/* Card 3: Avg Daily */}
           <div className="rounded-3xl border border-white/60 dark:border-white/10 bg-gradient-to-br from-purple-100/70 to-purple-50/20 dark:from-purple-900/30 dark:to-slate-900/40 backdrop-blur-2xl p-6 shadow-xl shadow-purple-900/5 transition-transform hover:scale-[1.02]">
             <div className="flex items-center justify-between">
-              <p className="text-xs font-bold text-purple-800 dark:text-purple-400 border border-purple-300/30 bg-purple-100/50 dark:bg-purple-900/40 px-2 py-1 rounded-md">Daily Volume</p>
+              <p className="text-xs font-bold text-purple-800 dark:text-purple-400 border border-purple-300/30 bg-purple-100/50 dark:bg-purple-900/40 px-2 py-1 rounded-md">Daily Average</p>
             </div>
             <div className="mt-8 flex items-baseline gap-2">
               <p className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
@@ -146,7 +146,7 @@ export function AnalyticsView({
           {signalDoctor && (
             <div className="rounded-3xl border border-white/60 dark:border-white/10 bg-gradient-to-br from-amber-100/70 to-amber-50/20 dark:from-amber-900/30 dark:to-slate-900/40 backdrop-blur-2xl p-6 shadow-xl shadow-amber-900/5 transition-transform hover:scale-[1.02]">
               <div className="flex items-center justify-between">
-                <p className="text-xs font-bold text-amber-800 dark:text-amber-400 border border-amber-300/30 bg-amber-100/50 dark:bg-amber-900/40 px-2 py-1 rounded-md">Signal Doctor</p>
+                <p className="text-xs font-bold text-amber-800 dark:text-amber-400 border border-amber-300/30 bg-amber-100/50 dark:bg-amber-900/40 px-2 py-1 rounded-md">Data Quality</p>
               </div>
               <div className="mt-8 flex items-baseline gap-2">
                 <p className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
@@ -182,7 +182,7 @@ export function AnalyticsView({
                 </div>
               </div>
             )) : (
-              <div className="py-10 text-center text-xs text-slate-400">No district data captured yet.</div>
+              <div className="py-10 text-center text-xs text-slate-400">Location data will appear after visitors start browsing your store.</div>
             )}
           </div>
           <div className="mt-5 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[10px] leading-relaxed text-amber-800 dark:border-amber-900/40 dark:bg-amber-950/20 dark:text-amber-300">
@@ -210,7 +210,7 @@ export function AnalyticsView({
                 </div>
               </div>
             )) : (
-              <div className="py-10 text-center text-xs text-slate-400">No device data captured yet.</div>
+              <div className="py-10 text-center text-xs text-slate-400">Device data will appear after visitors start browsing your store.</div>
             )}
           </div>
         </div>
@@ -218,7 +218,7 @@ export function AnalyticsView({
         <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:bg-slate-900 dark:border-slate-800">
           <div className="mb-5">
             <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wide dark:text-white">Top Browsers</h3>
-            <p className="text-xs text-slate-400 dark:text-slate-500">Browser distribution from visitor device telemetry.</p>
+            <p className="text-xs text-slate-400 dark:text-slate-500">Browser share from your visitors.</p>
           </div>
           <div className="space-y-3">
             {(analyticsAudience?.browser_mix || []).length ? analyticsAudience.browser_mix.map((row: any) => (
@@ -227,7 +227,7 @@ export function AnalyticsView({
                 <span className="font-mono text-slate-500 dark:text-slate-400">{row.count.toLocaleString()} - {row.percentage}%</span>
               </div>
             )) : (
-              <div className="py-10 text-center text-xs text-slate-400">No browser data captured yet.</div>
+              <div className="py-10 text-center text-xs text-slate-400">Browser data will appear after visitors start browsing your store.</div>
             )}
           </div>
         </div>
@@ -242,8 +242,8 @@ export function AnalyticsView({
             </h3>
             <p className="text-xs text-slate-400 dark:text-slate-500">
               {districtFunnelMode === 'visitors'
-                ? 'Distinct visitor movement by approximate Bangladesh district bucket.'
-                : 'PageView to Purchase event volume by approximate Bangladesh district bucket.'}
+                ? 'Visitor movement grouped by Bangladesh district.'
+                : 'Conversion path from page views to purchases, grouped by location.'}
             </p>
           </div>
           <div className="inline-flex h-9 w-fit items-center rounded-lg border border-slate-200 bg-slate-50 p-1 text-[11px] font-bold dark:border-slate-800 dark:bg-slate-950">
@@ -279,7 +279,7 @@ export function AnalyticsView({
               {!districtFunnel.length ? (
                 <tr>
                   <td colSpan={6} className="px-6 py-10 text-center text-slate-400 font-medium dark:text-slate-500">
-                    No district funnel data captured yet.
+                    Location funnel data will appear after tracking starts.
                   </td>
                 </tr>
               ) : districtFunnel.map((row: any) => (
@@ -296,7 +296,7 @@ export function AnalyticsView({
           </table>
         </div>
         <p className="text-[10px] leading-relaxed text-slate-400 dark:text-slate-500">
-          Showing {districtFunnelUnit}. Platform delivery mirror logs such as TikTok rows are excluded from double counting.
+          Showing {districtFunnelUnit}. Duplicate platform events are filtered out.
         </p>
       </div>
 
@@ -307,8 +307,8 @@ export function AnalyticsView({
           {/* Conversion Funnel */}
           <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm flex flex-col dark:bg-slate-900 dark:border-slate-800">
             <div className="mb-6">
-              <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wide dark:text-white">Pixel Conversion Funnel</h3>
-              <p className="text-xs text-slate-400 dark:text-slate-500">Visualizing customer flow drops from first page interaction to ultimate checkout conversion.</p>
+              <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wide dark:text-white">Customer Funnel</h3>
+              <p className="text-xs text-slate-400 dark:text-slate-500">See where visitors move from first visit to checkout.</p>
             </div>
 
             <div className="space-y-4">
@@ -342,7 +342,7 @@ export function AnalyticsView({
                   });
                 })()
               ) : (
-                <div className="py-12 text-center text-xs text-slate-400">No conversion funnel stats yet. Send test page view / checkout events.</div>
+                <div className="py-12 text-center text-xs text-slate-400">Funnel data will appear after page view, checkout, and purchase events are tracked.</div>
               )}
             </div>
           </div>
@@ -351,12 +351,12 @@ export function AnalyticsView({
           <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm flex flex-col dark:bg-slate-900 dark:border-slate-800">
             <div className="mb-6 flex justify-between items-center">
               <div>
-                <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wide dark:text-white">Telemetry Match Quality Index</h3>
-                <p className="text-xs text-slate-400 dark:text-slate-500">Distribution of customer parameter matching ratios sent across active pipelines.</p>
+                <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wide dark:text-white">Match Quality</h3>
+                <p className="text-xs text-slate-400 dark:text-slate-500">How well your customer data matches with ad platforms.</p>
               </div>
               {signalDoctor?.score !== undefined && (
                 <div className="px-3 py-1.5 rounded-xl border border-indigo-100 bg-indigo-50/50 dark:bg-indigo-950/20 dark:border-indigo-900/40 text-right">
-                  <span className="block text-[8px] font-bold text-indigo-500 uppercase tracking-widest leading-none">EMQ Score</span>
+                  <span className="block text-[8px] font-bold text-indigo-500 uppercase tracking-widest leading-none">Match Score</span>
                   <span className="text-lg font-black text-slate-800 dark:text-white font-mono leading-none">{signalDoctor.score}%</span>
                 </div>
               )}
@@ -395,7 +395,7 @@ export function AnalyticsView({
                   </BarChart>
                 </ResponsiveContainer>
               ) : (
-                <div className="py-12 text-center text-xs text-slate-400">No match rate telemetry stats available yet.</div>
+                <div className="py-12 text-center text-xs text-slate-400">Not enough data yet. Keep tracking!</div>
               )}
             </div>
           </div>
@@ -404,8 +404,8 @@ export function AnalyticsView({
         {/* Signal Doctor Heuristics Checklist */}
         <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm flex flex-col justify-between dark:bg-slate-900 dark:border-slate-800">
           <div>
-            <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wide dark:text-white">Signal Doctor Audit</h3>
-            <p className="text-xs text-slate-400 dark:text-slate-500">Technical telemetry parameters checklist mapping health optimization warnings.</p>
+            <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wide dark:text-white">Tracking Checklist</h3>
+            <p className="text-xs text-slate-400 dark:text-slate-500">Simple checks that help improve ad tracking quality.</p>
           </div>
 
           <div className="mt-4 space-y-3 flex-1 overflow-y-auto max-h-96 pr-1">
@@ -428,7 +428,7 @@ export function AnalyticsView({
                 </div>
               ))
             ) : (
-              <div className="py-12 text-center text-xs text-slate-400">Diagnostic signals healthy.</div>
+              <div className="py-12 text-center text-xs text-slate-400">Everything looks good!</div>
             )}
           </div>
         </div>
@@ -439,27 +439,27 @@ export function AnalyticsView({
       <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm flex flex-col space-y-4 dark:bg-slate-900 dark:border-slate-800">
         <div>
           <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wide dark:text-white">Marketing Campaign Performance (UTM)</h3>
-          <p className="text-xs text-slate-400 dark:text-slate-500">Live source and campaign attribution statistics captured from incoming customer navigation.</p>
+          <p className="text-xs text-slate-400 dark:text-slate-500">See which campaigns bring visitors and sales.</p>
         </div>
 
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs text-slate-600 divide-y divide-slate-100 min-w-[700px] dark:text-slate-300 dark:divide-slate-800">
             <thead className="bg-slate-50 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:bg-slate-950 dark:text-slate-400">
               <tr>
-                <th className="px-6 py-3">Source Channel</th>
-                <th className="px-6 py-3">Campaign Identifier</th>
+                <th className="px-6 py-3">Source</th>
+                <th className="px-6 py-3">Campaign</th>
                 <th className="px-6 py-3">Content View</th>
                 <th className="px-6 py-3">Add to Cart</th>
                 <th className="px-6 py-3">Initiated Checkout</th>
                 <th className="px-6 py-3">Purchases</th>
-                <th className="px-6 py-3 text-right">Attributed Revenue</th>
+                <th className="px-6 py-3 text-right">Revenue</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {!analyticsCampaigns?.campaigns || analyticsCampaigns.campaigns.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="px-6 py-12 text-center text-slate-400 font-medium dark:text-slate-500">
-                    No UTM campaign details captured yet. Use the Campaign URL Builder below to setup ad tracking parameters.
+                    No campaign data yet. Use the Campaign URL Builder below to set up ad tracking.
                   </td>
                 </tr>
               ) : (
@@ -484,7 +484,7 @@ export function AnalyticsView({
       <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm flex flex-col space-y-4 dark:bg-slate-900 dark:border-slate-800">
         <div>
           <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wide dark:text-white">Campaign URL Builder</h3>
-          <p className="text-xs text-slate-400 dark:text-slate-500">Generate clean campaign destination links embedded with standard tracking UTMs to maintain accurate marketing performance reporting.</p>
+          <p className="text-xs text-slate-400 dark:text-slate-500">Create campaign links so you can see which ads drive sales.</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
@@ -586,8 +586,8 @@ export function AnalyticsView({
           {/* Output generator result box */}
           <div className="rounded-xl bg-slate-50 border border-slate-200 p-5 flex flex-col justify-between dark:bg-slate-950 dark:border-slate-800">
             <div className="space-y-3">
-              <h4 className="text-xs font-bold text-slate-700 uppercase tracking-widest dark:text-slate-350">Attributed URL Result</h4>
-              <p className="text-[11px] text-slate-400 dark:text-slate-500">Copy the compiled destination URL below and paste it as the target landing page inside Facebook Ads Manager or TikTok Campaign Editor.</p>
+              <h4 className="text-xs font-bold text-slate-700 uppercase tracking-widest dark:text-slate-350">Generated URL</h4>
+              <p className="text-[11px] text-slate-400 dark:text-slate-500">Use this URL in your ads to track which campaign drives sales.</p>
             </div>
 
             <div className="my-4 bg-white border border-slate-200 rounded-lg p-3 text-xs font-mono text-slate-700 break-all select-all dark:bg-slate-900 dark:border-slate-800 dark:text-slate-200 relative group min-h-24 flex items-center">
@@ -603,13 +603,13 @@ export function AnalyticsView({
                   </button>
                 </>
               ) : (
-                <span className="text-slate-400 italic">Attributed UTM campaign URL will display here...</span>
+                <span className="text-slate-400 italic">Your campaign URL will appear here...</span>
               )}
             </div>
 
             <div className="text-[10px] text-slate-400 leading-normal flex items-start gap-1.5 dark:text-slate-500">
               <Info className="w-3.5 h-3.5 shrink-0 text-slate-350 mt-0.5" />
-              <span>Applying proper UTM discipline ensures tracking data cleanly attributes purchase value directly to campaigns.</span>
+              <span>Use this URL in your ads to track which campaign drives sales.</span>
             </div>
           </div>
 

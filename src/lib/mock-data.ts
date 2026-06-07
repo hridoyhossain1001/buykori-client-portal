@@ -33,57 +33,57 @@ export const initialRules: EventRule[] = [
 
 export const staticFAQs = [
   {
-    q: "How does Conversions API bypass client-side ad blockers?",
-    a: "Unlike browser trackers that are blocked by browser lists (like EasyList), server-side events are routed from your self-hosted WordPress server directly to our cloud servers, which connect to Meta, TikTok, and Google via secure HTTP API requests on a back-channel. This bypasses ad-block extensions, Brave Shields, and content filters entirely."
+    q: "How does Buykori keep tracking when ad blockers are active?",
+    a: "Buykori sends important store events from your WordPress server instead of relying only on browser scripts. This helps Meta, TikTok, and Google receive purchase data even when a visitor uses an ad blocker."
   },
   {
     q: "Why are my events showing as 'Retrying' or 'Failed'?",
-    a: "This normally indicates a credential issue or that the target platform's API endpoint returned a non-200 response (e.g., expired access token or invalid pixel size configuration). Click on the event in the Logs page to see the exact HTTP response code and payload details, then verify your Platform Credentials."
+    a: "This usually means a platform key, pixel ID, or account setting needs attention. Open the event details, check the platform response, then update the matching settings if needed."
   },
   {
-    q: "How does Deduplication work with browser-side pixel tracking?",
-    a: "To prevent double-counting when utilizing both a browser pixel and server-side tracking, we transmit a matching `Event ID` and `Name` on both channels. Meta/TikTok matches these identifiers. If both are received within 48 hours, the browser event is usually preferred and the server event is deduplicated, ensuring safe reporting."
+    q: "How does Buykori prevent double-counted events?",
+    a: "Buykori sends the same event name and event ID through both browser and server tracking. Ad platforms use that match to count one real customer action instead of two."
   },
   {
-    q: "What does Event Match Quality mean in Meta CAPI?",
-    a: "Match quality represents how many customer identifiers (like email hashes, phone numbers, state, country, IP address, user agents) were attached to your event. Passing more data points helps Meta locate the exact customer profile, raising your optimization from ~40% to ~90% for purchase tracking."
+    q: "What does match quality mean?",
+    a: "Match quality shows how well an ad platform can connect an event to the right customer. Email, phone, browser, and location signals can improve reporting and ad optimization."
   }
 ];
 
 export const initialSuggestions: Suggestion[] = [
   {
     id: "s_01",
-    title: "Missing 'value' and 'currency' parameters on Purchase",
+    title: "Purchase value is missing",
     severity: "Critical",
-    explanation: "Your Purchase event is missing core transaction variables (`value`, `currency`). Meta Conversions API relies on value data for catalog pairings, value-based lookalike audiences, and ROAS calculations. This reduces your match quality and optimizer leverage by ~40%.",
-    fixAction: "Navigate to WordPress > CAPI Plugin Settings > Event Parameters and check the box to 'Inherit WooCommerce Price & Currency Schema' automatically.",
+    explanation: "Some purchase events are missing the order value or currency. Without this, Meta cannot measure sales value accurately.",
+    fixAction: "Open the Buykori plugin settings in WordPress and enable WooCommerce order value and currency sync.",
     resolved: false,
     platform: "Meta CAPI"
   },
   {
     id: "s_02",
-    title: "GA4 Events experiencing elevated failure rate (12%)",
+    title: "GA4 events need attention",
     severity: "Warning",
-    explanation: "Events sent to the Google Analytics 4 Measurement Protocol have been rejected with a 4xx response code during the last 7 days. This typically happens when the Measurement ID is mismatched or the 'API Secret Key' created in your GA4 admin workspace is expired or invalid.",
-    fixAction: "Go to Admin > Data Streams > Web Stream > Measurement Protocol API Secrets in your GA4 account, generate a new secret token, and copy it into the Setup panel.",
+    explanation: "Some GA4 events are being rejected. This usually happens when the Measurement ID or API Secret is incorrect.",
+    fixAction: "Create or copy a fresh GA4 API Secret from Google Analytics and add it in Settings.",
     resolved: false,
     platform: "GA4"
   },
   {
     id: "s_03",
-    title: "Duplicate AddToCart events transmitted without Deduplication keys",
+    title: "Add to Cart events may be counted twice",
     severity: "Critical",
-    explanation: "We detected AddToCart payloads matching browser signals that are missing the mandatory deduplication `event_id`. This causes Meta Ads Manager to record double action triggers, skewing attribution numbers and inflating reported cart conversions artificially.",
-    fixAction: "In your WooCommerce pixel setup tool, verify that 'Deduplication Sync Header' is toggled ON to match both pixel keys and track hashes.",
+    explanation: "Some Add to Cart events do not have a matching event ID. This can make Meta count the same cart action twice.",
+    fixAction: "Open the Buykori plugin settings and turn on event ID matching for browser and server events.",
     resolved: false,
     platform: "Meta CAPI"
   },
   {
     id: "s_04",
-    title: "TikTok tracking connection needs Optimization Review",
+    title: "TikTok match quality can improve",
     severity: "Tip",
-    explanation: "TikTok Events API is actively recording events, but is not receiving user agents or IP addresses. It is recommended to pass hashed identifiers (`em`, `ph`) or client headers to improve Match Quality on mobile-first campaigns.",
-    fixAction: "Toggle on 'Advanced Customer Header Matching' in your WordPress settings panel.",
+    explanation: "TikTok is receiving events, but some customer match details are missing. Adding more customer signals can improve reporting.",
+    fixAction: "Turn on advanced customer matching in the Buykori plugin settings.",
     resolved: false,
     platform: "TikTok Events API"
   }

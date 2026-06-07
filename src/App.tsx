@@ -90,6 +90,7 @@ export default function App() {
   const [loading, setLoading] = useState<boolean>(true);
   const [aiReviewing, setAiReviewing] = useState<boolean>(false);
   const [errState, setErrState] = useState<string | null>(null);
+  const [showDemoResetConfirm, setShowDemoResetConfirm] = useState<boolean>(false);
 
   // Live Mode Polling State
   const [liveMode, setLiveMode] = useState<boolean>(false);
@@ -395,7 +396,7 @@ export default function App() {
         setOrderManagementEnabled(orderManagementDraftEnabled);
         showToast(
           orderManagementDraftEnabled
-            ? 'Order Management enabled. Confirm → Courier → Delivered → Purchase flow active.'
+            ? 'Order Management enabled.'
             : 'Order Management disabled. Confirm → Purchase direct flow active.',
           false
         );
@@ -433,7 +434,7 @@ export default function App() {
       }
 
       if (!resProf.ok || !resConn.ok) {
-        throw new Error("HTTP Handshake failed. Connection proxy is not fully responding.");
+        throw new Error("Server is not responding. Please try again.");
       }
 
       const dProf = await resProf.json();
@@ -464,7 +465,7 @@ export default function App() {
       await loadActivePageData(activePage);
     } catch (e: any) {
       console.error(e);
-      setErrState(e.message || "An unresolved network error occurred while rendering diagnostics.");
+      setErrState(e.message || "Something went wrong. Please refresh or try again.");
     } finally {
       if (showShimmer) setLoading(false);
     }
@@ -627,7 +628,7 @@ export default function App() {
       };
 
       liveIntervalRef.current = setInterval(streamPulse, 3000);
-      showToast("Live events pipeline active. New triggers stream automatically.", false);
+      showToast("Live mode is on! Events update automatically.", false);
     } else {
       if (liveIntervalRef.current) {
         clearInterval(liveIntervalRef.current);
@@ -657,9 +658,9 @@ export default function App() {
         return;
       }
       const error = await res.json().catch(() => null);
-      showToast(error?.detail || `Failed to update ${platform} credentials.`, true);
+      showToast(error?.detail || `Failed to update ${platform} settings.`, true);
     } catch {
-      showToast(`Failed to update ${platform} credentials.`, true);
+      showToast(`Failed to update ${platform} settings.`, true);
     }
   };
 
@@ -679,7 +680,7 @@ export default function App() {
       const data = await res.json();
       setRules(data.rules || updated);
     } catch {
-      showToast("Could not synchronize dynamic tracking rules.", true);
+      showToast("Could not save tracking rules.", true);
       await loadSystemData(false);
     }
   };
@@ -691,7 +692,7 @@ export default function App() {
       return;
     }
     if (rules.some(rule => rule.eventName.toLowerCase() === cleanName.toLowerCase())) {
-      showToast(`${cleanName} is already in your routing rules.`, true);
+      showToast(`${cleanName} is already added.`, true);
       return;
     }
 
@@ -715,9 +716,9 @@ export default function App() {
       if (!res.ok) throw new Error();
       const data = await res.json();
       setRules(data.rules || updated);
-      showToast(`${cleanName} event route added.`, false);
+      showToast(`${cleanName} event added.`, false);
     } catch {
-      showToast("Could not add this event route. Use letters, numbers, or underscores for custom events.", true);
+      showToast("Could not add event. Use letters, numbers, or underscores.", true);
       await loadSystemData(false);
     }
   };
@@ -736,9 +737,9 @@ export default function App() {
       if (!res.ok) throw new Error();
       const data = await res.json();
       setRules(data.rules || updated);
-      showToast(`${removed?.eventName || 'Event'} route removed.`, false);
+      showToast(`${removed?.eventName || 'Event'} removed.`, false);
     } catch {
-      showToast("Could not remove event route.", true);
+      showToast("Could not remove event.", true);
       await loadSystemData(false);
     }
   };
@@ -796,7 +797,7 @@ export default function App() {
         body: JSON.stringify({ order_id: orderId })
       });
       if (res.ok) {
-        showToast("COD purchase cancelled. No telemetry transited.", false);
+        showToast("Order cancelled.", false);
         fetchDeferred();
         loadSystemData(false);
       }
@@ -833,7 +834,7 @@ export default function App() {
         body: JSON.stringify({ order_ids: selectedOrderIds })
       });
       if (res.ok) {
-        showToast(`Successfully cancelled ${selectedOrderIds.length} telemetry streams.`, false);
+        showToast(`${selectedOrderIds.length} orders cancelled.`, false);
         setSelectedOrderIds([]);
         fetchDeferred();
         loadSystemData(false);
@@ -869,12 +870,12 @@ export default function App() {
     setAiReviewing(true);
     try {
       const res = await fetch('/api/suggestions/ai-review', { method: 'POST' });
-      if (!res.ok) throw new Error("Diagnostics scan endpoint failed.");
+      if (!res.ok) throw new Error("Setup scan failed.");
       const data = await res.json();
       setSuggestions(data.suggestions);
-      showToast("System diagnostics successfully validated. Suggestions feed refreshed.", false);
+      showToast("Scan complete! Suggestions updated.", false);
     } catch (err: any) {
-      showToast("Failed to run system diagnostics scan.", true);
+      showToast("Setup scan failed. Please try again.", true);
     } finally {
       setAiReviewing(false);
     }
@@ -893,7 +894,7 @@ export default function App() {
         showToast(isNowResolved ? "Suggestion marked as resolved." : "Re-opened suggestion checklist.", false);
       }
     } catch {
-      showToast("Could not update recommendation status.", true);
+      showToast("Could not update suggestion.", true);
     }
   };
 
@@ -931,16 +932,16 @@ export default function App() {
       if (res.ok) {
         const data = await res.json();
         setProfile(data.profile);
-        showToast("Profile credentials synchronized flawlessly.", false);
+        showToast("Profile saved!", false);
       }
     } catch {
-      showToast("Could not synchronize profile changes.", true);
+      showToast("Failed to save profile.", true);
     } finally {
       setProfUpdating(false);
     }
   };
 
-  // Dispatch campaign event builder test payload
+  // Dispatch campaign event builder test
   const handleDispatchSandboxTest = async (e: React.FormEvent) => {
     e.preventDefault();
     setDispatchingTest(true);
@@ -980,31 +981,34 @@ export default function App() {
         // Silently reload logs background
         loadSystemData(false);
       } else {
-        showToast(`Relay Error! check returned console log context.`, true);
+        showToast(`Test failed. Please try again.`, true);
       }
     } catch (err: any) {
       setCampaignResp({
         statusCode: 500,
-        body: { error: "Network stream handshake aborted.", details: err.message }
+        body: { error: "Network error. Please check your connection.", details: err.message }
       });
-      showToast("Dispatched sandbox event failed.", true);
+      showToast("Test event failed to send.", true);
     } finally {
       setDispatchingTest(false);
     }
   };
 
-  const handleDemoReset = async () => {
-    if (window.confirm("Restore monthly tracking parameters & tracking history to original parameters?")) {
-      try {
-        const res = await fetch('/api/profile/reset-demo', { method: 'POST' });
-        if (res.ok) {
-          showToast("Demonstration sandbox restored to pristine metrics.", false);
-          loadSystemData(true);
-        }
-      } catch {
-        showToast("Demolition sandbox reset failed.", true);
+  const confirmDemoReset = async () => {
+    setShowDemoResetConfirm(false);
+    try {
+      const res = await fetch('/api/profile/reset-demo', { method: 'POST' });
+      if (res.ok) {
+        showToast("Demo data reset.", false);
+        loadSystemData(true);
       }
+    } catch {
+      showToast("Reset failed. Please try again.", true);
     }
+  };
+
+  const handleDemoReset = async () => {
+    setShowDemoResetConfirm(true);
   };
 
   // Danger actions confirmers
@@ -1019,10 +1023,10 @@ export default function App() {
         const data = await res.json();
         setConnection(data.connection);
         setConfirmRevokeText('');
-        showToast("WordPress REST Access keys reset safely.", false);
+        showToast("API key has been reset.", false);
       }
     } catch {
-      showToast("Trouble resetting WordPress REST key.", true);
+      showToast("Reset failed. Please try again or contact support.", true);
     }
   };
 
@@ -1094,7 +1098,7 @@ export default function App() {
     link.href = URL.createObjectURL(blob);
     link.download = `${filename}.${format}`;
     link.click();
-    showToast(`Successfully extracted ${format.toUpperCase()} track dump.`, false);
+    showToast("File downloaded!", false);
   };
 
   // --- Calculations for metrics ---
@@ -1166,14 +1170,14 @@ export default function App() {
   const pageTitles: Record<string, string> = {
     dashboard: 'Dashboard',
     analytics: 'Insights',
-    'pending-purchases': 'Order Verification',
+    'pending-purchases': 'Pending COD Orders',
     orders: 'Orders & Delivery',
-    'incomplete-checkouts': 'Incomplete Checkouts',
-    'campaign-builder': 'Campaigns',
-    suggestions: 'Optimization Audit',
-    'event-logs': 'Event History',
-    'api-logs': 'Delivery Logs',
-    settings: 'Tracking Settings',
+    'incomplete-checkouts': 'Lost Sales Recovery',
+    'campaign-builder': 'Campaign Helper',
+    suggestions: 'Smart Tips',
+    'event-logs': 'Event Logs',
+    'api-logs': 'API Logs',
+    settings: 'Settings',
     'setup-guide': 'Setup Guide',
     account: 'Account',
   };
@@ -1214,6 +1218,33 @@ export default function App() {
         />
       )}
 
+      {showDemoResetConfirm && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-900/40 px-4 backdrop-blur-sm">
+          <div className="w-full max-w-sm rounded-xl border border-slate-200 bg-white p-5 shadow-2xl">
+            <div className="space-y-1">
+              <h3 className="text-sm font-bold text-slate-900">Reset demo data?</h3>
+              <p className="text-xs leading-relaxed text-slate-500">This restores demo metrics and tracking history to their default values.</p>
+            </div>
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setShowDemoResetConfirm(false)}
+                className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-600 transition-colors hover:bg-slate-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={confirmDemoReset}
+                className="rounded-lg bg-indigo-600 px-3 py-2 text-xs font-bold text-white transition-colors hover:bg-indigo-700"
+              >
+                Reset Data
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Main Container */}
       <div className={`flex-1 flex flex-col min-w-0 transition-all duration-300 ${sidebarCollapsed ? 'md:pl-20' : 'md:pl-64'}`}>
         {connection && (
@@ -1236,13 +1267,13 @@ export default function App() {
           <div className="m-4 md:m-8 p-4 rounded-xl border border-rose-200 bg-rose-50 text-rose-800 flex items-start gap-3">
             <ShieldAlert className="w-5 h-5 text-rose-500 mt-0.5 shrink-0" />
             <div>
-              <h4 className="font-bold">Gateway REST Error Connection</h4>
+              <h4 className="font-bold">Connection Error</h4>
               <p className="text-xs mt-1 text-rose-700">{errState}</p>
               <button 
                 onClick={() => loadSystemData()} 
                 className="mt-3 px-3 py-1 bg-rose-600 text-white rounded text-xs font-semibold hover:bg-rose-700"
               >
-                Retry handshake pulse
+                Try Again
               </button>
             </div>
           </div>

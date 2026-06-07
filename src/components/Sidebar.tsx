@@ -88,6 +88,7 @@ export function Sidebar({
   onSwitchStore,
   onCreateStore,
 }: SidebarProps) {
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [storeSwitcherOpen, setStoreSwitcherOpen] = useState(false);
   const [switchingStore, setSwitchingStore] = useState<number | null>(null);
   const storeSwitcherRef = useRef<HTMLDivElement>(null);
@@ -119,8 +120,8 @@ export function Sidebar({
     {
       label: 'YOUR STORE',
       items: [
-        { id: 'dashboard', name: 'Dashboard', icon: LayoutDashboard },
-        { id: 'analytics', name: 'Insights', icon: TrendingUp },
+        { id: 'dashboard', name: 'Store Home', icon: LayoutDashboard },
+        { id: 'analytics', name: 'Ad Insights', icon: TrendingUp },
       ],
     },
     {
@@ -128,22 +129,22 @@ export function Sidebar({
       items: [
         {
           id: 'pending-purchases',
-          name: 'Order Verification',
+          name: 'COD Order Holds',
           icon: ShieldCheck,
-          subtitle: 'Hold COD purchases until verified',
+          subtitle: 'Hold COD orders until confirmed',
           count: orderVerificationCount,
         },
         {
           id: 'orders',
-          name: 'Orders & Delivery',
+          name: 'Courier Shipping',
           icon: Truck,
           count: deliveryBadgeCount,
         },
         {
           id: 'incomplete-checkouts',
-          name: 'Incomplete Checkouts',
+          name: 'Lost Sales Recovery',
           icon: PhoneCall,
-          subtitle: 'Recover checkout drafts with a valid phone',
+          subtitle: 'Recover abandoned checkouts with a phone number',
           count: incompleteCheckoutCount,
           locked: !profile.growthFeaturesEnabled,
         },
@@ -152,17 +153,17 @@ export function Sidebar({
     {
       label: 'GROW',
       items: [
-        { id: 'campaign-builder', name: 'Campaigns', icon: Megaphone },
-        { id: 'suggestions', name: 'Optimization Audit', icon: Lightbulb, count: suggestionsCount },
+        { id: 'campaign-builder', name: 'Campaign Helper', icon: Megaphone },
+        { id: 'suggestions', name: 'Smart Tips', icon: Lightbulb, count: suggestionsCount },
       ],
     },
     {
       label: 'SYSTEM',
       items: [
         { id: 'setup-guide', name: 'Setup Guide', icon: BookOpen },
-        { id: 'event-logs', name: 'Event History', icon: ListChecks },
-        { id: 'api-logs', name: 'Delivery Logs', icon: Terminal },
-        { id: 'settings', name: 'Tracking Settings', icon: Settings2 },
+        { id: 'event-logs', name: 'Event Logs', icon: ListChecks },
+        { id: 'api-logs', name: 'API Logs', icon: Terminal },
+        { id: 'settings', name: 'Settings', icon: Settings2 },
       ],
     },
   ];
@@ -179,6 +180,7 @@ export function Sidebar({
   const textQuotaColor = usagePercent > 90 ? 'text-rose-600' : usagePercent > 70 ? 'text-amber-600' : 'text-indigo-600';
 
   return (
+    <>
     <aside
       className={`fixed top-0 bottom-0 left-0 z-50 flex flex-col bg-white border-r border-slate-200 transition-transform duration-300 md:transition-all dark:bg-slate-900 dark:border-slate-800 ${
         collapsed ? 'md:w-20' : 'md:w-64'
@@ -192,11 +194,11 @@ export function Sidebar({
       }`}>
         <div className="flex items-center gap-2.5 overflow-hidden">
           <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-indigo-600 text-white font-bold shrink-0">
-            C
+            B
           </div>
           {!collapsed && (
             <span className="font-sans font-bold text-lg tracking-tight text-slate-800 dark:text-slate-100 truncate">
-              CAPI Portal
+              Buykori
             </span>
           )}
         </div>
@@ -459,20 +461,46 @@ export function Sidebar({
         )}
 
         <button
-          onClick={() => {
-            if (window.confirm('Are you sure you want to logout and disconnect?')) {
-              onLogout();
-            }
-          }}
+          onClick={() => setShowLogoutConfirm(true)}
           className={`flex items-center w-full text-slate-500 hover:text-rose-600 dark:text-slate-400 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/20 rounded-lg text-sm font-medium transition-all duration-200 group ${
             collapsed ? 'justify-center py-2' : 'gap-3 py-2 px-3'
           }`}
-          title="Disconnect Session / Logout"
+          title="Log Out"
         >
           <LogOut className="w-4 h-4 shrink-0 transition-transform group-hover:translate-x-0.5" />
-          {!collapsed && <span className="text-xs">Disconnect Portal</span>}
+          {!collapsed && <span className="text-xs">Log Out</span>}
         </button>
       </div>
     </aside>
+    {showLogoutConfirm && (
+      <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-900/40 px-4 backdrop-blur-sm">
+        <div className="w-full max-w-sm rounded-xl border border-slate-200 bg-white p-5 shadow-2xl dark:border-slate-800 dark:bg-slate-900">
+          <div className="space-y-1">
+            <h3 className="text-sm font-bold text-slate-900 dark:text-white">Log out?</h3>
+            <p className="text-xs leading-relaxed text-slate-500 dark:text-slate-400">You can log back in anytime.</p>
+          </div>
+          <div className="mt-5 flex justify-end gap-2">
+            <button
+              type="button"
+              onClick={() => setShowLogoutConfirm(false)}
+              className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-600 transition-colors hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-300 dark:hover:bg-slate-800"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setShowLogoutConfirm(false);
+                onLogout();
+              }}
+              className="rounded-lg bg-rose-600 px-3 py-2 text-xs font-bold text-white transition-colors hover:bg-rose-700"
+            >
+              Log Out
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+    </>
   );
 }

@@ -16,7 +16,10 @@ import {
   Copy, 
   CheckCircle2, 
   ListChecks,
-  AlertTriangle
+  AlertTriangle,
+  BookOpen,
+  Send,
+  Settings2
 } from 'lucide-react';
 import { CAPIEvent, UserProfile, Platform } from '../types';
 
@@ -59,13 +62,15 @@ export function DashboardView({
   analyticsDays,
   setAnalyticsDays
 }: DashboardViewProps) {
+  const showGettingStarted = events.length === 0 && profile.eventsUsed === 0;
+
   return (
     <>
       {/* Page Heading & Timeframe Selector */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <div>
-          <h2 className="text-xl font-bold text-slate-900 dark:text-white">Active Overview</h2>
-          <p className="text-xs text-slate-400 dark:text-slate-500">Real-time CAPI tracking metrics for your store</p>
+          <h2 className="text-xl font-bold text-slate-900 dark:text-white">Dashboard</h2>
+          <p className="text-xs text-slate-400 dark:text-slate-500">Your store's tracking summary</p>
         </div>
         <div className="flex items-center gap-2">
           <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">Timeframe:</span>
@@ -82,13 +87,54 @@ export function DashboardView({
         </div>
       </div>
 
+      {showGettingStarted && (
+        <section className="rounded-xl border border-indigo-100 bg-white p-5 shadow-sm dark:border-indigo-900/50 dark:bg-slate-900">
+          <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+            <div className="space-y-1.5">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">Welcome to Buykori</p>
+              <h3 className="text-base font-bold text-slate-900 dark:text-white">Start tracking your first store</h3>
+              <p className="max-w-2xl text-xs leading-relaxed text-slate-500 dark:text-slate-400">
+                Complete these steps to start sending purchase and visitor events to your ad platforms.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-3 lg:min-w-[520px]">
+              <button
+                type="button"
+                onClick={() => setActivePage('setup-guide')}
+                className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-left text-xs font-semibold text-slate-700 transition-colors hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-300 dark:hover:border-indigo-900 dark:hover:bg-indigo-950/30 dark:hover:text-indigo-300"
+              >
+                <BookOpen className="h-4 w-4 shrink-0 text-indigo-500" />
+                Setup Guide
+              </button>
+              <button
+                type="button"
+                onClick={() => setActivePage('settings')}
+                className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-left text-xs font-semibold text-slate-700 transition-colors hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-300 dark:hover:border-indigo-900 dark:hover:bg-indigo-950/30 dark:hover:text-indigo-300"
+              >
+                <Settings2 className="h-4 w-4 shrink-0 text-indigo-500" />
+                Connect Store
+              </button>
+              <button
+                type="button"
+                onClick={() => setActivePage('campaign-builder')}
+                className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-left text-xs font-semibold text-slate-700 transition-colors hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-300 dark:hover:border-indigo-900 dark:hover:bg-indigo-950/30 dark:hover:text-indigo-300"
+              >
+                <Send className="h-4 w-4 shrink-0 text-indigo-500" />
+                Send Test Event
+              </button>
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* 4 KPI Top metrics grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         
         {/* Event quota metrics card */}
         <div className="rounded-3xl border border-white/60 dark:border-white/10 bg-gradient-to-br from-emerald-200/50 to-emerald-50/20 dark:from-emerald-900/30 dark:to-slate-900/40 backdrop-blur-2xl p-6 shadow-xl shadow-emerald-900/5 transition-transform hover:scale-[1.02]">
           <div className="flex items-center justify-between">
-            <p className="text-xs font-bold text-emerald-800 dark:text-emerald-400 border border-emerald-300/30 bg-emerald-100/50 dark:bg-emerald-900/40 px-2 py-1 rounded-md">Management</p>
+            <p className="text-xs font-bold text-emerald-800 dark:text-emerald-400 border border-emerald-300/30 bg-emerald-100/50 dark:bg-emerald-900/40 px-2 py-1 rounded-md">Monthly Quota</p>
             <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-300 flex items-center gap-0.5 font-mono bg-white/40 dark:bg-black/20 px-2 py-0.5 rounded-full backdrop-blur-md">
               <TrendingUp className="w-3.5 h-3.5" />
               {profile.eventsQuota > 0 ? Math.round((profile.eventsUsed / profile.eventsQuota) * 100) : 0}%
@@ -116,14 +162,14 @@ export function DashboardView({
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 border border-orange-300/30 bg-orange-100/50 dark:bg-orange-900/40 px-2.5 py-1 rounded-md">
               <div className="w-2 h-2 rounded-full bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.8)] pulse-dot" />
-              <p className="text-[11px] font-bold text-orange-800 dark:text-orange-400">Marketing</p>
+              <p className="text-[11px] font-bold text-orange-800 dark:text-orange-400">Meta</p>
             </div>
           </div>
           <div className="mt-8 flex items-baseline justify-between">
             <p className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">{metaStats.rate}%</p>
             <span className="text-[10px] text-orange-800 dark:text-orange-200 bg-white/40 dark:bg-black/20 backdrop-blur px-2.5 py-1 rounded-full font-mono font-bold tracking-widest">{metaStats.total} CALLS</span>
           </div>
-          <p className="mt-4 text-[10px] text-orange-700/70 dark:text-orange-200/50 font-mono">Last stream: {metaStats.lastTime}</p>
+          <p className="mt-4 text-[10px] text-orange-700/70 dark:text-orange-200/50 font-mono">Last event: {metaStats.lastTime}</p>
         </div>
 
         {/* TikTok Stat mini platform card */}
@@ -131,14 +177,14 @@ export function DashboardView({
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 border border-indigo-300/30 bg-indigo-100/50 dark:bg-indigo-900/40 px-2.5 py-1 rounded-md">
               <div className="w-2 h-2 rounded-full bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.8)] pulse-dot" />
-              <p className="text-[11px] font-bold text-indigo-800 dark:text-indigo-400">Data Analytics</p>
+              <p className="text-[11px] font-bold text-indigo-800 dark:text-indigo-400">TikTok</p>
             </div>
           </div>
           <div className="mt-8 flex items-baseline justify-between">
             <p className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">{tiktokStats.rate}%</p>
             <span className="text-[10px] text-indigo-800 dark:text-indigo-200 bg-white/40 dark:bg-black/20 backdrop-blur px-2.5 py-1 rounded-full font-mono font-bold tracking-widest">{tiktokStats.total} CALLS</span>
           </div>
-          <p className="mt-4 text-[10px] text-indigo-700/70 dark:text-indigo-200/50 font-mono">Last stream: {tiktokStats.lastTime}</p>
+          <p className="mt-4 text-[10px] text-indigo-700/70 dark:text-indigo-200/50 font-mono">Last event: {tiktokStats.lastTime}</p>
         </div>
 
         {/* Google Analytics 4 mini platform card */}
@@ -146,14 +192,14 @@ export function DashboardView({
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 border border-purple-300/30 bg-purple-100/50 dark:bg-purple-900/40 px-2.5 py-1 rounded-md">
               <div className="w-2 h-2 rounded-full bg-purple-500 shadow-[0_0_8px_rgba(168,85,247,0.8)] pulse-dot" />
-              <p className="text-[11px] font-bold text-purple-800 dark:text-purple-400">CRM Automation</p>
+              <p className="text-[11px] font-bold text-purple-800 dark:text-purple-400">Google Analytics</p>
             </div>
           </div>
           <div className="mt-8 flex items-baseline justify-between">
             <p className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">{ga4Stats.rate}%</p>
             <span className="text-[10px] text-purple-800 dark:text-purple-200 bg-white/40 dark:bg-black/20 backdrop-blur px-2.5 py-1 rounded-full font-mono font-bold tracking-widest">{ga4Stats.total} CALLS</span>
           </div>
-          <p className="mt-4 text-[10px] text-purple-700/70 dark:text-purple-200/50 font-mono">Last stream: {ga4Stats.lastTime}</p>
+          <p className="mt-4 text-[10px] text-purple-700/70 dark:text-purple-200/50 font-mono">Last event: {ga4Stats.lastTime}</p>
         </div>
       </div>
 
@@ -164,12 +210,12 @@ export function DashboardView({
         <div className="col-span-2 rounded-xl border border-slate-200 bg-white p-6 shadow-sm flex flex-col dark:bg-slate-900 dark:border-slate-800">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h2 className="font-bold text-slate-800 text-sm uppercase tracking-wide dark:text-white">Event Transmission Volume</h2>
-              <p className="text-xs text-slate-400 dark:text-slate-500">Total transited telemetry packages grouped by chronological trace</p>
+              <h2 className="font-bold text-slate-800 text-sm uppercase tracking-wide dark:text-white">Event Activity</h2>
+              <p className="text-xs text-slate-400 dark:text-slate-500">Events sent to ad platforms over time</p>
             </div>
             <div className="flex items-center gap-2 text-xs text-slate-400 font-mono bg-slate-50 dark:bg-slate-950 px-2.5 py-1 rounded border border-slate-150 dark:border-slate-800">
               <span className="w-1.5 h-1.5 bg-indigo-500 rounded-full" />
-              Live Synced
+              Live
             </div>
           </div>
 
@@ -213,9 +259,9 @@ export function DashboardView({
         {/* Deduplication & optimization indicator */}
         <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm flex flex-col justify-between dark:bg-slate-900 dark:border-slate-800">
           <div>
-            <h2 className="font-bold text-slate-800 text-sm uppercase tracking-wide dark:text-white">Optimization Audit</h2>
+            <h2 className="font-bold text-slate-800 text-sm uppercase tracking-wide dark:text-white">Smart Tips</h2>
             <p className="text-xs text-slate-400 dark:text-slate-500 leading-normal mt-1">
-              Deduplication pairing and parameter validation schema health score
+              How well your tracking is configured
             </p>
           </div>
 
@@ -237,13 +283,13 @@ export function DashboardView({
               </svg>
               <div className="absolute inset-0 flex flex-col items-center justify-center">
                 <span className="text-3xl font-extrabold text-slate-800 dark:text-white font-mono leading-none">{optScore}%</span>
-                <span className="text-[10px] text-slate-400 mt-1 font-semibold uppercase tracking-wider">Health Map</span>
+                <span className="text-[10px] text-slate-400 mt-1 font-semibold uppercase tracking-wider">Score</span>
               </div>
             </div>
             
             <div className="mt-4 text-center">
               <p className="text-xs text-slate-500 dark:text-slate-400 max-w-xs leading-normal">
-                {resolvedCount} of {totalSuggCount} campaign parameter diagnostics resolved. {totalSuggCount - resolvedCount} issues pending.
+                {resolvedCount} of {totalSuggCount} suggestions resolved. {totalSuggCount - resolvedCount} remaining.
               </p>
             </div>
           </div>
@@ -252,7 +298,7 @@ export function DashboardView({
             onClick={() => setActivePage('suggestions')}
             className="w-full py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-semibold rounded-lg transition-colors border border-indigo-100 dark:bg-indigo-950/20 dark:text-indigo-400 dark:border-indigo-900/60 dark:hover:bg-indigo-900/30"
           >
-            Audit Recommendations
+            View Suggestions
           </button>
         </div>
       </div>
@@ -261,8 +307,8 @@ export function DashboardView({
       <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden dark:bg-slate-900 dark:border-slate-800">
         <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 px-6 py-4">
           <div>
-            <h2 className="font-bold text-slate-800 text-sm uppercase tracking-wider dark:text-white">Recent Activity Pipeline</h2>
-            <p className="text-xs text-slate-400 dark:text-slate-500">Chronological telemetry events from WordPress. Click a row to expand JSON payload.</p>
+            <h2 className="font-bold text-slate-800 text-sm uppercase tracking-wider dark:text-white">Recent Events</h2>
+            <p className="text-xs text-slate-400 dark:text-slate-500">Latest tracking events from your store. Click to see details.</p>
           </div>
           <button 
             onClick={() => setActivePage('event-logs')}
@@ -278,18 +324,30 @@ export function DashboardView({
               <tr>
                 <th className="px-6 py-3">Timestamp</th>
                 <th className="px-6 py-3">Event Name</th>
-                <th className="px-6 py-3">API Platform</th>
-                <th className="px-6 py-3">Log Status</th>
-                <th className="px-6 py-3">Service Code</th>
-                <th className="px-6 py-3 text-right">Deduplication Key</th>
+                <th className="px-6 py-3">Platform</th>
+                <th className="px-6 py-3">Status</th>
+                <th className="px-6 py-3">Code</th>
+                <th className="px-6 py-3 text-right">Event Key</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {events.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="px-6 py-8 text-center text-slate-400 font-medium">
-                    <ListChecks className="w-8 h-8 mx-auto text-slate-300 mb-2" />
-                    No events captured yet.
+                    <div className="mx-auto flex max-w-sm flex-col items-center gap-3">
+                      <ListChecks className="w-8 h-8 text-slate-300" />
+                      <div>
+                        <p className="font-bold text-slate-600 dark:text-slate-300">No tracking events yet</p>
+                        <p className="mt-1 text-xs font-normal text-slate-400">Install the plugin or send a test event to confirm everything is working.</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setActivePage('campaign-builder')}
+                        className="rounded-lg bg-indigo-600 px-3 py-2 text-xs font-bold text-white transition-colors hover:bg-indigo-700"
+                      >
+                        Send Test Event
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ) : (
@@ -343,12 +401,12 @@ export function DashboardView({
                                   <button 
                                     onClick={(el) => { el.stopPropagation(); handleCopy(JSON.stringify(e.payload, null, 2), `c_det_p_${e.id}`) }}
                                     className="p-1 rounded bg-slate-800 text-slate-400 hover:text-white"
-                                    title="Copy Payload"
+                                    title="Copy data sent"
                                   >
                                     {copiedStates[`c_det_p_${e.id}`] ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
                                   </button>
                                 </div>
-                                <p className="text-[10px] font-semibold text-indigo-400 uppercase tracking-widest mb-1 select-none">Client request payload context</p>
+                                <p className="text-[10px] font-semibold text-indigo-400 uppercase tracking-widest mb-1 select-none">Data Sent</p>
                                 <pre>{JSON.stringify(e.payload, null, 2)}</pre>
                               </div>
 
@@ -362,7 +420,7 @@ export function DashboardView({
                                     {copiedStates[`c_det_r_${e.id}`] ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
                                   </button>
                                 </div>
-                                <p className="text-[10px] font-semibold text-emerald-400 uppercase tracking-widest mb-1 select-none">Target platform return header parameters</p>
+                                <p className="text-[10px] font-semibold text-emerald-400 uppercase tracking-widest mb-1 select-none">Platform Response</p>
                                 <pre>{JSON.stringify(e.responseBody, null, 2)}</pre>
                               </div>
                             </div>

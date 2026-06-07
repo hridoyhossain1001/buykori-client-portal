@@ -263,9 +263,9 @@ capi('track', 'Purchase', {
           <div className="mb-6">
             <h2 className="font-bold text-slate-800 text-base uppercase tracking-wider dark:text-white flex items-center gap-2">
               <Globe className="w-5 h-5 text-indigo-500" />
-              WooCommerce Conversions API Integration Setup
+              WooCommerce Tracking Setup
             </h2>
-            <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">Deploy Conversions tracking client nodes inside your self-hosted WordPress panel in under 5 minutes.</p>
+            <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">Set up tracking on your WordPress site in under 5 minutes.</p>
           </div>
 
           <div className="space-y-8 relative before:absolute before:left-4 before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-100 dark:before:bg-slate-800">
@@ -319,7 +319,7 @@ capi('track', 'Purchase', {
               <div className="space-y-2 flex-1">
                 <h4 className="font-bold text-slate-800 text-sm dark:text-white">Run WordPress Connection Test</h4>
                 <p className="text-xs text-slate-500 dark:text-slate-400 max-w-3xl leading-relaxed">
-                  After authorization, use the plugin's <b>Test Connection</b> button to confirm the gateway handshake.
+                  After authorization, use the plugin's <b>Test Connection</b> button to confirm everything is connected.
                 </p>
               </div>
             </div>
@@ -330,15 +330,15 @@ capi('track', 'Purchase', {
                 4
               </div>
               <div className="space-y-2 flex-1">
-                <h4 className="font-bold text-slate-800 text-sm dark:text-white">Verify sandbox test telemetry trace</h4>
+                <h4 className="font-bold text-slate-800 text-sm dark:text-white">Send a Test Event</h4>
                 <p className="text-xs text-slate-500 dark:text-slate-400 max-w-3xl leading-relaxed">
-                  Use our campaign test console to fire test telemetry packets and check the event logs.
+                  Send a test event to make sure everything is working.
                 </p>
                 <button 
                   onClick={() => setActivePage('campaign-builder')}
                   className="px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200/50 rounded text-xs font-semibold shrink-0 cursor-pointer dark:bg-indigo-950/20 dark:text-indigo-400 dark:border-indigo-900/60 dark:hover:bg-indigo-900/30"
                 >
-                  Go to Campaign Sandbox
+                  Go to Campaign Helper
                 </button>
               </div>
             </div>
@@ -354,16 +354,16 @@ capi('track', 'Purchase', {
           <div>
             <h2 className="font-bold text-slate-800 text-base uppercase tracking-wider dark:text-white flex items-center gap-2">
               <ShoppingBag className="w-5 h-5 text-indigo-500" />
-              Shopify Server-Side Tracking Configuration
+              Shopify Tracking Setup
             </h2>
-            <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">Implement hybrid tracking for Shopify using Customer Events Pixels and Server Webhooks.</p>
+            <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">Set up Shopify browser events and order webhooks.</p>
           </div>
 
           {/* Section 1: Customer Pixel */}
           <div className="space-y-3">
             <div className="flex items-center gap-2">
               <span className="flex items-center justify-center w-6 h-6 rounded-full bg-indigo-100 dark:bg-indigo-900/30 text-xs font-bold text-indigo-700 dark:text-indigo-400">1</span>
-              <h3 className="font-bold text-slate-800 text-sm dark:text-white">Step 1: Install Custom Pixel (Client-Side Events)</h3>
+              <h3 className="font-bold text-slate-800 text-sm dark:text-white">Step 1: Install Custom Pixel</h3>
             </div>
             <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed max-w-4xl">
               Navigate to <b>Shopify Admin &gt; Settings &gt; Customer Events</b>. Click <b>Add custom pixel</b>, give it a name (e.g., <code>Buykori AdSync</code>), and paste the following tracking script inside the editor block:
@@ -395,10 +395,10 @@ capi('track', 'Purchase', {
           <div className="space-y-3 pt-2">
             <div className="flex items-center gap-2">
               <span className="flex items-center justify-center w-6 h-6 rounded-full bg-indigo-100 dark:bg-indigo-900/30 text-xs font-bold text-indigo-700 dark:text-indigo-400">2</span>
-              <h3 className="font-bold text-slate-800 text-sm dark:text-white">Step 2: Setup Shopify Webhooks (Server-Side Purchases)</h3>
+              <h3 className="font-bold text-slate-800 text-sm dark:text-white">Step 2: Set Up Shopify Webhooks</h3>
             </div>
             <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed max-w-4xl">
-              To reliably capture <b>Purchase</b> events bypass-ready even when ad-blockers are active, route Shopify order creation alerts straight to our server webhooks:
+              To capture <b>Purchase</b> events reliably, send Shopify order creation alerts to Buykori:
             </p>
             
             <div className="bg-slate-50 dark:bg-slate-950/20 rounded-xl p-4 border border-slate-200/60 dark:border-slate-800 space-y-3 text-xs">
@@ -433,19 +433,19 @@ capi('track', 'Purchase', {
           <div>
             <h2 className="font-bold text-slate-800 text-base uppercase tracking-wider dark:text-white flex items-center gap-2">
               <Code className="w-5 h-5 text-indigo-500" />
-              Custom Website Tracking Integration Guide
+              Custom Website Tracking Setup
             </h2>
-            <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">Integrate our server-side tracking stack directly into your React, Next.js, Laravel, or custom-coded application.</p>
+            <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">Add Buykori tracking to React, Next.js, Laravel, or any custom website.</p>
           </div>
 
           {/* Section 1: Client Script */}
           <div className="space-y-3">
             <div className="flex items-center gap-2">
               <span className="flex items-center justify-center w-6 h-6 rounded-full bg-indigo-100 dark:bg-indigo-900/30 text-xs font-bold text-indigo-700 dark:text-indigo-400">1</span>
-              <h3 className="font-bold text-slate-800 text-sm dark:text-white">1. Add Client-Side Tracker (Browser Pixel)</h3>
+              <h3 className="font-bold text-slate-800 text-sm dark:text-white">1. Add Browser Tracking</h3>
             </div>
             <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed max-w-4xl">
-              Paste the script tag below inside your website's main layout or template <code>&lt;head&gt;</code> block to automatically record PageViews and initialize tracking features:
+              Paste the script below inside your website's main layout or <code>&lt;head&gt;</code> block to start tracking page views:
             </p>
             
             <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-950 p-2.5 border border-slate-200 dark:border-slate-800 rounded font-mono text-xs text-slate-800 dark:text-slate-300">
@@ -466,12 +466,12 @@ capi('track', 'Purchase', {
             )}
 
             <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed max-w-4xl pt-1">
-              To trigger custom events or identify users (which automatically hashes PII using secure browser crypto APIs before sending), call the <code>capi()</code> function:
+              To send custom events or identify customers, call the <code>capi()</code> function:
             </p>
 
             <div className="relative rounded-lg overflow-hidden border border-slate-200 dark:border-slate-800">
               <div className="bg-slate-50 dark:bg-slate-950 px-4 py-2 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs text-slate-500">
-                <span>Frontend JavaScript API Usage</span>
+                <span>Browser Tracking Example</span>
                 <button
                   onClick={() => handleCopy(customCapiCode, 'custom_capi')}
                   className="flex items-center gap-1 hover:text-indigo-600 dark:hover:text-indigo-400 cursor-pointer"
@@ -490,15 +490,15 @@ capi('track', 'Purchase', {
           <div className="space-y-3 pt-2">
             <div className="flex items-center gap-2">
               <span className="flex items-center justify-center w-6 h-6 rounded-full bg-indigo-100 dark:bg-indigo-900/30 text-xs font-bold text-indigo-700 dark:text-indigo-400">2</span>
-              <h3 className="font-bold text-slate-800 text-sm dark:text-white">2. Send Server-to-Server Events (Backend CAPI)</h3>
+              <h3 className="font-bold text-slate-800 text-sm dark:text-white">2. Send Events From Your Server</h3>
             </div>
             <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed max-w-4xl">
-              Route checkout completions, subscriptions, or leads directly from your server. Make a secure POST request to the events endpoint using your server API key:
+              Send checkout completions, subscriptions, or leads directly from your server using your API key:
             </p>
             
             <div className="relative rounded-lg overflow-hidden border border-slate-200 dark:border-slate-800">
               <div className="bg-slate-50 dark:bg-slate-950 px-4 py-2 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs text-slate-500">
-                <span>REST API Event Payload (JSON)</span>
+                <span>Server Event Example</span>
                 <button
                   onClick={() => handleCopy(customBackendCode, 'custom_backend')}
                   className="flex items-center gap-1 hover:text-indigo-600 dark:hover:text-indigo-400 cursor-pointer"
@@ -519,8 +519,8 @@ capi('track', 'Purchase', {
       {/* FAQ Troubleshooting accordion list */}
       <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-4 dark:bg-slate-900 dark:border-slate-800">
         <div>
-          <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wide dark:text-white">Deployment FAQ & Troubleshooting</h3>
-          <p className="text-xs text-slate-400 dark:text-slate-500">Technical answers for server tracking mechanics and deduplication pipelines</p>
+          <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wide dark:text-white">FAQ & Troubleshooting</h3>
+          <p className="text-xs text-slate-400 dark:text-slate-500">Common questions and solutions</p>
         </div>
 
         <div className="space-y-3 pt-2">

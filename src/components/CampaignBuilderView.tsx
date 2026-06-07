@@ -257,8 +257,8 @@ export function CampaignBuilderView({
         {/* Builder Form controls */}
         <form onSubmit={handleDispatchSandboxTest} className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-6 dark:bg-slate-900 dark:border-slate-800">
           <div>
-            <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wide dark:text-white">Test Campaign event payload generator</h3>
-            <p className="text-xs text-slate-400 dark:text-slate-500">Assemble customized payload structures to simulate WooCommerce transactions telemetry stream sandbox testing</p>
+            <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wide dark:text-white">Campaign Event Tester</h3>
+            <p className="text-xs text-slate-400 dark:text-slate-500">Build a sample WooCommerce event and test how it reaches your ad platforms.</p>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -271,7 +271,7 @@ export function CampaignBuilderView({
               >
                 <option value="Meta CAPI">Meta CAPI</option>
                 <option value="TikTok Events API">TikTok Events API</option>
-                <option value="GA4">GA4 Measurement Protocol</option>
+                <option value="GA4">Google Analytics 4</option>
               </select>
             </div>
 
@@ -372,7 +372,7 @@ export function CampaignBuilderView({
           {/* Add customized parameters */}
           <div className="space-y-3">
             <div className="flex justify-between items-center">
-              <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider dark:text-slate-400">Custom tracking parameters schema</h4>
+              <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider dark:text-slate-400">Custom Tracking Fields</h4>
               <button 
                 type="button"
                 onClick={() => setCustomParams(prev => [...prev, { k: '', v: '' }])}
@@ -428,7 +428,7 @@ export function CampaignBuilderView({
               {dispatchingTest ? (
                 <>
                   <span className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  <span>Streaming telemetry payload...</span>
+                  <span>Sending test event...</span>
                 </>
               ) : (
                 <>
@@ -447,22 +447,22 @@ export function CampaignBuilderView({
           <div className="rounded-xl border border-slate-200 bg-slate-900 p-5 shadow-sm text-slate-200 font-mono text-[11px] h-96 flex flex-col justify-between dark:border-slate-800">
             <div>
               <div className="flex justify-between items-center mb-3 text-slate-400 font-sans border-b border-slate-800 pb-2">
-                <span className="text-[10px] uppercase font-bold tracking-wider">Telemetry JSON Payload Preview</span>
+                <span className="text-[10px] uppercase font-bold tracking-wider">Event Data Preview</span>
                 <span className="text-[9px] text-green-500 uppercase tracking-widest font-mono">Updating dynamically</span>
               </div>
               <pre className="overflow-auto max-h-72 select-all leading-normal whitespace-pre-wrap">{renderCampaignPayloadJson()}</pre>
             </div>
 
             <p className="text-[10px] text-slate-500 font-sans leading-normal pt-2 border-t border-slate-800 italic">
-              Matching indicators automatically pass through security hash encoders before exit transmission.
+              Customer match details are protected before the test event is sent.
             </p>
           </div>
 
           {/* Sandboxed API gate output response */}
           <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm flex-1 flex flex-col justify-between dark:bg-slate-900 dark:border-slate-800">
             <div>
-              <h4 className="font-bold text-slate-800 text-xs uppercase tracking-wider mb-2 dark:text-white">Sandbox endpoint telemetry execution console</h4>
-              <p className="text-xs text-slate-400 dark:text-slate-500 mb-4">Returned API diagnostic responses from the Conversions backend</p>
+              <h4 className="font-bold text-slate-800 text-xs uppercase tracking-wider mb-2 dark:text-white">Test Event Response</h4>
+              <p className="text-xs text-slate-400 dark:text-slate-500 mb-4">Responses returned after sending the test event.</p>
             </div>
 
             {campaignResp ? (
@@ -476,7 +476,7 @@ export function CampaignBuilderView({
             ) : (
               <div className="flex-1 border border-dashed border-slate-200 dark:border-slate-800 rounded-lg p-8 flex flex-col items-center justify-center text-center text-slate-400 dark:text-slate-500 space-y-3 min-h-36">
                 <Terminal className="w-8 h-8 text-slate-300 dark:text-slate-700" />
-                <p className="text-xs leading-normal max-w-xs">Sandbox execute execution. Populate client parameter forms and click dispatch event trigger to verify telemetry pipelines.</p>
+                <p className="text-xs leading-normal max-w-xs">Fill out the form and send a test event to see the response here.</p>
               </div>
             )}
           </div>

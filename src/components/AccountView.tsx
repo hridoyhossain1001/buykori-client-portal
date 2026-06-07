@@ -72,7 +72,7 @@ export function AccountView({
         
         {/* Account detail profile save */}
         <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:bg-slate-900 dark:border-slate-800">
-          <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wide mb-4 dark:text-white">Edit Profile Metadata</h3>
+          <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wide mb-4 dark:text-white">Edit Profile</h3>
           
           <form onSubmit={submitProfileSave} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -98,7 +98,7 @@ export function AccountView({
             </div>
 
             <div>
-              <label className="block text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase mb-1">Telemetry Alert Notifications Email</label>
+              <label className="block text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase mb-1">Notification Email</label>
               <input 
                 type="email" 
                 value={profNotifEmail}
@@ -113,7 +113,7 @@ export function AccountView({
                 disabled={profUpdating}
                 className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white text-xs font-bold rounded-lg transition-colors shadow-sm cursor-pointer"
               >
-                {profUpdating ? 'Synchronizing fields...' : 'Save Profile Changes'}
+                {profUpdating ? 'Saving...' : 'Save Profile Changes'}
               </button>
             </div>
           </form>
@@ -121,7 +121,7 @@ export function AccountView({
 
         {/* Password modifier */}
         <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:bg-slate-900 dark:border-slate-800">
-          <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wide mb-4 dark:text-white">Change Account Password</h3>
+          <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wide mb-4 dark:text-white">Change Password</h3>
           
           <div className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -137,7 +137,7 @@ export function AccountView({
               </div>
 
               <div>
-                <label className="block text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase mb-1">New Secure Password</label>
+                <label className="block text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase mb-1">New Password</label>
                 <input 
                   type="password" 
                   value={passNew} 
@@ -164,7 +164,7 @@ export function AccountView({
                 onClick={submitPasswordUpdate}
                 className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-lg transition-colors shadow-sm cursor-pointer"
               >
-                Update password key
+                Update Password
               </button>
             </div>
           </div>
@@ -173,23 +173,23 @@ export function AccountView({
         {/* Danger parameters */}
         <div className="rounded-xl border border-rose-200 bg-rose-50 dark:bg-rose-950/10 dark:border-rose-900/40 p-6 shadow-sm space-y-6">
           <div>
-            <h3 className="font-bold text-rose-800 dark:text-rose-400 text-sm uppercase tracking-wide">Danger Zone settings</h3>
-            <p className="text-xs text-rose-600 dark:text-rose-500 leading-normal mt-0.5">Destructive actions require explicit verification triggers to execute</p>
+            <h3 className="font-bold text-rose-800 dark:text-rose-400 text-sm uppercase tracking-wide">Danger Zone</h3>
+            <p className="text-xs text-rose-600 dark:text-rose-500 leading-normal mt-0.5">These actions can't be undone. Please confirm carefully.</p>
           </div>
 
           <div className="space-y-5 divide-y divide-rose-200/50 dark:divide-rose-900/40">
             
             {/* Webhook access key change */}
             <div className="space-y-3">
-              <h4 className="font-bold text-xs text-rose-800 dark:text-rose-400 uppercase tracking-widest mt-2">Revoke / Reset tracking token</h4>
+              <h4 className="font-bold text-xs text-rose-800 dark:text-rose-400 uppercase tracking-widest mt-2">Reset API Key</h4>
               <p className="text-xs text-rose-700 dark:text-rose-500 leading-relaxed max-w-2xl">
-                Resetting your API key invalidates active WordPress tracking REST webhooks immediately. This halts tracking reporting across Meta and TikTok until WordPress plugin credentials re-synchronize.
+                This will reset your API key. Tracking will pause until you update the new key in your WordPress plugin.
               </p>
 
               <div className="flex flex-col sm:flex-row gap-3">
                 <input 
                   type="text" 
-                  placeholder="Type 'REVOKE' to confirm reset token"
+                  placeholder="Type REVOKE to confirm"
                   value={confirmRevokeText}
                   onChange={(e) => setConfirmRevokeText(e.target.value)}
                   className="p-2 text-xs bg-white border border-rose-200/50 rounded font-mono text-rose-900 focus:outline-none focus:border-rose-500 w-full sm:w-80 dark:bg-slate-950 dark:border-rose-900/60 dark:text-rose-200"
@@ -199,7 +199,7 @@ export function AccountView({
                   onClick={handleTokenRevoke}
                   className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-lg transition-colors shadow cursor-pointer whitespace-nowrap"
                 >
-                  Revoke tracking REST credentials key
+                  Reset API Key
                 </button>
               </div>
             </div>
@@ -214,7 +214,7 @@ export function AccountView({
               <div className="flex flex-col sm:flex-row gap-3">
                 <input 
                   type="text" 
-                  placeholder="Type 'DELETE' to confirm erase parameters"
+                  placeholder="Type DELETE to confirm"
                   value={confirmDeleteText}
                   onChange={(e) => setConfirmDeleteText(e.target.value)}
                   className="p-2 text-xs bg-white border border-rose-200/50 rounded font-mono text-rose-900 focus:outline-none focus:border-rose-500 w-full sm:w-80 dark:bg-slate-950 dark:border-rose-900/60 dark:text-rose-200"
@@ -240,7 +240,7 @@ export function AccountView({
         {/* Current Active Plan summary card */}
         <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-4 dark:bg-slate-900 dark:border-slate-800">
           <div>
-            <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider block">Enterprise Account details</span>
+            <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider block">Your Plan</span>
             <h3 className="text-lg font-bold text-slate-800 dark:text-white mt-1">{profile.plan}</h3>
             <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">Billing changes are handled by support</p>
           </div>
@@ -257,7 +257,7 @@ export function AccountView({
             </div>
 
             <div className="flex justify-between pb-2">
-              <span className="text-slate-400 dark:text-slate-500">Bypass Ad blockers capability:</span>
+              <span className="text-slate-400 dark:text-slate-500">Ad Blocker Bypass:</span>
               <span className="font-semibold text-indigo-700 dark:text-indigo-400">Fully Enabled ✓</span>
             </div>
           </div>
@@ -265,11 +265,11 @@ export function AccountView({
           <div className="h-px bg-slate-100 dark:bg-slate-800" />
 
           <div>
-            <span className="block text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wide mb-2">Upgrade Subscription level</span>
+            <span className="block text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wide mb-2">Upgrade Plan</span>
             {isScale ? (
               <div className="p-4 border border-indigo-200 dark:border-indigo-900/60 rounded bg-indigo-50/20 dark:bg-indigo-950/10 text-center space-y-2">
                 <span className="font-bold text-slate-800 dark:text-white block text-xs uppercase tracking-wide">You are on our highest standard plan</span>
-                <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">For customized volume, custom webhook routes, or higher CAPI event volume, please contact support.</p>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">For custom event volume, extra tracking routes, or higher usage limits, please contact support.</p>
                 <button 
                   onClick={() => showToast("Custom billing requests are not automated here. Contact support@buykori.app.", true)}
                   className="w-full py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded font-semibold text-[10px] cursor-pointer shadow-sm transition-colors"
@@ -328,8 +328,8 @@ export function AccountView({
         {isDemo && (
           <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm space-y-3 dark:bg-slate-900 dark:border-slate-800">
             <div>
-              <h4 className="font-bold text-slate-800 dark:text-white text-xs uppercase tracking-wider">Demonstration controls</h4>
-              <p className="text-xs text-slate-400 dark:text-slate-500">Restore test values or delete analytics mock arrays</p>
+              <h4 className="font-bold text-slate-800 dark:text-white text-xs uppercase tracking-wider">Demo Controls</h4>
+              <p className="text-xs text-slate-400 dark:text-slate-500">Restore test values for demos</p>
             </div>
 
             <button 
@@ -337,7 +337,7 @@ export function AccountView({
               className="w-full py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 dark:border-slate-800 text-slate-800 dark:text-slate-200 rounded text-xs font-semibold border border-slate-200 flex items-center justify-center gap-1.5 cursor-pointer"
             >
               <RotateCcw className="w-3.5 h-3.5" />
-              Restore original diagnostic mock traces
+              Reset Demo Data
             </button>
           </div>
         )}

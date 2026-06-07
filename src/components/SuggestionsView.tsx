@@ -29,16 +29,16 @@ export function SuggestionsView({
         <div className="space-y-1">
           <h2 className="font-bold text-slate-900 dark:text-white text-base flex items-center gap-2">
             <Sparkles className="w-5 h-5 text-indigo-600 animate-pulse" />
-            System Diagnostics Scanner
+            Tracking Health Check
           </h2>
           <p className="text-xs text-slate-655 dark:text-slate-400 max-w-2xl leading-normal">
-            Our conversions diagnostics engine monitors active conversion streams. Adjust settings or verify WooCommerce parameters to optimize match rates and configurations.
+            We check your tracking setup and suggest improvements. Fix the issues below to get better results from your ads.
           </p>
         </div>
 
         {/* Optimization score badge widget */}
         <div className="text-right shrink-0">
-          <span className="block text-[10px] font-bold text-indigo-500 uppercase tracking-widest leading-none">Conversions Health Score</span>
+          <span className="block text-[10px] font-bold text-indigo-500 uppercase tracking-widest leading-none">Tracking Score</span>
           <span className="text-4xl font-extrabold text-slate-800 dark:text-white font-mono inline-block mt-1">{optScore}%</span>
           <div className="mt-1.5 h-1.5 w-24 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden ml-auto">
             <div className="h-full bg-indigo-600 rounded-full" style={{ width: `${optScore}%` }} />
@@ -53,8 +53,8 @@ export function SuggestionsView({
             <Sparkles className="w-5 h-5" />
           </div>
           <div>
-            <h4 className="font-bold text-slate-800 dark:text-white text-xs uppercase tracking-wider">Run Live Diagnostics Scan</h4>
-            <p className="text-xs text-slate-400 dark:text-slate-500">Initialize automated backend audit of conversions pipeline parameters, credentials, and event streams.</p>
+            <h4 className="font-bold text-slate-800 dark:text-white text-xs uppercase tracking-wider">Check My Setup</h4>
+            <p className="text-xs text-slate-400 dark:text-slate-500">Scan your tracking setup for problems and get clear fix suggestions.</p>
           </div>
         </div>
 
@@ -66,12 +66,12 @@ export function SuggestionsView({
           {aiReviewing ? (
             <>
               <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-              <span>Running Diagnostics Scan...</span>
+              <span>Checking...</span>
             </>
           ) : (
             <>
               <Sparkles className="w-4 h-4" />
-              <span>Run Diagnostics Scan</span>
+              <span>Check My Setup</span>
             </>
           )}
         </button>
@@ -86,7 +86,7 @@ export function SuggestionsView({
             </div>
             <div>
               <h4 className="font-bold text-slate-800 dark:text-white">Excellent! All checklist resolved</h4>
-              <p className="text-xs text-slate-400 dark:text-slate-500 max-w-sm mx-auto mt-1">Telemetry payloads match Meta, TikTok, and GA4 parameters completely. Your tracking telemetry score represents flawless performance.</p>
+              <p className="text-xs text-slate-400 dark:text-slate-500 max-w-sm mx-auto mt-1">Your tracking setup looks healthy across Meta, TikTok, and GA4.</p>
             </div>
           </div>
         )}
