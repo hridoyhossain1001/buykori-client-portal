@@ -12,11 +12,7 @@ import {
   CheckCircle2,
   XCircle,
   Menu,
-  Sun,
-  Moon,
   X,
-  AlertTriangle,
-  Sparkles,
 } from 'lucide-react';
 import { ClientConnection, Suggestion } from '../types';
 
@@ -178,20 +174,17 @@ export function Header({
           <div className="hidden sm:block shrink-0">{getStatusBadge()}</div>
         </div>
 
-        {/* Centered Glowing Search Capsule */}
+        {/* Centered quick navigation search */}
         <div ref={searchContainerRef} className="relative hidden lg:flex flex-1 justify-center max-w-xs xl:max-w-md mx-auto group">
-          {/* Soft ambient orange glow beneath */}
-          <div className="ambient-glow-capsule"></div>
-          
-          {/* Input container */}
-          <div className="orange-glow-capsule-input relative z-10 flex items-center justify-between w-full max-w-[320px] rounded-full px-5 py-2">
+          <div className="orange-glow-capsule-input relative z-10 flex items-center justify-between w-full max-w-[340px] rounded-full px-5 py-2">
             <input
               type="text"
-              placeholder="Search"
+              placeholder="Search pages..."
               value={searchVal}
               onChange={(e) => setSearchVal(e.target.value)}
               onFocus={() => setIsSearchFocused(true)}
               className="text-xs text-slate-800 dark:text-slate-100 placeholder-slate-850 dark:placeholder-slate-100 font-semibold"
+              aria-label="Quick navigation search"
             />
             <Search className="absolute right-4 top-3 h-3.5 w-3.5 text-slate-700 dark:text-slate-300 pointer-events-none" />
           </div>
@@ -200,7 +193,7 @@ export function Header({
           {isSearchFocused && matchingPages.length > 0 && setActivePage && (
             <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-full max-w-[320px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl z-50 overflow-hidden animate-slide-up">
               <div className="px-3 py-2 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/40 text-[9px] font-bold text-slate-400 uppercase tracking-widest select-none">
-                Quick Navigation
+                Quick navigation
               </div>
               <div className="py-1 divide-y divide-slate-100 dark:divide-slate-850/40">
                 {matchingPages.map(page => (
@@ -215,7 +208,7 @@ export function Header({
                     role="button"
                   >
                     <span>{page.name}</span>
-                    <span className="text-[9px] text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity">Jump to →</span>
+                    <span className="text-[9px] text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity">Open</span>
                   </div>
                 ))}
               </div>
@@ -230,7 +223,8 @@ export function Header({
             type="button"
             onClick={() => setIsSearchOpen(true)}
             className="block lg:hidden p-2 rounded-full text-slate-500 hover:text-slate-800 hover:bg-slate-50 dark:text-slate-400 dark:hover:text-slate-200 dark:hover:bg-slate-800 transition-colors focus:outline-none focus:ring-1 focus:ring-indigo-500"
-            title="Search logs"
+            title="Search pages"
+            aria-label="Open quick navigation search"
           >
             <Search className="w-4 h-4 text-slate-500" />
           </button>
@@ -245,6 +239,7 @@ export function Header({
               testing ? 'animate-spin' : ''
             }`}
             title="Check Connection"
+            aria-label="Check WordPress connection"
           >
             <RefreshCw className="w-4 h-4" />
           </button>
@@ -256,6 +251,7 @@ export function Header({
                 onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
                 className="relative rounded-full p-1.5 md:p-2 text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors focus:outline-none cursor-pointer"
                 title="Notifications"
+                aria-label="Open notifications"
               >
                 <Bell className="w-4 h-4" />                 {unresolvedSuggestions.length > 0 && (
                   <span className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full border border-white dark:border-slate-900 bg-indigo-500 animate-pulse"></span>
@@ -319,7 +315,7 @@ export function Header({
                       }}
                       className="block text-center py-2.5 bg-slate-50 dark:bg-slate-950/40 border-t border-slate-100 dark:border-slate-800 text-[10px] font-bold text-indigo-600 hover:text-indigo-750 dark:text-indigo-400 dark:hover:text-indigo-300 transition-colors uppercase tracking-wider cursor-pointer"
                     >
-                      View all suggestions →
+                      View all suggestions
                     </div>
                   )}
                 </div>

@@ -15,8 +15,8 @@ import {
   Check, 
   Copy, 
   CheckCircle2, 
+  RefreshCw,
   ListChecks,
-  AlertTriangle,
   BookOpen,
   Send,
   Settings2
@@ -261,7 +261,7 @@ export function DashboardView({
           <div>
             <h2 className="font-bold text-slate-800 text-sm uppercase tracking-wide dark:text-white">Smart Tips</h2>
             <p className="text-xs text-slate-400 dark:text-slate-500 leading-normal mt-1">
-              How well your tracking is configured
+              {totalSuggCount === 0 ? 'Tracking setup health' : 'How well your tracking is configured'}
             </p>
           </div>
 
@@ -289,7 +289,9 @@ export function DashboardView({
             
             <div className="mt-4 text-center">
               <p className="text-xs text-slate-500 dark:text-slate-400 max-w-xs leading-normal">
-                {resolvedCount} of {totalSuggCount} suggestions resolved. {totalSuggCount - resolvedCount} remaining.
+                {totalSuggCount === 0
+                  ? 'All core checks are passing across your configured platforms.'
+                  : `${resolvedCount} of ${totalSuggCount} suggestions resolved. ${totalSuggCount - resolvedCount} remaining.`}
               </p>
             </div>
           </div>
@@ -298,7 +300,10 @@ export function DashboardView({
             onClick={() => setActivePage('suggestions')}
             className="w-full py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-semibold rounded-lg transition-colors border border-indigo-100 dark:bg-indigo-950/20 dark:text-indigo-400 dark:border-indigo-900/60 dark:hover:bg-indigo-900/30"
           >
-            View Suggestions
+            <span className="inline-flex items-center justify-center gap-1.5">
+              {totalSuggCount === 0 ? <RefreshCw className="h-3.5 w-3.5" /> : null}
+              {totalSuggCount === 0 ? 'Run Health Check' : 'View Suggestions'}
+            </span>
           </button>
         </div>
       </div>
@@ -318,7 +323,55 @@ export function DashboardView({
           </button>
         </div>
 
-        <div className="overflow-x-auto">
+        <div className="space-y-3 p-4 md:hidden">
+          {events.length === 0 ? (
+            <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-5 text-center dark:border-slate-800 dark:bg-slate-950/40">
+              <ListChecks className="mx-auto h-7 w-7 text-slate-300" />
+              <p className="mt-2 text-xs font-bold text-slate-600 dark:text-slate-300">No tracking events yet</p>
+              <button
+                type="button"
+                onClick={() => setActivePage('campaign-builder')}
+                className="mt-3 rounded-lg bg-indigo-600 px-3 py-2 text-xs font-bold text-white transition-colors hover:bg-indigo-700"
+              >
+                Send Test Event
+              </button>
+            </div>
+          ) : events.slice(0, 5).map(e => (
+            <button
+              key={e.id}
+              type="button"
+              onClick={() => setExpandedEventId(expandedEventId === e.id ? null : e.id)}
+              className="w-full rounded-lg border border-slate-200 bg-white p-3 text-left shadow-sm dark:border-slate-800 dark:bg-slate-900"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-sm font-bold text-slate-900 dark:text-white">{e.name}</p>
+                  <p className="mt-1 flex items-center gap-1.5 text-[11px] font-medium text-slate-500 dark:text-slate-400">
+                    <span className={`h-1.5 w-1.5 rounded-full ${
+                      e.platform === 'Meta CAPI' ? 'bg-indigo-500' :
+                      e.platform === 'TikTok Events API' ? 'bg-cyan-500' : 'bg-orange-500'
+                    }`} />
+                    {e.platform}
+                  </p>
+                </div>
+                <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase ${
+                  e.status === 'Success' ? 'border-green-150 bg-green-50 text-green-700' :
+                  e.status === 'Retry' ? 'border-amber-150 bg-amber-50 text-amber-700' :
+                  'border-rose-150 bg-rose-50 text-rose-700'
+                }`}>
+                  {e.status}
+                </span>
+              </div>
+              <div className="mt-3 grid grid-cols-2 gap-2 text-[11px] text-slate-500">
+                <span className="font-mono">{new Date(e.timestamp).toLocaleTimeString()}</span>
+                <span className="text-right font-mono">Code {e.httpCode}</span>
+              </div>
+              <p className="mt-2 truncate font-mono text-[10px] text-slate-400">{e.deduplicationKey}</p>
+            </button>
+          ))}
+        </div>
+
+        <div className="hidden overflow-x-auto md:block">
           <table className="w-full text-left text-xs text-slate-600 dark:text-slate-350 divide-y divide-slate-100 dark:divide-slate-800 min-w-[800px]">
             <thead className="bg-slate-50 dark:bg-slate-950 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
               <tr>

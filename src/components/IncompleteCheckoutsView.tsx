@@ -101,7 +101,56 @@ export function IncompleteCheckoutsView({ data, onStatusChange, onRefresh, showT
             <option value="recovered">Recovered</option>
           </select>
         </div>
-        <div className="overflow-x-auto">
+        <div className="space-y-3 p-4 md:hidden">
+          {filtered.length === 0 ? (
+            <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center text-slate-400 dark:border-slate-800 dark:bg-slate-950/40">
+              <Phone className="mx-auto h-7 w-7 text-slate-300" />
+              <p className="mt-2 text-xs font-bold text-slate-600 dark:text-slate-300">No recoverable checkouts yet</p>
+            </div>
+          ) : filtered.map(item => {
+            const product = item.products?.[0];
+            const source = item.campaignData?.utm_source || 'Direct';
+            return (
+              <div key={item.id} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-bold text-slate-900 dark:text-white">{item.customerName}</p>
+                    <p className="mt-1 font-mono text-[11px] text-slate-500">{item.phone}</p>
+                    <p className="mt-0.5 truncate text-[10px] text-slate-400">{item.address}</p>
+                  </div>
+                  <span className={`shrink-0 rounded-full border px-2 py-1 text-[10px] font-bold capitalize ${STATUS_STYLES[item.status] || 'border-slate-200 text-slate-500'}`}>{item.status}</span>
+                </div>
+                <div className="mt-4 grid grid-cols-2 gap-2 text-[11px]">
+                  <div className="rounded-lg bg-slate-50 p-2 dark:bg-slate-950/40">
+                    <p className="font-bold uppercase text-slate-400">Product</p>
+                    <p className="mt-1 font-semibold text-slate-800 dark:text-slate-200">{product?.content_name || product?.name || 'Unavailable'}</p>
+                  </div>
+                  <div className="rounded-lg bg-slate-50 p-2 dark:bg-slate-950/40">
+                    <p className="font-bold uppercase text-slate-400">Amount</p>
+                    <p className="mt-1 font-bold text-slate-800 dark:text-slate-200">৳{Number(item.amount || 0).toLocaleString()}</p>
+                  </div>
+                  <div className="rounded-lg bg-slate-50 p-2 dark:bg-slate-950/40">
+                    <p className="font-bold uppercase text-slate-400">Source</p>
+                    <p className="mt-1 capitalize text-slate-700 dark:text-slate-300">{source}</p>
+                  </div>
+                  <div className="rounded-lg bg-slate-50 p-2 dark:bg-slate-950/40">
+                    <p className="font-bold uppercase text-slate-400">Last activity</p>
+                    <p className="mt-1 text-slate-700 dark:text-slate-300">{new Date(item.lastActivityAt).toLocaleDateString()}</p>
+                  </div>
+                </div>
+                <div className="mt-4 flex flex-wrap justify-end gap-2">
+                  <a href={`tel:+${item.phone}`} title="Call customer" className="rounded-lg border border-slate-200 p-2 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800"><Phone className="h-3.5 w-3.5" /></a>
+                  <button title="Copy phone" onClick={() => { navigator.clipboard.writeText(item.phone); showToast('Phone number copied.'); }} className="rounded-lg border border-slate-200 p-2 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800"><Copy className="h-3.5 w-3.5" /></button>
+                  {item.pageUrl && <a href={item.pageUrl} target="_blank" rel="noreferrer" title="Open landing page" className="rounded-lg border border-slate-200 p-2 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800"><ExternalLink className="h-3.5 w-3.5" /></a>}
+                  {!['recovered', 'contacted'].includes(item.status) && <button disabled={updatingId === item.id} title="Mark contacted" onClick={() => updateStatus(item.id, 'contacted')} className="rounded-lg border border-emerald-200 p-2 text-emerald-600 hover:bg-emerald-50 disabled:opacity-50 dark:border-emerald-900 dark:hover:bg-emerald-950/30"><CheckCircle2 className="h-3.5 w-3.5" /></button>}
+                  {!['recovered', 'ignored'].includes(item.status) && <button disabled={updatingId === item.id} title="Ignore draft" onClick={() => updateStatus(item.id, 'ignored')} className="rounded-lg border border-rose-200 p-2 text-rose-600 hover:bg-rose-50 disabled:opacity-50 dark:border-rose-900 dark:hover:bg-rose-950/30"><UserRoundX className="h-3.5 w-3.5" /></button>}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="hidden overflow-x-auto md:block">
           <table className="w-full min-w-[980px] text-left text-xs">
             <thead className="bg-slate-50 text-[10px] uppercase tracking-wider text-slate-500 dark:bg-slate-950">
               <tr>

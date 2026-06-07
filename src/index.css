@@ -12,42 +12,41 @@
 @layer base {
   body {
     @apply text-slate-800 antialiased font-sans selection:bg-indigo-500/20 selection:text-indigo-900;
-    background-color: #f0f4fd;
+    background-color: #eef5fb;
     background-image: 
-      radial-gradient(at 0% 0%, hsla(242,100%,90%,1) 0px, transparent 50%),
-      radial-gradient(at 100% 0%, hsla(168,100%,88%,1) 0px, transparent 50%),
-      radial-gradient(at 100% 100%, hsla(285,100%,91%,1) 0px, transparent 50%),
-      radial-gradient(at 0% 100%, hsla(202,100%,88%,1) 0px, transparent 50%);
+      radial-gradient(at 0% 0%, hsla(236, 88%, 94%, 0.72) 0px, transparent 44%),
+      radial-gradient(at 100% 0%, hsla(174, 84%, 92%, 0.7) 0px, transparent 42%),
+      radial-gradient(at 100% 100%, hsla(285, 82%, 94%, 0.55) 0px, transparent 42%),
+      linear-gradient(180deg, #f7fbff 0%, #edf6fb 48%, #f6f0fb 100%);
     background-attachment: fixed;
   }
 }
 
 /* Glassmorphism Liquid Glass overrides */
 .rounded-xl.bg-white, .rounded-lg.bg-white, .rounded-xl.bg-slate-50, .rounded-xl.bg-slate-50\/50 {
-  background-color: rgba(255, 255, 255, 0.65) !important;
-  backdrop-filter: blur(24px) saturate(160%);
-  -webkit-backdrop-filter: blur(24px) saturate(160%);
-  border: 1px solid rgba(255, 255, 255, 0.7) !important;
+  background-color: rgba(255, 255, 255, 0.82) !important;
+  backdrop-filter: blur(14px) saturate(125%);
+  -webkit-backdrop-filter: blur(14px) saturate(125%);
+  border: 1px solid rgba(226, 232, 240, 0.78) !important;
   box-shadow: 
-    0 12px 40px 0 rgba(31, 38, 135, 0.08),
-    inset 0 2px 4px 0 rgba(255, 255, 255, 0.8),
-    inset 0 -1px 2px 0 rgba(255, 255, 255, 0.3) !important;
+    0 12px 34px 0 rgba(15, 23, 42, 0.055),
+    inset 0 1px 2px 0 rgba(255, 255, 255, 0.72) !important;
 }
 
 .rounded-2xl, .rounded-3xl {
-  backdrop-filter: blur(24px) saturate(160%);
-  -webkit-backdrop-filter: blur(24px) saturate(160%);
+  backdrop-filter: blur(12px) saturate(120%);
+  -webkit-backdrop-filter: blur(12px) saturate(120%);
   box-shadow: 
-    inset 0 2px 4px 0 rgba(255, 255, 255, 0.4),
-    inset 0 -1px 2px 0 rgba(255, 255, 255, 0.1);
+    0 12px 34px rgba(15, 23, 42, 0.045),
+    inset 0 1px 2px 0 rgba(255, 255, 255, 0.5);
 }
 
 /* Specific Sidebar & Header glass rules */
 .bg-white:not(.rounded-xl):not(.rounded-lg):not(.rounded-md):not(.rounded-full):not(.rounded):not(.rounded-2xl):not(.rounded-3xl) {
-  background-color: rgba(255, 255, 255, 0.65) !important;
-  backdrop-filter: blur(24px) saturate(160%);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.5);
-  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.03);
+  background-color: rgba(255, 255, 255, 0.88) !important;
+  backdrop-filter: blur(14px) saturate(125%);
+  border-bottom: 1px solid rgba(226, 232, 240, 0.72);
+  box-shadow: 0 4px 22px rgba(15, 23, 42, 0.035);
 }
 
 .dark body {
@@ -78,16 +77,15 @@
 input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]),
 select,
 textarea {
-  background-color: rgba(255, 255, 255, 0.65) !important;
-  backdrop-filter: blur(20px) saturate(160%) !important;
-  -webkit-backdrop-filter: blur(20px) saturate(160%) !important;
-  border: 1.5px solid rgba(255, 255, 255, 0.55) !important;
-  border-top-color: rgba(255, 255, 255, 0.85) !important;
+  background-color: rgba(255, 255, 255, 0.9) !important;
+  backdrop-filter: blur(10px) saturate(120%) !important;
+  -webkit-backdrop-filter: blur(10px) saturate(120%) !important;
+  border: 1px solid rgba(203, 213, 225, 0.7) !important;
+  border-top-color: rgba(226, 232, 240, 0.95) !important;
   border-radius: 10px !important;
   box-shadow: 
-    0 4px 15px rgba(0, 0, 0, 0.04),
-    inset 0 2px 3px rgba(0, 0, 0, 0.05),
-    inset 0 -1.5px 2px rgba(255, 255, 255, 0.8) !important;
+    0 3px 12px rgba(15, 23, 42, 0.035),
+    inset 0 1px 2px rgba(15, 23, 42, 0.035) !important;
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
@@ -112,19 +110,18 @@ textarea {
   button[class*="bg-indigo-"],
   button[class*="bg-emerald-"],
   button[class*="bg-green-"] {
-    background: linear-gradient(160deg, rgba(200, 196, 255, 0.55) 0%, rgba(139, 124, 245, 0.75) 100%) !important;
-    border: 1.5px solid rgba(255, 255, 255, 0.55) !important;
-    border-top-color: rgba(255, 255, 255, 0.9) !important;
+    background: linear-gradient(180deg, rgba(124, 112, 239, 0.95) 0%, rgba(79, 70, 229, 0.95) 100%) !important;
+    border: 1px solid rgba(79, 70, 229, 0.18) !important;
+    border-top-color: rgba(255, 255, 255, 0.38) !important;
     box-shadow:
-      0 6px 24px rgba(99, 82, 255, 0.3),
-      inset 0 2px 5px rgba(255, 255, 255, 0.7),
-      inset 0 -2px 4px rgba(60, 40, 180, 0.25) !important;
-    color: #1e1b4b !important;
+      0 8px 18px rgba(79, 70, 229, 0.18),
+      inset 0 1px 1px rgba(255, 255, 255, 0.28) !important;
+    color: #ffffff !important;
     font-weight: 700 !important;
     border-radius: 9999px !important;
-    backdrop-filter: blur(16px) saturate(180%) !important;
-    -webkit-backdrop-filter: blur(16px) saturate(180%) !important;
-    text-shadow: 0 1px 2px rgba(255,255,255,0.5);
+    backdrop-filter: blur(8px) saturate(120%) !important;
+    -webkit-backdrop-filter: blur(8px) saturate(120%) !important;
+    text-shadow: none;
   }
   .dark button[class*="bg-indigo-"],
   .dark button[class*="bg-emerald-"],
@@ -199,13 +196,12 @@ textarea {
   button[class*="bg-slate-50"],
   button[class*="bg-slate-100"],
   button[class*="bg-indigo-50"] {
-    background: linear-gradient(160deg, rgba(255, 255, 255, 0.85) 0%, rgba(241, 245, 249, 0.7) 100%) !important;
-    border: 1.5px solid rgba(255, 255, 255, 0.7) !important;
-    border-top-color: rgba(255, 255, 255, 0.95) !important;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.94) 0%, rgba(248, 250, 252, 0.9) 100%) !important;
+    border: 1px solid rgba(203, 213, 225, 0.72) !important;
+    border-top-color: rgba(255, 255, 255, 0.98) !important;
     box-shadow:
-      0 6px 20px rgba(148, 163, 184, 0.18),
-      inset 0 2px 5px rgba(255, 255, 255, 0.9),
-      inset 0 -2px 3px rgba(0, 0, 0, 0.06) !important;
+      0 4px 12px rgba(148, 163, 184, 0.14),
+      inset 0 1px 2px rgba(255, 255, 255, 0.8) !important;
     color: #1e293b !important;
     font-weight: 700 !important;
     border-radius: 9999px !important;
@@ -687,7 +683,7 @@ button {
 }
 
 button:hover {
-  box-shadow: 0 0 15px 1px rgba(99, 102, 241, 0.35) !important;
+  box-shadow: 0 8px 18px rgba(99, 102, 241, 0.2) !important;
   transform: translateY(-1px);
 }
 
@@ -712,6 +708,28 @@ button[class*="text-slate-400"]:not([class*="bg-"]):hover {
   input, select, textarea {
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
+  }
+
+  /* Mobile client views should prioritize content over decorative depth. */
+  .rounded-3xl {
+    border-radius: 18px !important;
+    padding: 1.15rem !important;
+  }
+
+  .rounded-3xl .mt-8 {
+    margin-top: 1.25rem !important;
+  }
+
+  .rounded-3xl .text-3xl {
+    font-size: 1.75rem !important;
+    line-height: 2rem !important;
+  }
+
+  iframe[src*="1688"],
+  img[src*="1688"],
+  [id*="1688"],
+  [class*="1688"] {
+    display: none !important;
   }
 }
 

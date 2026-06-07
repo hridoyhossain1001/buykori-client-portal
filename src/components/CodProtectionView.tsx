@@ -47,6 +47,21 @@ export function CodProtectionView({
   handleSaveOrderManagement,
   growthFeaturesEnabled = false,
 }: CodProtectionViewProps) {
+  const getCustomerSummary = (order: any) => {
+    const rawCustomer = String(order.customer || '').trim();
+    const protectedHash = /^[a-f0-9]{32,}$/i.test(rawCustomer);
+    const name = order.customerName || order.customer_name || order.name || '';
+    const phone = order.phone || order.customerPhone || order.customer_phone || '';
+    const address = order.address || order.customerAddress || order.customer_address || '';
+
+    return {
+      primary: name || (protectedHash ? 'Protected customer' : rawCustomer || 'Customer unavailable'),
+      secondary: phone || (protectedHash ? `ID ${rawCustomer.slice(0, 10)}...` : ''),
+      tertiary: address,
+      title: protectedHash ? rawCustomer : [name || rawCustomer, phone, address].filter(Boolean).join(' | '),
+    };
+  };
+
   return (
     <div className="space-y-6">
 
@@ -265,7 +280,11 @@ export function CodProtectionView({
             <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wide dark:text-white">Pending COD Orders</h3>
             <p className="text-xs text-slate-400 dark:text-slate-500">Verify orders before sending purchase data to your ad platforms.</p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-col items-start gap-1 sm:items-end">
+            {selectedOrderIds.length === 0 && (
+              <span className="text-[10px] font-medium text-slate-400">Select orders to enable bulk actions.</span>
+            )}
+            <div className="flex gap-2">
             <button 
               disabled={selectedOrderIds.length === 0}
               onClick={handleBulkConfirm}
@@ -280,10 +299,64 @@ export function CodProtectionView({
             >
               <XCircle className="w-3.5 h-3.5" /> Cancel Selected
             </button>
+            </div>
           </div>
         </div>
 
-        <div className="overflow-x-auto min-h-64">
+        <div className="space-y-3 md:hidden">
+          {deferredData.pendingList.length === 0 ? (
+            <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center text-slate-500 dark:border-slate-800 dark:bg-slate-950/40">
+              <CheckCircle2 className="mx-auto mb-2 h-8 w-8 text-emerald-400" />
+              <p className="text-xs font-semibold">No pending COD orders to verify.</p>
+            </div>
+          ) : deferredData.pendingList.map((order: any) => {
+            const isSelected = selectedOrderIds.includes(order.orderId);
+            const customer = getCustomerSummary(order);
+            const riskTone = order.fraudScore >= 75 ? 'rose' : order.fraudScore >= 35 ? 'amber' : 'green';
+            return (
+              <div key={order.orderId} className={`rounded-xl border bg-white p-4 shadow-sm dark:bg-slate-900 ${isSelected ? 'border-indigo-200 ring-1 ring-indigo-100' : 'border-slate-200 dark:border-slate-800'}`}>
+                <div className="flex items-start justify-between gap-3">
+                  <label className="flex items-start gap-3">
+                    <input
+                      type="checkbox"
+                      checked={isSelected}
+                      onChange={(el) => {
+                        if (el.target.checked) {
+                          setSelectedOrderIds(prev => [...prev, order.orderId]);
+                        } else {
+                          setSelectedOrderIds(prev => prev.filter(x => x !== order.orderId));
+                        }
+                      }}
+                      className="mt-1 rounded accent-indigo-600"
+                    />
+                    <span>
+                      <span className="block font-mono text-sm font-bold text-slate-900 dark:text-white">#{order.orderId}</span>
+                      <span className="mt-1 block text-sm font-semibold text-slate-800 dark:text-slate-100">{customer.primary}</span>
+                      {customer.secondary && <span className="block truncate font-mono text-[11px] text-slate-500">{customer.secondary}</span>}
+                    </span>
+                  </label>
+                  <span className="font-bold text-slate-900 dark:text-white">৳{order.amount.toLocaleString()}</span>
+                </div>
+                <div className="mt-4 grid grid-cols-2 gap-2 text-[11px]">
+                  <div className="rounded-lg bg-slate-50 p-2 dark:bg-slate-950/40">
+                    <p className="font-bold uppercase text-slate-400">Risk</p>
+                    <p className={`mt-1 font-bold ${riskTone === 'rose' ? 'text-rose-700' : riskTone === 'amber' ? 'text-amber-700' : 'text-green-700'}`}>{order.fraudScore}/100</p>
+                  </div>
+                  <div className="rounded-lg bg-slate-50 p-2 dark:bg-slate-950/40">
+                    <p className="font-bold uppercase text-slate-400">Held</p>
+                    <p className="mt-1 font-mono font-bold text-slate-700 dark:text-slate-200">{order.ageHours}h</p>
+                  </div>
+                </div>
+                <div className="mt-4 grid grid-cols-2 gap-2">
+                  <button onClick={() => handleConfirmOrder(order.orderId)} className="rounded-lg bg-emerald-600 px-3 py-2 text-xs font-bold text-white">Confirm</button>
+                  <button onClick={() => handleCancelOrder(order.orderId)} className="rounded-lg bg-rose-600 px-3 py-2 text-xs font-bold text-white">Cancel</button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="hidden overflow-x-auto md:block">
           <table className="w-full text-left text-xs text-slate-600 divide-y divide-slate-100 min-w-[750px] dark:text-slate-300 dark:divide-slate-800">
             <thead className="bg-slate-50 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:bg-slate-950 dark:text-slate-400">
               <tr>
@@ -329,6 +402,7 @@ export function CodProtectionView({
                   }
                   const tooltipText = activeChecks.length > 0 ? activeChecks.join(', ') : 'Passed structural checks';
                   const products: any[] = order.products || [];
+                  const customer = getCustomerSummary(order);
 
                   return (
                     <React.Fragment key={order.orderId}>
@@ -350,8 +424,22 @@ export function CodProtectionView({
                         <td className="px-6 py-3 font-mono font-bold text-slate-800 dark:text-slate-100">
                           {order.orderId}
                         </td>
-                        <td className="px-6 py-3 font-mono text-slate-500 dark:text-slate-400">
-                          {order.customer}
+                        <td className="px-6 py-3" title={customer.title}>
+                          <div className="flex max-w-[300px] flex-col gap-0.5">
+                            <span className="font-semibold text-slate-800 dark:text-slate-100 truncate">{customer.primary}</span>
+                            {customer.secondary && (
+                              <span className="font-mono text-[10px] text-slate-500 dark:text-slate-400 truncate">{customer.secondary}</span>
+                            )}
+                            {customer.tertiary && (
+                              <span className="text-[10px] text-slate-400 dark:text-slate-500 truncate">{customer.tertiary}</span>
+                            )}
+                            {products.length > 0 && (
+                              <span className="mt-1 inline-flex items-center gap-1 text-[10px] text-slate-500 dark:text-slate-400">
+                                <Package className="h-3 w-3" />
+                                {products[0]?.name || products[0]?.content_name || `${products.length} item${products.length > 1 ? 's' : ''}`}
+                              </span>
+                            )}
+                          </div>
                         </td>
                         <td className="px-6 py-3 font-semibold text-slate-800 dark:text-slate-200">৳{order.amount.toLocaleString()}</td>
                         <td className="px-6 py-3">

@@ -80,7 +80,7 @@ export function SuggestionsView({
       {/* Suggestions lists */}
       <div className="space-y-4">
         {unresolvedSuggestions.length === 0 && (
-          <div className="p-16 border dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900 text-center space-y-4">
+          <div className="p-10 border dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900 text-center space-y-5">
             <div className="w-12 h-12 bg-green-50 dark:bg-green-950/20 rounded-full border border-green-100 dark:border-green-900/60 flex items-center justify-center mx-auto text-green-600">
               <CheckCircle className="w-6 h-6" />
             </div>
@@ -88,6 +88,15 @@ export function SuggestionsView({
               <h4 className="font-bold text-slate-800 dark:text-white">Excellent! All checklist resolved</h4>
               <p className="text-xs text-slate-400 dark:text-slate-500 max-w-sm mx-auto mt-1">Your tracking setup looks healthy across Meta, TikTok, and GA4.</p>
             </div>
+            <div className="mx-auto grid max-w-2xl grid-cols-1 gap-2 text-left sm:grid-cols-3">
+              {['Meta CAPI connected', 'TikTok Events active', 'GA4 route checked'].map((item) => (
+                <div key={item} className="flex items-center gap-2 rounded-lg border border-emerald-100 bg-emerald-50/70 px-3 py-2 text-[11px] font-semibold text-emerald-700 dark:border-emerald-900/50 dark:bg-emerald-950/20 dark:text-emerald-300">
+                  <CheckCircle className="h-3.5 w-3.5 shrink-0" />
+                  {item}
+                </div>
+              ))}
+            </div>
+            <p className="text-[11px] text-slate-400">Last scan reflects the latest loaded workspace data. Run Check My Setup again after changing credentials or plugin settings.</p>
           </div>
         )}
 

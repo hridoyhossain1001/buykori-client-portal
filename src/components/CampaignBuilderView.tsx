@@ -108,11 +108,11 @@ export function CampaignBuilderView({
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 md:space-y-8">
       {/* Campaign URL Builder Widget */}
-      <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm flex flex-col space-y-4 dark:bg-slate-900 dark:border-slate-800">
-        <div className="flex items-center gap-2.5 pb-3 border-b border-slate-100 dark:border-slate-800">
-          <div className="p-2 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400">
+      <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm flex flex-col space-y-4 dark:bg-slate-900 dark:border-slate-800 md:p-6">
+        <div className="flex items-start gap-2.5 pb-3 border-b border-slate-100 dark:border-slate-800">
+          <div className="hidden p-2 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 sm:block">
             <Link className="w-4 h-4" />
           </div>
           <div>
@@ -255,7 +255,7 @@ export function CampaignBuilderView({
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         
         {/* Builder Form controls */}
-        <form onSubmit={handleDispatchSandboxTest} className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-6 dark:bg-slate-900 dark:border-slate-800">
+        <form onSubmit={handleDispatchSandboxTest} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm space-y-5 dark:bg-slate-900 dark:border-slate-800 md:p-6 md:space-y-6">
           <div>
             <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wide dark:text-white">Campaign Event Tester</h3>
             <p className="text-xs text-slate-400 dark:text-slate-500">Build a sample WooCommerce event and test how it reaches your ad platforms.</p>
@@ -384,7 +384,7 @@ export function CampaignBuilderView({
 
             <div className="space-y-2">
               {customParams.map((param, index) => (
-                <div key={index} className="flex gap-2 items-center">
+                <div key={index} className="grid grid-cols-1 gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] sm:items-center">
                   <input 
                     type="text" 
                     placeholder="Key (e.g. content_name)"
@@ -394,7 +394,7 @@ export function CampaignBuilderView({
                       updated[index].k = e.target.value;
                       setCustomParams(updated);
                     }}
-                    className="flex-1 p-2 bg-slate-50 border border-slate-200 rounded text-xs font-mono dark:bg-slate-950 dark:border-slate-800 dark:text-white"
+                    className="min-w-0 p-2 bg-slate-50 border border-slate-200 rounded text-xs font-mono dark:bg-slate-950 dark:border-slate-800 dark:text-white"
                   />
                   <input 
                     type="text" 
@@ -405,12 +405,12 @@ export function CampaignBuilderView({
                       updated[index].v = e.target.value;
                       setCustomParams(updated);
                     }}
-                    className="flex-1 p-2 bg-slate-50 border border-slate-200 rounded text-xs font-mono dark:bg-slate-950 dark:border-slate-800 dark:text-white"
+                    className="min-w-0 p-2 bg-slate-50 border border-slate-200 rounded text-xs font-mono dark:bg-slate-950 dark:border-slate-800 dark:text-white"
                   />
                   <button 
                     type="button"
                     onClick={() => setCustomParams(prev => prev.filter((_, idx) => idx !== index))}
-                    className="p-1.5 text-slate-400 hover:text-rose-500 cursor-pointer"
+                    className="justify-self-end p-1.5 text-slate-400 hover:text-rose-500 cursor-pointer"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
@@ -444,13 +444,13 @@ export function CampaignBuilderView({
         <div className="flex flex-col gap-6">
           
           {/* JSON Live representation page container */}
-          <div className="rounded-xl border border-slate-200 bg-slate-900 p-5 shadow-sm text-slate-200 font-mono text-[11px] h-96 flex flex-col justify-between dark:border-slate-800">
+          <div className="rounded-xl border border-slate-200 bg-slate-900 p-4 shadow-sm text-slate-200 font-mono text-[11px] h-80 flex flex-col justify-between dark:border-slate-800 md:h-96 md:p-5">
             <div>
               <div className="flex justify-between items-center mb-3 text-slate-400 font-sans border-b border-slate-800 pb-2">
                 <span className="text-[10px] uppercase font-bold tracking-wider">Event Data Preview</span>
                 <span className="text-[9px] text-green-500 uppercase tracking-widest font-mono">Updating dynamically</span>
               </div>
-              <pre className="overflow-auto max-h-72 select-all leading-normal whitespace-pre-wrap">{renderCampaignPayloadJson()}</pre>
+              <pre className="overflow-auto max-h-56 select-all leading-normal whitespace-pre-wrap break-words md:max-h-72">{renderCampaignPayloadJson()}</pre>
             </div>
 
             <p className="text-[10px] text-slate-500 font-sans leading-normal pt-2 border-t border-slate-800 italic">

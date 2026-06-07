@@ -615,7 +615,67 @@ export function OrdersView({
             </p>
           </div>
 
-          <div className="overflow-x-auto min-h-64">
+          <div className="space-y-3 md:hidden">
+            {!deferredData?.pendingList || deferredData.pendingList.length === 0 ? (
+              <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center text-slate-400 dark:border-slate-800 dark:bg-slate-950/40">
+                <CheckCircle2 className="mx-auto mb-2 h-8 w-8 text-emerald-400" />
+                <p className="text-xs font-semibold">No pending orders waiting in the verification queue.</p>
+              </div>
+            ) : deferredData.pendingList.map((order: any) => {
+              const isExpanded = expandedOrderId === order.orderId;
+              const products: any[] = order.products || [];
+              return (
+                <div key={order.orderId} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+                  <button type="button" onClick={() => toggleExpand(order.orderId)} className="w-full text-left">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="font-mono text-sm font-bold text-slate-900 dark:text-white">#{order.orderId}</p>
+                        <p className="mt-1 text-sm font-semibold text-slate-800 dark:text-slate-100">{order.recipientName || 'Customer unavailable'}</p>
+                        <p className="mt-0.5 font-mono text-[11px] text-slate-500">{usablePhone(order.recipientPhone) || usablePhone(order.customer) || 'No phone'}</p>
+                      </div>
+                      <span className="font-bold text-slate-900 dark:text-white">৳{order.amount.toLocaleString()}</span>
+                    </div>
+                    <div className="mt-4 grid grid-cols-2 gap-2 text-[11px]">
+                      <div className="rounded-lg bg-slate-50 p-2 dark:bg-slate-950/40">
+                        <p className="font-bold uppercase text-slate-400">Risk</p>
+                        <p className={`mt-1 font-bold ${order.fraudScore >= 75 ? 'text-rose-700' : order.fraudScore >= 35 ? 'text-amber-700' : 'text-green-700'}`}>{order.fraudScore}/100</p>
+                      </div>
+                      <div className="rounded-lg bg-slate-50 p-2 dark:bg-slate-950/40">
+                        <p className="font-bold uppercase text-slate-400">Held</p>
+                        <p className="mt-1 font-mono font-bold text-slate-700 dark:text-slate-200">{formatHeldAge(order.ageHours)}</p>
+                      </div>
+                    </div>
+                  </button>
+                  {isExpanded && (
+                    <div className="mt-4 space-y-3 border-t border-slate-100 pt-3 dark:border-slate-800">
+                      <div className="rounded-lg bg-slate-50 p-3 text-xs dark:bg-slate-950/40">
+                        <p className="font-bold uppercase tracking-wider text-slate-400">Address</p>
+                        <p className="mt-1 font-semibold text-slate-800 dark:text-slate-200">{order.recipientAddress || 'Address unavailable'}</p>
+                      </div>
+                      {products.length > 0 && (
+                        <div className="rounded-lg border border-slate-200 dark:border-slate-800">
+                          {products.slice(0, 4).map((p: any, i: number) => (
+                            <div key={i} className="flex justify-between gap-3 border-b border-slate-100 px-3 py-2 text-xs last:border-b-0 dark:border-slate-800">
+                              <span className="font-semibold text-slate-700 dark:text-slate-200">{p.name || p.content_name || 'Product'}</span>
+                              <span className="text-slate-500">x{p.quantity || 1}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  <div className="mt-4 grid grid-cols-2 gap-2">
+                    <button onClick={() => openInvoice(order)} className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-bold text-slate-700">Invoice</button>
+                    <button onClick={() => openPendingCourierModal(order)} className="rounded-lg bg-indigo-600 px-3 py-2 text-xs font-bold text-white">Book Courier</button>
+                    <button onClick={() => handleConfirmOrder(order.orderId)} className="rounded-lg bg-emerald-600 px-3 py-2 text-xs font-bold text-white">Confirm</button>
+                    <button onClick={() => handleCancelOrder(order.orderId)} className="rounded-lg bg-rose-600 px-3 py-2 text-xs font-bold text-white">Cancel</button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="hidden overflow-x-auto min-h-64 md:block">
             <table className="w-full text-left text-xs text-slate-600 divide-y divide-slate-100 min-w-[750px] dark:text-slate-300 dark:divide-slate-800">
               <thead className="bg-slate-50 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:bg-slate-950 dark:text-slate-400">
                 <tr>
@@ -911,7 +971,66 @@ export function OrdersView({
           )}
 
           {/* Table */}
-          <div className="overflow-x-auto min-h-64">
+          <div className="space-y-3 md:hidden">
+            {loadingOrders ? (
+              <div className="rounded-lg border border-slate-200 bg-white px-4 py-8 text-center text-slate-400 dark:border-slate-800 dark:bg-slate-900">
+                <Loader2 className="mx-auto mb-2 h-6 w-6 animate-spin text-indigo-500" />
+                <p className="text-xs font-semibold">Fetching shipment details...</p>
+              </div>
+            ) : filteredCourierOrders.length === 0 ? (
+              <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center text-slate-400 dark:border-slate-800 dark:bg-slate-950/40">
+                <Truck className="mx-auto h-7 w-7 text-slate-300" />
+                <p className="mt-2 text-xs font-bold text-slate-600 dark:text-slate-300">No courier orders found</p>
+              </div>
+            ) : filteredCourierOrders.map((order) => {
+              const isCancellable = !['cancelled', 'delivered', 'returned'].includes((order.courier_status || '').toLowerCase());
+              const isCancelling = cancellingOrderId === order.id;
+              return (
+                <div key={order.id} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+                  <div className="flex items-start justify-between gap-3">
+                    <label className="flex items-start gap-3">
+                      <input
+                        type="checkbox"
+                        checked={selectedShippedOrderIds.includes(order.id)}
+                        onChange={() => toggleSelectShippedOrder(order.id)}
+                        className="mt-1 rounded accent-indigo-600"
+                      />
+                      <span>
+                        <span className="block font-mono text-sm font-bold text-slate-900 dark:text-white">#{order.order_id}</span>
+                        <span className="mt-1 block text-xs font-bold capitalize text-slate-800 dark:text-slate-200">{order.courier_provider}</span>
+                        <span className="mt-0.5 block font-mono text-[10px] text-slate-500">{order.courier_tracking_id || 'No tracking'}</span>
+                      </span>
+                    </label>
+                    <span className="font-bold text-slate-900 dark:text-white">৳{order.cod_amount.toLocaleString()}</span>
+                  </div>
+                  <div className="mt-4 rounded-lg bg-slate-50 p-3 text-xs dark:bg-slate-950/40">
+                    <p className="font-bold text-slate-900 dark:text-white">{order.recipient_name || 'Customer'}</p>
+                    <p className="mt-1 font-mono text-slate-500">{order.recipient_phone || 'No phone'}</p>
+                    <p className="mt-0.5 line-clamp-2 text-slate-500">{order.recipient_address || 'No address'}</p>
+                  </div>
+                  <div className="mt-3 grid grid-cols-2 gap-2 text-[11px]">
+                    <div>{getStatusBadge(order.courier_status)}</div>
+                    <div className="text-right">{getCapiStatusBadge(order.purchase_event_sent)}</div>
+                    <span className="font-mono text-slate-500">{new Date(order.created_at).toLocaleDateString()}</span>
+                    <span className="text-right text-slate-500">{order.delivery_charge > 0 ? `Charge ৳${order.delivery_charge}` : 'No charge'}</span>
+                  </div>
+                  <div className="mt-4 flex flex-wrap justify-end gap-2">
+                    <button onClick={() => openInvoice(order)} className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-bold text-slate-700">Invoice</button>
+                    <button onClick={() => openLabel(order)} className="rounded-lg border border-violet-200 bg-violet-50 px-3 py-2 text-xs font-bold text-violet-700">Label</button>
+                    {isCancellable ? (
+                      <button onClick={() => handleCancelCourierOrder(order)} disabled={isCancelling} className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-bold text-rose-700 disabled:opacity-50">
+                        {isCancelling ? 'Cancelling...' : 'Cancel'}
+                      </button>
+                    ) : (
+                      <span className="self-center text-[11px] italic text-slate-400">{(order.courier_status || '').toLowerCase()}</span>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="hidden overflow-x-auto min-h-64 md:block">
             <table className="w-full text-left text-xs text-slate-600 divide-y divide-slate-100 min-w-[1000px] dark:text-slate-300 dark:divide-slate-800">
               <thead className="bg-slate-50 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:bg-slate-950 dark:text-slate-400">
                 <tr>

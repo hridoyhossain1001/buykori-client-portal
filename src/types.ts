@@ -18,7 +18,7 @@ export interface CAPIEvent {
   payload: any;
   headers: Record<string, string>;
   responseBody: any;
-  latencyMs: number;
+  latencyMs: number | null;
 }
 
 export interface APILog {
@@ -28,7 +28,7 @@ export interface APILog {
   endpoint: string;
   method: 'POST' | 'GET' | 'PUT';
   statusCode: number;
-  latencyMs: number;
+  latencyMs: number | null;
   retryCount: number;
   requestBody: string;
   responseBody: string;

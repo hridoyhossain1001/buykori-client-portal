@@ -291,7 +291,65 @@ export function EventLogsView({
             </div>
           </div>
         ) : (
-          <div className="overflow-x-auto overflow-y-auto max-h-[calc(100vh-280px)] min-h-[400px]">
+          <>
+          <div className="space-y-3 p-4 md:hidden">
+            {filteredEventsForTable.map(e => {
+              const isExpanded = expandedEventId === e.id;
+              return (
+                <div key={e.id} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+                  <button
+                    type="button"
+                    onClick={() => setExpandedEventId(isExpanded ? null : e.id)}
+                    className="w-full text-left"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="truncate font-mono text-xs font-bold text-indigo-600 dark:text-indigo-400">{highlightText(e.id, searchFilter)}</p>
+                        <p className="mt-1 text-sm font-bold text-slate-900 dark:text-white">{highlightText(e.name, searchFilter)}</p>
+                      </div>
+                      <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase ${
+                        e.status === 'Success' ? 'border-green-150 bg-green-50 text-green-700' :
+                        e.status === 'Fired' ? 'border-violet-200 bg-violet-50 text-violet-700' :
+                        e.status === 'Retry' ? 'border-amber-150 bg-amber-50 text-amber-700' :
+                        'border-rose-150 bg-rose-50 text-rose-700'
+                      }`}>
+                        {e.status}
+                      </span>
+                    </div>
+                    <div className="mt-3 grid grid-cols-2 gap-2 text-[11px] text-slate-500">
+                      <span className="flex items-center gap-1.5">
+                        <span className={`h-1.5 w-1.5 rounded-full ${
+                          e.platform === 'Meta CAPI' ? 'bg-indigo-500' :
+                          e.platform === 'TikTok Events API' ? 'bg-cyan-500' :
+                          e.platform === 'TikTok Browser Pixel' ? 'bg-violet-500' : 'bg-orange-500'
+                        }`} />
+                        {highlightText(e.platform, searchFilter)}
+                      </span>
+                      <span className="text-right font-mono">Code {e.httpCode}</span>
+                      <span className="font-mono">{new Date(e.timestamp).toLocaleTimeString()}</span>
+                      <span className="text-right font-mono">{new Date(e.timestamp).toLocaleDateString()}</span>
+                    </div>
+                    <p className="mt-2 truncate font-mono text-[10px] text-slate-400">{highlightText(e.deduplicationKey, searchFilter)}</p>
+                  </button>
+
+                  {isExpanded && (
+                    <div className="mt-4 space-y-3 border-t border-slate-100 pt-3 dark:border-slate-800">
+                      <div className="rounded-lg bg-slate-900 p-3 font-mono text-[10px] text-slate-200">
+                        <p className="mb-2 font-bold uppercase tracking-wider text-indigo-400">Raw Event Data</p>
+                        <pre className="max-h-56 overflow-auto whitespace-pre-wrap break-all">{JSON.stringify(e.payload, null, 2)}</pre>
+                      </div>
+                      <div className="rounded-lg bg-slate-900 p-3 font-mono text-[10px] text-slate-200">
+                        <p className="mb-2 font-bold uppercase tracking-wider text-emerald-400">Platform Response</p>
+                        <pre className="max-h-40 overflow-auto whitespace-pre-wrap break-all">{JSON.stringify(e.responseBody, null, 2)}</pre>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="hidden overflow-x-auto overflow-y-auto max-h-[calc(100vh-280px)] min-h-[400px] md:block">
             <table className="w-full text-left text-xs text-slate-660 divide-y divide-slate-100 dark:text-slate-300 dark:divide-slate-800 min-w-[900px]">
               <thead className="bg-slate-50 dark:bg-slate-950 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 sticky top-0 z-10">
                 <tr>
@@ -403,6 +461,7 @@ export function EventLogsView({
               </tbody>
             </table>
           </div>
+          </>
         )}
       </div>
     </div>

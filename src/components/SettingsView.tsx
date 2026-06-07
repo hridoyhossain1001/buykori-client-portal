@@ -259,10 +259,10 @@ export function SettingsView({
 
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+    <div className="grid grid-cols-1 gap-5 lg:grid-cols-3 lg:gap-8">
       
       {/* Fixed controls sidebar settings tabs */}
-      <div className="space-y-6 lg:col-span-2">
+      <div className="space-y-5 lg:col-span-2 lg:space-y-6">
         <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-4 dark:bg-slate-900 dark:border-slate-800">
           <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
             <div className="flex items-start gap-3">
@@ -721,7 +721,46 @@ export function SettingsView({
             </div>
           </div>
 
-          <div className="overflow-x-auto">
+          <div className="space-y-3 md:hidden">
+            {rules.map((rule, idx) => (
+              <div key={idx} className="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="font-mono text-sm font-bold text-slate-900 dark:text-white">{rule.eventName}</p>
+                    <p className="mt-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+                      {coreEventRoutes.has(rule.eventName) ? 'Core route' : 'Custom route'}
+                    </p>
+                  </div>
+                  {!coreEventRoutes.has(rule.eventName) && (
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveRule(idx)}
+                      className="rounded-md p-1.5 text-slate-400 transition-colors hover:bg-rose-50 hover:text-rose-600"
+                      title={`Remove ${rule.eventName}`}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  )}
+                </div>
+                <div className="mt-4 grid grid-cols-3 gap-2 text-center text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                  <label className="rounded-lg bg-slate-50 p-2 dark:bg-slate-950/40">
+                    <span className="block">Meta</span>
+                    <input type="checkbox" checked={rule.metaEnabled} onChange={() => handleToggleRule(idx, 'metaEnabled')} className="mt-2 h-4 w-4 rounded accent-indigo-600" />
+                  </label>
+                  <label className="rounded-lg bg-slate-50 p-2 dark:bg-slate-950/40">
+                    <span className="block">TikTok</span>
+                    <input type="checkbox" checked={rule.tiktokEnabled} onChange={() => handleToggleRule(idx, 'tiktokEnabled')} className="mt-2 h-4 w-4 rounded accent-indigo-600" />
+                  </label>
+                  <label className="rounded-lg bg-slate-50 p-2 dark:bg-slate-950/40">
+                    <span className="block">GA4</span>
+                    <input type="checkbox" checked={rule.ga4Enabled} onChange={() => handleToggleRule(idx, 'ga4Enabled')} className="mt-2 h-4 w-4 rounded accent-indigo-600" />
+                  </label>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="hidden overflow-x-auto md:block">
             <table className="w-full text-xs text-slate-600 text-left min-w-[760px] dark:text-slate-300">
               <thead className="bg-slate-50 text-[10px] font-bold uppercase tracking-wider text-slate-500 border-b border-slate-100 dark:bg-slate-950 dark:border-slate-800 dark:text-slate-400">
                 <tr>

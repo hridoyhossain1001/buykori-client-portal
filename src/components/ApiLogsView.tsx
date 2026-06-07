@@ -28,15 +28,22 @@ export function ApiLogsView({
   isDarkMode,
   handleExportData
 }: ApiLogsViewProps) {
+  const latencyValues = apiLogs
+    .map((log) => Number(log.latencyMs))
+    .filter((value) => Number.isFinite(value) && value > 0);
+  const averageLatency = latencyValues.length > 0
+    ? Math.round(latencyValues.reduce((sum, value) => sum + value, 0) / latencyValues.length)
+    : null;
   
   // API Latency Graph distribution
   const getLatencyChartData = () => {
     return apiLogs.slice(0, 15).reverse().map((l, index) => ({
       name: `#${index + 1}`,
-      'Latency (ms)': l.latencyMs,
+      'Latency (ms)': Number.isFinite(Number(l.latencyMs)) ? Number(l.latencyMs) : 0,
       'Status': l.statusCode === 200 ? 'Success' : 'Error'
     }));
   };
+  const hasLatencySamples = getLatencyChartData().some((point) => point['Latency (ms)'] > 0);
 
   return (
     <div className="space-y-6">
@@ -49,20 +56,30 @@ export function ApiLogsView({
             <p className="text-xs text-slate-400 dark:text-slate-500">Connection response times in milliseconds</p>
           </div>
           <div className="text-xs text-slate-500 font-mono dark:text-slate-400">
-            Avg Latency: <span className="font-bold text-indigo-600 dark:text-indigo-400">142ms</span>
+            Avg Latency: <span className="font-bold text-indigo-600 dark:text-indigo-400">{averageLatency !== null ? `${averageLatency}ms` : 'No samples'}</span>
           </div>
         </div>
 
         <div className="h-32">
-          <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
-            <ReChartsBarChart data={getLatencyChartData()} margin={{ top: 10, right: 10, left: -30, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDarkMode ? '#1e293b' : '#f1f5f9'} />
-              <XAxis dataKey="name" stroke="#94a3b8" fontSize={9} tickLine={false} />
-              <YAxis stroke="#94a3b8" fontSize={9} tickLine={false} unit="ms" />
-              <ReChartsTooltip contentStyle={{ fontSize: '10px', borderRadius: '6px', backgroundColor: isDarkMode ? '#0f172a' : '#ffffff', borderColor: isDarkMode ? '#1e293b' : '#e2e8f0', color: isDarkMode ? '#f1f5f9' : '#1e293b' }} />
-              <Bar dataKey="Latency (ms)" fill="#4f46e5" radius={[4, 4, 0, 0]} barSize={12} />
-            </ReChartsBarChart>
-          </ResponsiveContainer>
+          {hasLatencySamples ? (
+            <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
+              <ReChartsBarChart data={getLatencyChartData()} margin={{ top: 10, right: 10, left: -30, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDarkMode ? '#1e293b' : '#f1f5f9'} />
+                <XAxis dataKey="name" stroke="#94a3b8" fontSize={9} tickLine={false} />
+                <YAxis stroke="#94a3b8" fontSize={9} tickLine={false} unit="ms" />
+                <ReChartsTooltip contentStyle={{ fontSize: '10px', borderRadius: '6px', backgroundColor: isDarkMode ? '#0f172a' : '#ffffff', borderColor: isDarkMode ? '#1e293b' : '#e2e8f0', color: isDarkMode ? '#f1f5f9' : '#1e293b' }} />
+                <Bar dataKey="Latency (ms)" fill="#4f46e5" radius={[4, 4, 0, 0]} barSize={12} />
+              </ReChartsBarChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="flex h-full items-center justify-center rounded-lg border border-dashed border-slate-200 bg-slate-50/70 text-center dark:border-slate-800 dark:bg-slate-950/40">
+              <div>
+                <Activity className="mx-auto h-6 w-6 text-slate-300" />
+                <p className="mt-2 text-xs font-bold text-slate-600 dark:text-slate-300">No latency samples yet</p>
+                <p className="mt-1 text-[11px] text-slate-400">Response time bars will appear after API calls include latency values.</p>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -82,7 +99,56 @@ export function ApiLogsView({
 
       {/* Outbound logs table */}
       <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden dark:bg-slate-900 dark:border-slate-800">
-        <div className="overflow-x-auto overflow-y-auto max-h-[calc(100vh-320px)] min-h-[300px]">
+        <div className="space-y-3 p-4 md:hidden">
+          {filteredApiLogsForTable.length === 0 ? (
+            <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center dark:border-slate-800 dark:bg-slate-950/40">
+              <Activity className="mx-auto h-7 w-7 text-slate-300" />
+              <p className="mt-2 text-xs font-bold text-slate-600 dark:text-slate-300">No API logs yet</p>
+            </div>
+          ) : filteredApiLogsForTable.slice(0, 40).map(l => {
+            const isExpanded = expandedApiLogId === l.id;
+            const hasErr = l.statusCode >= 400;
+            const endpointHost = (() => {
+              try { return new URL(l.endpoint).hostname; } catch { return l.endpoint; }
+            })();
+            return (
+              <div key={l.id} className={`rounded-xl border bg-white p-4 shadow-sm dark:bg-slate-900 ${hasErr ? 'border-rose-200' : 'border-slate-200 dark:border-slate-800'}`}>
+                <button type="button" onClick={() => setExpandedApiLogId(isExpanded ? null : l.id)} className="w-full text-left">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-bold text-slate-900 dark:text-white">{l.platform}</p>
+                      <p className="mt-1 font-mono text-[11px] text-slate-500">{endpointHost}</p>
+                    </div>
+                    <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-mono text-[10px] font-bold ${hasErr ? 'bg-rose-50 text-rose-700' : 'bg-emerald-50 text-emerald-700'}`}>
+                      {hasErr ? <AlertTriangle className="h-3 w-3" /> : null}
+                      {l.statusCode}
+                    </span>
+                  </div>
+                  <div className="mt-3 grid grid-cols-3 gap-2 text-[11px] text-slate-500">
+                    <span className="font-mono">{new Date(l.timestamp).toLocaleTimeString()}</span>
+                    <span className="text-center font-mono">{l.method}</span>
+                    <span className="text-right font-mono">{Number.isFinite(Number(l.latencyMs)) && Number(l.latencyMs) > 0 ? `${Number(l.latencyMs)}ms` : 'N/A'}</span>
+                  </div>
+                  {l.retryCount > 0 && <p className="mt-2 text-[11px] font-bold text-amber-600">{l.retryCount} retried</p>}
+                </button>
+                {isExpanded && (
+                  <div className="mt-4 grid gap-3 border-t border-slate-100 pt-3 dark:border-slate-800">
+                    <div className="rounded-lg bg-slate-900 p-3 font-mono text-[10px] text-slate-200">
+                      <p className="mb-2 font-bold uppercase tracking-wider text-indigo-400">Data Sent</p>
+                      <pre className="max-h-52 overflow-auto whitespace-pre-wrap break-all">{l.requestBody}</pre>
+                    </div>
+                    <div className="rounded-lg bg-slate-900 p-3 font-mono text-[10px] text-slate-200">
+                      <p className="mb-2 font-bold uppercase tracking-wider text-emerald-400">Platform Response</p>
+                      <pre className="max-h-52 overflow-auto whitespace-pre-wrap break-all">{l.responseBody}</pre>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="hidden overflow-x-auto overflow-y-auto max-h-[calc(100vh-320px)] min-h-[300px] md:block">
           <table className="w-full text-left text-xs divide-y divide-slate-100 dark:divide-slate-800 min-w-[850px]">
             <thead className="bg-slate-50 dark:bg-slate-950 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 sticky top-0 z-10">
               <tr>
@@ -144,7 +210,7 @@ export function ApiLogsView({
                           </span>
                         </td>
                         <td className="px-6 py-3.5 font-mono text-slate-500 dark:text-slate-400">
-                          {l.latencyMs}ms
+                          {Number.isFinite(Number(l.latencyMs)) && Number(l.latencyMs) > 0 ? `${Number(l.latencyMs)}ms` : 'N/A'}
                         </td>
                         <td className="px-6 py-3.5 text-right font-mono font-medium">
                           {l.retryCount > 0 ? (
