@@ -115,6 +115,13 @@
     box-shadow: none !important;
   }
 
+  .bk-console-search input {
+    width: 100%;
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+  }
+
   .bk-console-search:focus-within {
     background: #ffffff !important;
     border-color: #c6dafc !important;

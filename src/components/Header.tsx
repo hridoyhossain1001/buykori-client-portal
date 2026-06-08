@@ -171,18 +171,18 @@ export function Header({
         </div>
 
         {/* Centered quick navigation search */}
-        <div ref={searchContainerRef} className="relative hidden lg:flex flex-1 justify-center max-w-xs xl:max-w-md mx-auto group">
-          <div className="bk-console-search relative z-10 flex w-full max-w-[420px] items-center justify-between px-5 py-2">
+        <div ref={searchContainerRef} className="relative mx-8 hidden w-full max-w-[420px] lg:flex">
+          <div className="bk-console-search relative z-10 flex h-9 w-full items-center px-4">
             <input
               type="text"
               placeholder="Search pages..."
               value={searchVal}
               onChange={(e) => setSearchVal(e.target.value)}
               onFocus={() => setIsSearchFocused(true)}
-              className="text-xs font-medium text-slate-800 placeholder-slate-500"
+              className="w-full border-0 bg-transparent pr-8 text-xs font-medium text-slate-800 outline-none placeholder-slate-500"
               aria-label="Quick navigation search"
             />
-            <Search className="pointer-events-none absolute right-4 top-3 h-3.5 w-3.5 text-slate-600" />
+            <Search className="pointer-events-none absolute right-4 top-2.5 h-3.5 w-3.5 text-slate-600" />
           </div>
 
           {/* Quick-navigation suggestions dropdown */}
