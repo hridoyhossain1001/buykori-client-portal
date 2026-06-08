@@ -56,6 +56,81 @@ async function startServer() {
   let cancelledTotal = 2;
   let confirmedToday = 2;
   let sidebarSeenState: Record<string, string> = {};
+  let currentStoreId = 1;
+  let stores = [
+    {
+      id: 1,
+      name: "Buykori Demo Store",
+      domain: "buykori-demo.com",
+      is_current: true,
+      role: "Owner",
+    },
+    {
+      id: 2,
+      name: "Growth Lab Store",
+      domain: "growth-lab.shop",
+      is_current: false,
+      role: "Admin",
+    },
+  ];
+  let courierSettings: Record<string, any> = {
+    courier_auto_send: false,
+    default_courier: "steadfast",
+    pathao_environment: "sandbox",
+    pathao_store_id: "",
+    pathao_api_key: "",
+    pathao_secret_key: "",
+    steadfast_api_key: "",
+    steadfast_secret_key: "",
+    redx_access_token: "",
+  };
+  let incompleteCheckouts = [
+    {
+      id: 301,
+      customer_name: "Rafi Ahmed",
+      customer_phone: "+8801711112222",
+      customer_email: "rafi@example.com",
+      amount: 2790,
+      currency: "BDT",
+      source: "woocommerce",
+      status: "open",
+      recovery_url: "https://buykori-demo.com/checkout/recover/301",
+      created_at: new Date(Date.now() - 2.4 * 3600000).toISOString(),
+      updated_at: new Date(Date.now() - 1.1 * 3600000).toISOString(),
+      items: ["Premium Hoodie", "COD Delivery"],
+    },
+    {
+      id: 302,
+      customer_name: "Nusrat Jahan",
+      customer_phone: "+8801812349999",
+      customer_email: "nusrat@example.com",
+      amount: 4250,
+      currency: "BDT",
+      source: "shopify",
+      status: "contacted",
+      recovery_url: "https://growth-lab.shop/checkouts/recover/302",
+      created_at: new Date(Date.now() - 22 * 3600000).toISOString(),
+      updated_at: new Date(Date.now() - 6 * 3600000).toISOString(),
+      items: ["Serum Bundle"],
+    },
+  ];
+  let courierOrders = [
+    {
+      id: 701,
+      order_id: "WC-9283",
+      courier_provider: "steadfast",
+      courier_order_id: "SF-9283",
+      courier_tracking_id: "TRK9283BD",
+      courier_status: "pending",
+      recipient_name: "Rafi Ahmed",
+      recipient_phone: "+8801711112222",
+      recipient_address: "Mirpur, Dhaka",
+      cod_amount: 2490,
+      delivery_charge: 80,
+      created_at: new Date(Date.now() - 3 * 3600000).toISOString(),
+      purchase_event_sent: false,
+    },
+  ];
   
   // Platform Credentials state
   let credentials: Record<Platform, PlatformConfig> = {
@@ -293,6 +368,25 @@ async function startServer() {
       events: paginated,
       totalCount
     });
+  });
+
+  app.get("/api/events/trend", (req, res) => {
+    const days = Math.max(1, Math.min(30, Number(req.query.days || 7)));
+    const trend = Array.from({ length: days }, (_, index) => {
+      const date = new Date();
+      date.setDate(date.getDate() - (days - index - 1));
+      const dayEvents = events.filter((event, eventIndex) => eventIndex % days === index % days);
+      const success = dayEvents.filter(event => event.status === "Success").length;
+      const failed = dayEvents.filter(event => event.status === "Failed").length;
+      return {
+        date: date.toISOString().slice(0, 10),
+        total: Math.max(dayEvents.length, 4 + index),
+        success: Math.max(success, 3 + index),
+        failed,
+        value: 1200 + index * 380,
+      };
+    });
+    res.json({ trend });
   });
 
   // Outbound API Logs
@@ -538,6 +632,209 @@ async function startServer() {
         orderVerificationSeenAt: sidebarSeenState.order_verification_seen_at,
         ordersDeliverySeenAt: sidebarSeenState.orders_delivery_seen_at,
       },
+    });
+  });
+
+  app.get("/api/incomplete-checkouts", (req, res) => {
+    const counts = incompleteCheckouts.reduce((acc: Record<string, number>, item) => {
+      acc[item.status] = (acc[item.status] || 0) + 1;
+      acc.total = (acc.total || 0) + 1;
+      return acc;
+    }, {});
+    res.json({
+      items: incompleteCheckouts,
+      counts,
+      restricted: false,
+    });
+  });
+
+  app.post("/api/incomplete-checkouts/:id/status", (req, res) => {
+    const id = Number(req.params.id);
+    const target = incompleteCheckouts.find(item => item.id === id);
+    if (!target) {
+      return res.status(404).json({ detail: "Incomplete checkout not found." });
+    }
+    target.status = String(req.body?.status || target.status);
+    target.updated_at = new Date().toISOString();
+    res.json({ success: true, item: target });
+  });
+
+  app.get("/api/courier/settings", (req, res) => {
+    res.json(courierSettings);
+  });
+
+  app.post("/api/courier/settings", (req, res) => {
+    courierSettings = {
+      ...courierSettings,
+      ...req.body,
+    };
+    res.json(courierSettings);
+  });
+
+  app.get("/api/courier/orders", (req, res) => {
+    res.json({ orders: courierOrders, totalCount: courierOrders.length });
+  });
+
+  app.post("/api/courier/send", (req, res) => {
+    const orderId = String(req.body?.order_id || `WC-${Math.floor(Math.random() * 9000) + 1000}`);
+    const order = {
+      id: Date.now(),
+      order_id: orderId,
+      courier_provider: String(req.body?.provider || courierSettings.default_courier || "steadfast"),
+      courier_order_id: `MOCK-${orderId}`,
+      courier_tracking_id: `TRK${Math.floor(Math.random() * 900000)}`,
+      courier_status: "pending",
+      recipient_name: String(req.body?.recipient_name || "Demo Customer"),
+      recipient_phone: String(req.body?.recipient_phone || "+8801700000000"),
+      recipient_address: String(req.body?.recipient_address || "Dhaka, Bangladesh"),
+      cod_amount: Number(req.body?.cod_amount || 0),
+      delivery_charge: 80,
+      created_at: new Date().toISOString(),
+      purchase_event_sent: false,
+    };
+    courierOrders.unshift(order);
+    res.json({ success: true, order });
+  });
+
+  app.post("/api/courier/cancel/:id", (req, res) => {
+    const id = Number(req.params.id);
+    const order = courierOrders.find(item => item.id === id);
+    if (!order) {
+      return res.status(404).json({ detail: "Courier order not found." });
+    }
+    order.courier_status = "cancelled";
+    res.json({ success: true, order });
+  });
+
+  app.get("/api/courier/pathao/stores", (req, res) => {
+    res.json({ stores: [{ store_id: "demo-pathao-store", store_name: "Buykori Demo Pickup" }] });
+  });
+
+  app.get("/api/courier/redx/areas", (req, res) => {
+    res.json({ areas: [{ id: "dhaka-mirpur", name: "Mirpur, Dhaka" }, { id: "dhaka-banani", name: "Banani, Dhaka" }] });
+  });
+
+  app.post("/api/courier/:provider/webhook-secret", (req, res) => {
+    const key = `${String(req.params.provider)}_webhook_secret_configured`;
+    courierSettings[key] = true;
+    res.json({ success: true, [key]: true });
+  });
+
+  app.get("/api/v1/plugin/info", (req, res) => {
+    res.json({
+      version: "1.0.0",
+      download_url: "https://github.com/hridoyhossain1001/buykori-client-portal/releases/latest",
+      package_sha256: "local-dev-mock",
+      package_size: 0,
+      package_available: true,
+      requires: "6.0",
+      tested: "6.5",
+      requires_php: "8.0",
+      last_updated: new Date().toISOString(),
+    });
+  });
+
+  app.get("/api/stores", (req, res) => {
+    res.json({
+      stores: stores.map(store => ({
+        ...store,
+        is_current: store.id === currentStoreId,
+      })),
+    });
+  });
+
+  app.patch("/api/store/domain", (req, res) => {
+    const current = stores.find(store => store.id === currentStoreId);
+    if (!current) {
+      return res.status(404).json({ detail: "Current store not found." });
+    }
+    current.domain = req.body?.domain || "";
+    res.json({ success: true, domain: current.domain, store: current });
+  });
+
+  app.post("/api/switch-store", (req, res) => {
+    const targetId = Number(req.body?.target_client_id);
+    if (!stores.some(store => store.id === targetId)) {
+      return res.status(404).json({ detail: "Store not found." });
+    }
+    currentStoreId = targetId;
+    stores = stores.map(store => ({ ...store, is_current: store.id === currentStoreId }));
+    res.json({ success: true, current_store_id: currentStoreId });
+  });
+
+  app.post("/api/create-store", (req, res) => {
+    const name = String(req.body?.name || "New Store").trim();
+    const domain = String(req.body?.domain || "").trim();
+    const store = {
+      id: Math.max(...stores.map(item => item.id)) + 1,
+      name,
+      domain,
+      is_current: false,
+      role: "Owner",
+    };
+    stores.push(store);
+    res.json({ success: true, store });
+  });
+
+  app.get("/api/v1/analytics/overview", (req, res) => {
+    const total = events.length;
+    const success = events.filter(event => event.status === "Success").length;
+    const failed = events.filter(event => event.status === "Failed").length;
+    res.json({
+      total_events: total,
+      success_events: success,
+      failed_events: failed,
+      match_quality: 82,
+      revenue: 128450,
+      conversion_rate: 4.8,
+      event_growth: 12.4,
+      revenue_growth: 9.6,
+    });
+  });
+
+  app.get("/api/v1/analytics/campaigns", (req, res) => {
+    res.json({
+      campaigns: [
+        { name: "Meta Prospecting", source: "facebook", events: 842, revenue: 68400, roas: 3.8 },
+        { name: "TikTok Retargeting", source: "tiktok", events: 516, revenue: 42100, roas: 2.9 },
+        { name: "Google Shopping", source: "google", events: 394, revenue: 30750, roas: 2.4 },
+      ],
+    });
+  });
+
+  app.get("/api/v1/analytics/hourly", (req, res) => {
+    res.json({
+      hourly: Array.from({ length: 24 }, (_, hour) => ({
+        hour,
+        events: 12 + ((hour * 7) % 31),
+        revenue: 900 + ((hour * 431) % 2400),
+      })),
+    });
+  });
+
+  app.get("/api/v1/analytics/audience", (req, res) => {
+    res.json({
+      countries: [
+        { name: "Bangladesh", value: 78 },
+        { name: "United States", value: 12 },
+        { name: "United Kingdom", value: 6 },
+      ],
+      devices: [
+        { name: "Mobile", value: 82 },
+        { name: "Desktop", value: 15 },
+        { name: "Tablet", value: 3 },
+      ],
+    });
+  });
+
+  app.get("/api/v1/analytics/signal-doctor", (req, res) => {
+    res.json({
+      score: 86,
+      checks: [
+        { label: "Meta CAPI connection", status: "pass", detail: "Active heartbeat found." },
+        { label: "Deduplication keys", status: "pass", detail: "Recent events include stable event IDs." },
+        { label: "TikTok payload quality", status: "warning", detail: "Add product category when available." },
+      ],
     });
   });
 
