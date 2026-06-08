@@ -7,8 +7,7 @@ import {
   XAxis, 
   YAxis, 
   Tooltip as ReChartsTooltip, 
-  Legend, 
-  ResponsiveContainer 
+  Legend
 } from 'recharts';
 import { Tooltip } from './common/Tooltip';
 import { 
@@ -66,6 +65,8 @@ export function DashboardView({
   const [railOpen, setRailOpen] = useState(false);
   const [railVisible, setRailVisible] = useState(true);
   const lastScrollYRef = useRef(0);
+  const chartHostRef = useRef<HTMLDivElement | null>(null);
+  const [chartSize, setChartSize] = useState({ width: 640, height: 256 });
   const quotaPercent = profile.eventsQuota > 0 ? Math.round((profile.eventsUsed / profile.eventsQuota) * 100) : 0;
   const platformCards = [
     {
@@ -111,6 +112,27 @@ export function DashboardView({
 
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  useEffect(() => {
+    const host = chartHostRef.current;
+    if (!host) return;
+
+    const updateSize = () => {
+      const rect = host.getBoundingClientRect();
+      const nextWidth = Math.max(1, Math.floor(rect.width));
+      const nextHeight = Math.max(1, Math.floor(rect.height));
+      setChartSize(prev => (
+        prev.width === nextWidth && prev.height === nextHeight
+          ? prev
+          : { width: nextWidth, height: nextHeight }
+      ));
+    };
+
+    updateSize();
+    const observer = new ResizeObserver(updateSize);
+    observer.observe(host);
+    return () => observer.disconnect();
   }, []);
 
   return (
@@ -278,15 +300,8 @@ export function DashboardView({
             </div>
           </div>
 
-          <div className="mt-auto h-44 md:h-64">
-            <ResponsiveContainer
-              width="100%"
-              height="100%"
-              minWidth={1}
-              minHeight={1}
-              initialDimension={{ width: 640, height: 256 }}
-            >
-              <AreaChart data={trendData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+          <div ref={chartHostRef} className="mt-auto h-44 min-w-0 md:h-64">
+              <AreaChart width={chartSize.width} height={chartSize.height} data={trendData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
                 <defs>
                   <linearGradient id="metaGrad" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#4f46e5" stopOpacity={0.2}/>
@@ -317,7 +332,6 @@ export function DashboardView({
                 <Area type="monotone" dataKey="Meta CAPI" stroke="#4f46e5" strokeWidth={2} fillOpacity={1} fill="url(#metaGrad)" />
                 <Area type="monotone" dataKey="TikTok Events" stroke="#06b6d4" strokeWidth={2} fillOpacity={1} fill="url(#tiktokGrad)" />
               </AreaChart>
-            </ResponsiveContainer>
           </div>
         </div>
 
