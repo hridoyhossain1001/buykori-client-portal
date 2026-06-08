@@ -82,16 +82,32 @@ export function CodProtectionView({
     }
   };
 
-  const summaryRail = (
-    <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 xl:grid-cols-1">
+  const desktopSummaryRow = (
+    <div className="hidden grid-cols-4 gap-2 md:grid">
       {summaryItems.map((item) => (
-        <div key={item.label} className={`rounded-lg border ${item.border} ${item.bg} px-3 py-2`}>
+        <div key={item.label} className={`flex items-center justify-between rounded-lg border ${item.border} ${item.bg} px-3 py-2`}>
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">{item.label}</p>
+            <p className="text-[10px] text-slate-400">{item.helper}</p>
+          </div>
           <p className={`font-mono text-lg font-black leading-none ${item.tone}`}>{item.value}</p>
-          <p className="mt-1 text-[10px] font-bold uppercase tracking-wider text-slate-500">{item.label}</p>
-          <p className="text-[10px] text-slate-400">{item.helper}</p>
         </div>
       ))}
     </div>
+  );
+
+  const mobileSummaryTab = (
+    <aside
+      aria-label="COD queue summary"
+      className="fixed right-2 top-[222px] z-30 w-[58px] overflow-hidden rounded-2xl border border-slate-200 bg-white/95 shadow-lg backdrop-blur md:hidden"
+    >
+      {summaryItems.map((item) => (
+        <div key={item.label} className={`border-b ${item.border} ${item.bg} px-1.5 py-2 text-center last:border-b-0`}>
+          <p className={`font-mono text-sm font-black leading-none ${item.tone}`}>{item.value}</p>
+          <p className="mt-1 text-[8px] font-black uppercase leading-tight tracking-wide text-slate-600">{item.label}</p>
+        </div>
+      ))}
+    </aside>
   );
 
   return (
@@ -288,9 +304,10 @@ export function CodProtectionView({
         </div>
       </section>
 
-      <div className="xl:hidden">{summaryRail}</div>
+      {desktopSummaryRow}
+      {mobileSummaryTab}
 
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_240px]">
+      <div className="grid grid-cols-1 gap-4">
         <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm md:p-5">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
@@ -451,15 +468,6 @@ export function CodProtectionView({
           </div>
         </section>
 
-        <aside className="hidden xl:block">
-          <div className="sticky top-20 space-y-3">
-            <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
-              <h2 className="text-xs font-black uppercase tracking-wide text-slate-800">COD summary</h2>
-              <p className="mt-1 text-[11px] text-slate-500">Queue health at a glance.</p>
-              <div className="mt-3">{summaryRail}</div>
-            </div>
-          </div>
-        </aside>
       </div>
     </div>
   );
