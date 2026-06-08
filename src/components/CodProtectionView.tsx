@@ -359,7 +359,7 @@ export function CodProtectionView({
                 </div>
                 <div className="mt-4 grid grid-cols-2 gap-2">
                   <button onClick={() => handleConfirmOrder(order.orderId)} className="rounded-lg bg-emerald-800 px-3 py-2 text-xs font-bold text-white">Confirm</button>
-                  <button onClick={() => handleCancelOrder(order.orderId)} className="rounded-lg bg-rose-700 px-3 py-2 text-xs font-bold text-white">Cancel</button>
+                  <button onClick={() => handleCancelOrder(order.orderId)} className="rounded-lg bg-rose-900 px-3 py-2 text-xs font-bold text-white">Cancel</button>
                 </div>
               </div>
             );
@@ -479,7 +479,7 @@ export function CodProtectionView({
                         </button>
                         <button 
                           onClick={() => handleCancelOrder(order.orderId)}
-                          className="px-2.5 py-1 bg-rose-700 hover:bg-rose-800 text-white text-[10px] font-bold rounded shadow-sm transition-colors cursor-pointer"
+                          className="px-2.5 py-1 bg-rose-900 hover:bg-rose-950 text-white text-[10px] font-bold rounded shadow-sm transition-colors cursor-pointer"
                         >
                           Cancel
                         </button>

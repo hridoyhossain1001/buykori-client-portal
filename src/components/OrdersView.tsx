@@ -748,7 +748,7 @@ export function OrdersView({
                     <button onClick={() => openInvoice(order)} className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-bold text-slate-700">Invoice</button>
                     <button onClick={() => openPendingCourierModal(order)} className="rounded-lg bg-indigo-600 px-3 py-2 text-xs font-bold text-white">Book Courier</button>
                     <button onClick={() => handleConfirmOrder(order.orderId)} className="rounded-lg bg-emerald-800 px-3 py-2 text-xs font-bold text-white">Confirm</button>
-                    <button onClick={() => handleCancelOrder(order.orderId)} className="rounded-lg bg-rose-700 px-3 py-2 text-xs font-bold text-white">Cancel</button>
+                    <button onClick={() => handleCancelOrder(order.orderId)} className="rounded-lg bg-rose-900 px-3 py-2 text-xs font-bold text-white">Cancel</button>
                   </div>
                 </div>
               );
@@ -846,7 +846,7 @@ export function OrdersView({
                             </button>
                             <button 
                               onClick={() => handleCancelOrder(order.orderId)}
-                              className="btn-touch-expand px-2.5 py-1 bg-rose-700 hover:bg-rose-800 text-white text-[10px] font-bold rounded shadow-sm transition-colors cursor-pointer"
+                              className="btn-touch-expand px-2.5 py-1 bg-rose-900 hover:bg-rose-950 text-white text-[10px] font-bold rounded shadow-sm transition-colors cursor-pointer"
                             >
                               Cancel
                             </button>
@@ -1640,7 +1640,7 @@ export function OrdersView({
               <button
                 type="button"
                 onClick={confirmCancelCourierOrder}
-                className="rounded-lg bg-rose-700 px-3 py-2 text-xs font-bold text-white transition-colors hover:bg-rose-800"
+                className="rounded-lg bg-rose-900 px-3 py-2 text-xs font-bold text-white transition-colors hover:bg-rose-950"
               >
                 Cancel Order
               </button>
