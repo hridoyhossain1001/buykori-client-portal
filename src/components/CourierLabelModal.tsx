@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+﻿import React, { useEffect, useMemo, useState } from 'react';
 import JsBarcode from 'jsbarcode';
 import QRCode from 'qrcode';
 import { Package, Printer, Ruler, X } from 'lucide-react';
@@ -210,19 +210,19 @@ export function CourierLabelModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-slate-900/60 p-4 backdrop-blur-sm">
-      <div className="my-8 flex w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl dark:border-slate-800 dark:bg-slate-900">
-        <div className="flex flex-col gap-3 border-b border-slate-100 p-5 dark:border-slate-800 sm:flex-row sm:items-center sm:justify-between">
+      <div className="my-8 flex w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl  ">
+        <div className="flex flex-col gap-3 border-b border-slate-100 p-5  sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-2">
-            <Package className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
+            <Package className="h-5 w-5 text-indigo-600 " />
             <div>
-              <h3 className="text-base font-bold text-slate-800 dark:text-white">
+              <h3 className="text-base font-bold text-slate-800 ">
                 Courier Label Printer {ordersList.length > 1 && `(${ordersList.length} labels)`}
               </h3>
               <p className="text-[10px] text-slate-400">Thermal-printer layout with Code128 barcode and tracking QR.</p>
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <div className="flex overflow-hidden rounded-lg border border-slate-200 dark:border-slate-700">
+            <div className="flex overflow-hidden rounded-lg border border-slate-200 ">
               {(Object.keys(LABEL_DIMENSIONS) as LabelSize[]).map((size) => (
                 <button
                   key={size}
@@ -231,7 +231,7 @@ export function CourierLabelModal({
                   className={`px-3 py-1.5 text-xs font-bold transition-colors ${
                     labelSize === size
                       ? 'bg-indigo-600 text-white'
-                      : 'bg-white text-slate-500 hover:bg-slate-50 dark:bg-slate-900 dark:text-slate-400 dark:hover:bg-slate-800'
+                      : 'bg-white text-slate-500 hover:bg-slate-50   '
                   }`}
                 >
                   {LABEL_DIMENSIONS[size].label}
@@ -249,22 +249,22 @@ export function CourierLabelModal({
             <button
               type="button"
               onClick={onClose}
-              className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-800"
+              className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 "
             >
               <X className="h-4 w-4" />
             </button>
           </div>
         </div>
 
-        <div className="flex flex-col gap-4 border-b border-slate-100 bg-slate-50 px-5 py-3 dark:border-slate-800 dark:bg-slate-950/40 sm:flex-row sm:items-center">
-          <div className="flex items-center gap-2 text-xs font-bold text-slate-600 dark:text-slate-300">
+        <div className="flex flex-col gap-4 border-b border-slate-100 bg-slate-50 px-5 py-3   sm:flex-row sm:items-center">
+          <div className="flex items-center gap-2 text-xs font-bold text-slate-600 ">
             <Ruler className="h-4 w-4 text-indigo-500" />
             Parcel weight
           </div>
           <select
             value={parcelWeight}
             onChange={(event) => setParcelWeight(event.target.value)}
-            className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
+            className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 outline-none   "
           >
             <option>0.5 KG</option>
             <option>1 KG</option>
@@ -275,7 +275,7 @@ export function CourierLabelModal({
           <p className="text-[10px] text-slate-400">Each selected consignment prints on its own thermal label page.</p>
         </div>
 
-        <div className="max-h-[75vh] overflow-y-auto bg-slate-200 p-6 dark:bg-slate-950">
+        <div className="max-h-[75vh] overflow-y-auto bg-slate-200 p-6 ">
           <div className="print-courier-label-area mx-auto flex flex-col items-center gap-5">
             {ordersList.map((currentOrder) => {
               const orderId = getOrderId(currentOrder);
@@ -322,7 +322,7 @@ export function CourierLabelModal({
                   </div>
                   <div className="courier-label-cod mt-auto flex items-center justify-between border-2 border-slate-900 px-1.5 py-1 text-[10px] font-black uppercase">
                     <span>Cash on delivery</span>
-                    <strong className="text-[15px]">৳ {codAmount.toLocaleString()}</strong>
+                    <strong className="text-[15px]">à§³ {codAmount.toLocaleString()}</strong>
                   </div>
                   <div className="courier-label-footer flex justify-between gap-1 text-[7px] text-slate-500">
                     <span>Printed: {new Date().toLocaleString()}</span>

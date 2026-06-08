@@ -1,4 +1,5 @@
-import React from 'react';
+﻿import React from 'react';
+import { Tooltip } from './common/Tooltip';
 import { 
   ShieldAlert, 
   AlertTriangle, 
@@ -81,15 +82,15 @@ export function AnalyticsView({
       {/* Page Heading & Timeframe Selector */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h2 className="text-xl font-bold text-slate-900 dark:text-white">Insights & Analytics</h2>
-          <p className="text-xs text-slate-400 dark:text-slate-500">Your store's ad performance and visitor data</p>
+          <h2 className="text-xl font-bold text-slate-900 ">Insights & Analytics</h2>
+          <p className="text-xs text-slate-400 ">Your store's ad performance and visitor data</p>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">Timeframe:</span>
+          <span className="text-xs font-semibold text-slate-500 ">Timeframe:</span>
           <select 
             value={analyticsDays} 
             onChange={(e) => setAnalyticsDays(Number(e.target.value))}
-            className="text-xs font-bold text-slate-700 bg-white border border-slate-200 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-100 rounded-lg px-3 py-1.5 outline-none focus:ring-1 focus:ring-indigo-500 cursor-pointer shadow-sm"
+            className="text-xs font-bold text-slate-700 bg-white border border-slate-200    rounded-lg px-3 py-1.5 outline-none focus:ring-1 focus:ring-indigo-500 cursor-pointer shadow-sm"
           >
             <option value="7">Last 7 Days</option>
             <option value="14">Last 14 Days</option>
@@ -104,55 +105,58 @@ export function AnalyticsView({
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           
           {/* Card 1: Total Events */}
-          <div className="rounded-3xl border border-white/60 dark:border-white/10 bg-gradient-to-br from-indigo-100/70 to-indigo-50/20 dark:from-indigo-900/30 dark:to-slate-900/40 backdrop-blur-2xl p-6 shadow-xl shadow-indigo-900/5 transition-transform hover:scale-[1.02]">
+          <div className="rounded-3xl border border-white/60  bg-gradient-to-br from-indigo-100/70 to-indigo-50/20   backdrop-blur-2xl p-6 shadow-xl shadow-indigo-900/5 transition-transform hover:scale-[1.02]">
             <div className="flex items-center justify-between">
-              <p className="text-xs font-bold text-indigo-800 dark:text-indigo-400 border border-indigo-300/30 bg-indigo-100/50 dark:bg-indigo-900/40 px-2 py-1 rounded-md">Total Events</p>
+              <p className="text-xs font-bold text-indigo-800  border border-indigo-300/30 bg-indigo-100/50  px-2 py-1 rounded-md">Total Events</p>
             </div>
             <div className="mt-8 flex items-baseline gap-2">
-              <p className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+              <p className="text-3xl font-extrabold text-slate-900  tracking-tight">
                 {analyticsOverview.total_events?.toLocaleString() || 0}
               </p>
-              <span className="text-xs font-semibold text-indigo-700/70 dark:text-indigo-300/70">events tracked</span>
+              <span className="text-xs font-semibold text-indigo-700/70 ">events tracked</span>
             </div>
           </div>
 
           {/* Card 2: Success Rate */}
-          <div className="rounded-3xl border border-white/60 dark:border-white/10 bg-gradient-to-br from-emerald-100/70 to-emerald-50/20 dark:from-emerald-900/30 dark:to-slate-900/40 backdrop-blur-2xl p-6 shadow-xl shadow-emerald-900/5 transition-transform hover:scale-[1.02]">
+          <div className="rounded-3xl border border-white/60  bg-gradient-to-br from-emerald-100/70 to-emerald-50/20   backdrop-blur-2xl p-6 shadow-xl shadow-emerald-900/5 transition-transform hover:scale-[1.02]">
             <div className="flex items-center justify-between">
-              <p className="text-xs font-bold text-emerald-800 dark:text-emerald-400 border border-emerald-300/30 bg-emerald-100/50 dark:bg-emerald-900/40 px-2 py-1 rounded-md">Success Rate</p>
+              <p className="text-xs font-bold text-emerald-800  border border-emerald-300/30 bg-emerald-100/50  px-2 py-1 rounded-md">Success Rate</p>
             </div>
             <div className="mt-8 flex items-baseline gap-2">
-              <p className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+              <p className="text-3xl font-extrabold text-slate-900  tracking-tight">
                 {analyticsOverview.success_rate}%
               </p>
-              <span className="text-xs font-semibold text-emerald-750/70 dark:text-emerald-300/70">Success</span>
+              <span className="text-xs font-semibold text-emerald-700/70 ">Success</span>
             </div>
           </div>
 
           {/* Card 3: Avg Daily */}
-          <div className="rounded-3xl border border-white/60 dark:border-white/10 bg-gradient-to-br from-purple-100/70 to-purple-50/20 dark:from-purple-900/30 dark:to-slate-900/40 backdrop-blur-2xl p-6 shadow-xl shadow-purple-900/5 transition-transform hover:scale-[1.02]">
+          <div className="rounded-3xl border border-white/60  bg-gradient-to-br from-purple-100/70 to-purple-50/20   backdrop-blur-2xl p-6 shadow-xl shadow-purple-900/5 transition-transform hover:scale-[1.02]">
             <div className="flex items-center justify-between">
-              <p className="text-xs font-bold text-purple-800 dark:text-purple-400 border border-purple-300/30 bg-purple-100/50 dark:bg-purple-900/40 px-2 py-1 rounded-md">Daily Average</p>
+              <p className="text-xs font-bold text-purple-800  border border-purple-300/30 bg-purple-100/50  px-2 py-1 rounded-md">Daily Average</p>
             </div>
             <div className="mt-8 flex items-baseline gap-2">
-              <p className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+              <p className="text-3xl font-extrabold text-slate-900  tracking-tight">
                 {analyticsOverview.avg_daily_events?.toLocaleString() || 0}
               </p>
-              <span className="text-xs font-semibold text-purple-750/70 dark:text-purple-300/70">Avg daily</span>
+              <span className="text-xs font-semibold text-purple-700/70 ">Avg daily</span>
             </div>
           </div>
 
           {/* Card 4: Signal Grade */}
           {signalDoctor && (
-            <div className="rounded-3xl border border-white/60 dark:border-white/10 bg-gradient-to-br from-amber-100/70 to-amber-50/20 dark:from-amber-900/30 dark:to-slate-900/40 backdrop-blur-2xl p-6 shadow-xl shadow-amber-900/5 transition-transform hover:scale-[1.02]">
+            <div className="rounded-3xl border border-white/60  bg-gradient-to-br from-amber-100/70 to-amber-50/20   backdrop-blur-2xl p-6 shadow-xl shadow-amber-900/5 transition-transform hover:scale-[1.02]">
               <div className="flex items-center justify-between">
-                <p className="text-xs font-bold text-amber-800 dark:text-amber-400 border border-amber-300/30 bg-amber-100/50 dark:bg-amber-900/40 px-2 py-1 rounded-md">Data Quality</p>
+                <p className="text-xs font-bold text-amber-800  border border-amber-300/30 bg-amber-100/50  px-2 py-1 rounded-md flex items-center">
+                  Data Quality
+                  <Tooltip content="à¦¡à§‡à¦Ÿà¦¾à¦° à¦¸à¦®à§à¦ªà§‚à¦°à§à¦£à¦¤à¦¾à¦° à¦“à¦ªà¦° à¦­à¦¿à¦¤à§à¦¤à¦¿ à¦•à¦°à§‡ à¦¤à§ˆà¦°à¦¿ à¦®à§à¦¯à¦¾à¦šà¦¿à¦‚ à¦°à§‡à¦Ÿà¦¿à¦‚à¥¤ à¦«à§‹à¦¨ à¦¨à¦®à§à¦¬à¦°, à¦‡à¦®à§‡à¦² à¦¬à¦¾ à¦‡à¦­à§‡à¦¨à§à¦Ÿ à¦†à¦‡à¦¡à¦¿ à¦¯à¦¤ à¦¬à§‡à¦¶à¦¿ à¦¥à¦¾à¦•à¦¬à§‡, à¦à¦¡ à¦ªà§à¦²à§à¦¯à¦¾à¦Ÿà¦«à¦°à§à¦®à§‡ à¦®à§à¦¯à¦¾à¦šà¦¿à¦‚ à¦¤à¦¤ à¦­à¦¾à¦²à§‹ à¦¹à¦¬à§‡à¥¤" />
+                </p>
               </div>
               <div className="mt-8 flex items-baseline gap-2">
-                <p className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+                <p className="text-3xl font-extrabold text-slate-900  tracking-tight">
                   {signalDoctor.score}/100
                 </p>
-                <span className="text-xs font-semibold text-amber-750/70 dark:text-amber-300/70">{signalDoctor.grade}</span>
+                <span className="text-xs font-semibold text-amber-700/70 ">{signalDoctor.grade}</span>
               </div>
             </div>
           )}
@@ -162,11 +166,11 @@ export function AnalyticsView({
 
       {/* Estimated Geo & Device Mix */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:bg-slate-900 dark:border-slate-800">
+        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm  ">
           <div className="mb-5 flex items-start justify-between gap-3">
             <div>
-              <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wide dark:text-white">Estimated Districts</h3>
-              <p className="text-xs text-slate-400 dark:text-slate-500">Approximate visitor location based on received IP and checkout information.</p>
+              <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wide ">Estimated Districts</h3>
+              <p className="text-xs text-slate-400 ">Approximate visitor location based on received IP and checkout information.</p>
             </div>
             <MapPin className="h-5 w-5 text-indigo-500" />
           </div>
@@ -174,10 +178,10 @@ export function AnalyticsView({
             {topDistricts.length ? topDistricts.map((row: any) => (
               <div key={row.label} className="space-y-1.5">
                 <div className="flex items-center justify-between text-xs">
-                  <span className="font-bold text-slate-700 dark:text-slate-200">{row.label}</span>
-                  <span className="font-mono text-slate-500 dark:text-slate-400">{row.count.toLocaleString()} - {row.percentage}%</span>
+                  <span className="font-bold text-slate-700 ">{row.label}</span>
+                  <span className="font-mono text-slate-500 ">{row.count.toLocaleString()} - {row.percentage}%</span>
                 </div>
-                <div className="h-2 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+                <div className="h-2 rounded-full bg-slate-100  overflow-hidden">
                   <div className="h-full rounded-full bg-indigo-500" style={{ width: `${Math.max(row.percentage, 3)}%` }} />
                 </div>
               </div>
@@ -185,16 +189,16 @@ export function AnalyticsView({
               <div className="py-10 text-center text-xs text-slate-400">Location data will appear after visitors start browsing your store.</div>
             )}
           </div>
-          <div className="mt-5 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[10px] leading-relaxed text-amber-800 dark:border-amber-900/40 dark:bg-amber-950/20 dark:text-amber-300">
+          <div className="mt-5 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[10px] leading-relaxed text-amber-800   ">
             {analyticsAudience?.notice || 'City and district data is approximate and not 100% accurate.'}
           </div>
         </div>
 
-        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:bg-slate-900 dark:border-slate-800">
+        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm  ">
           <div className="mb-5 flex items-start justify-between gap-3">
             <div>
-              <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wide dark:text-white">Device Mix</h3>
-              <p className="text-xs text-slate-400 dark:text-slate-500">Mobile, desktop and tablet share from tracked events.</p>
+              <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wide ">Device Mix</h3>
+              <p className="text-xs text-slate-400 ">Mobile, desktop and tablet share from tracked events.</p>
             </div>
             <Smartphone className="h-5 w-5 text-emerald-500" />
           </div>
@@ -202,10 +206,10 @@ export function AnalyticsView({
             {deviceMix.length ? deviceMix.map((row: any) => (
               <div key={row.label} className="space-y-1.5">
                 <div className="flex items-center justify-between text-xs">
-                  <span className="font-bold text-slate-700 dark:text-slate-200">{row.label}</span>
-                  <span className="font-mono text-slate-500 dark:text-slate-400">{row.count.toLocaleString()} - {row.percentage}%</span>
+                  <span className="font-bold text-slate-700 ">{row.label}</span>
+                  <span className="font-mono text-slate-500 ">{row.count.toLocaleString()} - {row.percentage}%</span>
                 </div>
-                <div className="h-2 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+                <div className="h-2 rounded-full bg-slate-100  overflow-hidden">
                   <div className="h-full rounded-full bg-emerald-500" style={{ width: `${Math.max(row.percentage, 3)}%` }} />
                 </div>
               </div>
@@ -215,16 +219,16 @@ export function AnalyticsView({
           </div>
         </div>
 
-        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:bg-slate-900 dark:border-slate-800">
+        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm  ">
           <div className="mb-5">
-            <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wide dark:text-white">Top Browsers</h3>
-            <p className="text-xs text-slate-400 dark:text-slate-500">Browser share from your visitors.</p>
+            <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wide ">Top Browsers</h3>
+            <p className="text-xs text-slate-400 ">Browser share from your visitors.</p>
           </div>
           <div className="space-y-3">
             {(analyticsAudience?.browser_mix || []).length ? analyticsAudience.browser_mix.map((row: any) => (
-              <div key={row.label} className="flex items-center justify-between border-b border-slate-100 pb-2 text-xs last:border-0 dark:border-slate-800">
-                <span className="font-bold text-slate-700 dark:text-slate-200">{row.label}</span>
-                <span className="font-mono text-slate-500 dark:text-slate-400">{row.count.toLocaleString()} - {row.percentage}%</span>
+              <div key={row.label} className="flex items-center justify-between border-b border-slate-100 pb-2 text-xs last:border-0 ">
+                <span className="font-bold text-slate-700 ">{row.label}</span>
+                <span className="font-mono text-slate-500 ">{row.count.toLocaleString()} - {row.percentage}%</span>
               </div>
             )) : (
               <div className="py-10 text-center text-xs text-slate-400">Browser data will appear after visitors start browsing your store.</div>
@@ -234,38 +238,38 @@ export function AnalyticsView({
       </div>
 
       {/* District Funnel Table */}
-      <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm flex flex-col space-y-4 dark:bg-slate-900 dark:border-slate-800">
+      <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm flex flex-col space-y-4  ">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wide dark:text-white">
+            <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wide ">
               {districtFunnelMode === 'visitors' ? 'Unique Visitor District Funnel' : 'District Event Funnel'}
             </h3>
-            <p className="text-xs text-slate-400 dark:text-slate-500">
+            <p className="text-xs text-slate-400 ">
               {districtFunnelMode === 'visitors'
                 ? 'Visitor movement grouped by Bangladesh district.'
                 : 'Conversion path from page views to purchases, grouped by location.'}
             </p>
           </div>
-          <div className="inline-flex h-9 w-fit items-center rounded-lg border border-slate-200 bg-slate-50 p-1 text-[11px] font-bold dark:border-slate-800 dark:bg-slate-950">
+          <div className="inline-flex h-9 w-fit items-center rounded-lg border border-slate-200 bg-slate-50 p-1 text-[11px] font-bold  ">
             <button
               type="button"
               onClick={() => setDistrictFunnelMode('events')}
-              className={`h-7 rounded-md px-3 transition-colors ${districtFunnelMode === 'events' ? 'bg-white text-indigo-700 shadow-sm dark:bg-slate-800 dark:text-indigo-300' : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100'}`}
+              className={`h-7 rounded-md px-3 transition-colors ${districtFunnelMode === 'events' ? 'bg-white text-indigo-700 shadow-sm  ' : 'text-slate-500 hover:text-slate-800  '}`}
             >
               Events
             </button>
             <button
               type="button"
               onClick={() => setDistrictFunnelMode('visitors')}
-              className={`h-7 rounded-md px-3 transition-colors ${districtFunnelMode === 'visitors' ? 'bg-white text-indigo-700 shadow-sm dark:bg-slate-800 dark:text-indigo-300' : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100'}`}
+              className={`h-7 rounded-md px-3 transition-colors ${districtFunnelMode === 'visitors' ? 'bg-white text-indigo-700 shadow-sm  ' : 'text-slate-500 hover:text-slate-800  '}`}
             >
               Visitors
             </button>
           </div>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs text-slate-600 divide-y divide-slate-100 min-w-[680px] dark:text-slate-300 dark:divide-slate-800">
-            <thead className="bg-slate-50 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:bg-slate-950 dark:text-slate-400">
+          <table className="w-full text-left text-xs text-slate-600 divide-y divide-slate-100 min-w-[680px]  ">
+            <thead className="bg-slate-50 text-[10px] font-bold uppercase tracking-wider text-slate-500  ">
               <tr>
                 <th className="px-6 py-3">District / City</th>
                 <th className="px-6 py-3">PageView</th>
@@ -275,27 +279,27 @@ export function AnalyticsView({
                 <th className="px-6 py-3 text-right">Revenue</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+            <tbody className="divide-y divide-slate-100 ">
               {!districtFunnel.length ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-10 text-center text-slate-400 font-medium dark:text-slate-500">
+                  <td colSpan={6} className="px-6 py-10 text-center text-slate-400 font-medium ">
                     Location funnel data will appear after tracking starts.
                   </td>
                 </tr>
               ) : districtFunnel.map((row: any) => (
-                <tr key={row.district} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/40 transition-colors">
-                  <td className="px-6 py-3.5 font-bold text-indigo-700 dark:text-indigo-400">{row.district}</td>
+                <tr key={row.district} className="hover:bg-slate-50/50  transition-colors">
+                  <td className="px-6 py-3.5 font-bold text-indigo-700 ">{row.district}</td>
                   <td className="px-6 py-3.5 font-semibold">{row.page_view.toLocaleString()}</td>
                   <td className="px-6 py-3.5 font-semibold">{row.add_to_cart.toLocaleString()}</td>
                   <td className="px-6 py-3.5 font-semibold">{row.initiate_checkout.toLocaleString()}</td>
-                  <td className="px-6 py-3.5 font-bold text-slate-800 dark:text-white">{row.purchase.toLocaleString()}</td>
-                  <td className="px-6 py-3.5 font-bold text-indigo-600 dark:text-indigo-400 text-right">BDT {row.revenue.toLocaleString()}</td>
+                  <td className="px-6 py-3.5 font-bold text-slate-800 ">{row.purchase.toLocaleString()}</td>
+                  <td className="px-6 py-3.5 font-bold text-indigo-600  text-right">BDT {row.revenue.toLocaleString()}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
-        <p className="text-[10px] leading-relaxed text-slate-400 dark:text-slate-500">
+        <p className="text-[10px] leading-relaxed text-slate-400 ">
           Showing {districtFunnelUnit}. Duplicate platform events are filtered out.
         </p>
       </div>
@@ -305,10 +309,10 @@ export function AnalyticsView({
         
         <div className="lg:col-span-2 space-y-6">
           {/* Conversion Funnel */}
-          <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm flex flex-col dark:bg-slate-900 dark:border-slate-800">
+          <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm flex flex-col  ">
             <div className="mb-6">
-              <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wide dark:text-white">Customer Funnel</h3>
-              <p className="text-xs text-slate-400 dark:text-slate-500">See where visitors move from first visit to checkout.</p>
+              <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wide ">Customer Funnel</h3>
+              <p className="text-xs text-slate-400 ">See where visitors move from first visit to checkout.</p>
             </div>
 
             <div className="space-y-4">
@@ -321,17 +325,17 @@ export function AnalyticsView({
                     return (
                       <div key={step.step} className="space-y-1.5">
                         <div className="flex justify-between text-xs font-medium">
-                          <span className="text-slate-505 flex items-center gap-1 dark:text-slate-400 font-mono">
+                          <span className="text-slate-500 flex items-center gap-1  font-mono">
                             {step.step}
                             {i > 0 && step.drop_off > 0 && (
                               <span className="text-rose-500 text-[10px] font-bold">
-                                ↓{step.drop_off}% drop
+                                â†“{step.drop_off}% drop
                               </span>
                             )}
                           </span>
-                          <span className="text-slate-800 font-bold dark:text-white">{step.count.toLocaleString()} events</span>
+                          <span className="text-slate-800 font-bold ">{step.count.toLocaleString()} events</span>
                         </div>
-                        <div className="h-2.5 w-full rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+                        <div className="h-2.5 w-full rounded-full bg-slate-100  overflow-hidden">
                           <div 
                             className={`h-full rounded-full transition-all duration-800 ${funnelColors[i % 5]}`}
                             style={{ width: `${pctWidth}%` }}
@@ -348,16 +352,16 @@ export function AnalyticsView({
           </div>
 
           {/* Telemetry Match Quality Index Bar Chart */}
-          <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm flex flex-col dark:bg-slate-900 dark:border-slate-800">
+          <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm flex flex-col  ">
             <div className="mb-6 flex justify-between items-center">
               <div>
-                <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wide dark:text-white">Match Quality</h3>
-                <p className="text-xs text-slate-400 dark:text-slate-500">How well your customer data matches with ad platforms.</p>
+                <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wide ">Match Quality</h3>
+                <p className="text-xs text-slate-400 ">How well your customer data matches with ad platforms.</p>
               </div>
               {signalDoctor?.score !== undefined && (
-                <div className="px-3 py-1.5 rounded-xl border border-indigo-100 bg-indigo-50/50 dark:bg-indigo-950/20 dark:border-indigo-900/40 text-right">
+                <div className="px-3 py-1.5 rounded-xl border border-indigo-100 bg-indigo-50/50   text-right">
                   <span className="block text-[8px] font-bold text-indigo-500 uppercase tracking-widest leading-none">Match Score</span>
-                  <span className="text-lg font-black text-slate-800 dark:text-white font-mono leading-none">{signalDoctor.score}%</span>
+                  <span className="text-lg font-black text-slate-800  font-mono leading-none">{signalDoctor.score}%</span>
                 </div>
               )}
             </div>
@@ -402,28 +406,28 @@ export function AnalyticsView({
         </div>
 
         {/* Signal Doctor Heuristics Checklist */}
-        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm flex flex-col justify-between dark:bg-slate-900 dark:border-slate-800">
+        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm flex flex-col justify-between  ">
           <div>
-            <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wide dark:text-white">Tracking Checklist</h3>
-            <p className="text-xs text-slate-400 dark:text-slate-500">Simple checks that help improve ad tracking quality.</p>
+            <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wide ">Tracking Checklist</h3>
+            <p className="text-xs text-slate-400 ">Simple checks that help improve ad tracking quality.</p>
           </div>
 
           <div className="mt-4 space-y-3 flex-1 overflow-y-auto max-h-96 pr-1">
             {signalDoctor?.issues ? (
               signalDoctor.issues.map((issue: any, idx: number) => (
                 <div key={idx} className={`p-3 rounded-lg border text-xs flex gap-2.5 ${
-                  issue.severity === 'critical' || issue.severity === 'high' ? 'bg-rose-50/50 border-rose-200 text-rose-800 dark:bg-rose-950/10 dark:border-rose-900/60 dark:text-rose-300' :
-                  issue.severity === 'medium' ? 'bg-amber-50/50 border-amber-200 text-amber-800 dark:bg-amber-950/10 dark:border-amber-900/60 dark:text-amber-300' :
-                  issue.severity === 'ok' ? 'bg-green-50/50 border-green-200 text-green-800 dark:bg-green-950/10 dark:border-green-900/60 dark:text-green-300' :
-                  'bg-blue-50/50 border-blue-200 text-blue-800 dark:bg-blue-950/10 dark:border-blue-900/60 dark:text-blue-300'
+                  issue.severity === 'critical' || issue.severity === 'high' ? 'bg-rose-50/50 border-rose-200 text-rose-800   ' :
+                  issue.severity === 'medium' ? 'bg-amber-50/50 border-amber-200 text-amber-800   ' :
+                  issue.severity === 'ok' ? 'bg-green-50/50 border-green-200 text-green-800   ' :
+                  'bg-blue-50/50 border-blue-200 text-blue-800   '
                 }`}>
                   {issue.severity === 'critical' || issue.severity === 'high' ? <ShieldAlert className="w-4 h-4 shrink-0 text-rose-500 mt-0.5" /> :
                    issue.severity === 'medium' ? <AlertTriangle className="w-4 h-4 shrink-0 text-amber-500 mt-0.5" /> :
-                   <CheckCircle className="w-4 h-4 shrink-0 text-green-550 mt-0.5" />}
+                   <CheckCircle className="w-4 h-4 shrink-0 text-emerald-500 mt-0.5" />}
                   <div className="space-y-1">
                     <h4 className="font-bold text-[11px] leading-tight">{issue.title} ({issue.metric})</h4>
                     <p className="text-[10px] leading-normal opacity-90">{issue.impact}</p>
-                    <p className="text-[9px] font-mono leading-normal bg-white/40 dark:bg-black/20 p-1.5 rounded border border-black/5 dark:border-white/5">{issue.fix}</p>
+                    <p className="text-[9px] font-mono leading-normal bg-white/40  p-1.5 rounded border border-black/5 ">{issue.fix}</p>
                   </div>
                 </div>
               ))
@@ -436,15 +440,15 @@ export function AnalyticsView({
       </div>
 
       {/* Campaign UTM Performance Table */}
-      <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm flex flex-col space-y-4 dark:bg-slate-900 dark:border-slate-800">
+      <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm flex flex-col space-y-4  ">
         <div>
-          <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wide dark:text-white">Marketing Campaign Performance (UTM)</h3>
-          <p className="text-xs text-slate-400 dark:text-slate-500">See which campaigns bring visitors and sales.</p>
+          <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wide ">Marketing Campaign Performance (UTM)</h3>
+          <p className="text-xs text-slate-400 ">See which campaigns bring visitors and sales.</p>
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs text-slate-600 divide-y divide-slate-100 min-w-[700px] dark:text-slate-300 dark:divide-slate-800">
-            <thead className="bg-slate-50 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:bg-slate-950 dark:text-slate-400">
+          <table className="w-full text-left text-xs text-slate-600 divide-y divide-slate-100 min-w-[700px]  ">
+            <thead className="bg-slate-50 text-[10px] font-bold uppercase tracking-wider text-slate-500  ">
               <tr>
                 <th className="px-6 py-3">Source</th>
                 <th className="px-6 py-3">Campaign</th>
@@ -455,23 +459,23 @@ export function AnalyticsView({
                 <th className="px-6 py-3 text-right">Revenue</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+            <tbody className="divide-y divide-slate-100 ">
               {!analyticsCampaigns?.campaigns || analyticsCampaigns.campaigns.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-12 text-center text-slate-400 font-medium dark:text-slate-500">
+                  <td colSpan={7} className="px-6 py-12 text-center text-slate-400 font-medium ">
                     No campaign data yet. Use the Campaign URL Builder below to set up ad tracking.
                   </td>
                 </tr>
               ) : (
                 analyticsCampaigns.campaigns.map((row: any, idx: number) => (
-                  <tr key={idx} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/40 transition-colors">
-                    <td className="px-6 py-3.5 font-bold text-indigo-700 dark:text-indigo-400">{row.source}</td>
-                    <td className="px-6 py-3.5 font-mono text-slate-800 dark:text-slate-100">{row.campaign}</td>
+                  <tr key={idx} className="hover:bg-slate-50/50  transition-colors">
+                    <td className="px-6 py-3.5 font-bold text-indigo-700 ">{row.source}</td>
+                    <td className="px-6 py-3.5 font-mono text-slate-800 ">{row.campaign}</td>
                     <td className="px-6 py-3.5 font-semibold">{row.view_content.toLocaleString()}</td>
                     <td className="px-6 py-3.5 font-semibold">{row.add_to_cart.toLocaleString()}</td>
                     <td className="px-6 py-3.5 font-semibold">{row.initiate_checkout.toLocaleString()}</td>
-                    <td className="px-6 py-3.5 font-bold text-slate-800 dark:text-white">{row.purchase.toLocaleString()}</td>
-                    <td className="px-6 py-3.5 font-bold text-indigo-600 dark:text-indigo-400 text-right">৳{row.revenue.toLocaleString()}</td>
+                    <td className="px-6 py-3.5 font-bold text-slate-800 ">{row.purchase.toLocaleString()}</td>
+                    <td className="px-6 py-3.5 font-bold text-indigo-600  text-right">à§³{row.revenue.toLocaleString()}</td>
                   </tr>
                 ))
               )}
@@ -481,10 +485,10 @@ export function AnalyticsView({
       </div>
 
       {/* Campaign URL Builder widget */}
-      <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm flex flex-col space-y-4 dark:bg-slate-900 dark:border-slate-800">
+      <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm flex flex-col space-y-4  ">
         <div>
-          <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wide dark:text-white">Campaign URL Builder</h3>
-          <p className="text-xs text-slate-400 dark:text-slate-500">Create campaign links so you can see which ads drive sales.</p>
+          <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wide ">Campaign URL Builder</h3>
+          <p className="text-xs text-slate-400 ">Create campaign links so you can see which ads drive sales.</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
@@ -500,7 +504,7 @@ export function AnalyticsView({
                 placeholder="https://your-domain.com/shop/item"
                 value={urlBuilderBaseUrl}
                 onChange={(e) => setUrlBuilderBaseUrl(e.target.value)}
-                className="w-full p-2.5 text-xs text-slate-800 placeholder-slate-400 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:ring-1 focus:ring-indigo-500 font-mono dark:bg-slate-950 dark:border-slate-800 dark:text-white"
+                className="w-full p-2.5 text-xs text-slate-800 placeholder-slate-400 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:ring-1 focus:ring-indigo-500 font-mono   "
               />
             </div>
 
@@ -517,7 +521,7 @@ export function AnalyticsView({
                     else if (e.target.value === 'google') setUrlBuilderMedium('cpc');
                     else setUrlBuilderMedium('referral');
                   }}
-                  className="w-full p-2.5 text-xs text-slate-800 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-slate-950 dark:border-slate-800 dark:text-white"
+                  className="w-full p-2.5 text-xs text-slate-800 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:ring-1 focus:ring-indigo-500   "
                 >
                   <option value="facebook">Facebook Ads</option>
                   <option value="tiktok">TikTok Ads</option>
@@ -533,7 +537,7 @@ export function AnalyticsView({
                   placeholder="paid_social"
                   value={urlBuilderMedium}
                   onChange={(e) => setUrlBuilderMedium(e.target.value)}
-                  className="w-full p-2.5 text-xs text-slate-800 placeholder-slate-400 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-slate-950 dark:border-slate-800 dark:text-white"
+                  className="w-full p-2.5 text-xs text-slate-800 placeholder-slate-400 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:ring-1 focus:ring-indigo-500   "
                 />
               </div>
             </div>
@@ -546,7 +550,7 @@ export function AnalyticsView({
                 placeholder="eid_sale_promotion"
                 value={urlBuilderCampaign}
                 onChange={(e) => setUrlBuilderCampaign(e.target.value)}
-                className="w-full p-2.5 text-xs text-slate-800 placeholder-slate-400 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-slate-950 dark:border-slate-800 dark:text-white"
+                className="w-full p-2.5 text-xs text-slate-800 placeholder-slate-400 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:ring-1 focus:ring-indigo-500   "
               />
             </div>
 
@@ -559,7 +563,7 @@ export function AnalyticsView({
                   placeholder="video_ad_1"
                   value={urlBuilderContent}
                   onChange={(e) => setUrlBuilderContent(e.target.value)}
-                  className="w-full p-2.5 text-xs text-slate-800 placeholder-slate-400 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-slate-950 dark:border-slate-800 dark:text-white"
+                  className="w-full p-2.5 text-xs text-slate-800 placeholder-slate-400 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:ring-1 focus:ring-indigo-500   "
                 />
               </div>
               <div>
@@ -569,14 +573,14 @@ export function AnalyticsView({
                   placeholder="buy_shoes"
                   value={urlBuilderTerm}
                   onChange={(e) => setUrlBuilderTerm(e.target.value)}
-                  className="w-full p-2.5 text-xs text-slate-800 placeholder-slate-400 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-slate-950 dark:border-slate-800 dark:text-white"
+                  className="w-full p-2.5 text-xs text-slate-800 placeholder-slate-400 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:ring-1 focus:ring-indigo-500   "
                 />
               </div>
             </div>
 
             <button 
               onClick={handleGenerateCampaignUrl}
-              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-lg transition-colors cursor-pointer dark:bg-indigo-600 dark:hover:bg-indigo-700"
+              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-lg transition-colors cursor-pointer  "
             >
               Generate Campaign URL
             </button>
@@ -584,19 +588,19 @@ export function AnalyticsView({
           </div>
 
           {/* Output generator result box */}
-          <div className="rounded-xl bg-slate-50 border border-slate-200 p-5 flex flex-col justify-between dark:bg-slate-950 dark:border-slate-800">
+          <div className="rounded-xl bg-slate-50 border border-slate-200 p-5 flex flex-col justify-between  ">
             <div className="space-y-3">
-              <h4 className="text-xs font-bold text-slate-700 uppercase tracking-widest dark:text-slate-350">Generated URL</h4>
-              <p className="text-[11px] text-slate-400 dark:text-slate-500">Use this URL in your ads to track which campaign drives sales.</p>
+              <h4 className="text-xs font-bold text-slate-700 uppercase tracking-widest ">Generated URL</h4>
+              <p className="text-[11px] text-slate-400 ">Use this URL in your ads to track which campaign drives sales.</p>
             </div>
 
-            <div className="my-4 bg-white border border-slate-200 rounded-lg p-3 text-xs font-mono text-slate-700 break-all select-all dark:bg-slate-900 dark:border-slate-800 dark:text-slate-200 relative group min-h-24 flex items-center">
+            <div className="my-4 bg-white border border-slate-200 rounded-lg p-3 text-xs font-mono text-slate-700 break-all select-all    relative group min-h-24 flex items-center">
               {generatedCampaignUrl ? (
                 <>
                   {generatedCampaignUrl}
                   <button 
                     onClick={() => handleCopy(generatedCampaignUrl, 'generated_campaign_url')}
-                    className="absolute top-2 right-2 p-1.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-600 cursor-pointer dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-300"
+                    className="absolute top-2 right-2 p-1.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-600 cursor-pointer   "
                     title="Copy URL"
                   >
                     {copiedStates['generated_campaign_url'] ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
@@ -607,7 +611,7 @@ export function AnalyticsView({
               )}
             </div>
 
-            <div className="text-[10px] text-slate-400 leading-normal flex items-start gap-1.5 dark:text-slate-500">
+            <div className="text-[10px] text-slate-400 leading-normal flex items-start gap-1.5 ">
               <Info className="w-3.5 h-3.5 shrink-0 text-slate-350 mt-0.5" />
               <span>Use this URL in your ads to track which campaign drives sales.</span>
             </div>

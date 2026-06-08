@@ -37,16 +37,6 @@ export default function App() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState<boolean>(false);
 
-  // Dark Mode disabled — always Light Mode
-  const isDarkMode = false;
-  const setIsDarkMode = (_: any) => {}; // no-op, kept for type compatibility
-
-  useEffect(() => {
-    // Ensure dark class is never active
-    document.documentElement.classList.remove('dark');
-    localStorage.setItem('theme-capi-portal', 'light');
-  }, []);
-
   // Core Entity States
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [connection, setConnection] = useState<ClientConnection | null>(null);
@@ -1187,7 +1177,7 @@ export default function App() {
   }
 
   return (
-    <div className={`flex min-h-screen bg-transparent font-sans text-slate-800 transition-colors duration-205 ${isDarkMode ? 'dark text-slate-100' : ''}`}>
+    <div className="flex min-h-screen bg-transparent font-sans text-slate-800 transition-colors duration-205">
       {/* Sidebar Navigation */}
       {profile && (
         <Sidebar 
@@ -1255,8 +1245,6 @@ export default function App() {
             searchVal={searchVal}
             setSearchVal={setSearchVal}
             onMenuClick={() => setMobileSidebarOpen(true)}
-            isDark={isDarkMode}
-            onToggleTheme={() => {}} // dark mode disabled
             suggestions={suggestions}
             setActivePage={setActivePage}
           />
@@ -1322,7 +1310,6 @@ export default function App() {
                 resolvedCount={resolvedCount}
                 totalSuggCount={totalSuggCount}
                 setActivePage={setActivePage}
-                isDarkMode={isDarkMode}
                 expandedEventId={expandedEventId}
                 setExpandedEventId={setExpandedEventId}
                 copiedStates={copiedStates}
@@ -1440,7 +1427,6 @@ export default function App() {
                 apiLogs={apiLogs}
                 expandedApiLogId={expandedApiLogId}
                 setExpandedApiLogId={setExpandedApiLogId}
-                isDarkMode={isDarkMode}
                 handleExportData={handleExportData}
               />
             )}

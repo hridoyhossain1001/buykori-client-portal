@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { X, Store, Globe, Loader2, Check, AlertCircle } from 'lucide-react';
 
 interface CreateStoreModalProps {
@@ -66,21 +66,21 @@ export function CreateStoreModal({ open, onClose, onCreated, showToast }: Create
       />
 
       {/* Modal Card */}
-      <div className="relative w-full max-w-md bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 overflow-hidden animate-fade-in-up">
+      <div className="relative w-full max-w-md bg-white  rounded-2xl shadow-2xl border border-slate-200  overflow-hidden animate-fade-in-up">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-800">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 ">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-indigo-100 dark:bg-indigo-950/50 flex items-center justify-center">
-              <Store className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+            <div className="w-9 h-9 rounded-xl bg-indigo-100  flex items-center justify-center">
+              <Store className="w-5 h-5 text-indigo-600 " />
             </div>
             <div>
-              <h2 className="text-sm font-bold text-slate-800 dark:text-white">Add New Store</h2>
-              <p className="text-[10px] text-slate-400 dark:text-slate-500">Create a new workspace for another business</p>
+              <h2 className="text-sm font-bold text-slate-800 ">Add New Store</h2>
+              <p className="text-[10px] text-slate-400 ">Create a new workspace for another business</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100  transition-colors cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>
@@ -91,14 +91,14 @@ export function CreateStoreModal({ open, onClose, onCreated, showToast }: Create
           {inlineError && (
             <div
               role="alert"
-              className="flex items-start gap-2.5 rounded-xl border border-rose-200 bg-rose-50 p-3.5 dark:border-rose-900/60 dark:bg-rose-950/30"
+              className="flex items-start gap-2.5 rounded-xl border border-rose-200 bg-rose-50 p-3.5  "
             >
-              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-rose-600 dark:text-rose-400" />
+              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-rose-600 " />
               <div className="space-y-1">
-                <p className="text-xs font-bold text-rose-700 dark:text-rose-300">
+                <p className="text-xs font-bold text-rose-700 ">
                   {inlineError.title}
                 </p>
-                <p className="text-[11px] leading-relaxed text-rose-700 dark:text-rose-300">
+                <p className="text-[11px] leading-relaxed text-rose-700 ">
                   {inlineError.message}
                 </p>
               </div>
@@ -106,16 +106,16 @@ export function CreateStoreModal({ open, onClose, onCreated, showToast }: Create
           )}
 
           {/* Info Banner */}
-          <div className="flex items-start gap-2.5 p-3 rounded-xl bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-900/40">
+          <div className="flex items-start gap-2.5 p-3 rounded-xl bg-indigo-50  border border-indigo-100 ">
             <Check className="w-4 h-4 text-indigo-500 mt-0.5 shrink-0" />
-            <p className="text-[11px] text-indigo-700 dark:text-indigo-300 leading-relaxed">
-              নতুন store তৈরি হলে আপনাকে automatically ওই store-এ switch করা হবে। আপনার password একই থাকবে — নতুন login করতে হবে না।
+            <p className="text-[11px] text-indigo-700  leading-relaxed">
+              à¦¨à¦¤à§à¦¨ store à¦¤à§ˆà¦°à¦¿ à¦¹à¦²à§‡ à¦†à¦ªà¦¨à¦¾à¦•à§‡ automatically à¦“à¦‡ store-à¦ switch à¦•à¦°à¦¾ à¦¹à¦¬à§‡à¥¤ à¦†à¦ªà¦¨à¦¾à¦° password à¦à¦•à¦‡ à¦¥à¦¾à¦•à¦¬à§‡ â€” à¦¨à¦¤à§à¦¨ login à¦•à¦°à¦¤à§‡ à¦¹à¦¬à§‡ à¦¨à¦¾à¥¤
             </p>
           </div>
 
           {/* Business Name */}
           <div className="space-y-1.5">
-            <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+            <label className="block text-[10px] font-bold text-slate-500  uppercase tracking-wider">
               Business / Store Name <span className="text-rose-500">*</span>
             </label>
             <div className="relative">
@@ -128,7 +128,7 @@ export function CreateStoreModal({ open, onClose, onCreated, showToast }: Create
                   setInlineError(null);
                 }}
                 placeholder="e.g. My Fashion Store"
-                className="w-full pl-9 pr-4 py-2.5 text-sm bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 text-slate-800 dark:text-white transition-all"
+                className="w-full pl-9 pr-4 py-2.5 text-sm bg-slate-50  border border-slate-200  rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 text-slate-800  transition-all"
                 disabled={loading}
               />
             </div>
@@ -136,7 +136,7 @@ export function CreateStoreModal({ open, onClose, onCreated, showToast }: Create
 
           {/* Domain (optional) */}
           <div className="space-y-1.5">
-            <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+            <label className="block text-[10px] font-bold text-slate-500  uppercase tracking-wider">
               Website Domain <span className="text-slate-400 font-normal">(Optional)</span>
             </label>
             <div className="relative">
@@ -149,20 +149,20 @@ export function CreateStoreModal({ open, onClose, onCreated, showToast }: Create
                   setInlineError(null);
                 }}
                 placeholder="e.g. myfashionstore.com"
-                className="w-full pl-9 pr-4 py-2.5 text-sm bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 text-slate-800 dark:text-white transition-all"
+                className="w-full pl-9 pr-4 py-2.5 text-sm bg-slate-50  border border-slate-200  rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 text-slate-800  transition-all"
                 disabled={loading}
               />
             </div>
-            <p className="text-[10px] text-slate-400">Later-এ Settings থেকে domain, pixel ID সব configure করতে পারবেন।</p>
+            <p className="text-[10px] text-slate-400">Later-à¦ Settings à¦¥à§‡à¦•à§‡ domain, pixel ID à¦¸à¦¬ configure à¦•à¦°à¦¤à§‡ à¦ªà¦¾à¦°à¦¬à§‡à¦¨à¥¤</p>
           </div>
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-slate-100 dark:border-slate-800 flex gap-3 justify-end">
+        <div className="px-6 py-4 border-t border-slate-100  flex gap-3 justify-end">
           <button
             onClick={onClose}
             disabled={loading}
-            className="px-4 py-2 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors cursor-pointer disabled:opacity-50"
+            className="px-4 py-2 text-xs font-semibold text-slate-600  hover:bg-slate-100  rounded-lg transition-colors cursor-pointer disabled:opacity-50"
           >
             Cancel
           </button>

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * @license
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -23,8 +23,6 @@ interface HeaderProps {
   searchVal: string;
   setSearchVal: (value: string) => void;
   onMenuClick?: () => void;
-  isDark: boolean;
-  onToggleTheme: () => void;
   suggestions?: Suggestion[];
   setActivePage?: (p: string) => void;
 }
@@ -51,8 +49,6 @@ export function Header({
   searchVal, 
   setSearchVal, 
   onMenuClick,
-  isDark,
-  onToggleTheme,
   suggestions = [],
   setActivePage
 }: HeaderProps) {
@@ -125,7 +121,7 @@ export function Header({
     switch (connection.status) {
       case 'Active':
         return (
-          <div className="flex items-center gap-1.5 rounded-full border border-green-150 bg-green-50 px-2.5 py-0.5">
+          <div className="flex items-center gap-1.5 rounded-full border border-green-200 bg-green-50 px-2.5 py-0.5">
             <span className="relative flex h-2 w-2">
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75"></span>
               <span className="relative inline-flex h-2 w-2 rounded-full bg-green-500"></span>
@@ -135,7 +131,7 @@ export function Header({
         );
       case 'Degraded':
         return (
-          <div className="flex items-center gap-1.5 rounded-full border border-amber-150 bg-amber-50 px-2.5 py-0.5">
+          <div className="flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-0.5">
             <span className="relative flex h-2 w-2">
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-75"></span>
               <span className="relative inline-flex h-2 w-2 rounded-full bg-amber-500"></span>
@@ -146,7 +142,7 @@ export function Header({
       case 'Disconnected':
       default:
         return (
-          <div className="flex items-center gap-1.5 rounded-full border border-rose-150 bg-rose-50 px-2.5 py-0.5">
+          <div className="flex items-center gap-1.5 rounded-full border border-rose-200 bg-rose-50 px-2.5 py-0.5">
             <span className="relative flex h-1.5 w-1.5">
               <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-rose-500"></span>
             </span>
@@ -158,19 +154,19 @@ export function Header({
 
   return (
     <>
-      <header className="sticky top-0 z-35 flex h-12 md:h-14 shrink-0 items-center justify-between border-b border-slate-200 bg-white px-4 md:px-8 dark:bg-slate-900 dark:border-slate-800">
+      <header className="sticky top-0 z-[35] flex h-12 md:h-14 shrink-0 items-center justify-between border-b border-slate-200 bg-white px-4 md:px-8  ">
         {/* Title & Status */}
         <div className="flex items-center gap-3 md:gap-4 overflow-hidden">
           {onMenuClick && (
             <button
               onClick={onMenuClick}
-              className="block md:hidden p-1.5 -ml-1 text-slate-500 hover:text-slate-800 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-slate-200 dark:hover:bg-slate-800 rounded-lg transition-colors focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              className="block md:hidden p-1.5 -ml-1 text-slate-500 hover:text-slate-800 hover:bg-slate-100    rounded-lg transition-colors focus:outline-none focus:ring-1 focus:ring-indigo-500"
               aria-label="Toggle navigation menu"
             >
               <Menu className="w-5 h-5" />
             </button>
           )}
-          <h1 className="text-sm md:text-lg font-bold tracking-tight text-slate-800 dark:text-slate-100 truncate">{title}</h1>
+          <h1 className="text-sm md:text-lg font-bold tracking-tight text-slate-800  truncate">{title}</h1>
           <div className="hidden sm:block shrink-0">{getStatusBadge()}</div>
         </div>
 
@@ -183,19 +179,19 @@ export function Header({
               value={searchVal}
               onChange={(e) => setSearchVal(e.target.value)}
               onFocus={() => setIsSearchFocused(true)}
-              className="text-xs text-slate-800 dark:text-slate-100 placeholder-slate-850 dark:placeholder-slate-100 font-semibold"
+              className="text-xs text-slate-800  placeholder-slate-400  font-semibold"
               aria-label="Quick navigation search"
             />
-            <Search className="absolute right-4 top-3 h-3.5 w-3.5 text-slate-700 dark:text-slate-300 pointer-events-none" />
+            <Search className="absolute right-4 top-3 h-3.5 w-3.5 text-slate-700  pointer-events-none" />
           </div>
 
           {/* Quick-navigation suggestions dropdown */}
           {isSearchFocused && matchingPages.length > 0 && setActivePage && (
-            <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-full max-w-[320px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl z-50 overflow-hidden animate-slide-up">
-              <div className="px-3 py-2 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/40 text-[9px] font-bold text-slate-400 uppercase tracking-widest select-none">
+            <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-full max-w-[320px] bg-white  border border-slate-200  rounded-xl shadow-xl z-50 overflow-hidden animate-slide-up">
+              <div className="px-3 py-2 border-b border-slate-100  bg-slate-50  text-[9px] font-bold text-slate-400 uppercase tracking-widest select-none">
                 Quick navigation
               </div>
-              <div className="py-1 divide-y divide-slate-100 dark:divide-slate-850/40">
+              <div className="py-1 divide-y divide-slate-100 ">
                 {matchingPages.map(page => (
                   <div
                     key={page.id}
@@ -204,7 +200,7 @@ export function Header({
                       setSearchVal('');
                       setIsSearchFocused(false);
                     }}
-                    className="w-full px-4 py-2.5 text-left text-xs font-semibold text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800/40 transition-colors flex items-center justify-between group cursor-pointer select-none"
+                    className="w-full px-4 py-2.5 text-left text-xs font-semibold text-slate-700 hover:bg-slate-50   transition-colors flex items-center justify-between group cursor-pointer select-none"
                     role="button"
                   >
                     <span>{page.name}</span>
@@ -222,7 +218,7 @@ export function Header({
           <button
             type="button"
             onClick={() => setIsSearchOpen(true)}
-            className="block lg:hidden p-2 rounded-full text-slate-500 hover:text-slate-800 hover:bg-slate-50 dark:text-slate-400 dark:hover:text-slate-200 dark:hover:bg-slate-800 transition-colors focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            className="block lg:hidden p-2 rounded-full text-slate-500 hover:text-slate-800 hover:bg-slate-50    transition-colors focus:outline-none focus:ring-1 focus:ring-indigo-500"
             title="Search pages"
             aria-label="Open quick navigation search"
           >
@@ -235,7 +231,7 @@ export function Header({
           <button
             onClick={triggerHeartbeat}
             disabled={testing}
-            className={`p-1.5 md:p-2 rounded-full text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors ${
+            className={`p-1.5 md:p-2 rounded-full text-slate-400 hover:bg-slate-50  transition-colors ${
               testing ? 'animate-spin' : ''
             }`}
             title="Check Connection"
@@ -245,32 +241,32 @@ export function Header({
           </button>
 
            {/* Notifications & Help */}
-          <div className="flex items-center gap-1 border-l border-slate-200 dark:border-slate-800 pl-2 md:pl-4">
+          <div className="flex items-center gap-1 border-l border-slate-200  pl-2 md:pl-4">
             <div className="relative" ref={notificationsRef}>
               <button 
                 onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
-                className="relative rounded-full p-1.5 md:p-2 text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors focus:outline-none cursor-pointer"
+                className="relative rounded-full p-1.5 md:p-2 text-slate-400 hover:bg-slate-50  transition-colors focus:outline-none cursor-pointer"
                 title="Notifications"
                 aria-label="Open notifications"
               >
                 <Bell className="w-4 h-4" />                 {unresolvedSuggestions.length > 0 && (
-                  <span className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full border border-white dark:border-slate-900 bg-indigo-500 animate-pulse"></span>
+                  <span className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full border border-white  bg-indigo-500 animate-pulse"></span>
                 )}
               </button>
 
               {/* Interactive notification dropdown menu listing diagnostics issues */}
               {isNotificationsOpen && (
-                <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl z-50 overflow-hidden animate-slide-up">
+                <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white  border border-slate-200  rounded-xl shadow-xl z-50 overflow-hidden animate-slide-up">
                   {/* Dropdown Header */}
-                  <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/40">
+                  <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100  bg-slate-50 ">
                     <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Issues Found</span>
-                    <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-indigo-100 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 font-mono">
+                    <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-indigo-100  text-indigo-600  font-mono">
                       {unresolvedSuggestions.length} Pending
                     </span>
                   </div>
 
                   {/* Dropdown Content */}
-                  <div className="max-h-72 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800">
+                  <div className="max-h-72 overflow-y-auto divide-y divide-slate-100 ">
                     {unresolvedSuggestions.length === 0 ? (
                       <div className="p-6 text-center text-slate-400 font-medium">
                         <CheckCircle2 className="w-6 h-6 mx-auto text-emerald-500 mb-2" />
@@ -287,20 +283,20 @@ export function Header({
                               setIsNotificationsOpen(false);
                             }
                           }}
-                          className="p-3.5 hover:bg-slate-50 dark:hover:bg-slate-800/40 cursor-pointer transition-colors"
+                          className="p-3.5 hover:bg-slate-50  cursor-pointer transition-colors"
                         >
                           <div className="flex justify-between items-start gap-2">
                             <span className={`px-1.5 py-0.5 rounded text-[8px] font-extrabold uppercase tracking-wider shrink-0 ${
-                              s.severity === 'Critical' ? 'bg-rose-50 text-rose-600 border border-rose-100 dark:bg-rose-950/20 dark:text-rose-400 dark:border-rose-900/40' : 
-                              s.severity === 'Warning' ? 'bg-amber-50 text-amber-600 border border-amber-100 dark:bg-amber-950/20 dark:text-amber-400 dark:border-amber-900/40' : 
-                              'bg-indigo-50 text-indigo-600 border border-indigo-100 dark:bg-indigo-950/20 dark:text-indigo-400 dark:border-indigo-900/40'
+                              s.severity === 'Critical' ? 'bg-rose-50 text-rose-600 border border-rose-100   ' : 
+                              s.severity === 'Warning' ? 'bg-amber-50 text-amber-600 border border-amber-100   ' : 
+                              'bg-indigo-50 text-indigo-600 border border-indigo-100   '
                             }`}>
                               {s.severity}
                             </span>
-                            {s.platform && <span className="text-[9px] font-mono text-slate-400 dark:text-slate-500">{s.platform}</span>}
+                            {s.platform && <span className="text-[9px] font-mono text-slate-400 ">{s.platform}</span>}
                           </div>
-                          <h4 className="text-xs font-bold uppercase text-slate-800 dark:text-white tracking-wider">Issues Found</h4>
-                          <p className="text-[10.5px] text-slate-400 dark:text-slate-500 leading-normal mt-0.5 truncate">{s.explanation}</p>
+                          <h4 className="text-xs font-bold uppercase text-slate-800  tracking-wider">{s.title}</h4>
+                          <p className="text-[10.5px] text-slate-400  leading-normal mt-0.5 truncate">{s.explanation}</p>
                         </div>
                       ))
                     )}
@@ -313,7 +309,7 @@ export function Header({
                         setActivePage('suggestions');
                         setIsNotificationsOpen(false);
                       }}
-                      className="block text-center py-2.5 bg-slate-50 dark:bg-slate-950/40 border-t border-slate-100 dark:border-slate-800 text-[10px] font-bold text-indigo-600 hover:text-indigo-750 dark:text-indigo-400 dark:hover:text-indigo-300 transition-colors uppercase tracking-wider cursor-pointer"
+                      className="block text-center py-2.5 bg-slate-50  border-t border-slate-100  text-[10px] font-bold text-indigo-600 hover:text-indigo-700   transition-colors uppercase tracking-wider cursor-pointer"
                     >
                       View all suggestions
                     </div>
@@ -322,7 +318,7 @@ export function Header({
               )}
             </div>
             
-            <button className="hidden sm:block rounded-full p-1.5 md:p-2 text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800" title="Help & Support">
+            <button className="hidden sm:block rounded-full p-1.5 md:p-2 text-slate-400 hover:bg-slate-50 " title="Help & Support">
               <HelpCircle className="w-4 h-4" />
             </button>
           </div>
@@ -330,13 +326,13 @@ export function Header({
 
         {/* Notification Toast */}
         {toast.show && (
-          <div className="fixed top-14 right-4 z-50 flex items-center gap-3 px-4 py-2.5 rounded-lg border border-slate-100 shadow-lg bg-white dark:bg-slate-800 dark:border-slate-700 dark:text-white animate-slide-in-right">
+          <div className="fixed top-14 right-4 z-50 flex items-center gap-3 px-4 py-2.5 rounded-lg border border-slate-100 shadow-lg bg-white    animate-slide-in-right">
             {toast.err ? (
               <XCircle className="w-4 h-4 text-rose-500 shrink-0" />
             ) : (
               <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
             )}
-            <span className="text-xs text-slate-700 dark:text-slate-200 font-medium">
+            <span className="text-xs text-slate-700  font-medium">
               {toast.msg}
             </span>
           </div>
@@ -350,15 +346,15 @@ export function Header({
           onClick={() => setIsSearchOpen(false)}
         >
           <div 
-            className="w-full max-w-md bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden animate-slide-up"
+            className="w-full max-w-md bg-white  rounded-xl border border-slate-200  shadow-2xl overflow-hidden animate-slide-up"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Modal Header */}
-            <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/40">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100  bg-slate-50 ">
               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Search</span>
               <button 
                 onClick={() => setIsSearchOpen(false)}
-                className="p-1 rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                className="p-1 rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-100  transition-colors"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -372,14 +368,14 @@ export function Header({
                   placeholder="Search by event name, ID, or customer data..."
                   value={searchVal}
                   onChange={(e) => setSearchVal(e.target.value)}
-                  className="w-full rounded-lg border border-slate-200 bg-slate-50 px-9 py-2.5 text-xs outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 text-slate-800 dark:text-slate-100 dark:bg-slate-800 dark:border-slate-700 font-mono transition-all"
+                  className="w-full rounded-lg border border-slate-200 bg-slate-50 px-9 py-2.5 text-xs outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 text-slate-800    font-mono transition-all"
                   autoFocus
                 />
                 <Search className="absolute left-3 top-3 h-3.5 w-3.5 text-slate-400" />
                 {searchVal && (
                   <button
                     onClick={() => setSearchVal('')}
-                    className="absolute right-3 top-2.5 px-2 py-0.5 rounded text-[10px] font-semibold text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 hover:text-slate-700 dark:hover:text-slate-200"
+                    className="absolute right-3 top-2.5 px-2 py-0.5 rounded text-[10px] font-semibold text-slate-400 hover:bg-slate-200  hover:text-slate-700 "
                   >
                     Clear
                   </button>
@@ -390,21 +386,21 @@ export function Header({
               <div className="text-[10px] text-slate-400 flex items-center justify-between">
                 <span>Results update as you type</span>
                 {searchVal && (
-                  <span className="text-indigo-600 dark:text-indigo-400 font-mono text-[9px] bg-indigo-50 dark:bg-indigo-950/40 px-1.5 py-0.5 rounded">
+                  <span className="text-indigo-600  font-mono text-[9px] bg-indigo-50  px-1.5 py-0.5 rounded">
                     "{searchVal}"
                   </span>
                 )}
               </div>
 
               {/* Action Buttons */}
-              <div className="flex justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+              <div className="flex justify-end gap-2 pt-2 border-t border-slate-100 ">
                 <button
                   type="button"
                   onClick={() => {
                     setSearchVal('');
                     setIsSearchOpen(false);
                   }}
-                  className="px-3 py-1.5 bg-slate-50 hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-200 rounded-lg text-xs font-bold transition-all border border-slate-200 dark:border-slate-700"
+                  className="px-3 py-1.5 bg-slate-50 hover:bg-slate-100   text-slate-600  rounded-lg text-xs font-bold transition-all border border-slate-200 "
                 >
                   Reset
                 </button>

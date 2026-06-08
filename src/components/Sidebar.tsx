@@ -1,4 +1,4 @@
-/**
+﻿/**
  * @license
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -182,14 +182,14 @@ export function Sidebar({
   return (
     <>
     <aside
-      className={`fixed top-0 bottom-0 left-0 z-50 flex flex-col bg-white border-r border-slate-200 transition-transform duration-300 md:transition-all dark:bg-slate-900 dark:border-slate-800 ${
+      className={`fixed top-0 bottom-0 left-0 z-50 flex flex-col bg-white border-r border-slate-200 transition-transform duration-300 md:transition-all   ${
         collapsed ? 'md:w-20' : 'md:w-64'
       } ${
         mobileOpen ? 'translate-x-0 w-64' : '-translate-x-full md:translate-x-0'
       }`}
     >
       {/* Brand Header */}
-      <div className={`flex items-center h-12 md:h-14 border-b border-slate-100 dark:border-slate-800 ${
+      <div className={`flex items-center h-12 md:h-14 border-b border-slate-100  ${
         collapsed ? 'justify-center px-2 gap-1' : 'justify-between px-5'
       }`}>
         <div className="flex items-center gap-2.5 overflow-hidden">
@@ -197,7 +197,7 @@ export function Sidebar({
             B
           </div>
           {!collapsed && (
-            <span className="font-sans font-bold text-lg tracking-tight text-slate-800 dark:text-slate-100 truncate">
+            <span className="font-sans font-bold text-lg tracking-tight text-slate-800  truncate">
               Buykori
             </span>
           )}
@@ -210,7 +210,7 @@ export function Sidebar({
               setCollapsed(!collapsed);
             }
           }}
-          className="p-1 px-[5px] rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-50 dark:text-slate-400 dark:hover:text-slate-200 dark:hover:bg-slate-800 transition-colors"
+          className="p-1 px-[5px] rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-50    transition-colors"
           title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         >
           <span className="md:hidden"><X className="w-4 h-4" /></span>
@@ -223,20 +223,20 @@ export function Sidebar({
       {/* Store Switcher (expanded mode) */}
       {!collapsed && stores.length > 0 && (
         <div className="px-3 pt-3 pb-1" ref={storeSwitcherRef}>
-          <p className="text-[9px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-1.5 px-1">Active Store</p>
+          <p className="text-[9px] font-bold uppercase tracking-widest text-slate-400  mb-1.5 px-1">Active Store</p>
           <div className="relative">
             <button
               onClick={() => setStoreSwitcherOpen(prev => !prev)}
-              className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 hover:bg-white dark:hover:bg-slate-800 transition-all cursor-pointer"
+              className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg border border-slate-200  bg-slate-50  hover:bg-white  transition-all cursor-pointer"
             >
-              <div className="flex items-center justify-center w-6 h-6 rounded-md bg-indigo-100 dark:bg-indigo-950/50 shrink-0">
-                <Store className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+              <div className="flex items-center justify-center w-6 h-6 rounded-md bg-indigo-100  shrink-0">
+                <Store className="w-3.5 h-3.5 text-indigo-600 " />
               </div>
               <div className="flex-1 min-w-0 text-left">
-                <p className="text-xs font-bold text-slate-800 dark:text-slate-100 truncate leading-tight">
+                <p className="text-xs font-bold text-slate-800  truncate leading-tight">
                   {currentStore?.name || profile.name}
                 </p>
-                <p className="text-[9px] text-slate-400 dark:text-slate-500 truncate leading-tight">
+                <p className="text-[9px] text-slate-400  truncate leading-tight">
                   {currentStore?.domain || 'No domain set'}
                 </p>
               </div>
@@ -244,7 +244,7 @@ export function Sidebar({
             </button>
 
             {storeSwitcherOpen && (
-              <div className="absolute top-full left-0 right-0 mt-1.5 z-50 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-xl overflow-hidden">
+              <div className="absolute top-full left-0 right-0 mt-1.5 z-50 bg-white  rounded-xl border border-slate-200  shadow-xl overflow-hidden">
                 <div className="py-1 max-h-48 overflow-y-auto">
                   {stores.map(store => (
                     <button
@@ -253,20 +253,20 @@ export function Sidebar({
                       disabled={store.is_current || switchingStore === store.client_id}
                       className={`w-full flex items-center gap-2.5 px-3 py-2 text-left transition-colors cursor-pointer ${
                         store.is_current
-                          ? 'bg-indigo-50 dark:bg-indigo-950/30 cursor-default'
-                          : 'hover:bg-slate-50 dark:hover:bg-slate-800/60'
+                          ? 'bg-indigo-50  cursor-default'
+                          : 'hover:bg-slate-50 '
                       }`}
                     >
                       <div className={`flex items-center justify-center w-6 h-6 rounded-md shrink-0 ${
-                        store.is_current ? 'bg-indigo-100 dark:bg-indigo-950/60' : 'bg-slate-100 dark:bg-slate-800'
+                        store.is_current ? 'bg-indigo-100 ' : 'bg-slate-100 '
                       }`}>
-                        <Store className={`w-3.5 h-3.5 ${store.is_current ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400'}`} />
+                        <Store className={`w-3.5 h-3.5 ${store.is_current ? 'text-indigo-600 ' : 'text-slate-400'}`} />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className={`text-xs font-semibold truncate leading-tight ${store.is_current ? 'text-indigo-700 dark:text-indigo-300' : 'text-slate-700 dark:text-slate-200'}`}>
+                        <p className={`text-xs font-semibold truncate leading-tight ${store.is_current ? 'text-indigo-700 ' : 'text-slate-700 '}`}>
                           {store.name}
                         </p>
-                        <p className="text-[9px] text-slate-400 dark:text-slate-500 truncate leading-tight">
+                        <p className="text-[9px] text-slate-400  truncate leading-tight">
                           {store.domain || 'No domain'}
                         </p>
                       </div>
@@ -277,10 +277,10 @@ export function Sidebar({
                     </button>
                   ))}
                 </div>
-                <div className="border-t border-slate-100 dark:border-slate-800">
+                <div className="border-t border-slate-100 ">
                   <button
                     onClick={() => { setStoreSwitcherOpen(false); onCreateStore?.(); }}
-                    className="w-full flex items-center gap-2 px-3 py-2.5 text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/20 transition-colors cursor-pointer"
+                    className="w-full flex items-center gap-2 px-3 py-2.5 text-xs font-semibold text-indigo-600  hover:bg-indigo-50  transition-colors cursor-pointer"
                   >
                     <Plus className="w-4 h-4" />
                     Add New Store
@@ -297,7 +297,7 @@ export function Sidebar({
         <div className="flex justify-center pt-2">
           <button
             onClick={() => { setCollapsed(false); setTimeout(() => setStoreSwitcherOpen(true), 310); }}
-            className="group relative p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+            className="group relative p-2 rounded-lg hover:bg-slate-100  transition-colors cursor-pointer"
             title="Switch Store"
           >
             <Store className="w-4 h-4 text-indigo-500" />
@@ -320,10 +320,10 @@ export function Sidebar({
             <div key={group.label} className={groupIndex === 0 ? '' : collapsed ? 'mt-3' : 'mt-5'}>
               {!collapsed && (
                 <div className="mb-2 flex items-center gap-2 px-3">
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500">
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400 ">
                     {group.label}
                   </span>
-                  <span className="h-px flex-1 bg-slate-200/70 dark:bg-slate-800" />
+                  <span className="h-px flex-1 bg-slate-200/70 " />
                 </div>
               )}
 
@@ -339,10 +339,10 @@ export function Sidebar({
                         setActivePage(item.id);
                         setMobileOpen(false);
                       }}
-                      className={`group relative flex w-full overflow-visible rounded-md text-sm transition-all duration-205 ${
+                      className={`group relative flex w-full overflow-visible rounded-md text-sm transition-all duration-200 ${
                         isActive
                           ? 'sidebar-active-glow font-semibold shadow-sm'
-                          : 'font-medium text-slate-600 hover:bg-white/70 hover:text-slate-900 hover:shadow-sm dark:text-slate-300 dark:hover:bg-slate-800/80 dark:hover:text-slate-100'
+                          : 'font-medium text-slate-600 hover:bg-white/70 hover:text-slate-900 hover:shadow-sm   '
                       } ${collapsed ? 'justify-center px-0 py-2.5' : 'items-center gap-3 px-3 py-2.5'}`}
                     >
                       {isActive && (
@@ -353,8 +353,8 @@ export function Sidebar({
                         strokeWidth={isActive ? 2.5 : 2}
                         className={`h-[18px] w-[18px] shrink-0 transition-colors ${
                           isActive
-                            ? 'text-indigo-600 dark:text-indigo-400'
-                            : 'text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-200'
+                            ? 'text-indigo-600 '
+                            : 'text-slate-400 group-hover:text-slate-600 '
                         }`}
                       />
 
@@ -362,7 +362,7 @@ export function Sidebar({
                         <span className="min-w-0 flex-1 text-left">
                           <span className="block truncate">{item.name}</span>
                           {item.subtitle && (
-                            <span className="block max-h-0 overflow-hidden text-[10px] font-medium leading-4 text-slate-400 opacity-0 transition-all duration-200 group-hover:max-h-4 group-hover:opacity-100 dark:text-slate-500">
+                            <span className="block max-h-0 overflow-hidden text-[10px] font-medium leading-4 text-slate-400 opacity-0 transition-all duration-200 group-hover:max-h-4 group-hover:opacity-100 ">
                               {item.subtitle}
                             </span>
                           )}
@@ -370,7 +370,7 @@ export function Sidebar({
                       )}
 
                       {Boolean(item.count) && !collapsed && (
-                        <span className="ml-auto rounded-full border border-indigo-200/60 bg-indigo-100 px-1.5 py-0.5 text-[10px] font-bold text-indigo-700 dark:border-indigo-900/60 dark:bg-indigo-950 dark:text-indigo-300">
+                        <span className="ml-auto rounded-full border border-indigo-200/60 bg-indigo-100 px-1.5 py-0.5 text-[10px] font-bold text-indigo-700   ">
                           {item.count}
                         </span>
                       )}
@@ -394,26 +394,26 @@ export function Sidebar({
       </nav>
 
       {/* Usage Indicator */}
-      <div className={`p-4 border-t border-slate-100 bg-slate-50/50 dark:border-slate-800 dark:bg-slate-800/20 ${collapsed ? 'hidden md:block' : 'p-4'}`}>
+      <div className={`border-t border-slate-100 bg-slate-50/50   p-4 ${collapsed ? 'hidden md:block' : ''}`}>
         {collapsed ? (
           <div className="flex flex-col items-center gap-1.5" title="Monthly Event Usage">
             <span className={`text-[10px] font-mono font-semibold leading-none ${textQuotaColor}`}>
               {formatQuota(profile.eventsUsed)}
             </span>
-            <div className="w-10 h-1.5 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
+            <div className="w-10 h-1.5 bg-slate-200  rounded-full overflow-hidden">
               <div className={`h-full rounded-full ${quotaColor}`} style={{ width: `${usagePercent}%` }} />
             </div>
           </div>
         ) : (
           <div className="space-y-1.5">
-            <div className="flex justify-between items-center text-[11px] font-semibold text-slate-500 uppercase tracking-wider dark:text-slate-400">
+            <div className="flex justify-between items-center text-[11px] font-semibold text-slate-500 uppercase tracking-wider ">
               <span>Events Usage</span>
               <span className="font-bold">{usagePercent.toFixed(1)}%</span>
             </div>
-            <div className="relative w-full h-1.5 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
+            <div className="relative w-full h-1.5 bg-slate-200  rounded-full overflow-hidden">
               <div className={`h-full rounded-full transition-all duration-500 ${quotaColor}`} style={{ width: `${usagePercent}%` }} />
             </div>
-            <div className="flex justify-between text-[10px] text-slate-400 dark:text-slate-500 leading-none mt-1">
+            <div className="flex justify-between text-[10px] text-slate-400  leading-none mt-1">
               <span>{formatQuota(profile.eventsUsed)} / {formatQuota(profile.eventsQuota)} events</span>
               {profile.renewalDate ? (() => {
                 const resetDate = new Date(profile.renewalDate);
@@ -433,12 +433,12 @@ export function Sidebar({
       </div>
 
       {/* User Profile & Logout */}
-      <div className="p-4 bg-slate-50/85 border-t border-slate-150 dark:bg-slate-800/40 dark:border-slate-800 space-y-3 shrink-0">
+      <div className="p-4 bg-slate-50/85 border-t border-slate-150   space-y-3 shrink-0">
         {collapsed ? (
           <div className="flex justify-center">
             <button
               onClick={() => setActivePage('account')}
-              className="flex items-center justify-center w-8 h-8 rounded-full bg-indigo-100 border border-indigo-200 text-indigo-700 text-xs font-semibold select-none shadow-sm dark:bg-indigo-950 dark:border-indigo-900/60 dark:text-indigo-300 hover:bg-indigo-200 dark:hover:bg-indigo-900 transition-colors cursor-pointer"
+              className="flex items-center justify-center w-8 h-8 rounded-full bg-indigo-100 border border-indigo-200 text-indigo-700 text-xs font-semibold select-none shadow-sm    hover:bg-indigo-200  transition-colors cursor-pointer"
               title="Account Settings"
             >
               {profile.name.split(' ').map(n => n[0]).join('')}
@@ -447,22 +447,22 @@ export function Sidebar({
         ) : (
           <button
             onClick={() => setActivePage('account')}
-            className="w-full flex items-center gap-3 text-left hover:bg-slate-100 dark:hover:bg-slate-800 p-1.5 rounded-lg transition-colors cursor-pointer"
+            className="w-full flex items-center gap-3 text-left hover:bg-slate-100  p-1.5 rounded-lg transition-colors cursor-pointer"
             title="Account Settings"
           >
-            <div className="flex items-center justify-center w-8 h-8 rounded-full bg-indigo-100 border border-indigo-200 text-indigo-700 text-xs font-semibold select-none shadow-sm dark:bg-indigo-950 dark:border-indigo-900/60 dark:text-indigo-300 shrink-0">
+            <div className="flex items-center justify-center w-8 h-8 rounded-full bg-indigo-100 border border-indigo-200 text-indigo-700 text-xs font-semibold select-none shadow-sm    shrink-0">
               {profile.name.split(' ').map(n => n[0]).join('')}
             </div>
             <div className="flex flex-col overflow-hidden leading-tight">
-              <span className="text-xs font-semibold text-slate-700 dark:text-slate-200 truncate">{profile.name}</span>
-              <span className="text-[10px] text-slate-400 dark:text-slate-500 truncate">{profile.plan}</span>
+              <span className="text-xs font-semibold text-slate-700  truncate">{profile.name}</span>
+              <span className="text-[10px] text-slate-400  truncate">{profile.plan}</span>
             </div>
           </button>
         )}
 
         <button
           onClick={() => setShowLogoutConfirm(true)}
-          className={`flex items-center w-full text-slate-500 hover:text-rose-600 dark:text-slate-400 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/20 rounded-lg text-sm font-medium transition-all duration-200 group ${
+          className={`flex items-center w-full text-slate-500 hover:text-rose-600   hover:bg-rose-50  rounded-lg text-sm font-medium transition-all duration-200 group ${
             collapsed ? 'justify-center py-2' : 'gap-3 py-2 px-3'
           }`}
           title="Log Out"
@@ -474,16 +474,16 @@ export function Sidebar({
     </aside>
     {showLogoutConfirm && (
       <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-900/40 px-4 backdrop-blur-sm">
-        <div className="w-full max-w-sm rounded-xl border border-slate-200 bg-white p-5 shadow-2xl dark:border-slate-800 dark:bg-slate-900">
+        <div className="w-full max-w-sm rounded-xl border border-slate-200 bg-white p-5 shadow-2xl  ">
           <div className="space-y-1">
-            <h3 className="text-sm font-bold text-slate-900 dark:text-white">Log out?</h3>
-            <p className="text-xs leading-relaxed text-slate-500 dark:text-slate-400">You can log back in anytime.</p>
+            <h3 className="text-sm font-bold text-slate-900 ">Log out?</h3>
+            <p className="text-xs leading-relaxed text-slate-500 ">You can log back in anytime.</p>
           </div>
           <div className="mt-5 flex justify-end gap-2">
             <button
               type="button"
               onClick={() => setShowLogoutConfirm(false)}
-              className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-600 transition-colors hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-300 dark:hover:bg-slate-800"
+              className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-600 transition-colors hover:bg-slate-50    "
             >
               Cancel
             </button>

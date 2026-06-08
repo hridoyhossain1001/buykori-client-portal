@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { 
   Truck, 
   CheckCircle2, 
@@ -27,7 +27,7 @@ import { CourierOrder, CourierSettings } from '../types';
 import { CourierLabelModal } from './CourierLabelModal';
 import { InvoiceModal } from './InvoiceModal';
 
-// ─── BD Phone Normalizer ────────────────────────────────────────────────────
+// â”€â”€â”€ BD Phone Normalizer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Accepts any Bangladeshi phone format and returns clean 01XXXXXXXXX (11 digits)
 // Handles: +8801XXXXXXXXX, 8801XXXXXXXXX, 01XXXXXXXXX, 1XXXXXXXXX
 function normalizeBDPhone(phone: string): string {
@@ -36,7 +36,7 @@ function normalizeBDPhone(phone: string): string {
   // Strip leading country code +880 or 880
   if (clean.startsWith('+880')) clean = clean.substring(4);
   else if (clean.startsWith('880')) clean = clean.substring(3);
-  // Ensure starts with 0 (i.e. 1XXXXXXXXX → 01XXXXXXXXX)
+  // Ensure starts with 0 (i.e. 1XXXXXXXXX â†’ 01XXXXXXXXX)
   if (clean.length === 10 && !clean.startsWith('0')) {
     clean = '0' + clean;
   }
@@ -68,7 +68,7 @@ interface OrdersViewProps {
   handleConfirmOrder: (orderId: string) => Promise<void>;
   handleCancelOrder: (orderId: string) => Promise<void>;
   showToast: (msg: string, isErr?: boolean) => void;
-  apiKey?: string; // Client-এর api_key — webhook URL তৈরিতে ব্যবহার হয়
+  apiKey?: string; // Client-à¦à¦° api_key â€” webhook URL à¦¤à§ˆà¦°à¦¿à¦¤à§‡ à¦¬à§à¦¯à¦¬à¦¹à¦¾à¦° à¦¹à¦¯à¦¼
   storeName?: string;
   storeEmail?: string;
 }
@@ -91,7 +91,7 @@ export function OrdersView({
   const PATHAO_WEBHOOK_URL = `https://api.buykori.app/api/v1/webhook/pathao`;
   const STEADFAST_WEBHOOK_URL = `https://api.buykori.app/api/v1/webhook/steadfast`;
   const REDX_WEBHOOK_URL = `https://api.buykori.app/api/v1/webhook/redx`;
-  const WEBHOOK_SECRET = apiKey ? apiKey.slice(0, 32) : ''; // api_key-এর প্রথম 32 char
+  const WEBHOOK_SECRET = apiKey ? apiKey.slice(0, 32) : ''; // api_key-à¦à¦° à¦ªà§à¦°à¦¥à¦® 32 char
 
   const handleCopyWebhook = (url: string, label: string) => {
     navigator.clipboard.writeText(url);
@@ -437,7 +437,7 @@ export function OrdersView({
     }
   };
 
-  // ─── Cancel Courier Order ───────────────────────────────────────────────
+  // â”€â”€â”€ Cancel Courier Order â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const handleCancelCourierOrder = async (order: CourierOrder) => {
     setOrderToCancel(order);
   };
@@ -506,48 +506,48 @@ export function OrdersView({
     const s = status.toLowerCase();
     if (s === 'booking_queued' || s === 'booking_processing') {
       return (
-        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-sky-50 text-sky-700 border border-sky-200 dark:bg-sky-950/30 dark:text-sky-400 dark:border-sky-900/40">
+        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-sky-50 text-sky-700 border border-sky-200   ">
           {s === 'booking_processing' ? 'Booking Now' : 'Booking Queued'}
         </span>
       );
     }
     if (s === 'booking_failed') {
       return (
-        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200 dark:bg-rose-950/30 dark:text-rose-400 dark:border-rose-900/40">
+        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200   ">
           Booking Failed
         </span>
       );
     }
     if (s === 'delivered' || s === 'completed') {
       return (
-        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-900/40">
+        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200   ">
           Delivered
         </span>
       );
     }
     if (s === 'returned' || s === 'partial_returned') {
       return (
-        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200 dark:bg-rose-950/30 dark:text-rose-400 dark:border-rose-900/40">
+        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200   ">
           Returned
         </span>
       );
     }
     if (s === 'cancelled') {
       return (
-        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-50 text-slate-700 border border-slate-200 dark:bg-slate-800/40 dark:text-slate-400 dark:border-slate-800">
+        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-50 text-slate-700 border border-slate-200   ">
           Cancelled
         </span>
       );
     }
     if (s === 'in_transit' || s === 'picked_up' || s === 'shipped') {
       return (
-        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-200 dark:bg-indigo-950/30 dark:text-indigo-400 dark:border-indigo-900/40">
+        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-200   ">
           In Transit
         </span>
       );
     }
     return (
-      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-900/40">
+      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200   ">
         Pending
       </span>
     );
@@ -555,11 +555,11 @@ export function OrdersView({
 
   const getCapiStatusBadge = (sent: boolean) => {
     return sent ? (
-      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-250 dark:bg-emerald-950/20 dark:text-emerald-400 dark:border-emerald-900/60">
+      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200   ">
         Purchase Dispatched
       </span>
     ) : (
-      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-100 text-slate-500 border border-slate-200 dark:bg-slate-800/60 dark:text-slate-400 dark:border-slate-800">
+      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-100 text-slate-500 border border-slate-200   ">
         Awaiting Delivery
       </span>
     );
@@ -569,13 +569,13 @@ export function OrdersView({
     <div className="space-y-6">
       
       {/* Tab bar header */}
-      <div className="flex border-b border-slate-200 dark:border-slate-800">
+      <div className="flex border-b border-slate-200 ">
         <button
           onClick={() => setActiveTab('pending')}
           className={`px-5 py-3 text-sm font-bold border-b-2 transition-all flex items-center gap-2 cursor-pointer ${
             activeTab === 'pending'
-              ? 'border-indigo-600 text-indigo-600 dark:border-indigo-500 dark:text-indigo-400'
-              : 'border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-250'
+              ? 'border-indigo-600 text-indigo-600  '
+              : 'border-transparent text-slate-500 hover:text-slate-700  '
           }`}
         >
           <Package className="w-4 h-4" />
@@ -585,8 +585,8 @@ export function OrdersView({
           onClick={() => setActiveTab('shipped')}
           className={`px-5 py-3 text-sm font-bold border-b-2 transition-all flex items-center gap-2 cursor-pointer ${
             activeTab === 'shipped'
-              ? 'border-indigo-600 text-indigo-600 dark:border-indigo-500 dark:text-indigo-400'
-              : 'border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-250'
+              ? 'border-indigo-600 text-indigo-600  '
+              : 'border-transparent text-slate-500 hover:text-slate-700  '
           }`}
         >
           <Truck className="w-4 h-4" />
@@ -599,7 +599,7 @@ export function OrdersView({
             fetchCourierOrders();
             showToast("Syncing data feeds...", false);
           }}
-          className="ml-auto p-2 self-center rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800/40 cursor-pointer"
+          className="ml-auto p-2 self-center rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-50  cursor-pointer"
           title="Reload lists"
         >
           <RefreshCw className="w-4 h-4" />
@@ -607,17 +607,17 @@ export function OrdersView({
       </div>
 
       {activeTab === 'pending' && (
-        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm flex flex-col space-y-4 dark:bg-slate-900 dark:border-slate-800">
+        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm flex flex-col space-y-4  ">
           <div>
-            <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wide dark:text-white">COD Hold Queue (Awaiting Verification)</h3>
-            <p className="text-xs text-slate-400 dark:text-slate-500">
+            <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wide ">COD Hold Queue (Awaiting Verification)</h3>
+            <p className="text-xs text-slate-400 ">
               Orders placed via Cash on Delivery are held here. You can manually confirm them, cancel them, or automatically book them onto couriers.
             </p>
           </div>
 
           <div className="space-y-3 md:hidden">
             {!deferredData?.pendingList || deferredData.pendingList.length === 0 ? (
-              <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center text-slate-400 dark:border-slate-800 dark:bg-slate-950/40">
+              <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center text-slate-400  ">
                 <CheckCircle2 className="mx-auto mb-2 h-8 w-8 text-emerald-400" />
                 <p className="text-xs font-semibold">No pending orders waiting in the verification queue.</p>
               </div>
@@ -625,38 +625,38 @@ export function OrdersView({
               const isExpanded = expandedOrderId === order.orderId;
               const products: any[] = order.products || [];
               return (
-                <div key={order.orderId} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+                <div key={order.orderId} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm  ">
                   <button type="button" onClick={() => toggleExpand(order.orderId)} className="w-full text-left">
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <p className="font-mono text-sm font-bold text-slate-900 dark:text-white">#{order.orderId}</p>
-                        <p className="mt-1 text-sm font-semibold text-slate-800 dark:text-slate-100">{order.recipientName || 'Customer unavailable'}</p>
+                        <p className="font-mono text-sm font-bold text-slate-900 ">#{order.orderId}</p>
+                        <p className="mt-1 text-sm font-semibold text-slate-800 ">{order.recipientName || 'Customer unavailable'}</p>
                         <p className="mt-0.5 font-mono text-[11px] text-slate-500">{usablePhone(order.recipientPhone) || usablePhone(order.customer) || 'No phone'}</p>
                       </div>
-                      <span className="font-bold text-slate-900 dark:text-white">৳{order.amount.toLocaleString()}</span>
+                      <span className="font-bold text-slate-900 ">à§³{order.amount.toLocaleString()}</span>
                     </div>
                     <div className="mt-4 grid grid-cols-2 gap-2 text-[11px]">
-                      <div className="rounded-lg bg-slate-50 p-2 dark:bg-slate-950/40">
+                      <div className="rounded-lg bg-slate-50 p-2 ">
                         <p className="font-bold uppercase text-slate-400">Risk</p>
                         <p className={`mt-1 font-bold ${order.fraudScore >= 75 ? 'text-rose-700' : order.fraudScore >= 35 ? 'text-amber-700' : 'text-green-700'}`}>{order.fraudScore}/100</p>
                       </div>
-                      <div className="rounded-lg bg-slate-50 p-2 dark:bg-slate-950/40">
+                      <div className="rounded-lg bg-slate-50 p-2 ">
                         <p className="font-bold uppercase text-slate-400">Held</p>
-                        <p className="mt-1 font-mono font-bold text-slate-700 dark:text-slate-200">{formatHeldAge(order.ageHours)}</p>
+                        <p className="mt-1 font-mono font-bold text-slate-700 ">{formatHeldAge(order.ageHours)}</p>
                       </div>
                     </div>
                   </button>
                   {isExpanded && (
-                    <div className="mt-4 space-y-3 border-t border-slate-100 pt-3 dark:border-slate-800">
-                      <div className="rounded-lg bg-slate-50 p-3 text-xs dark:bg-slate-950/40">
+                    <div className="mt-4 space-y-3 border-t border-slate-100 pt-3 ">
+                      <div className="rounded-lg bg-slate-50 p-3 text-xs ">
                         <p className="font-bold uppercase tracking-wider text-slate-400">Address</p>
-                        <p className="mt-1 font-semibold text-slate-800 dark:text-slate-200">{order.recipientAddress || 'Address unavailable'}</p>
+                        <p className="mt-1 font-semibold text-slate-800 ">{order.recipientAddress || 'Address unavailable'}</p>
                       </div>
                       {products.length > 0 && (
-                        <div className="rounded-lg border border-slate-200 dark:border-slate-800">
+                        <div className="rounded-lg border border-slate-200 ">
                           {products.slice(0, 4).map((p: any, i: number) => (
-                            <div key={i} className="flex justify-between gap-3 border-b border-slate-100 px-3 py-2 text-xs last:border-b-0 dark:border-slate-800">
-                              <span className="font-semibold text-slate-700 dark:text-slate-200">{p.name || p.content_name || 'Product'}</span>
+                            <div key={i} className="flex justify-between gap-3 border-b border-slate-100 px-3 py-2 text-xs last:border-b-0 ">
+                              <span className="font-semibold text-slate-700 ">{p.name || p.content_name || 'Product'}</span>
                               <span className="text-slate-500">x{p.quantity || 1}</span>
                             </div>
                           ))}
@@ -676,8 +676,8 @@ export function OrdersView({
           </div>
 
           <div className="hidden overflow-x-auto min-h-64 md:block">
-            <table className="w-full text-left text-xs text-slate-600 divide-y divide-slate-100 min-w-[750px] dark:text-slate-300 dark:divide-slate-800">
-              <thead className="bg-slate-50 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:bg-slate-950 dark:text-slate-400">
+            <table className="w-full text-left text-xs text-slate-600 divide-y divide-slate-100 min-w-[750px]  ">
+              <thead className="bg-slate-50 text-[10px] font-bold uppercase tracking-wider text-slate-500  ">
                 <tr>
                   <th className="px-6 py-3">Order ID</th>
                   <th className="px-6 py-3">Customer Info</th>
@@ -687,10 +687,10 @@ export function OrdersView({
                   <th className="px-6 py-3 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+              <tbody className="divide-y divide-slate-100 ">
                 {!deferredData?.pendingList || deferredData.pendingList.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="px-6 py-12 text-center text-slate-400 font-medium dark:text-slate-500">
+                    <td colSpan={6} className="px-6 py-12 text-center text-slate-400 font-medium ">
                       <CheckCircle2 className="w-8 h-8 mx-auto text-emerald-400 mb-2" />
                       No pending orders waiting in the verification queue.
                     </td>
@@ -701,11 +701,11 @@ export function OrdersView({
                     const products: any[] = order.products || [];
                     return (
                       <React.Fragment key={order.orderId}>
-                        <tr className={`hover:bg-slate-50/50 transition-colors dark:hover:bg-slate-800/40 ${isExpanded ? 'bg-indigo-50/20 dark:bg-indigo-950/10' : ''}`}>
+                        <tr className={`hover:bg-slate-50/50 transition-colors  ${isExpanded ? 'bg-indigo-50/20 ' : ''}`}>
                           <td className="px-6 py-3">
                             <button
                               onClick={() => toggleExpand(order.orderId)}
-                              className="flex items-center gap-1.5 font-mono font-bold text-slate-800 dark:text-slate-100 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors cursor-pointer"
+                              className="flex items-center gap-1.5 font-mono font-bold text-slate-800  hover:text-indigo-600  transition-colors cursor-pointer"
                             >
                               {isExpanded ? <ChevronUp className="w-3.5 h-3.5 text-indigo-500" /> : <ChevronDown className="w-3.5 h-3.5 text-slate-400" />}
                               {order.orderId}
@@ -713,11 +713,11 @@ export function OrdersView({
                           </td>
                           <td className="px-6 py-3">
                             <div className="flex flex-col gap-0.5">
-                              {order.recipientName && order.recipientName !== '—' && (
+                              {order.recipientName && order.recipientName !== 'â€”' && (
                                 <button
                                   type="button"
                                   onClick={() => toggleExpand(order.orderId)}
-                                  className="w-fit text-left font-semibold text-slate-700 hover:text-indigo-600 dark:text-slate-200 dark:hover:text-indigo-400 transition-colors cursor-pointer"
+                                  className="w-fit text-left font-semibold text-slate-700 hover:text-indigo-600   transition-colors cursor-pointer"
                                   aria-expanded={isExpanded}
                                   title="View customer and order details"
                                 >
@@ -726,13 +726,13 @@ export function OrdersView({
                               )}
                             </div>
                           </td>
-                          <td className="px-6 py-3 font-semibold text-slate-800 dark:text-slate-200">৳{order.amount.toLocaleString()}</td>
+                          <td className="px-6 py-3 font-semibold text-slate-800 ">à§³{order.amount.toLocaleString()}</td>
                           <td className="px-6 py-3">
                             <span 
                               className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded text-[10px] font-bold border ${
-                                order.fraudScore >= 75 ? 'bg-rose-50 text-rose-700 border-rose-150 dark:bg-rose-950/20 dark:text-rose-400 dark:border-rose-900/60' : 
-                                order.fraudScore >= 35 ? 'bg-amber-50 text-amber-700 border-amber-150 dark:bg-amber-950/20 dark:text-amber-400 dark:border-amber-900/60' : 
-                                'bg-green-50 text-green-700 border-green-150 dark:bg-green-950/20 dark:text-green-400 dark:border-green-900/60'
+                                order.fraudScore >= 75 ? 'bg-rose-50 text-rose-700 border-rose-200   ' : 
+                                order.fraudScore >= 35 ? 'bg-amber-50 text-amber-700 border-amber-200   ' : 
+                                'bg-green-50 text-green-700 border-green-200   '
                               }`}
                             >
                               <span className={`w-1.5 h-1.5 rounded-full ${
@@ -742,11 +742,11 @@ export function OrdersView({
                               Score: {order.fraudScore}/100
                             </span>
                           </td>
-                          <td className="px-6 py-3 text-slate-400 font-mono dark:text-slate-500">{formatHeldAge(order.ageHours)}</td>
+                          <td className="px-6 py-3 text-slate-400 font-mono ">{formatHeldAge(order.ageHours)}</td>
                           <td className="px-6 py-3 text-right space-x-2 whitespace-nowrap">
                             <button 
                               onClick={() => openInvoice(order)}
-                              className="btn-touch-expand px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-300 text-[10px] font-bold rounded shadow-sm transition-colors cursor-pointer inline-flex items-center gap-1"
+                              className="btn-touch-expand px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700    text-[10px] font-bold rounded shadow-sm transition-colors cursor-pointer inline-flex items-center gap-1"
                               title="View and Print Invoice"
                             >
                               <FileText className="w-2.5 h-2.5" /> Invoice
@@ -775,42 +775,42 @@ export function OrdersView({
 
                         {/* Expanded Detail Row */}
                         {isExpanded && (
-                          <tr className="bg-slate-50/80 dark:bg-slate-900/60">
+                          <tr className="bg-slate-50/80 ">
                             <td colSpan={6} className="px-6 py-4">
                               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 {/* Customer Info Card */}
                                 <div className="space-y-2.5">
-                                  <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500">Customer Details</p>
-                                  <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-3 space-y-2">
+                                  <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 ">Customer Details</p>
+                                  <div className="bg-white  rounded-xl border border-slate-200  p-3 space-y-2">
                                     <div className="flex items-start gap-2.5">
-                                      <div className="w-7 h-7 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 flex items-center justify-center shrink-0">
+                                      <div className="w-7 h-7 rounded-lg bg-indigo-50  flex items-center justify-center shrink-0">
                                         <User className="w-3.5 h-3.5 text-indigo-500" />
                                       </div>
                                       <div>
                                         <p className="text-[9px] text-slate-400 uppercase font-bold">Name</p>
-                                        <p className="text-xs font-semibold text-slate-800 dark:text-slate-100">{order.recipientName || '—'}</p>
+                                        <p className="text-xs font-semibold text-slate-800 ">{order.recipientName || 'â€”'}</p>
                                       </div>
                                     </div>
                                     <div className="flex items-start gap-2.5">
-                                      <div className="w-7 h-7 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 flex items-center justify-center shrink-0">
+                                      <div className="w-7 h-7 rounded-lg bg-emerald-50  flex items-center justify-center shrink-0">
                                         <Phone className="w-3.5 h-3.5 text-emerald-500" />
                                       </div>
                                       <div>
                                         <p className="text-[9px] text-slate-400 uppercase font-bold">Phone</p>
-                                        <p className="text-xs font-semibold text-slate-800 dark:text-slate-100 font-mono">{usablePhone(order.recipientPhone) || '—'}</p>
+                                        <p className="text-xs font-semibold text-slate-800  font-mono">{usablePhone(order.recipientPhone) || 'â€”'}</p>
                                       </div>
                                     </div>
                                     <div className="flex items-start gap-2.5">
-                                      <div className="w-7 h-7 rounded-lg bg-amber-50 dark:bg-amber-950/40 flex items-center justify-center shrink-0">
+                                      <div className="w-7 h-7 rounded-lg bg-amber-50  flex items-center justify-center shrink-0">
                                         <MapPin className="w-3.5 h-3.5 text-amber-500" />
                                       </div>
                                       <div>
                                         <p className="text-[9px] text-slate-400 uppercase font-bold">Address</p>
-                                        <p className="text-xs font-semibold text-slate-800 dark:text-slate-100">{order.recipientAddress || '—'}</p>
+                                        <p className="text-xs font-semibold text-slate-800 ">{order.recipientAddress || 'â€”'}</p>
                                       </div>
                                     </div>
                                   </div>
-                                  <div className="mt-4 flex flex-wrap items-center justify-end gap-2 border-t border-slate-200 pt-4 dark:border-slate-800">
+                                  <div className="mt-4 flex flex-wrap items-center justify-end gap-2 border-t border-slate-200 pt-4 ">
                                     {usablePhone(order.recipientPhone) && (
                                       <a
                                         href={`tel:${usablePhone(order.recipientPhone)}`}
@@ -831,30 +831,30 @@ export function OrdersView({
 
                                 {/* Products Card */}
                                 <div className="space-y-2.5">
-                                  <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500">
+                                  <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 ">
                                     Order Items {products.length > 0 && <span className="ml-1 text-indigo-500">({products.length})</span>}
                                   </p>
-                                  <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+                                  <div className="bg-white  rounded-xl border border-slate-200  overflow-hidden">
                                     {products.length === 0 ? (
                                       <div className="px-4 py-5 text-center">
-                                        <Package className="w-5 h-5 mx-auto text-slate-300 dark:text-slate-600 mb-1" />
+                                        <Package className="w-5 h-5 mx-auto text-slate-300  mb-1" />
                                         <p className="text-[10px] text-slate-400">Product details not available for this order</p>
                                       </div>
                                     ) : (
                                       <table className="w-full text-xs">
-                                        <thead className="bg-slate-50 dark:bg-slate-950">
+                                        <thead className="bg-slate-50 ">
                                           <tr>
                                             <th className="px-3 py-2 text-left text-[9px] font-bold uppercase text-slate-400">Product</th>
                                             <th className="px-3 py-2 text-center text-[9px] font-bold uppercase text-slate-400">Qty</th>
                                             <th className="px-3 py-2 text-right text-[9px] font-bold uppercase text-slate-400">Price</th>
                                           </tr>
                                         </thead>
-                                        <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                                        <tbody className="divide-y divide-slate-100 ">
                                           {products.map((p: any, i: number) => (
-                                            <tr key={i} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30">
-                                              <td className="px-3 py-2 font-medium text-slate-700 dark:text-slate-200 max-w-[160px] truncate" title={p.name}>{p.name}</td>
-                                              <td className="px-3 py-2 text-center font-bold text-slate-600 dark:text-slate-300">{p.quantity}</td>
-                                              <td className="px-3 py-2 text-right font-semibold text-slate-700 dark:text-slate-200">{p.price > 0 ? `৳${p.price.toLocaleString()}` : '—'}</td>
+                                            <tr key={i} className="hover:bg-slate-50/50 ">
+                                              <td className="px-3 py-2 font-medium text-slate-700  max-w-[160px] truncate" title={p.name}>{p.name}</td>
+                                              <td className="px-3 py-2 text-center font-bold text-slate-600 ">{p.quantity}</td>
+                                              <td className="px-3 py-2 text-right font-semibold text-slate-700 ">{p.price > 0 ? `à§³${p.price.toLocaleString()}` : 'â€”'}</td>
                                             </tr>
                                           ))}
                                         </tbody>
@@ -877,11 +877,11 @@ export function OrdersView({
       )}
 
       {activeTab === 'shipped' && (
-        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm flex flex-col space-y-4 dark:bg-slate-900 dark:border-slate-800">
+        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm flex flex-col space-y-4  ">
           <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
             <div>
-              <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wide dark:text-white">Shipped Orders & Delivery Tracking</h3>
-              <p className="text-xs text-slate-400 dark:text-slate-500">
+              <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wide ">Shipped Orders & Delivery Tracking</h3>
+              <p className="text-xs text-slate-400 ">
                 Track delivery statuses on SteadFast, Pathao, or RedX. Delivered orders send purchase data; returned orders send refund data.
               </p>
             </div>
@@ -889,7 +889,7 @@ export function OrdersView({
 
 
           {/* Filters Bar */}
-          <div className="flex flex-wrap gap-3 p-3 bg-slate-50 rounded-lg dark:bg-slate-950 border border-slate-100 dark:border-slate-800">
+          <div className="flex flex-wrap gap-3 p-3 bg-slate-50 rounded-lg  border border-slate-100 ">
             <div className="relative flex-1 min-w-[200px]">
               <Search className="absolute left-3 top-2.5 w-4 h-4 text-slate-400" />
               <input
@@ -897,7 +897,7 @@ export function OrdersView({
                 value={searchQuery}
                 placeholder="Search by Order ID, tracking or recipient..."
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-4 py-2 text-xs bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-slate-900 dark:border-slate-800 dark:text-white"
+                className="w-full pl-9 pr-4 py-2 text-xs bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500   "
               />
             </div>
             
@@ -905,7 +905,7 @@ export function OrdersView({
               <select
                 value={providerFilter}
                 onChange={(e) => setProviderFilter(e.target.value)}
-                className="w-full p-2 text-xs bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-slate-900 dark:border-slate-800 dark:text-white cursor-pointer"
+                className="w-full p-2 text-xs bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500    cursor-pointer"
               >
                 <option value="all">All Couriers</option>
                 <option value="steadfast">SteadFast</option>
@@ -918,7 +918,7 @@ export function OrdersView({
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="w-full p-2 text-xs bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-slate-900 dark:border-slate-800 dark:text-white cursor-pointer"
+                className="w-full p-2 text-xs bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500    cursor-pointer"
               >
                 <option value="all">All Statuses</option>
                 <option value="pending">Pending</option>
@@ -932,10 +932,10 @@ export function OrdersView({
 
           {/* Bulk Action Bar */}
           {selectedShippedOrderIds.length > 0 && (
-            <div className="flex items-center justify-between p-3.5 bg-indigo-50 dark:bg-indigo-950/40 rounded-xl border border-indigo-200 dark:border-indigo-900/50 animate-fade-in mb-3">
+            <div className="flex items-center justify-between p-3.5 bg-indigo-50  rounded-xl border border-indigo-200  animate-fade-in mb-3">
               <div className="flex items-center gap-2">
-                <span className="flex h-2 w-2 rounded-full bg-indigo-650 dark:bg-indigo-400" />
-                <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                <span className="flex h-2 w-2 rounded-full bg-indigo-600 " />
+                <span className="text-xs font-bold text-slate-800 ">
                   {selectedShippedOrderIds.length} {selectedShippedOrderIds.length === 1 ? 'order' : 'orders'} selected for bulk actions
                 </span>
               </div>
@@ -962,7 +962,7 @@ export function OrdersView({
                 </button>
                 <button
                   onClick={() => setSelectedShippedOrderIds([])}
-                  className="px-3 py-1.5 border border-slate-200 text-slate-655 hover:bg-slate-100 dark:border-slate-850 dark:text-slate-400 dark:hover:bg-slate-800 rounded-lg text-xs font-semibold transition-all cursor-pointer"
+                  className="px-3 py-1.5 border border-slate-200 text-slate-600 hover:bg-slate-100    rounded-lg text-xs font-semibold transition-all cursor-pointer"
                 >
                   Clear Selection
                 </button>
@@ -973,20 +973,20 @@ export function OrdersView({
           {/* Table */}
           <div className="space-y-3 md:hidden">
             {loadingOrders ? (
-              <div className="rounded-lg border border-slate-200 bg-white px-4 py-8 text-center text-slate-400 dark:border-slate-800 dark:bg-slate-900">
+              <div className="rounded-lg border border-slate-200 bg-white px-4 py-8 text-center text-slate-400  ">
                 <Loader2 className="mx-auto mb-2 h-6 w-6 animate-spin text-indigo-500" />
                 <p className="text-xs font-semibold">Fetching shipment details...</p>
               </div>
             ) : filteredCourierOrders.length === 0 ? (
-              <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center text-slate-400 dark:border-slate-800 dark:bg-slate-950/40">
+              <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center text-slate-400  ">
                 <Truck className="mx-auto h-7 w-7 text-slate-300" />
-                <p className="mt-2 text-xs font-bold text-slate-600 dark:text-slate-300">No courier orders found</p>
+                <p className="mt-2 text-xs font-bold text-slate-600 ">No courier orders found</p>
               </div>
             ) : filteredCourierOrders.map((order) => {
               const isCancellable = !['cancelled', 'delivered', 'returned'].includes((order.courier_status || '').toLowerCase());
               const isCancelling = cancellingOrderId === order.id;
               return (
-                <div key={order.id} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+                <div key={order.id} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm  ">
                   <div className="flex items-start justify-between gap-3">
                     <label className="flex items-start gap-3">
                       <input
@@ -996,15 +996,15 @@ export function OrdersView({
                         className="mt-1 rounded accent-indigo-600"
                       />
                       <span>
-                        <span className="block font-mono text-sm font-bold text-slate-900 dark:text-white">#{order.order_id}</span>
-                        <span className="mt-1 block text-xs font-bold capitalize text-slate-800 dark:text-slate-200">{order.courier_provider}</span>
+                        <span className="block font-mono text-sm font-bold text-slate-900 ">#{order.order_id}</span>
+                        <span className="mt-1 block text-xs font-bold capitalize text-slate-800 ">{order.courier_provider}</span>
                         <span className="mt-0.5 block font-mono text-[10px] text-slate-500">{order.courier_tracking_id || 'No tracking'}</span>
                       </span>
                     </label>
-                    <span className="font-bold text-slate-900 dark:text-white">৳{order.cod_amount.toLocaleString()}</span>
+                    <span className="font-bold text-slate-900 ">à§³{order.cod_amount.toLocaleString()}</span>
                   </div>
-                  <div className="mt-4 rounded-lg bg-slate-50 p-3 text-xs dark:bg-slate-950/40">
-                    <p className="font-bold text-slate-900 dark:text-white">{order.recipient_name || 'Customer'}</p>
+                  <div className="mt-4 rounded-lg bg-slate-50 p-3 text-xs ">
+                    <p className="font-bold text-slate-900 ">{order.recipient_name || 'Customer'}</p>
                     <p className="mt-1 font-mono text-slate-500">{order.recipient_phone || 'No phone'}</p>
                     <p className="mt-0.5 line-clamp-2 text-slate-500">{order.recipient_address || 'No address'}</p>
                   </div>
@@ -1012,7 +1012,7 @@ export function OrdersView({
                     <div>{getStatusBadge(order.courier_status)}</div>
                     <div className="text-right">{getCapiStatusBadge(order.purchase_event_sent)}</div>
                     <span className="font-mono text-slate-500">{new Date(order.created_at).toLocaleDateString()}</span>
-                    <span className="text-right text-slate-500">{order.delivery_charge > 0 ? `Charge ৳${order.delivery_charge}` : 'No charge'}</span>
+                    <span className="text-right text-slate-500">{order.delivery_charge > 0 ? `Charge à§³${order.delivery_charge}` : 'No charge'}</span>
                   </div>
                   <div className="mt-4 flex flex-wrap justify-end gap-2">
                     <button onClick={() => openInvoice(order)} className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-bold text-slate-700">Invoice</button>
@@ -1031,15 +1031,15 @@ export function OrdersView({
           </div>
 
           <div className="hidden overflow-x-auto min-h-64 md:block">
-            <table className="w-full text-left text-xs text-slate-600 divide-y divide-slate-100 min-w-[1000px] dark:text-slate-300 dark:divide-slate-800">
-              <thead className="bg-slate-50 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:bg-slate-950 dark:text-slate-400">
+            <table className="w-full text-left text-xs text-slate-600 divide-y divide-slate-100 min-w-[1000px]  ">
+              <thead className="bg-slate-50 text-[10px] font-bold uppercase tracking-wider text-slate-500  ">
                 <tr>
                   <th className="px-5 py-3 w-10 text-center">
                     <input 
                       type="checkbox" 
                       checked={areAllFilteredSelected} 
                       onChange={toggleSelectAllFilteredShipped}
-                      className="rounded border-slate-300 text-indigo-650 focus:ring-indigo-500 w-3.5 h-3.5 cursor-pointer accent-indigo-600"
+                      className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 w-3.5 h-3.5 cursor-pointer accent-indigo-600"
                     />
                   </th>
                   <th className="px-5 py-3">Order ID</th>
@@ -1052,7 +1052,7 @@ export function OrdersView({
                   <th className="px-5 py-3 text-right">Action</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+              <tbody className="divide-y divide-slate-100 ">
                 {loadingOrders ? (
                   <tr>
                     <td colSpan={9} className="px-6 py-12 text-center text-slate-400">
@@ -1065,7 +1065,7 @@ export function OrdersView({
                     <td colSpan={9} className="px-6 py-12 text-center text-slate-400 font-medium">
                       <div className="mx-auto flex max-w-sm flex-col items-center gap-2">
                         <Truck className="h-7 w-7 text-slate-300" />
-                        <p className="font-bold text-slate-600 dark:text-slate-300">No courier orders found</p>
+                        <p className="font-bold text-slate-600 ">No courier orders found</p>
                         <p className="text-xs font-normal text-slate-400">Confirmed COD orders will appear here after they are booked with a courier.</p>
                       </div>
                     </td>
@@ -1077,23 +1077,23 @@ export function OrdersView({
                     );
                     const isCancelling = cancellingOrderId === order.id;
                     return (
-                    <tr key={order.id} className="hover:bg-slate-50/50 transition-colors dark:hover:bg-slate-800/40">
+                    <tr key={order.id} className="hover:bg-slate-50/50 transition-colors ">
                       <td className="px-5 py-3 text-center">
                         <input 
                           type="checkbox" 
                           checked={selectedShippedOrderIds.includes(order.id)} 
                           onChange={() => toggleSelectShippedOrder(order.id)}
-                          className="rounded border-slate-300 text-indigo-650 focus:ring-indigo-500 w-3.5 h-3.5 cursor-pointer accent-indigo-600"
+                          className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 w-3.5 h-3.5 cursor-pointer accent-indigo-600"
                         />
                       </td>
-                      <td className="px-5 py-3 font-mono font-bold text-slate-800 dark:text-slate-100">{order.order_id}</td>
+                      <td className="px-5 py-3 font-mono font-bold text-slate-800 ">{order.order_id}</td>
                       <td className="px-5 py-3">
                         <div className="flex flex-col">
-                          <span className="font-semibold text-xs capitalize text-slate-800 dark:text-slate-200">
+                          <span className="font-semibold text-xs capitalize text-slate-800 ">
                             {order.courier_provider}
                           </span>
                           {order.courier_tracking_id ? (
-                            <span className="font-mono text-[10px] text-slate-400 dark:text-slate-400 flex items-center gap-1 mt-0.5">
+                            <span className="font-mono text-[10px] text-slate-400  flex items-center gap-1 mt-0.5">
                               {order.courier_tracking_id}
                               <a
                                 href={
@@ -1115,18 +1115,18 @@ export function OrdersView({
                       </td>
                       <td className="px-5 py-3">
                         <div className="flex flex-col text-[11px] leading-tight">
-                          <span className="font-bold text-slate-800 dark:text-slate-200">{order.recipient_name || '—'}</span>
-                          <span className="text-slate-500 font-mono mt-0.5">{order.recipient_phone || '—'}</span>
+                          <span className="font-bold text-slate-800 ">{order.recipient_name || 'â€”'}</span>
+                          <span className="text-slate-500 font-mono mt-0.5">{order.recipient_phone || 'â€”'}</span>
                           <span className="text-[10px] text-slate-400 truncate max-w-[200px] mt-0.5" title={order.recipient_address}>
-                            {order.recipient_address || '—'}
+                            {order.recipient_address || 'â€”'}
                           </span>
                         </div>
                       </td>
                       <td className="px-5 py-3">
                         <div className="flex flex-col">
-                          <span className="font-bold text-slate-800 dark:text-slate-100">৳{order.cod_amount.toLocaleString()}</span>
+                          <span className="font-bold text-slate-800 ">à§³{order.cod_amount.toLocaleString()}</span>
                           {order.delivery_charge > 0 && (
-                            <span className="text-[10px] text-rose-500 font-medium">Charge: ৳{order.delivery_charge}</span>
+                            <span className="text-[10px] text-rose-500 font-medium">Charge: à§³{order.delivery_charge}</span>
                           )}
                         </div>
                       </td>
@@ -1138,14 +1138,14 @@ export function OrdersView({
                       <td className="px-5 py-3 text-right space-x-2 whitespace-nowrap">
                         <button 
                           onClick={() => openInvoice(order)}
-                          className="inline-flex items-center gap-1 px-2.5 py-1 text-[10px] font-bold rounded border border-slate-200 bg-slate-100 text-slate-700 hover:bg-slate-200 transition-all cursor-pointer dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-700"
+                          className="inline-flex items-center gap-1 px-2.5 py-1 text-[10px] font-bold rounded border border-slate-200 bg-slate-100 text-slate-700 hover:bg-slate-200 transition-all cursor-pointer    "
                           title="View and Print Invoice"
                         >
                           <FileText className="w-2.5 h-2.5" /> Invoice
                         </button>
                         <button
                           onClick={() => openLabel(order)}
-                          className="inline-flex items-center gap-1 px-2.5 py-1 text-[10px] font-bold rounded border border-violet-200 bg-violet-50 text-violet-700 hover:bg-violet-100 transition-all cursor-pointer dark:bg-violet-950/20 dark:border-violet-900/50 dark:text-violet-400 dark:hover:bg-violet-950/40"
+                          className="inline-flex items-center gap-1 px-2.5 py-1 text-[10px] font-bold rounded border border-violet-200 bg-violet-50 text-violet-700 hover:bg-violet-100 transition-all cursor-pointer    "
                           title="Preview and Print Courier Label"
                         >
                           <Package className="w-2.5 h-2.5" /> Label
@@ -1156,7 +1156,7 @@ export function OrdersView({
                             onClick={() => handleCancelCourierOrder(order)}
                             disabled={isCancelling}
                             title={`Cancel this ${order.courier_provider} order`}
-                            className="inline-flex items-center gap-1 px-2.5 py-1 text-[10px] font-bold rounded border border-rose-300 bg-rose-50 text-rose-700 hover:bg-rose-100 hover:border-rose-400 disabled:opacity-50 disabled:cursor-not-allowed transition-all cursor-pointer dark:bg-rose-950/20 dark:border-rose-900/40 dark:text-rose-400 dark:hover:bg-rose-950/40"
+                            className="inline-flex items-center gap-1 px-2.5 py-1 text-[10px] font-bold rounded border border-rose-300 bg-rose-50 text-rose-700 hover:bg-rose-100 hover:border-rose-400 disabled:opacity-50 disabled:cursor-not-allowed transition-all cursor-pointer    "
                           >
                             {isCancelling ? (
                               <Loader2 className="w-2.5 h-2.5 animate-spin" />
@@ -1166,7 +1166,7 @@ export function OrdersView({
                             {isCancelling ? 'Cancelling...' : 'Cancel'}
                           </button>
                         ) : (
-                          <span className="text-[10px] text-slate-350 dark:text-slate-600 italic">
+                          <span className="text-[10px] text-slate-350  italic">
                             {(order.courier_status || '').toLowerCase() === 'cancelled' ? 'Cancelled' :
                              (order.courier_status || '').toLowerCase() === 'delivered' ? 'Delivered' : 'Returned'}
                           </span>
@@ -1185,17 +1185,17 @@ export function OrdersView({
       {/* Book to Courier Form Modal */}
       {isSendModalOpen && selectedOrder && (
         <div className="fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-lg shadow-2xl p-6 flex flex-col space-y-5 animate-slide-in-up">
+          <div className="bg-white  border border-slate-200  rounded-2xl w-full max-w-lg shadow-2xl p-6 flex flex-col space-y-5 animate-slide-in-up">
             
             {/* Modal Header */}
-            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+            <div className="flex items-center justify-between border-b border-slate-100  pb-3">
               <div className="flex items-center gap-2">
-                <Truck className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
-                <h3 className="font-bold text-slate-800 dark:text-white text-base">Book Consignment with Courier</h3>
+                <Truck className="w-5 h-5 text-indigo-600 " />
+                <h3 className="font-bold text-slate-800  text-base">Book Consignment with Courier</h3>
               </div>
               <button 
                 onClick={() => setIsSendModalOpen(false)}
-                className="text-slate-400 hover:text-slate-655 p-1 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/40 cursor-pointer"
+                className="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-50  cursor-pointer"
               >
                 <XCircle className="w-5 h-5" />
               </button>
@@ -1206,39 +1206,39 @@ export function OrdersView({
               
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {/* Order Meta details read-only */}
-                <div className="p-3 bg-slate-50 rounded-lg dark:bg-slate-950/40 border border-slate-100 dark:border-slate-800">
+                <div className="p-3 bg-slate-50 rounded-lg  border border-slate-100 ">
                   <span className="block text-[10px] text-slate-400 uppercase font-bold tracking-wider">Order Reference ID</span>
-                  <span className="font-mono font-bold text-sm text-slate-800 dark:text-white">{selectedOrder.orderId || selectedOrder.order_id}</span>
+                  <span className="font-mono font-bold text-sm text-slate-800 ">{selectedOrder.orderId || selectedOrder.order_id}</span>
                 </div>
-                <div className="p-3 bg-slate-50 rounded-lg dark:bg-slate-950/40 border border-slate-100 dark:border-slate-800">
+                <div className="p-3 bg-slate-50 rounded-lg  border border-slate-100 ">
                   <span className="block text-[10px] text-slate-400 uppercase font-bold tracking-wider">Original Value</span>
-                  <span className="font-bold text-sm text-slate-800 dark:text-white">৳{(selectedOrder.amount || selectedOrder.cod_amount || 0).toLocaleString()}</span>
+                  <span className="font-bold text-sm text-slate-800 ">à§³{(selectedOrder.amount || selectedOrder.cod_amount || 0).toLocaleString()}</span>
                 </div>
               </div>
 
               {/* Order Items (Products) */}
               <div className="space-y-1.5">
-                <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Order Items</label>
-                <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 overflow-hidden">
+                <label className="block text-[10px] font-bold text-slate-500  uppercase tracking-wider">Order Items</label>
+                <div className="bg-white  rounded-lg border border-slate-200  overflow-hidden">
                   {(!selectedOrder?.products || selectedOrder.products.length === 0) ? (
                     <div className="px-4 py-3 text-center">
                       <p className="text-[10px] text-slate-400">Product details not available</p>
                     </div>
                   ) : (
                     <table className="w-full text-xs">
-                      <thead className="bg-slate-50 dark:bg-slate-950">
+                      <thead className="bg-slate-50 ">
                         <tr>
                           <th className="px-3 py-1.5 text-left text-[9px] font-bold uppercase text-slate-400">Product</th>
                           <th className="px-3 py-1.5 text-center text-[9px] font-bold uppercase text-slate-400">Qty</th>
                           <th className="px-3 py-1.5 text-right text-[9px] font-bold uppercase text-slate-400">Price</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                      <tbody className="divide-y divide-slate-100 ">
                         {selectedOrder.products.map((p: any, i: number) => (
-                          <tr key={i} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30">
-                            <td className="px-3 py-1.5 font-medium text-slate-700 dark:text-slate-200 max-w-[160px] truncate" title={p.name}>{p.name}</td>
-                            <td className="px-3 py-1.5 text-center font-bold text-slate-600 dark:text-slate-300">{p.quantity}</td>
-                            <td className="px-3 py-1.5 text-right font-semibold text-slate-700 dark:text-slate-200">{p.price > 0 ? `৳${p.price.toLocaleString()}` : '—'}</td>
+                          <tr key={i} className="hover:bg-slate-50/50 ">
+                            <td className="px-3 py-1.5 font-medium text-slate-700  max-w-[160px] truncate" title={p.name}>{p.name}</td>
+                            <td className="px-3 py-1.5 text-center font-bold text-slate-600 ">{p.quantity}</td>
+                            <td className="px-3 py-1.5 text-right font-semibold text-slate-700 ">{p.price > 0 ? `à§³${p.price.toLocaleString()}` : 'â€”'}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -1249,15 +1249,15 @@ export function OrdersView({
 
               {/* Courier Selection */}
               <div>
-                <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Select Courier Partner</label>
+                <label className="block text-[10px] font-bold text-slate-500  uppercase tracking-wider mb-1">Select Courier Partner</label>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <label className={`border rounded-xl p-3 flex items-center justify-between cursor-pointer transition-all duration-200 ${
                     courierProvider === 'steadfast' 
-                      ? 'border-indigo-600 bg-indigo-50/10 text-indigo-700 dark:border-indigo-500 dark:bg-indigo-950/20 dark:text-indigo-400' 
-                      : 'border-slate-200 hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-950/20'
+                      ? 'border-indigo-600 bg-indigo-50/10 text-indigo-700   ' 
+                      : 'border-slate-200 hover:bg-slate-50  '
                   }`}>
                     <div className="flex flex-col">
-                      <span className="text-xs font-bold text-slate-800 dark:text-slate-200">SteadFast Courier</span>
+                      <span className="text-xs font-bold text-slate-800 ">SteadFast Courier</span>
                       <span className="text-[9px] text-slate-400 mt-0.5">Automated API Booking</span>
                     </div>
                     <input 
@@ -1272,11 +1272,11 @@ export function OrdersView({
 
                   <label className={`border rounded-xl p-3 flex items-center justify-between cursor-pointer transition-all duration-200 ${
                     courierProvider === 'pathao' 
-                      ? 'border-indigo-600 bg-indigo-50/10 text-indigo-700 dark:border-indigo-500 dark:bg-indigo-950/20 dark:text-indigo-400' 
-                      : 'border-slate-200 hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-950/20'
+                      ? 'border-indigo-600 bg-indigo-50/10 text-indigo-700   ' 
+                      : 'border-slate-200 hover:bg-slate-50  '
                   }`}>
                     <div className="flex flex-col">
-                      <span className="text-xs font-bold text-slate-800 dark:text-slate-200">Pathao Courier</span>
+                      <span className="text-xs font-bold text-slate-800 ">Pathao Courier</span>
                       <span className="text-[9px] text-slate-400 mt-0.5">OAuth-secured Aladdin Booking</span>
                     </div>
                     <input 
@@ -1291,11 +1291,11 @@ export function OrdersView({
 
                   <label className={`border rounded-xl p-3 flex items-center justify-between cursor-pointer transition-all duration-200 ${
                     courierProvider === 'redx'
-                      ? 'border-indigo-600 bg-indigo-50/10 text-indigo-700 dark:border-indigo-500 dark:bg-indigo-950/20 dark:text-indigo-400'
-                      : 'border-slate-200 hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-950/20'
+                      ? 'border-indigo-600 bg-indigo-50/10 text-indigo-700   '
+                      : 'border-slate-200 hover:bg-slate-50  '
                   }`}>
                     <div className="flex flex-col">
-                      <span className="text-xs font-bold text-slate-800 dark:text-slate-200">RedX Courier</span>
+                      <span className="text-xs font-bold text-slate-800 ">RedX Courier</span>
                       <span className="text-[9px] text-slate-400 mt-0.5">Token-secured OpenAPI Booking</span>
                     </div>
                     <input
@@ -1312,13 +1312,13 @@ export function OrdersView({
 
               {/* Recipient details */}
               <div className="space-y-3 pt-2">
-                <h4 className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider border-b border-slate-100 dark:border-slate-800 pb-1">
+                <h4 className="text-[10px] font-bold text-indigo-600  uppercase tracking-wider border-b border-slate-100  pb-1">
                   Recipient Information
                 </h4>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase mb-1">Customer Name</label>
+                    <label className="block text-[10px] font-semibold text-slate-500  uppercase mb-1">Customer Name</label>
                     <div className="relative">
                       <User className="absolute left-2.5 top-2.5 w-3.5 h-3.5 text-slate-400" />
                       <input
@@ -1327,13 +1327,13 @@ export function OrdersView({
                         value={recipientName}
                         onChange={(e) => setRecipientName(e.target.value)}
                         placeholder="e.g. Hridoy Hossain"
-                        className="w-full pl-8 pr-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-slate-950 dark:border-slate-800 dark:text-white"
+                        className="w-full pl-8 pr-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500   "
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase mb-1">Phone Number</label>
+                    <label className="block text-[10px] font-semibold text-slate-500  uppercase mb-1">Phone Number</label>
                     <div className="relative">
                       <Phone className="absolute left-2.5 top-2.5 w-3.5 h-3.5 text-slate-400" />
                       <input
@@ -1347,14 +1347,14 @@ export function OrdersView({
                           setRecipientPhone(normalized);
                         }}
                         placeholder="e.g. 01712345678 or +8801712345678"
-                        className="w-full pl-8 pr-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-slate-950 dark:border-slate-800 dark:text-white"
+                        className="w-full pl-8 pr-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500   "
                       />
                     </div>
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase mb-1">Delivery Address</label>
+                  <label className="block text-[10px] font-semibold text-slate-500  uppercase mb-1">Delivery Address</label>
                   <div className="relative">
                     <MapPin className="absolute left-2.5 top-2.5 w-3.5 h-3.5 text-slate-400" />
                     <textarea
@@ -1363,14 +1363,14 @@ export function OrdersView({
                       onChange={(e) => setRecipientAddress(e.target.value)}
                       placeholder="Enter complete shipping details (Street, District, Area)..."
                       rows={2}
-                      className="w-full pl-8 pr-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-slate-950 dark:border-slate-800 dark:text-white"
+                      className="w-full pl-8 pr-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500   "
                     />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase mb-1">Cash on Delivery Amount to Collect (BDT)</label>
+                    <label className="block text-[10px] font-semibold text-slate-500  uppercase mb-1">Cash on Delivery Amount to Collect (BDT)</label>
                     <div className="relative">
                       <DollarSign className="absolute left-2.5 top-2.5 w-3.5 h-3.5 text-slate-400" />
                       <input
@@ -1378,7 +1378,7 @@ export function OrdersView({
                         required
                         value={codAmount}
                         onChange={(e) => setCodAmount(Number(e.target.value))}
-                        className="w-full pl-8 pr-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-slate-950 dark:border-slate-800 dark:text-white font-bold"
+                        className="w-full pl-8 pr-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500    font-bold"
                       />
                     </div>
                   </div>
@@ -1386,17 +1386,17 @@ export function OrdersView({
                   {/* Pathao stores are fetched from the courier API when credentials are available. */}
                   {courierProvider === 'pathao' && (
                     <div>
-                      <label className="block text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase mb-1">Pathao Store</label>
+                      <label className="block text-[10px] font-semibold text-slate-500  uppercase mb-1">Pathao Store</label>
                       {loadingStores ? (
-                        <div className="py-2 px-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-xs text-slate-500 flex items-center gap-1.5">
+                        <div className="py-2 px-3 bg-slate-50  border border-slate-200  rounded-lg text-xs text-slate-500 flex items-center gap-1.5">
                           <Truck className="w-3.5 h-3.5 shrink-0 animate-pulse" />
-                          Stores লোড হচ্ছে...
+                          Stores à¦²à§‹à¦¡ à¦¹à¦šà§à¦›à§‡...
                         </div>
                       ) : pathaoStores.length > 0 ? (
                         <select
                           value={selectedStoreId}
                           onChange={(e) => setSelectedStoreId(Number(e.target.value))}
-                          className="w-full py-2 px-3 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:bg-slate-950 dark:border-slate-700 dark:text-white"
+                          className="w-full py-2 px-3 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500   "
                         >
                           {pathaoStores.map((store) => (
                             <option key={store.store_id} value={store.store_id}>
@@ -1405,7 +1405,7 @@ export function OrdersView({
                           ))}
                         </select>
                       ) : (
-                        <div className="py-2 px-3 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/40 rounded-lg text-xs text-red-600 dark:text-red-400 font-semibold flex items-center gap-1.5">
+                        <div className="py-2 px-3 bg-red-50  border border-red-200  rounded-lg text-xs text-red-600  font-semibold flex items-center gap-1.5">
                           <Truck className="w-3.5 h-3.5 shrink-0" />
                           Pathao credentials missing. Set them up in settings.
                         </div>
@@ -1415,9 +1415,9 @@ export function OrdersView({
                   {courierProvider === 'redx' && (
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:col-span-2">
                       <div>
-                        <label className="block text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase mb-1">RedX Delivery Area ID</label>
+                        <label className="block text-[10px] font-semibold text-slate-500  uppercase mb-1">RedX Delivery Area ID</label>
                         {loadingRedxAreas ? (
-                          <div className="py-2 px-3 text-xs bg-slate-50 border border-slate-200 rounded-lg dark:bg-slate-950 dark:border-slate-700 dark:text-slate-400">Loading areas...</div>
+                          <div className="py-2 px-3 text-xs bg-slate-50 border border-slate-200 rounded-lg   ">Loading areas...</div>
                         ) : (
                           <select
                             required
@@ -1427,7 +1427,7 @@ export function OrdersView({
                               setRedxDeliveryAreaId(e.target.value);
                               if (area) setRedxDeliveryAreaName(area.name);
                             }}
-                            className="w-full py-2 px-3 text-xs bg-slate-50 border border-slate-200 rounded-lg dark:bg-slate-950 dark:border-slate-700 dark:text-white"
+                            className="w-full py-2 px-3 text-xs bg-slate-50 border border-slate-200 rounded-lg   "
                           >
                             <option value="">Select delivery area</option>
                             {redxAreas.map((area) => <option key={area.id} value={area.id}>{area.name}{area.post_code ? ` (${area.post_code})` : ''}</option>)}
@@ -1435,12 +1435,12 @@ export function OrdersView({
                         )}
                       </div>
                       <div>
-                        <label className="block text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase mb-1">RedX Delivery Area Name</label>
-                        <input required type="text" value={redxDeliveryAreaName} onChange={(e) => setRedxDeliveryAreaName(e.target.value)} className="w-full py-2 px-3 text-xs bg-slate-50 border border-slate-200 rounded-lg dark:bg-slate-950 dark:border-slate-700 dark:text-white" />
+                        <label className="block text-[10px] font-semibold text-slate-500  uppercase mb-1">RedX Delivery Area Name</label>
+                        <input required type="text" value={redxDeliveryAreaName} onChange={(e) => setRedxDeliveryAreaName(e.target.value)} className="w-full py-2 px-3 text-xs bg-slate-50 border border-slate-200 rounded-lg   " />
                       </div>
                       <div>
-                        <label className="block text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase mb-1">RedX Pickup Store ID</label>
-                        <input type="number" value={redxPickupStoreId} onChange={(e) => setRedxPickupStoreId(e.target.value)} className="w-full py-2 px-3 text-xs bg-slate-50 border border-slate-200 rounded-lg dark:bg-slate-950 dark:border-slate-700 dark:text-white" />
+                        <label className="block text-[10px] font-semibold text-slate-500  uppercase mb-1">RedX Pickup Store ID</label>
+                        <input type="number" value={redxPickupStoreId} onChange={(e) => setRedxPickupStoreId(e.target.value)} className="w-full py-2 px-3 text-xs bg-slate-50 border border-slate-200 rounded-lg   " />
                       </div>
                     </div>
                   )}
@@ -1448,11 +1448,11 @@ export function OrdersView({
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase mb-1">Parcel Weight (KG)</label>
+                    <label className="block text-[10px] font-semibold text-slate-500  uppercase mb-1">Parcel Weight (KG)</label>
                     <select
                       value={itemWeight}
                       onChange={(e) => setItemWeight(Number(e.target.value))}
-                      className="w-full p-2 text-xs bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-slate-800 dark:text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 cursor-pointer"
+                      className="w-full p-2 text-xs bg-slate-50  border border-slate-200  rounded-lg text-slate-800  focus:outline-none focus:ring-1 focus:ring-indigo-500 cursor-pointer"
                     >
                       <option value={0.5}>0.5 KG (Standard)</option>
                       <option value={1.0}>1.0 KG</option>
@@ -1464,25 +1464,25 @@ export function OrdersView({
                   </div>
                   
                   <div>
-                    <label className="block text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase mb-1">Parcel Quantity</label>
+                    <label className="block text-[10px] font-semibold text-slate-500  uppercase mb-1">Parcel Quantity</label>
                     <input
                       type="number"
                       required
                       min={1}
                       value={itemQuantity}
                       onChange={(e) => setItemQuantity(Math.max(1, Number(e.target.value)))}
-                      className="w-full p-2 text-xs bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-slate-800 dark:text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 font-bold"
+                      className="w-full p-2 text-xs bg-slate-50  border border-slate-200  rounded-lg text-slate-800  focus:outline-none focus:ring-1 focus:ring-indigo-500 font-bold"
                     />
                   </div>
                 </div>
               </div>
 
               {/* Submit Buttons */}
-              <div className="flex gap-3 justify-end pt-3 border-t border-slate-100 dark:border-slate-800">
+              <div className="flex gap-3 justify-end pt-3 border-t border-slate-100 ">
                 <button
                   type="button"
                   onClick={() => setIsSendModalOpen(false)}
-                  className="px-4 py-2 border border-slate-200 dark:border-slate-800 rounded-lg text-xs font-bold text-slate-500 hover:bg-slate-50 hover:text-slate-700 dark:text-slate-400 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                  className="px-4 py-2 border border-slate-200  rounded-lg text-xs font-bold text-slate-500 hover:bg-slate-50 hover:text-slate-700   transition-colors cursor-pointer"
                 >
                   Cancel
                 </button>
@@ -1512,10 +1512,10 @@ export function OrdersView({
 
       {orderToCancel && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-sm rounded-xl border border-slate-200 bg-white p-5 shadow-2xl dark:border-slate-800 dark:bg-slate-900">
+          <div className="w-full max-w-sm rounded-xl border border-slate-200 bg-white p-5 shadow-2xl  ">
             <div className="space-y-1">
-              <h3 className="text-sm font-bold text-slate-900 dark:text-white">Cancel courier order?</h3>
-              <p className="text-xs leading-relaxed text-slate-500 dark:text-slate-400">
+              <h3 className="text-sm font-bold text-slate-900 ">Cancel courier order?</h3>
+              <p className="text-xs leading-relaxed text-slate-500 ">
                 {orderToCancel.courier_provider === 'steadfast'
                   ? 'This cancels the order locally. Please also cancel it from the SteadFast merchant panel.'
                   : `Cancel order ${orderToCancel.order_id} on ${cancelProviderName}? Pending or pickup orders can usually be cancelled.`}
@@ -1525,7 +1525,7 @@ export function OrdersView({
               <button
                 type="button"
                 onClick={() => setOrderToCancel(null)}
-                className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-600 transition-colors hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-300 dark:hover:bg-slate-800"
+                className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-600 transition-colors hover:bg-slate-50    "
               >
                 Keep Order
               </button>

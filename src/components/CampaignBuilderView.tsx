@@ -1,5 +1,6 @@
-import React from 'react';
+﻿import React from 'react';
 import { Plus, Trash2, Send, Terminal, Link, Copy, Check, Info } from 'lucide-react';
+import { Tooltip } from './common/Tooltip';
 import { Platform } from '../types';
 
 interface CampaignBuilderViewProps {
@@ -85,7 +86,7 @@ export function CampaignBuilderView({
   // Custom live campaign payload sandbox generator helper
   const renderCampaignPayloadJson = () => {
     const customObj: Record<string, any> = {};
-    customParams.forEach(p => {
+    (customParams || []).forEach(p => {
       if (p.k.trim()) customObj[p.k.trim()] = p.v;
     });
 
@@ -110,14 +111,14 @@ export function CampaignBuilderView({
   return (
     <div className="space-y-6 md:space-y-8">
       {/* Campaign URL Builder Widget */}
-      <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm flex flex-col space-y-4 dark:bg-slate-900 dark:border-slate-800 md:p-6">
-        <div className="flex items-start gap-2.5 pb-3 border-b border-slate-100 dark:border-slate-800">
-          <div className="hidden p-2 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 sm:block">
+      <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm flex flex-col space-y-4   md:p-6">
+        <div className="flex items-start gap-2.5 pb-3 border-b border-slate-100 ">
+          <div className="hidden p-2 rounded-lg bg-indigo-50  text-indigo-600  sm:block">
             <Link className="w-4 h-4" />
           </div>
           <div>
-            <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wide dark:text-white">Campaign URL Builder</h3>
-            <p className="text-xs text-slate-400 dark:text-slate-500">Generate clean campaign destination links embedded with standard tracking UTMs to maintain accurate marketing performance reporting.</p>
+            <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wide ">Campaign URL Builder</h3>
+            <p className="text-xs text-slate-400 ">Generate clean campaign destination links embedded with standard tracking UTMs to maintain accurate marketing performance reporting.</p>
           </div>
         </div>
 
@@ -128,20 +129,20 @@ export function CampaignBuilderView({
             
             {/* Base Website URL */}
             <div>
-              <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1.5 dark:text-slate-400">Base Website URL</label>
+              <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1.5 ">Base Website URL</label>
               <input 
                 type="text" 
                 placeholder="https://your-domain.com/shop/item"
                 value={urlBuilderBaseUrl}
                 onChange={(e) => setUrlBuilderBaseUrl(e.target.value)}
-                className="w-full p-2.5 text-xs text-slate-800 placeholder-slate-400 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all duration-200 font-mono dark:bg-slate-950 dark:border-slate-800 dark:text-white"
+                className="w-full p-2.5 text-xs text-slate-800 placeholder-slate-400 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all duration-200 font-mono   "
               />
             </div>
 
             {/* Source & Medium grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1.5 dark:text-slate-400">Campaign Source</label>
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1.5 ">Campaign Source</label>
                 <select 
                   value={urlBuilderSource}
                   onChange={(e) => {
@@ -151,7 +152,7 @@ export function CampaignBuilderView({
                     else if (e.target.value === 'google') setUrlBuilderMedium('cpc');
                     else setUrlBuilderMedium('referral');
                   }}
-                  className="w-full p-2.5 text-xs text-slate-800 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all duration-200 dark:bg-slate-950 dark:border-slate-800 dark:text-white cursor-pointer"
+                  className="w-full p-2.5 text-xs text-slate-800 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all duration-200    cursor-pointer"
                 >
                   <option value="facebook">Facebook Ads</option>
                   <option value="tiktok">TikTok Ads</option>
@@ -161,49 +162,49 @@ export function CampaignBuilderView({
                 </select>
               </div>
               <div>
-                <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1.5 dark:text-slate-400">Campaign Medium</label>
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1.5 ">Campaign Medium</label>
                 <input 
                   type="text" 
                   placeholder="paid_social"
                   value={urlBuilderMedium}
                   onChange={(e) => setUrlBuilderMedium(e.target.value)}
-                  className="w-full p-2.5 text-xs text-slate-800 placeholder-slate-400 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all duration-200 dark:bg-slate-950 dark:border-slate-800 dark:text-white"
+                  className="w-full p-2.5 text-xs text-slate-800 placeholder-slate-400 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all duration-200   "
                 />
               </div>
             </div>
 
             {/* Campaign Name */}
             <div>
-              <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1.5 dark:text-slate-400">Campaign Name</label>
+              <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1.5 ">Campaign Name</label>
               <input 
                 type="text" 
                 placeholder="eid_sale_promotion"
                 value={urlBuilderCampaign}
                 onChange={(e) => setUrlBuilderCampaign(e.target.value)}
-                className="w-full p-2.5 text-xs text-slate-800 placeholder-slate-400 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all duration-200 dark:bg-slate-950 dark:border-slate-800 dark:text-white"
+                className="w-full p-2.5 text-xs text-slate-800 placeholder-slate-400 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all duration-200   "
               />
             </div>
 
             {/* Optional parameters Content & Term */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1.5 dark:text-slate-400">Ad Content (Optional)</label>
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1.5 ">Ad Content (Optional)</label>
                 <input 
                   type="text" 
                   placeholder="video_ad_1"
                   value={urlBuilderContent}
                   onChange={(e) => setUrlBuilderContent(e.target.value)}
-                  className="w-full p-2.5 text-xs text-slate-800 placeholder-slate-400 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all duration-200 dark:bg-slate-950 dark:border-slate-800 dark:text-white"
+                  className="w-full p-2.5 text-xs text-slate-800 placeholder-slate-400 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all duration-200   "
                 />
               </div>
               <div>
-                <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1.5 dark:text-slate-400">Search Term (Optional)</label>
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1.5 ">Search Term (Optional)</label>
                 <input 
                   type="text" 
                   placeholder="buy_shoes"
                   value={urlBuilderTerm}
                   onChange={(e) => setUrlBuilderTerm(e.target.value)}
-                  className="w-full p-2.5 text-xs text-slate-800 placeholder-slate-400 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all duration-200 dark:bg-slate-950 dark:border-slate-800 dark:text-white"
+                  className="w-full p-2.5 text-xs text-slate-800 placeholder-slate-400 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all duration-200   "
                 />
               </div>
             </div>
@@ -219,20 +220,20 @@ export function CampaignBuilderView({
           </div>
 
           {/* Output generator result box */}
-          <div className="rounded-xl bg-gradient-to-br from-indigo-50/40 to-slate-50/20 border border-indigo-100/50 p-5 flex flex-col justify-between dark:from-slate-950 dark:to-slate-900/40 dark:border-slate-800/80">
+          <div className="rounded-xl bg-gradient-to-br from-indigo-50/40 to-slate-50/20 border border-indigo-100/50 p-5 flex flex-col justify-between   ">
             <div className="space-y-3">
-              <h4 className="text-xs font-bold text-slate-700 uppercase tracking-widest dark:text-slate-350">Attributed URL Result</h4>
-              <p className="text-[11px] text-slate-400 dark:text-slate-500">Copy the compiled destination URL below and paste it as the target landing page inside Facebook Ads Manager or TikTok Campaign Editor.</p>
+              <h4 className="text-xs font-bold text-slate-700 uppercase tracking-widest ">Attributed URL Result</h4>
+              <p className="text-[11px] text-slate-400 ">Copy the compiled destination URL below and paste it as the target landing page inside Facebook Ads Manager or TikTok Campaign Editor.</p>
             </div>
 
-            <div className="my-4 bg-white border border-slate-200 rounded-lg p-3 text-xs font-mono text-slate-700 break-all select-all dark:bg-slate-900 dark:border-slate-800 dark:text-slate-200 relative group min-h-24 flex items-center">
+            <div className="my-4 bg-white border border-slate-200 rounded-lg p-3 text-xs font-mono text-slate-700 break-all select-all    relative group min-h-24 flex items-center">
               {generatedCampaignUrl ? (
                 <>
                   <span className="pr-8">{generatedCampaignUrl}</span>
                   <button 
                     type="button"
                     onClick={() => handleCopy(generatedCampaignUrl, 'generated_campaign_url')}
-                    className="absolute top-2 right-2 p-1.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-600 cursor-pointer dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-300 transition-colors"
+                    className="absolute top-2 right-2 p-1.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-600 cursor-pointer    transition-colors"
                     title="Copy URL"
                   >
                     {copiedStates['generated_campaign_url'] ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
@@ -243,7 +244,7 @@ export function CampaignBuilderView({
               )}
             </div>
 
-            <div className="text-[10px] text-slate-400 leading-normal flex items-start gap-1.5 dark:text-slate-500">
+            <div className="text-[10px] text-slate-400 leading-normal flex items-start gap-1.5 ">
               <Info className="w-3.5 h-3.5 shrink-0 text-slate-400 mt-0.5" />
               <span>Applying proper UTM discipline ensures tracking data cleanly attributes purchase value directly to campaigns.</span>
             </div>
@@ -255,10 +256,10 @@ export function CampaignBuilderView({
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         
         {/* Builder Form controls */}
-        <form onSubmit={handleDispatchSandboxTest} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm space-y-5 dark:bg-slate-900 dark:border-slate-800 md:p-6 md:space-y-6">
+        <form onSubmit={handleDispatchSandboxTest} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm space-y-5   md:p-6 md:space-y-6">
           <div>
-            <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wide dark:text-white">Campaign Event Tester</h3>
-            <p className="text-xs text-slate-400 dark:text-slate-500">Build a sample WooCommerce event and test how it reaches your ad platforms.</p>
+            <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wide ">Campaign Event Tester</h3>
+            <p className="text-xs text-slate-400 ">Build a sample WooCommerce event and test how it reaches your ad platforms.</p>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -267,7 +268,7 @@ export function CampaignBuilderView({
               <select 
                 value={builderPlatform}
                 onChange={(e) => setBuilderPlatform(e.target.value as Platform)}
-                className="w-full p-2 text-xs bg-slate-50 border border-slate-200 rounded font-medium dark:bg-slate-950 dark:border-slate-800 dark:text-white cursor-pointer"
+                className="w-full p-2 text-xs bg-slate-50 border border-slate-200 rounded font-medium    cursor-pointer"
               >
                 <option value="Meta CAPI">Meta CAPI</option>
                 <option value="TikTok Events API">TikTok Events API</option>
@@ -280,7 +281,7 @@ export function CampaignBuilderView({
               <select 
                 value={builderEventName}
                 onChange={(e) => setBuilderEventName(e.target.value)}
-                className="w-full p-2 text-xs bg-slate-50 border border-slate-200 rounded font-medium dark:bg-slate-950 dark:border-slate-800 dark:text-white cursor-pointer"
+                className="w-full p-2 text-xs bg-slate-50 border border-slate-200 rounded font-medium    cursor-pointer"
               >
                 <option value="Purchase">Purchase</option>
                 <option value="AddToCart">AddToCart</option>
@@ -292,11 +293,11 @@ export function CampaignBuilderView({
             </div>
           </div>
 
-          <div className="h-px bg-slate-100 dark:bg-slate-800" />
+          <div className="h-px bg-slate-100 " />
 
           {/* Transaction info fields */}
           <div className="space-y-4">
-            <h4 className="text-[10px] font-bold text-indigo-700 uppercase tracking-widest bg-indigo-50/50 dark:bg-indigo-950/20 dark:text-indigo-400 py-1 px-2 rounded">Variables catalog metadata</h4>
+            <h4 className="text-[10px] font-bold text-indigo-700 uppercase tracking-widest bg-indigo-50/50   py-1 px-2 rounded">Variables catalog metadata</h4>
             
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
@@ -305,7 +306,7 @@ export function CampaignBuilderView({
                   type="text" 
                   value={builderValue}
                   onChange={(e) => setBuilderValue(e.target.value)}
-                  className="w-full p-2 text-xs bg-slate-50 border border-slate-200 rounded font-mono dark:bg-slate-950 dark:border-slate-800 dark:text-white"
+                  className="w-full p-2 text-xs bg-slate-50 border border-slate-200 rounded font-mono   "
                 />
               </div>
               <div>
@@ -314,7 +315,7 @@ export function CampaignBuilderView({
                   type="text" 
                   value={builderCurrency}
                   onChange={(e) => setBuilderCurrency(e.target.value)}
-                  className="w-full p-2 text-xs bg-slate-50 border border-slate-200 rounded font-mono dark:bg-slate-950 dark:border-slate-800 dark:text-white"
+                  className="w-full p-2 text-xs bg-slate-50 border border-slate-200 rounded font-mono   "
                 />
               </div>
             </div>
@@ -322,94 +323,97 @@ export function CampaignBuilderView({
 
           {/* Customer matches indicators */}
           <div className="space-y-4">
-            <h4 className="text-[10px] font-bold text-cyan-755 uppercase tracking-widest bg-cyan-50/50 dark:bg-cyan-950/20 dark:text-cyan-400 py-1 px-2 rounded">Identities (hashed automatically)</h4>
+            <h4 className="text-[10px] font-bold text-cyan-700 uppercase tracking-widest bg-cyan-50/50   py-1 px-2 rounded flex items-center">
+              Identities (hashed automatically)
+              <Tooltip content="à¦à¦¡ à¦ªà§à¦²à§à¦¯à¦¾à¦Ÿà¦«à¦°à§à¦®à§‡ à¦•à¦¾à¦¸à§à¦Ÿà¦®à¦¾à¦° à¦ªà§à¦°à§‹à¦«à¦¾à¦‡à¦² à¦®à§à¦¯à¦¾à¦š à¦•à¦°à¦¾à¦° à¦œà¦¨à§à¦¯ à¦‡à¦®à§‡à¦‡à¦² à¦¬à¦¾ à¦«à§‹à¦¨ à¦¨à¦®à§à¦¬à¦°à¦•à§‡ SHA-256 à¦¸à¦¿à¦•à¦¿à¦‰à¦°à¦¡ à¦…à§à¦¯à¦¾à¦²à¦—à¦°à¦¿à¦¦à¦®à§‡ à¦¹à§à¦¯à¦¾à¦¶ à¦•à¦°à§‡ à¦¨à¦¿à¦°à¦¾à¦ªà¦¦à§‡ à¦ªà¦¾à¦ à¦¾à¦¨à§‹ à¦¹à§Ÿà¥¤" />
+            </h4>
             
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-[10px] font-medium text-slate-505 mb-1">Email address</label>
+                <label className="block text-[10px] font-medium text-slate-500 mb-1">Email address</label>
                 <input 
                   type="email" 
                   value={builderEmail}
                   onChange={(e) => setBuilderEmail(e.target.value)}
-                  className="w-full p-2 text-xs bg-slate-50 border border-slate-200 rounded font-mono dark:bg-slate-950 dark:border-slate-800 dark:text-white"
+                  className="w-full p-2 text-xs bg-slate-50 border border-slate-200 rounded font-mono   "
                 />
               </div>
               <div>
-                <label className="block text-[10px] font-medium text-slate-505 mb-1">Phone number</label>
+                <label className="block text-[10px] font-medium text-slate-500 mb-1">Phone number</label>
                 <input 
                   type="text" 
                   value={builderPhone}
                   onChange={(e) => setBuilderPhone(e.target.value)}
-                  className="w-full p-2 text-xs bg-slate-50 border border-slate-200 rounded font-mono dark:bg-slate-950 dark:border-slate-800 dark:text-white"
+                  className="w-full p-2 text-xs bg-slate-50 border border-slate-200 rounded font-mono   "
                 />
               </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-[10px] font-medium text-slate-505 mb-1">Client origin IP address</label>
+                <label className="block text-[10px] font-medium text-slate-500 mb-1">Client origin IP address</label>
                 <input 
                   type="text" 
                   value={builderIp}
                   onChange={(e) => setBuilderIp(e.target.value)}
-                  className="w-full p-2 text-xs bg-slate-50 border border-slate-200 rounded font-mono dark:bg-slate-950 dark:border-slate-800 dark:text-white"
+                  className="w-full p-2 text-xs bg-slate-50 border border-slate-200 rounded font-mono   "
                 />
               </div>
               <div>
-                <label className="block text-[10px] font-medium text-slate-505 mb-1">Client User Agent header</label>
+                <label className="block text-[10px] font-medium text-slate-500 mb-1">Client User Agent header</label>
                 <input 
                   type="text" 
                   value={builderUa}
                   onChange={(e) => setBuilderUa(e.target.value)}
-                  className="w-full p-2 text-xs bg-slate-50 border border-slate-200 rounded font-mono dark:bg-slate-950 dark:border-slate-800 dark:text-white"
+                  className="w-full p-2 text-xs bg-slate-50 border border-slate-200 rounded font-mono   "
                 />
               </div>
             </div>
           </div>
 
-          <div className="h-px bg-slate-100 dark:bg-slate-800" />
+          <div className="h-px bg-slate-100 " />
 
           {/* Add customized parameters */}
           <div className="space-y-3">
             <div className="flex justify-between items-center">
-              <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider dark:text-slate-400">Custom Tracking Fields</h4>
+              <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider ">Custom Tracking Fields</h4>
               <button 
                 type="button"
                 onClick={() => setCustomParams(prev => [...prev, { k: '', v: '' }])}
-                className="text-[10px] text-indigo-700 dark:text-indigo-400 font-bold hover:underline flex items-center gap-1 cursor-pointer"
+                className="text-[10px] text-indigo-700  font-bold hover:underline flex items-center gap-1 cursor-pointer"
               >
                 <Plus className="w-3.5 h-3.5" /> Add item
               </button>
             </div>
 
             <div className="space-y-2">
-              {customParams.map((param, index) => (
+              {(customParams || []).map((param, index) => (
                 <div key={index} className="grid grid-cols-1 gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] sm:items-center">
                   <input 
                     type="text" 
                     placeholder="Key (e.g. content_name)"
                     value={param.k}
                     onChange={(e) => {
-                      const updated = [...customParams];
+                      const updated = [...(customParams || [])];
                       updated[index].k = e.target.value;
                       setCustomParams(updated);
                     }}
-                    className="min-w-0 p-2 bg-slate-50 border border-slate-200 rounded text-xs font-mono dark:bg-slate-950 dark:border-slate-800 dark:text-white"
+                    className="min-w-0 p-2 bg-slate-50 border border-slate-200 rounded text-xs font-mono   "
                   />
                   <input 
                     type="text" 
                     placeholder="Value"
                     value={param.v}
                     onChange={(e) => {
-                      const updated = [...customParams];
+                      const updated = [...(customParams || [])];
                       updated[index].v = e.target.value;
                       setCustomParams(updated);
                     }}
-                    className="min-w-0 p-2 bg-slate-50 border border-slate-200 rounded text-xs font-mono dark:bg-slate-950 dark:border-slate-800 dark:text-white"
+                    className="min-w-0 p-2 bg-slate-50 border border-slate-200 rounded text-xs font-mono   "
                   />
                   <button 
                     type="button"
-                    onClick={() => setCustomParams(prev => prev.filter((_, idx) => idx !== index))}
+                    onClick={() => setCustomParams(prev => (prev || []).filter((_, idx) => idx !== index))}
                     className="justify-self-end p-1.5 text-slate-400 hover:text-rose-500 cursor-pointer"
                   >
                     <Trash2 className="w-4 h-4" />
@@ -423,7 +427,7 @@ export function CampaignBuilderView({
             <button 
               type="submit"
               disabled={dispatchingTest}
-              className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white text-xs font-bold rounded-lg transition-colors flex items-center justify-center gap-1.5 shadow-sm cursor-pointer dark:bg-indigo-600 dark:hover:bg-indigo-700"
+              className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white text-xs font-bold rounded-lg transition-colors flex items-center justify-center gap-1.5 shadow-sm cursor-pointer  "
             >
               {dispatchingTest ? (
                 <>
@@ -444,7 +448,7 @@ export function CampaignBuilderView({
         <div className="flex flex-col gap-6">
           
           {/* JSON Live representation page container */}
-          <div className="rounded-xl border border-slate-200 bg-slate-900 p-4 shadow-sm text-slate-200 font-mono text-[11px] h-80 flex flex-col justify-between dark:border-slate-800 md:h-96 md:p-5">
+          <div className="rounded-xl border border-slate-200 bg-slate-900 p-4 shadow-sm text-slate-200 font-mono text-[11px] h-80 flex flex-col justify-between  md:h-96 md:p-5">
             <div>
               <div className="flex justify-between items-center mb-3 text-slate-400 font-sans border-b border-slate-800 pb-2">
                 <span className="text-[10px] uppercase font-bold tracking-wider">Event Data Preview</span>
@@ -459,23 +463,23 @@ export function CampaignBuilderView({
           </div>
 
           {/* Sandboxed API gate output response */}
-          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm flex-1 flex flex-col justify-between dark:bg-slate-900 dark:border-slate-800">
+          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm flex-1 flex flex-col justify-between  ">
             <div>
-              <h4 className="font-bold text-slate-800 text-xs uppercase tracking-wider mb-2 dark:text-white">Test Event Response</h4>
-              <p className="text-xs text-slate-400 dark:text-slate-500 mb-4">Responses returned after sending the test event.</p>
+              <h4 className="font-bold text-slate-800 text-xs uppercase tracking-wider mb-2 ">Test Event Response</h4>
+              <p className="text-xs text-slate-400  mb-4">Responses returned after sending the test event.</p>
             </div>
 
             {campaignResp ? (
               <div className="flex-1 bg-slate-950 p-4 rounded-lg font-mono text-xs text-slate-300 overflow-auto max-h-60 space-y-2 relative">
                 <div className="flex justify-between border-b border-slate-800 pb-1.5 text-[10px] font-sans">
                   <span className="text-slate-400">Response Status Code:</span>
-                  <span className={campaignResp.body.success ? 'text-green-400 font-bold' : 'text-rose-400 font-semibold'}>{campaignResp.statusCode} {campaignResp.body.success ? 'ACCEPTED' : 'REJECTED'}</span>
+                  <span className={campaignResp?.body?.success ? 'text-green-400 font-bold' : 'text-rose-400 font-semibold'}>{campaignResp?.statusCode} {campaignResp?.body?.success ? 'ACCEPTED' : 'REJECTED'}</span>
                 </div>
-                <pre className="whitespace-pre-wrap leading-tight text-[11px]">{JSON.stringify(campaignResp.body, null, 2)}</pre>
+                <pre className="whitespace-pre-wrap leading-tight text-[11px]">{JSON.stringify(campaignResp?.body, null, 2)}</pre>
               </div>
             ) : (
-              <div className="flex-1 border border-dashed border-slate-200 dark:border-slate-800 rounded-lg p-8 flex flex-col items-center justify-center text-center text-slate-400 dark:text-slate-500 space-y-3 min-h-36">
-                <Terminal className="w-8 h-8 text-slate-300 dark:text-slate-700" />
+              <div className="flex-1 border border-dashed border-slate-200  rounded-lg p-8 flex flex-col items-center justify-center text-center text-slate-400  space-y-3 min-h-36">
+                <Terminal className="w-8 h-8 text-slate-300 " />
                 <p className="text-xs leading-normal max-w-xs">Fill out the form and send a test event to see the response here.</p>
               </div>
             )}
