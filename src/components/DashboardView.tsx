@@ -62,21 +62,48 @@ export function DashboardView({
   setAnalyticsDays
 }: DashboardViewProps) {
   const showGettingStarted = events.length === 0 && profile.eventsUsed === 0;
+  const quotaPercent = profile.eventsQuota > 0 ? Math.round((profile.eventsUsed / profile.eventsQuota) * 100) : 0;
+  const platformCards = [
+    {
+      label: 'Meta',
+      rate: metaStats.rate,
+      total: metaStats.total,
+      lastTime: metaStats.lastTime,
+      dotClass: 'bg-[#f97316]',
+      badgeClass: 'border-orange-200 bg-orange-50 text-orange-700',
+    },
+    {
+      label: 'TikTok',
+      rate: tiktokStats.rate,
+      total: tiktokStats.total,
+      lastTime: tiktokStats.lastTime,
+      dotClass: 'bg-[#2563eb]',
+      badgeClass: 'border-blue-200 bg-blue-50 text-blue-700',
+    },
+    {
+      label: 'GA4',
+      rate: ga4Stats.rate,
+      total: ga4Stats.total,
+      lastTime: ga4Stats.lastTime,
+      dotClass: 'bg-[#34a853]',
+      badgeClass: 'border-green-200 bg-green-50 text-green-700',
+    },
+  ];
 
   return (
-    <>
+    <div className="space-y-4 md:space-y-6">
       {/* Page Heading & Timeframe Selector */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+      <div className="flex flex-row items-start justify-between gap-3">
         <div>
-          <h2 className="text-xl font-bold text-slate-900 ">Dashboard</h2>
+          <h2 className="text-lg font-bold text-slate-900 md:text-xl">Dashboard</h2>
           <p className="text-xs text-slate-400 ">Your store's tracking summary</p>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-semibold text-slate-500 ">Timeframe:</span>
+        <div className="flex shrink-0 items-center gap-2">
+          <span className="hidden text-xs font-semibold text-slate-500 sm:inline">Timeframe:</span>
           <select 
             value={analyticsDays} 
             onChange={(e) => setAnalyticsDays(Number(e.target.value))}
-            className="text-xs font-bold text-slate-700 bg-white border border-slate-200    rounded-lg px-3 py-1.5 outline-none focus:ring-1 focus:ring-indigo-500 cursor-pointer shadow-sm"
+            className="h-9 rounded-lg border border-slate-200 bg-white px-2.5 text-xs font-semibold text-slate-700 shadow-sm outline-none focus:ring-1 focus:ring-blue-500 sm:px-3"
           >
             <option value="7">Last 7 Days</option>
             <option value="14">Last 14 Days</option>
@@ -128,100 +155,64 @@ export function DashboardView({
       )}
 
       {/* 4 KPI Top metrics grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        
-        {/* Event quota metrics card */}
-        <div className="rounded-3xl border border-white/60  bg-gradient-to-br from-emerald-200/50 to-emerald-50/20   backdrop-blur-2xl p-6 shadow-xl shadow-emerald-900/5 transition-transform hover:scale-[1.02]">
-          <div className="flex items-center justify-between">
-            <p className="text-xs font-bold text-emerald-800  border border-emerald-300/30 bg-emerald-100/50  px-2 py-1 rounded-md flex items-center">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <div className="col-span-2 rounded-lg border border-slate-200 bg-white p-4 shadow-sm lg:col-span-1">
+          <div className="flex items-center justify-between gap-2">
+            <p className="flex items-center text-xs font-bold text-slate-700">
               Monthly Quota
               <Tooltip content="আপনার কারেন্ট সাবস্ক্রিপশন প্ল্যানের আওতায় এই মাসে মোট কতগুলো ট্র্যাকিং ইভেন্ট প্রসেস করা হয়েছে তার হিসাব। বিলিং ডেটে এটি আবার ০ থেকে শুরু হয়।" />
             </p>
-            <span className="text-xs font-semibold text-emerald-700  flex items-center gap-0.5 font-mono bg-white/40  px-2 py-0.5 rounded-full backdrop-blur-md">
-              <TrendingUp className="w-3.5 h-3.5" />
-              {profile.eventsQuota > 0 ? Math.round((profile.eventsUsed / profile.eventsQuota) * 100) : 0}%
+            <span className="inline-flex items-center gap-1 rounded-full bg-green-50 px-2 py-0.5 text-[11px] font-bold text-green-700">
+              <TrendingUp className="h-3 w-3" />
+              {quotaPercent}%
             </span>
           </div>
-          <div className="mt-8 flex items-baseline gap-2">
-            <p className="text-3xl font-extrabold text-slate-900  tracking-tight">
-              {profile.eventsUsed.toLocaleString()}
-            </p>
-            <span className="text-xs font-semibold text-emerald-700/70 ">/ {profile.eventsQuota.toLocaleString()}</span>
-          </div>
-
-          <div className="mt-4 opacity-70 mix-blend-multiply ">
-            <div className="h-1.5 w-full rounded-full bg-emerald-100/50 overflow-hidden backdrop-blur-lg">
-              <div 
-                className="h-full rounded-full transition-all duration-500 bg-emerald-500"
-                style={{ width: `${profile.eventsQuota > 0 ? (profile.eventsUsed / profile.eventsQuota) * 100 : 0}%` }}
+          <div className="mt-4 flex items-end justify-between gap-3">
+            <div>
+              <p className="text-2xl font-bold tracking-tight text-slate-950">{profile.eventsUsed.toLocaleString()}</p>
+              <p className="mt-0.5 text-[11px] font-semibold text-slate-400">of {profile.eventsQuota.toLocaleString()}</p>
+            </div>
+            <div className="h-1.5 w-24 overflow-hidden rounded-full bg-slate-100">
+              <div
+                className="h-full rounded-full bg-[#1a73e8] transition-all duration-500"
+                style={{ width: `${quotaPercent}%` }}
               />
             </div>
           </div>
         </div>
 
-        {/* Meta Stat mini platform card */}
-        <div className="rounded-3xl border border-white/60  bg-gradient-to-br from-orange-100/70 to-orange-50/10   backdrop-blur-2xl p-6 shadow-xl shadow-orange-900/5 transition-transform hover:scale-[1.02]">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 border border-orange-300/30 bg-orange-100/50  px-2.5 py-1 rounded-md">
-              <div className="w-2 h-2 rounded-full bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.8)] pulse-dot" />
-              <p className="text-[11px] font-bold text-orange-800 ">Meta</p>
+        {platformCards.map(card => (
+          <div key={card.label} className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+            <div className="flex items-center justify-between gap-2">
+              <span className={`inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-[11px] font-bold ${card.badgeClass}`}>
+                <span className={`h-1.5 w-1.5 rounded-full ${card.dotClass}`} />
+                {card.label}
+              </span>
+              <span className="text-[10px] font-bold uppercase text-slate-400">{card.total} calls</span>
             </div>
+            <p className="mt-4 text-2xl font-bold tracking-tight text-slate-950">{card.rate}%</p>
+            <p className="mt-1 truncate font-mono text-[10px] text-slate-400">Last: {card.lastTime}</p>
           </div>
-          <div className="mt-8 flex items-baseline justify-between">
-            <p className="text-3xl font-extrabold text-slate-900  tracking-tight">{metaStats.rate}%</p>
-            <span className="text-[10px] text-orange-800  bg-white/40  backdrop-blur px-2.5 py-1 rounded-full font-mono font-bold tracking-widest">{metaStats.total} CALLS</span>
-          </div>
-          <p className="mt-4 text-[10px] text-orange-700/70  font-mono">Last event: {metaStats.lastTime}</p>
-        </div>
-
-        {/* TikTok Stat mini platform card */}
-        <div className="rounded-3xl border border-white/60  bg-gradient-to-br from-indigo-100/70 to-indigo-50/20   backdrop-blur-2xl p-6 shadow-xl shadow-indigo-900/5 transition-transform hover:scale-[1.02]">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 border border-indigo-300/30 bg-indigo-100/50  px-2.5 py-1 rounded-md">
-              <div className="w-2 h-2 rounded-full bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.8)] pulse-dot" />
-              <p className="text-[11px] font-bold text-indigo-800 ">TikTok</p>
-            </div>
-          </div>
-          <div className="mt-8 flex items-baseline justify-between">
-            <p className="text-3xl font-extrabold text-slate-900  tracking-tight">{tiktokStats.rate}%</p>
-            <span className="text-[10px] text-indigo-800  bg-white/40  backdrop-blur px-2.5 py-1 rounded-full font-mono font-bold tracking-widest">{tiktokStats.total} CALLS</span>
-          </div>
-          <p className="mt-4 text-[10px] text-indigo-700/70  font-mono">Last event: {tiktokStats.lastTime}</p>
-        </div>
-
-        {/* Google Analytics 4 mini platform card */}
-        <div className="rounded-3xl border border-white/60  bg-gradient-to-br from-purple-100/70 to-purple-50/20   backdrop-blur-2xl p-6 shadow-xl shadow-purple-900/5 transition-transform hover:scale-[1.02]">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 border border-purple-300/30 bg-purple-100/50  px-2.5 py-1 rounded-md">
-              <div className="w-2 h-2 rounded-full bg-purple-500 shadow-[0_0_8px_rgba(168,85,247,0.8)] pulse-dot" />
-              <p className="text-[11px] font-bold text-purple-800 ">Google Analytics</p>
-            </div>
-          </div>
-          <div className="mt-8 flex items-baseline justify-between">
-            <p className="text-3xl font-extrabold text-slate-900  tracking-tight">{ga4Stats.rate}%</p>
-            <span className="text-[10px] text-purple-800  bg-white/40  backdrop-blur px-2.5 py-1 rounded-full font-mono font-bold tracking-widest">{ga4Stats.total} CALLS</span>
-          </div>
-          <p className="mt-4 text-[10px] text-purple-700/70  font-mono">Last event: {ga4Stats.lastTime}</p>
-        </div>
+        ))}
       </div>
 
       {/* Main visualization split section (Trend chart & Deduplication index) */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3 lg:gap-6">
         
         {/* Event Volume charts */}
-        <div className="col-span-2 rounded-xl border border-slate-200 bg-white p-6 shadow-sm flex flex-col  ">
-          <div className="flex items-center justify-between mb-6">
+        <div className="col-span-2 flex flex-col rounded-lg border border-slate-200 bg-white p-4 shadow-sm md:p-5">
+          <div className="mb-3 flex items-center justify-between md:mb-5">
             <div>
-              <h2 className="font-bold text-slate-800 text-sm uppercase tracking-wide ">Event Activity</h2>
+              <h2 className="text-xs font-bold uppercase tracking-wide text-slate-800 md:text-sm">Event Activity</h2>
               <p className="text-xs text-slate-400 ">Events sent to ad platforms over time</p>
             </div>
-            <div className="flex items-center gap-2 text-xs text-slate-400 font-mono bg-slate-50  px-2.5 py-1 rounded border border-slate-200 ">
+            <div className="flex items-center gap-2 rounded border border-slate-200 bg-slate-50 px-2 py-1 font-mono text-[11px] text-slate-400">
               <span className="w-1.5 h-1.5 bg-indigo-500 rounded-full" />
               Live
             </div>
           </div>
 
-          <div className="h-64 mt-auto">
+          <div className="mt-auto h-44 md:h-64">
             <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
               <AreaChart data={trendData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
                 <defs>
@@ -259,16 +250,16 @@ export function DashboardView({
         </div>
 
         {/* Deduplication & optimization indicator */}
-        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm flex flex-col justify-between  ">
+        <div className="flex flex-col justify-between rounded-lg border border-slate-200 bg-white p-4 shadow-sm md:p-5">
           <div>
-            <h2 className="font-bold text-slate-800 text-sm uppercase tracking-wide ">Smart Tips</h2>
-            <p className="text-xs text-slate-400  leading-normal mt-1">
+            <h2 className="text-xs font-bold uppercase tracking-wide text-slate-800 md:text-sm">Smart Tips</h2>
+            <p className="mt-1 text-xs leading-normal text-slate-400">
               {totalSuggCount === 0 ? 'Tracking setup health' : 'How well your tracking is configured'}
             </p>
           </div>
 
-          <div className="flex flex-col items-center justify-center py-6">
-            <div className="relative h-32 w-32">
+          <div className="flex items-center gap-4 py-4 lg:flex-col lg:gap-0 lg:py-6">
+            <div className="relative h-20 w-20 shrink-0 md:h-28 md:w-28 lg:h-32 lg:w-32">
               {/* Circular progress represent */}
               <svg className="h-full w-full rotate-[-90deg]" viewBox="0 0 36 36">
                 <circle className="stroke-slate-100 " strokeWidth="4" fill="transparent" r="16" cx="18" cy="18" />
@@ -284,13 +275,13 @@ export function DashboardView({
                 />
               </svg>
               <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className="text-3xl font-extrabold text-slate-800  font-mono leading-none">{optScore}%</span>
+                <span className="font-mono text-xl font-extrabold leading-none text-slate-800 md:text-2xl lg:text-3xl">{optScore}%</span>
                 <span className="text-[10px] text-slate-400 mt-1 font-semibold uppercase tracking-wider">Score</span>
               </div>
             </div>
             
-            <div className="mt-4 text-center">
-              <p className="text-xs text-slate-500  max-w-xs leading-normal">
+            <div className="text-left lg:mt-4 lg:text-center">
+              <p className="max-w-xs text-xs leading-normal text-slate-500">
                 {totalSuggCount === 0
                   ? 'All core checks are passing across your configured platforms.'
                   : `${resolvedCount} of ${totalSuggCount} suggestions resolved. ${totalSuggCount - resolvedCount} remaining.`}
@@ -300,7 +291,7 @@ export function DashboardView({
 
           <button 
             onClick={() => setActivePage('suggestions')}
-            className="w-full py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-semibold rounded-lg transition-colors border border-indigo-100    "
+            className="w-full rounded-lg border border-slate-200 bg-white py-2 text-xs font-semibold text-slate-700 transition-colors hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700"
           >
             <span className="inline-flex items-center justify-center gap-1.5">
               {totalSuggCount === 0 ? <RefreshCw className="h-3.5 w-3.5" /> : null}
@@ -311,21 +302,21 @@ export function DashboardView({
       </div>
 
       {/* Bottom Recent Activity table section */}
-      <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden  ">
-        <div className="flex items-center justify-between border-b border-slate-100  px-6 py-4">
+      <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+        <div className="flex items-center justify-between gap-4 border-b border-slate-100 px-4 py-3 md:px-6 md:py-4">
           <div>
-            <h2 className="font-bold text-slate-800 text-sm uppercase tracking-wider ">Recent Events</h2>
-            <p className="text-xs text-slate-400 ">Latest tracking events from your store. Click to see details.</p>
+            <h2 className="text-xs font-bold uppercase tracking-wider text-slate-800 md:text-sm">Recent Events</h2>
+            <p className="text-xs text-slate-400 ">Latest tracking events from your store.</p>
           </div>
           <button 
             onClick={() => setActivePage('event-logs')}
-            className="text-xs font-semibold text-indigo-600 hover:underline flex items-center gap-1 "
+            className="flex shrink-0 items-center gap-1 text-xs font-semibold text-blue-600 hover:underline"
           >
-            View complete logs <ArrowUpRight className="w-3.5 h-3.5" />
+            Logs <ArrowUpRight className="w-3.5 h-3.5" />
           </button>
         </div>
 
-        <div className="space-y-3 p-4 md:hidden">
+        <div className="space-y-2 p-3 md:hidden">
           {events.length === 0 ? (
             <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-5 text-center  ">
               <ListChecks className="mx-auto h-7 w-7 text-slate-300" />
@@ -338,17 +329,17 @@ export function DashboardView({
                 Send Test Event
               </button>
             </div>
-          ) : events.slice(0, 5).map(e => (
+          ) : events.slice(0, 3).map(e => (
             <button
               key={e.id}
               type="button"
               onClick={() => setExpandedEventId(expandedEventId === e.id ? null : e.id)}
-              className="w-full rounded-lg border border-slate-200 bg-white p-3 text-left shadow-sm  "
+              className="w-full rounded-lg border border-slate-200 bg-white p-3 text-left"
             >
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <p className="text-sm font-bold text-slate-900 ">{e.name}</p>
-                  <p className="mt-1 flex items-center gap-1.5 text-[11px] font-medium text-slate-500 ">
+                  <p className="text-sm font-bold text-slate-900">{e.name}</p>
+                  <p className="mt-1 flex items-center gap-1.5 text-[11px] font-medium text-slate-500">
                     <span className={`h-1.5 w-1.5 rounded-full ${
                       e.platform === 'Meta CAPI' ? 'bg-indigo-500' :
                       e.platform === 'TikTok Events API' ? 'bg-cyan-500' : 'bg-orange-500'
@@ -364,11 +355,10 @@ export function DashboardView({
                   {e.status}
                 </span>
               </div>
-              <div className="mt-3 grid grid-cols-2 gap-2 text-[11px] text-slate-500">
+              <div className="mt-2 grid grid-cols-2 gap-2 text-[11px] text-slate-500">
                 <span className="font-mono">{new Date(e.timestamp).toLocaleTimeString()}</span>
                 <span className="text-right font-mono">Code {e.httpCode}</span>
               </div>
-              <p className="mt-2 truncate font-mono text-[10px] text-slate-400">{e.deduplicationKey}</p>
             </button>
           ))}
         </div>
@@ -495,6 +485,6 @@ export function DashboardView({
           </table>
         </div>
       </div>
-    </>
+    </div>
   );
 }
