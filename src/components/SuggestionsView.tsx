@@ -38,7 +38,7 @@ export function SuggestionsView({
 
         {/* Optimization score badge widget */}
         <div className="text-right shrink-0">
-          <span className="block text-[10px] font-bold text-indigo-500 uppercase tracking-widest leading-none">Tracking Score</span>
+          <span className="block text-[10px] font-bold text-[#5b59fd] uppercase tracking-widest leading-none">Tracking Score</span>
           <span className="text-4xl font-extrabold text-slate-800  font-mono inline-block mt-1">{optScore}%</span>
           <div className="mt-1.5 h-1.5 w-24 bg-slate-200  rounded-full overflow-hidden ml-auto">
             <div className="h-full bg-indigo-600 rounded-full" style={{ width: `${optScore}%` }} />
@@ -53,7 +53,7 @@ export function SuggestionsView({
             <Sparkles className="w-5 h-5" />
           </div>
           <div>
-            <h4 className="font-bold text-slate-800  text-xs uppercase tracking-wider">Check My Setup</h4>
+            <h3 className="font-bold text-slate-800  text-xs uppercase tracking-wider">Check My Setup</h3>
             <p className="text-xs text-slate-400 ">Scan your tracking setup for problems and get clear fix suggestions.</p>
           </div>
         </div>
@@ -85,7 +85,7 @@ export function SuggestionsView({
               <CheckCircle className="w-6 h-6" />
             </div>
             <div>
-              <h4 className="font-bold text-slate-800 ">Excellent! All checklist resolved</h4>
+              <h3 className="font-bold text-slate-800 ">Excellent! All checklist resolved</h3>
               <p className="text-xs text-slate-400  max-w-sm mx-auto mt-1">Your tracking setup looks healthy across Meta, TikTok, and GA4.</p>
             </div>
             <div className="mx-auto grid max-w-2xl grid-cols-1 gap-2 text-left sm:grid-cols-3">
@@ -126,7 +126,7 @@ export function SuggestionsView({
                       <span className="text-[10px] text-slate-400  font-mono font-semibold">{s.platform} module</span>
                     )}
                   </div>
-                  <h4 className="font-bold text-slate-800  text-sm mt-1.5">{s.title}</h4>
+                  <h3 className="font-bold text-slate-800  text-sm mt-1.5">{s.title}</h3>
                 </div>
 
                 <div className="flex gap-1">

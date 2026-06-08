@@ -84,24 +84,26 @@ export function SettingsView({
   );
   const isCustomRoute = selectedEventRoute === '__custom__';
   const routeToAdd = isCustomRoute ? customEventRoute : selectedEventRoute;
-  const settingsSections = [
-    { id: 'settings-domain', label: 'Domain' },
-    { id: 'settings-platforms', label: 'Platform keys' },
-    { id: 'settings-courier', label: 'Courier' },
-    { id: 'settings-routing', label: 'Event routing' },
-    { id: 'settings-wordpress', label: 'WordPress bridge' },
-    { id: 'settings-alerts', label: 'Alerts' },
-  ];
-
-  const jumpToSettingsSection = (id: string) => {
-    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  };
-
   const submitEventRoute = async () => {
     await handleAddRule(routeToAdd);
     setSelectedEventRoute('');
     setCustomEventRoute('');
   };
+
+  useEffect(() => {
+    const handleSectionJump = (event: Event) => {
+      const detail = (event as CustomEvent<{ pageId: string; sectionId: string }>).detail;
+      if (detail?.pageId !== 'settings') return;
+      const sectionId = detail.sectionId;
+      if (!sectionId) return;
+      window.requestAnimationFrame(() => {
+        document.getElementById(sectionId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    };
+
+    window.addEventListener('buykori:page-section', handleSectionJump);
+    return () => window.removeEventListener('buykori:page-section', handleSectionJump);
+  }, []);
 
   useEffect(() => {
     setLocalStoreDomain(storeDomain || '');
@@ -273,43 +275,6 @@ export function SettingsView({
 
   return (
     <div className="space-y-4">
-      <div className="sticky top-[56px] z-20 rounded-lg border border-slate-200 bg-white/95 p-3 shadow-sm backdrop-blur">
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Settings sections</p>
-            <p className="text-xs text-slate-400">Jump directly to the configuration area you need.</p>
-          </div>
-          <select
-            aria-label="Jump to settings section"
-            className="h-9 rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 md:hidden"
-            defaultValue=""
-            onChange={(event) => {
-              if (event.target.value) {
-                jumpToSettingsSection(event.target.value);
-                event.currentTarget.value = '';
-              }
-            }}
-          >
-            <option value="">Go to section...</option>
-            {settingsSections.map(section => (
-              <option key={section.id} value={section.id}>{section.label}</option>
-            ))}
-          </select>
-          <div className="hidden flex-wrap gap-2 md:flex">
-            {settingsSections.map(section => (
-              <button
-                key={section.id}
-                type="button"
-                onClick={() => jumpToSettingsSection(section.id)}
-                className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-600 transition-colors hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700"
-              >
-                {section.label}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-3 lg:gap-8">
       
       {/* Fixed controls sidebar settings tabs */}

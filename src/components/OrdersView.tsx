@@ -116,6 +116,19 @@ export function OrdersView({
   const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
   const toggleExpand = (id: string) => setExpandedOrderId(prev => prev === id ? null : id);
 
+  useEffect(() => {
+    const handleSectionJump = (event: Event) => {
+      const detail = (event as CustomEvent<{ pageId: string; sectionId: string }>).detail;
+      if (detail?.pageId !== 'orders') return;
+      setActiveTab(detail.sectionId === 'orders-shipped' ? 'shipped' : 'pending');
+      window.requestAnimationFrame(() => {
+        document.getElementById(detail.sectionId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    };
+    window.addEventListener('buykori:page-section', handleSectionJump);
+    return () => window.removeEventListener('buykori:page-section', handleSectionJump);
+  }, []);
+
   // Search & Filters
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [providerFilter, setProviderFilter] = useState<string>('all');
@@ -687,7 +700,7 @@ export function OrdersView({
       </div>
 
       {activeTab === 'pending' && (
-        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm flex flex-col space-y-4  ">
+        <div id="orders-pending" className="scroll-mt-24 rounded-xl border border-slate-200 bg-white p-6 shadow-sm flex flex-col space-y-4  ">
           <div>
             <h2 className="font-bold text-slate-800 text-sm uppercase tracking-wide ">COD Hold Queue (Awaiting Verification)</h2>
             <p className="text-xs text-slate-400 ">
@@ -957,7 +970,7 @@ export function OrdersView({
       )}
 
       {activeTab === 'shipped' && (
-        <div className="flex flex-col space-y-3 rounded-xl border border-slate-200 bg-white p-3 shadow-sm md:space-y-4 md:p-5">
+        <div id="orders-shipped" className="scroll-mt-24 flex flex-col space-y-3 rounded-xl border border-slate-200 bg-white p-3 shadow-sm md:space-y-4 md:p-5">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
             <div>
               <h2 className="text-xs font-black uppercase tracking-wide text-slate-800 md:text-sm">Shipped Orders & Delivery Tracking</h2>

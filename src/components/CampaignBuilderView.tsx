@@ -108,10 +108,22 @@ export function CampaignBuilderView({
     }, null, 2);
   };
 
+  React.useEffect(() => {
+    const handleSectionJump = (event: Event) => {
+      const detail = (event as CustomEvent<{ pageId: string; sectionId: string }>).detail;
+      if (detail?.pageId !== 'campaign-builder') return;
+      window.requestAnimationFrame(() => {
+        document.getElementById(detail.sectionId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    };
+    window.addEventListener('buykori:page-section', handleSectionJump);
+    return () => window.removeEventListener('buykori:page-section', handleSectionJump);
+  }, []);
+
   return (
     <div className="space-y-6 md:space-y-8">
       {/* Campaign URL Builder Widget */}
-      <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm flex flex-col space-y-4   md:p-6">
+      <div id="campaign-url-builder" className="scroll-mt-24 rounded-xl border border-slate-200 bg-white p-4 shadow-sm flex flex-col space-y-4   md:p-6">
         <div className="flex items-start gap-2.5 pb-3 border-b border-slate-100 ">
           <div className="hidden p-2 rounded-lg bg-indigo-50  text-indigo-600  sm:block">
             <Link className="w-4 h-4" />
@@ -268,7 +280,7 @@ export function CampaignBuilderView({
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         
         {/* Builder Form controls */}
-        <form onSubmit={handleDispatchSandboxTest} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm space-y-5   md:p-6 md:space-y-6">
+        <form id="campaign-event-tester" onSubmit={handleDispatchSandboxTest} className="scroll-mt-24 rounded-xl border border-slate-200 bg-white p-4 shadow-sm space-y-5   md:p-6 md:space-y-6">
           <div>
             <h2 className="font-bold text-slate-800 text-sm uppercase tracking-wide ">Campaign Event Tester</h2>
             <p className="text-xs text-slate-400 ">Build a sample WooCommerce event and test how it reaches your ad platforms.</p>
@@ -480,7 +492,7 @@ export function CampaignBuilderView({
         <div className="flex flex-col gap-6">
           
           {/* JSON Live representation page container */}
-          <div className="rounded-xl border border-slate-200 bg-slate-900 p-4 shadow-sm text-slate-200 font-mono text-[11px] h-80 flex flex-col justify-between  md:h-96 md:p-5">
+          <div id="campaign-data-preview" className="scroll-mt-24 rounded-xl border border-slate-200 bg-slate-900 p-4 shadow-sm text-slate-200 font-mono text-[11px] h-80 flex flex-col justify-between  md:h-96 md:p-5">
             <div>
               <div className="flex justify-between items-center mb-3 text-slate-400 font-sans border-b border-slate-800 pb-2">
                 <span className="text-[10px] uppercase font-bold tracking-wider text-[#738196]">Event Data Preview</span>

@@ -97,6 +97,18 @@ export function AnalyticsView({
     return () => observer.disconnect();
   }, []);
 
+  React.useEffect(() => {
+    const handleSectionJump = (event: Event) => {
+      const detail = (event as CustomEvent<{ pageId: string; sectionId: string }>).detail;
+      if (detail?.pageId !== 'analytics') return;
+      window.requestAnimationFrame(() => {
+        document.getElementById(detail.sectionId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    };
+    window.addEventListener('buykori:page-section', handleSectionJump);
+    return () => window.removeEventListener('buykori:page-section', handleSectionJump);
+  }, []);
+
   return (
     <div className="space-y-4 md:space-y-6">
       
@@ -124,7 +136,7 @@ export function AnalyticsView({
       
       {/* 4 Stats Cards */}
       {analyticsOverview && (
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <div id="analytics-overview" className="scroll-mt-24 grid grid-cols-2 gap-3 lg:grid-cols-4">
           
           {/* Card 1: Total Events */}
           <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
@@ -187,7 +199,7 @@ export function AnalyticsView({
       )}
 
       {/* Estimated Geo & Device Mix */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+      <div id="analytics-audience" className="scroll-mt-24 grid grid-cols-1 xl:grid-cols-3 gap-6">
         <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm  ">
           <div className="mb-5 flex items-start justify-between gap-3">
             <div>
@@ -350,7 +362,7 @@ export function AnalyticsView({
       </div>
 
       {/* Conversion Funnel & Signal Doctor Breakdown */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3 lg:gap-6">
+      <div id="analytics-funnel" className="scroll-mt-24 grid grid-cols-1 gap-4 lg:grid-cols-3 lg:gap-6">
         
         <div className="lg:col-span-2 space-y-6">
           {/* Conversion Funnel */}
@@ -485,7 +497,7 @@ export function AnalyticsView({
       </div>
 
       {/* Campaign UTM Performance Table */}
-      <div className="flex flex-col space-y-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm md:p-6">
+      <div id="analytics-campaigns" className="scroll-mt-24 flex flex-col space-y-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm md:p-6">
         <div>
           <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wide ">Marketing Campaign Performance (UTM)</h3>
           <p className="text-xs text-slate-400 ">See which campaigns bring visitors and sales.</p>
@@ -554,7 +566,7 @@ export function AnalyticsView({
       </div>
 
       {/* Campaign URL Builder widget */}
-      <div className="flex flex-col space-y-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm md:p-6">
+      <div id="analytics-url-builder" className="scroll-mt-24 flex flex-col space-y-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm md:p-6">
         <div>
           <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wide ">Campaign URL Builder</h3>
           <p className="text-xs text-slate-400 ">Create campaign links so you can see which ads drive sales.</p>

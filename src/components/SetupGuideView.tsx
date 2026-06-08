@@ -27,6 +27,20 @@ export function SetupGuideView({
   pluginReleaseInfo
 }: SetupGuideViewProps) {
   const [activeTab, setActiveTab] = useState<TabType>('wordpress');
+
+  React.useEffect(() => {
+    const handleSectionJump = (event: Event) => {
+      const detail = (event as CustomEvent<{ pageId: string; sectionId: string }>).detail;
+      if (detail?.pageId !== 'setup-guide') return;
+      const targetTab = detail.sectionId === 'setup-shopify' ? 'shopify' : detail.sectionId === 'setup-custom' ? 'custom' : 'wordpress';
+      setActiveTab(targetTab);
+      window.requestAnimationFrame(() => {
+        document.getElementById(detail.sectionId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    };
+    window.addEventListener('buykori:page-section', handleSectionJump);
+    return () => window.removeEventListener('buykori:page-section', handleSectionJump);
+  }, []);
   
   const apiToken = api_key?.trim() || '';
   const publicToken = public_key?.trim() || '';
@@ -259,7 +273,7 @@ capi('track', 'Purchase', {
 
       {/* --- WORDPRESS / WOOCOMMERCE SETUP --- */}
       {activeTab === 'wordpress' && (
-        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm   animate-fadeIn">
+        <div id="setup-wordpress" className="scroll-mt-24 rounded-xl border border-slate-200 bg-white p-6 shadow-sm   animate-fadeIn">
           <div className="mb-6">
             <h2 className="font-bold text-slate-800 text-base uppercase tracking-wider  flex items-center gap-2">
               <Globe className="w-5 h-5 text-indigo-500" />
@@ -349,7 +363,7 @@ capi('track', 'Purchase', {
 
       {/* --- SHOPIFY SETUP --- */}
       {activeTab === 'shopify' && (
-        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm   animate-fadeIn space-y-6">
+        <div id="setup-shopify" className="scroll-mt-24 rounded-xl border border-slate-200 bg-white p-6 shadow-sm   animate-fadeIn space-y-6">
           
           <div>
             <h2 className="font-bold text-slate-800 text-base uppercase tracking-wider  flex items-center gap-2">
@@ -428,7 +442,7 @@ capi('track', 'Purchase', {
 
       {/* --- CUSTOM CODE SETUP --- */}
       {activeTab === 'custom' && (
-        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm   animate-fadeIn space-y-6">
+        <div id="setup-custom" className="scroll-mt-24 rounded-xl border border-slate-200 bg-white p-6 shadow-sm   animate-fadeIn space-y-6">
           
           <div>
             <h2 className="font-bold text-slate-800 text-base uppercase tracking-wider  flex items-center gap-2">

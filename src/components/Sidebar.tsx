@@ -91,6 +91,7 @@ export function Sidebar({
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [storeSwitcherOpen, setStoreSwitcherOpen] = useState(false);
   const [switchingStore, setSwitchingStore] = useState<number | null>(null);
+  const [openSubmenus, setOpenSubmenus] = useState<Record<string, boolean>>({});
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({
     'YOUR STORE': true,
     'YOUR ORDERS': true,
@@ -110,6 +111,51 @@ export function Sidebar({
   }, []);
 
   const currentStore = stores.find(s => s.is_current);
+  const subNavSections: Record<string, { id: string; label: string }[]> = {
+    analytics: [
+      { id: 'analytics-overview', label: 'Overview' },
+      { id: 'analytics-audience', label: 'Audience' },
+      { id: 'analytics-funnel', label: 'Funnel' },
+      { id: 'analytics-campaigns', label: 'Campaigns' },
+      { id: 'analytics-url-builder', label: 'URL builder' },
+    ],
+    orders: [
+      { id: 'orders-pending', label: 'Pending queue' },
+      { id: 'orders-shipped', label: 'Shipped log' },
+    ],
+    'campaign-builder': [
+      { id: 'campaign-url-builder', label: 'URL builder' },
+      { id: 'campaign-event-tester', label: 'Event tester' },
+      { id: 'campaign-data-preview', label: 'Data preview' },
+    ],
+    'setup-guide': [
+      { id: 'setup-wordpress', label: 'WordPress' },
+      { id: 'setup-shopify', label: 'Shopify' },
+      { id: 'setup-custom', label: 'Custom website' },
+    ],
+    settings: [
+      { id: 'settings-domain', label: 'Domain' },
+      { id: 'settings-platforms', label: 'Platform keys' },
+      { id: 'settings-courier', label: 'Courier' },
+      { id: 'settings-routing', label: 'Event routing' },
+      { id: 'settings-wordpress', label: 'WordPress bridge' },
+      { id: 'settings-alerts', label: 'Alerts' },
+    ],
+  };
+
+  useEffect(() => {
+    if (subNavSections[activePage]) {
+      setOpenSubmenus(prev => ({ ...prev, [activePage]: true }));
+    }
+  }, [activePage]);
+
+  const jumpToPageSection = (pageId: string, sectionId: string) => {
+    setActivePage(pageId);
+    setOpenSubmenus(prev => ({ ...prev, [pageId]: true }));
+    window.setTimeout(() => {
+      window.dispatchEvent(new CustomEvent('buykori:page-section', { detail: { pageId, sectionId } }));
+    }, 80);
+  };
 
   const handleSwitch = async (clientId: number) => {
     if (!onSwitchStore) return;
@@ -342,56 +388,88 @@ export function Sidebar({
                 {visibleItems.map((item) => {
                   const Icon = item.icon;
                   const isActive = activePage === item.id;
+                  const subSections = subNavSections[item.id];
+                  const hasSubmenu = Boolean(subSections?.length);
+                  const submenuOpen = Boolean(openSubmenus[item.id]);
                   return (
-                    <button
-                      key={item.id}
-                      aria-current={isActive ? 'page' : undefined}
-                      onClick={() => {
-                        setActivePage(item.id);
-                        setMobileOpen(false);
-                      }}
-                      className={`bk-console-nav-item group relative flex w-full overflow-visible text-sm transition-colors duration-150 ${
-                        isActive
-                          ? 'is-active sidebar-active-glow'
-                          : 'font-medium'
-                      } ${collapsed ? 'justify-center px-0 py-2.5' : 'items-center gap-3 py-2.5 pl-5 pr-3'}`}
-                    >
-                      {isActive && (
-                        <span className="sidebar-active-indicator absolute left-0 top-1/2 h-6 w-[3px] -translate-y-1/2 rounded-r-full" />
-                      )}
+                    <div key={item.id}>
+                      <button
+                        aria-current={isActive ? 'page' : undefined}
+                        aria-expanded={hasSubmenu && !collapsed ? submenuOpen : undefined}
+                        onClick={() => {
+                          if (hasSubmenu && !collapsed) {
+                            setActivePage(item.id);
+                            setOpenSubmenus(prev => ({ ...prev, [item.id]: !prev[item.id] || activePage !== item.id }));
+                            return;
+                          }
+                          setActivePage(item.id);
+                          setMobileOpen(false);
+                        }}
+                        className={`bk-console-nav-item group relative flex w-full overflow-visible text-sm transition-colors duration-150 ${
+                          isActive
+                            ? 'is-active sidebar-active-glow'
+                            : 'font-medium'
+                        } ${collapsed ? 'justify-center px-0 py-2.5' : 'items-center gap-3 py-2.5 pl-5 pr-3'}`}
+                      >
+                        {isActive && (
+                          <span className="sidebar-active-indicator absolute left-0 top-1/2 h-6 w-[3px] -translate-y-1/2 rounded-r-full" />
+                        )}
 
-                      <Icon
-                        strokeWidth={isActive ? 2.5 : 2}
-                        className="bk-console-nav-icon h-[18px] w-[18px] shrink-0 transition-colors"
-                      />
+                        <Icon
+                          strokeWidth={isActive ? 2.5 : 2}
+                          className="bk-console-nav-icon h-[18px] w-[18px] shrink-0 transition-colors"
+                        />
 
-                      {!collapsed && (
-                        <span className="min-w-0 flex-1 text-left">
-                          <span className="block truncate">{item.name}</span>
-                          {item.subtitle && (
-                            <span className="block max-h-0 overflow-hidden text-[10px] font-medium leading-4 text-slate-400 opacity-0 transition-all duration-200 group-hover:max-h-4 group-hover:opacity-100 ">
-                              {item.subtitle}
-                            </span>
-                          )}
-                        </span>
-                      )}
+                        {!collapsed && (
+                          <span className="min-w-0 flex-1 text-left">
+                            <span className="block truncate">{item.name}</span>
+                            {item.subtitle && (
+                              <span className="block max-h-0 overflow-hidden text-[10px] font-medium leading-4 text-slate-400 opacity-0 transition-all duration-200 group-hover:max-h-4 group-hover:opacity-100 ">
+                                {item.subtitle}
+                              </span>
+                            )}
+                          </span>
+                        )}
 
-                      {Boolean(item.count) && !collapsed && (
-                        <span className="bk-console-chip ml-auto rounded-full px-1.5 py-0.5 text-[10px] font-bold">
-                          {item.count}
-                        </span>
-                      )}
+                        {hasSubmenu && !collapsed && (
+                          <ChevronDown className={`h-3.5 w-3.5 text-slate-500 transition-transform ${submenuOpen ? 'rotate-180' : ''}`} />
+                        )}
 
-                      {item.locked && !collapsed && (
-                        <LockKeyhole className="ml-auto h-3.5 w-3.5 shrink-0 text-amber-500" />
-                      )}
+                        {Boolean(item.count) && !collapsed && !hasSubmenu && (
+                          <span className="bk-console-chip ml-auto rounded-full px-1.5 py-0.5 text-[10px] font-bold">
+                            {item.count}
+                          </span>
+                        )}
 
-                      {collapsed && (
-                        <div className="pointer-events-none absolute left-full z-50 ml-3 whitespace-nowrap rounded-md bg-slate-900 px-2 py-1 text-xs text-white opacity-0 shadow-md transition-opacity duration-150 group-hover:opacity-100">
-                          {item.name}
+                        {item.locked && !collapsed && (
+                          <LockKeyhole className="ml-auto h-3.5 w-3.5 shrink-0 text-amber-500" />
+                        )}
+
+                        {collapsed && (
+                          <div className="pointer-events-none absolute left-full z-50 ml-3 whitespace-nowrap rounded-md bg-slate-900 px-2 py-1 text-xs text-white opacity-0 shadow-md transition-opacity duration-150 group-hover:opacity-100">
+                            {item.name}
+                          </div>
+                        )}
+                      </button>
+
+                      {hasSubmenu && !collapsed && submenuOpen && (
+                        <div className="ml-11 mt-1 space-y-0.5 pb-1">
+                          {subSections.map((section) => (
+                            <button
+                              key={section.id}
+                              type="button"
+                              onClick={() => {
+                                jumpToPageSection(item.id, section.id);
+                                setMobileOpen(false);
+                              }}
+                              className="block w-full rounded-lg px-3 py-1.5 text-left text-xs font-medium text-slate-500 transition-colors hover:bg-blue-50 hover:text-blue-700"
+                            >
+                              {section.label}
+                            </button>
+                          ))}
                         </div>
                       )}
-                    </button>
+                    </div>
                   );
                 })}
               </div>
