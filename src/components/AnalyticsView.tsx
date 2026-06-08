@@ -71,26 +71,47 @@ export function AnalyticsView({
   const topDistricts = analyticsAudience?.top_districts || [];
   const deviceMix = analyticsAudience?.device_mix || [];
   const [districtFunnelMode, setDistrictFunnelMode] = React.useState<'events' | 'visitors'>('events');
+  const matchChartHostRef = React.useRef<HTMLDivElement | null>(null);
+  const [matchChartSize, setMatchChartSize] = React.useState({ width: 640, height: 256 });
   const eventDistrictFunnel = analyticsAudience?.district_funnel || [];
   const visitorDistrictFunnel = analyticsAudience?.visitor_district_funnel || [];
   const districtFunnel = districtFunnelMode === 'visitors' ? visitorDistrictFunnel : eventDistrictFunnel;
   const districtFunnelUnit = districtFunnelMode === 'visitors' ? 'visitors' : 'events';
 
+  React.useEffect(() => {
+    const host = matchChartHostRef.current;
+    if (!host) return;
+
+    const updateSize = () => {
+      const rect = host.getBoundingClientRect();
+      const width = Math.max(1, Math.floor(rect.width));
+      const height = Math.max(1, Math.floor(rect.height));
+      setMatchChartSize(prev => (
+        prev.width === width && prev.height === height ? prev : { width, height }
+      ));
+    };
+
+    updateSize();
+    const observer = new ResizeObserver(updateSize);
+    observer.observe(host);
+    return () => observer.disconnect();
+  }, []);
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6">
       
       {/* Page Heading & Timeframe Selector */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex flex-row items-start justify-between gap-3">
         <div>
-          <h2 className="text-xl font-bold text-slate-900 ">Insights & Analytics</h2>
+          <h2 className="text-lg font-bold text-slate-900 md:text-xl">Insights & Analytics</h2>
           <p className="text-xs text-slate-400 ">Your store's ad performance and visitor data</p>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-semibold text-slate-500 ">Timeframe:</span>
+        <div className="flex shrink-0 items-center gap-2">
+          <span className="hidden text-xs font-semibold text-slate-500 sm:inline">Timeframe:</span>
           <select 
             value={analyticsDays} 
             onChange={(e) => setAnalyticsDays(Number(e.target.value))}
-            className="text-xs font-bold text-slate-700 bg-white border border-slate-200    rounded-lg px-3 py-1.5 outline-none focus:ring-1 focus:ring-indigo-500 cursor-pointer shadow-sm"
+            className="h-9 rounded-lg border border-slate-200 bg-white px-2.5 text-xs font-bold text-slate-700 shadow-sm outline-none focus:ring-1 focus:ring-blue-500 sm:px-3"
           >
             <option value="7">Last 7 Days</option>
             <option value="14">Last 14 Days</option>
@@ -102,15 +123,15 @@ export function AnalyticsView({
       
       {/* 4 Stats Cards */}
       {analyticsOverview && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           
           {/* Card 1: Total Events */}
-          <div className="rounded-3xl border border-white/60  bg-gradient-to-br from-indigo-100/70 to-indigo-50/20   backdrop-blur-2xl p-6 shadow-xl shadow-indigo-900/5 transition-transform hover:scale-[1.02]">
+          <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
             <div className="flex items-center justify-between">
               <p className="text-xs font-bold text-indigo-800  border border-indigo-300/30 bg-indigo-100/50  px-2 py-1 rounded-md">Total Events</p>
             </div>
-            <div className="mt-8 flex items-baseline gap-2">
-              <p className="text-3xl font-extrabold text-slate-900  tracking-tight">
+            <div className="mt-4 flex items-baseline gap-2">
+              <p className="text-2xl font-bold text-slate-900 tracking-tight">
                 {analyticsOverview.total_events?.toLocaleString() || 0}
               </p>
               <span className="text-xs font-semibold text-indigo-700/70 ">events tracked</span>
@@ -118,12 +139,12 @@ export function AnalyticsView({
           </div>
 
           {/* Card 2: Success Rate */}
-          <div className="rounded-3xl border border-white/60  bg-gradient-to-br from-emerald-100/70 to-emerald-50/20   backdrop-blur-2xl p-6 shadow-xl shadow-emerald-900/5 transition-transform hover:scale-[1.02]">
+          <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
             <div className="flex items-center justify-between">
               <p className="text-xs font-bold text-emerald-800  border border-emerald-300/30 bg-emerald-100/50  px-2 py-1 rounded-md">Success Rate</p>
             </div>
-            <div className="mt-8 flex items-baseline gap-2">
-              <p className="text-3xl font-extrabold text-slate-900  tracking-tight">
+            <div className="mt-4 flex items-baseline gap-2">
+              <p className="text-2xl font-bold text-slate-900 tracking-tight">
                 {analyticsOverview.success_rate}%
               </p>
               <span className="text-xs font-semibold text-emerald-700/70 ">Success</span>
@@ -131,12 +152,12 @@ export function AnalyticsView({
           </div>
 
           {/* Card 3: Avg Daily */}
-          <div className="rounded-3xl border border-white/60  bg-gradient-to-br from-purple-100/70 to-purple-50/20   backdrop-blur-2xl p-6 shadow-xl shadow-purple-900/5 transition-transform hover:scale-[1.02]">
+          <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
             <div className="flex items-center justify-between">
               <p className="text-xs font-bold text-purple-800  border border-purple-300/30 bg-purple-100/50  px-2 py-1 rounded-md">Daily Average</p>
             </div>
-            <div className="mt-8 flex items-baseline gap-2">
-              <p className="text-3xl font-extrabold text-slate-900  tracking-tight">
+            <div className="mt-4 flex items-baseline gap-2">
+              <p className="text-2xl font-bold text-slate-900 tracking-tight">
                 {analyticsOverview.avg_daily_events?.toLocaleString() || 0}
               </p>
               <span className="text-xs font-semibold text-purple-700/70 ">Avg daily</span>
@@ -145,15 +166,15 @@ export function AnalyticsView({
 
           {/* Card 4: Signal Grade */}
           {signalDoctor && (
-            <div className="rounded-3xl border border-white/60  bg-gradient-to-br from-amber-100/70 to-amber-50/20   backdrop-blur-2xl p-6 shadow-xl shadow-amber-900/5 transition-transform hover:scale-[1.02]">
+            <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
               <div className="flex items-center justify-between">
                 <p className="text-xs font-bold text-amber-800  border border-amber-300/30 bg-amber-100/50  px-2 py-1 rounded-md flex items-center">
                   Data Quality
                   <Tooltip content="ডেটার সম্পূর্ণতার ওপর ভিত্তি করে তৈরি ম্যাচিং রেটিং। ফোন নম্বর, ইমেল বা ইভেন্ট আইডি যত বেশি থাকবে, এড প্ল্যাটফর্মে ম্যাচিং তত ভালো হবে।" />
                 </p>
               </div>
-              <div className="mt-8 flex items-baseline gap-2">
-                <p className="text-3xl font-extrabold text-slate-900  tracking-tight">
+              <div className="mt-4 flex items-baseline gap-2">
+                <p className="text-2xl font-bold text-slate-900 tracking-tight">
                   {signalDoctor.score}/100
                 </p>
                 <span className="text-xs font-semibold text-amber-700/70 ">{signalDoctor.grade}</span>
@@ -238,7 +259,7 @@ export function AnalyticsView({
       </div>
 
       {/* District Funnel Table */}
-      <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm flex flex-col space-y-4  ">
+      <div className="flex flex-col space-y-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm md:p-6">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wide ">
@@ -267,7 +288,30 @@ export function AnalyticsView({
             </button>
           </div>
         </div>
-        <div className="overflow-x-auto">
+        <div className="space-y-2 md:hidden">
+          {!districtFunnel.length ? (
+            <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center text-xs text-slate-400">
+              Location funnel data will appear after tracking starts.
+            </div>
+          ) : districtFunnel.slice(0, 6).map((row: any) => (
+            <div key={row.district} className="rounded-lg border border-slate-200 bg-white p-3">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="font-bold text-indigo-700">{row.district}</p>
+                  <p className="mt-1 text-[11px] text-slate-400">
+                    PV {row.page_view.toLocaleString()} · Cart {row.add_to_cart.toLocaleString()} · Checkout {row.initiate_checkout.toLocaleString()}
+                  </p>
+                </div>
+                <div className="text-right">
+                  <p className="text-sm font-bold text-slate-900">{row.purchase.toLocaleString()}</p>
+                  <p className="text-[10px] font-semibold uppercase text-slate-400">Purchases</p>
+                </div>
+              </div>
+              <p className="mt-2 text-right text-xs font-bold text-indigo-600">BDT {row.revenue.toLocaleString()}</p>
+            </div>
+          ))}
+        </div>
+        <div className="hidden overflow-x-auto md:block">
           <table className="w-full text-left text-xs text-slate-600 divide-y divide-slate-100 min-w-[680px]  ">
             <thead className="bg-slate-50 text-[10px] font-bold uppercase tracking-wider text-slate-500  ">
               <tr>
@@ -305,11 +349,11 @@ export function AnalyticsView({
       </div>
 
       {/* Conversion Funnel & Signal Doctor Breakdown */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3 lg:gap-6">
         
         <div className="lg:col-span-2 space-y-6">
           {/* Conversion Funnel */}
-          <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm flex flex-col  ">
+          <div className="flex flex-col rounded-xl border border-slate-200 bg-white p-4 shadow-sm md:p-6">
             <div className="mb-6">
               <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wide ">Customer Funnel</h3>
               <p className="text-xs text-slate-400 ">See where visitors move from first visit to checkout.</p>
@@ -352,7 +396,7 @@ export function AnalyticsView({
           </div>
 
           {/* Telemetry Match Quality Index Bar Chart */}
-          <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm flex flex-col  ">
+          <div className="flex flex-col rounded-xl border border-slate-200 bg-white p-4 shadow-sm md:p-6">
             <div className="mb-6 flex justify-between items-center">
               <div>
                 <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wide ">Match Quality</h3>
@@ -366,16 +410,11 @@ export function AnalyticsView({
               )}
             </div>
 
-            <div className="h-64 mt-2">
+            <div ref={matchChartHostRef} className="mt-2 h-64 min-w-0">
               {signalDoctor?.signal_rates ? (
-                <ResponsiveContainer
-                  width="100%"
-                  height="100%"
-                  minWidth={1}
-                  minHeight={1}
-                  initialDimension={{ width: 640, height: 256 }}
-                >
                   <BarChart 
+                    width={matchChartSize.width}
+                    height={matchChartSize.height}
                     data={[
                       { name: 'Event ID', rate: signalDoctor.signal_rates.event_id || 0 },
                       { name: 'User Match', rate: signalDoctor.signal_rates.user_match || 0 },
@@ -403,7 +442,6 @@ export function AnalyticsView({
                     />
                     <Bar dataKey="rate" fill="#6366f1" radius={[0, 4, 4, 0]} barSize={12} />
                   </BarChart>
-                </ResponsiveContainer>
               ) : (
                 <div className="py-12 text-center text-xs text-slate-400">Not enough data yet. Keep tracking!</div>
               )}
@@ -446,13 +484,37 @@ export function AnalyticsView({
       </div>
 
       {/* Campaign UTM Performance Table */}
-      <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm flex flex-col space-y-4  ">
+      <div className="flex flex-col space-y-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm md:p-6">
         <div>
           <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wide ">Marketing Campaign Performance (UTM)</h3>
           <p className="text-xs text-slate-400 ">See which campaigns bring visitors and sales.</p>
         </div>
 
-        <div className="overflow-x-auto">
+        <div className="space-y-2 md:hidden">
+          {!analyticsCampaigns?.campaigns || analyticsCampaigns.campaigns.length === 0 ? (
+            <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center text-xs text-slate-400">
+              No campaign data yet. Use the Campaign URL Builder below to set up ad tracking.
+            </div>
+          ) : analyticsCampaigns.campaigns.slice(0, 6).map((row: any, idx: number) => (
+            <div key={idx} className="rounded-lg border border-slate-200 bg-white p-3">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="font-bold text-indigo-700">{row.source}</p>
+                  <p className="mt-1 truncate font-mono text-[11px] text-slate-500">{row.campaign}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-sm font-bold text-slate-900">{row.purchase.toLocaleString()}</p>
+                  <p className="text-[10px] font-semibold uppercase text-slate-400">Purchases</p>
+                </div>
+              </div>
+              <p className="mt-2 text-[11px] text-slate-400">
+                View {row.view_content.toLocaleString()} · Cart {row.add_to_cart.toLocaleString()} · Checkout {row.initiate_checkout.toLocaleString()}
+              </p>
+              <p className="mt-2 text-right text-xs font-bold text-indigo-600">BDT {row.revenue.toLocaleString()}</p>
+            </div>
+          ))}
+        </div>
+        <div className="hidden overflow-x-auto md:block">
           <table className="w-full text-left text-xs text-slate-600 divide-y divide-slate-100 min-w-[700px]  ">
             <thead className="bg-slate-50 text-[10px] font-bold uppercase tracking-wider text-slate-500  ">
               <tr>
@@ -491,7 +553,7 @@ export function AnalyticsView({
       </div>
 
       {/* Campaign URL Builder widget */}
-      <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm flex flex-col space-y-4  ">
+      <div className="flex flex-col space-y-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm md:p-6">
         <div>
           <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wide ">Campaign URL Builder</h3>
           <p className="text-xs text-slate-400 ">Create campaign links so you can see which ads drive sales.</p>

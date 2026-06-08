@@ -16,19 +16,30 @@ import { Header } from './components/Header';
 import { PluginConnectAuthorizeView } from './components/PluginConnectAuthorizeView';
 import { CAPIEvent, APILog, Suggestion, Platform, EventRule, PlatformConfig, UserProfile, ClientConnection, OutboxItem, PluginReleaseInfo } from './types';
 
+const lazyWithReload = <T extends React.ComponentType<any>>(
+  loader: () => Promise<{ default: T }>
+) => lazy(() => loader().catch((error) => {
+  const chunkFailed = /Failed to fetch dynamically imported module|Importing a module script failed|Loading chunk/i.test(String(error?.message || error));
+  if (chunkFailed && sessionStorage.getItem('buykori_chunk_reload') !== '1') {
+    sessionStorage.setItem('buykori_chunk_reload', '1');
+    window.location.reload();
+  }
+  throw error;
+}));
+
 // Lazy-loaded modular views (code-splitting for smaller initial bundle)
-const DashboardView = lazy(() => import('./components/DashboardView').then(m => ({ default: m.DashboardView })));
-const AnalyticsView = lazy(() => import('./components/AnalyticsView').then(m => ({ default: m.AnalyticsView })));
-const CodProtectionView = lazy(() => import('./components/CodProtectionView').then(m => ({ default: m.CodProtectionView })));
-const EventLogsView = lazy(() => import('./components/EventLogsView').then(m => ({ default: m.EventLogsView })));
-const ApiLogsView = lazy(() => import('./components/ApiLogsView').then(m => ({ default: m.ApiLogsView })));
-const SettingsView = lazy(() => import('./components/SettingsView').then(m => ({ default: m.SettingsView })));
-const SetupGuideView = lazy(() => import('./components/SetupGuideView').then(m => ({ default: m.SetupGuideView })));
-const SuggestionsView = lazy(() => import('./components/SuggestionsView').then(m => ({ default: m.SuggestionsView })));
-const CampaignBuilderView = lazy(() => import('./components/CampaignBuilderView').then(m => ({ default: m.CampaignBuilderView })));
-const AccountView = lazy(() => import('./components/AccountView').then(m => ({ default: m.AccountView })));
-const OrdersView = lazy(() => import('./components/OrdersView').then(m => ({ default: m.OrdersView })));
-const IncompleteCheckoutsView = lazy(() => import('./components/IncompleteCheckoutsView').then(m => ({ default: m.IncompleteCheckoutsView })));
+const DashboardView = lazyWithReload(() => import('./components/DashboardView').then(m => ({ default: m.DashboardView })));
+const AnalyticsView = lazyWithReload(() => import('./components/AnalyticsView').then(m => ({ default: m.AnalyticsView })));
+const CodProtectionView = lazyWithReload(() => import('./components/CodProtectionView').then(m => ({ default: m.CodProtectionView })));
+const EventLogsView = lazyWithReload(() => import('./components/EventLogsView').then(m => ({ default: m.EventLogsView })));
+const ApiLogsView = lazyWithReload(() => import('./components/ApiLogsView').then(m => ({ default: m.ApiLogsView })));
+const SettingsView = lazyWithReload(() => import('./components/SettingsView').then(m => ({ default: m.SettingsView })));
+const SetupGuideView = lazyWithReload(() => import('./components/SetupGuideView').then(m => ({ default: m.SetupGuideView })));
+const SuggestionsView = lazyWithReload(() => import('./components/SuggestionsView').then(m => ({ default: m.SuggestionsView })));
+const CampaignBuilderView = lazyWithReload(() => import('./components/CampaignBuilderView').then(m => ({ default: m.CampaignBuilderView })));
+const AccountView = lazyWithReload(() => import('./components/AccountView').then(m => ({ default: m.AccountView })));
+const OrdersView = lazyWithReload(() => import('./components/OrdersView').then(m => ({ default: m.OrdersView })));
+const IncompleteCheckoutsView = lazyWithReload(() => import('./components/IncompleteCheckoutsView').then(m => ({ default: m.IncompleteCheckoutsView })));
 
 export default function App() {
   const isPluginConnectRoute = window.location.pathname === '/plugin/connect';
@@ -176,6 +187,10 @@ export default function App() {
 
   // Trigger feedback toasts
   const [globalToast, setGlobalToast] = useState<{ show: boolean; msg: string; err: boolean }>({ show: false, msg: '', err: false });
+
+  useEffect(() => {
+    sessionStorage.removeItem('buykori_chunk_reload');
+  }, []);
 
   const showToast = (msg: string, isErr = false) => {
     setGlobalToast({ show: true, msg, err: isErr });
