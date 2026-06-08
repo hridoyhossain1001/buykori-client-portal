@@ -60,7 +60,13 @@ export function ApiLogsView({
 
         <div className="h-32">
           {hasLatencySamples ? (
-            <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
+            <ResponsiveContainer
+              width="100%"
+              height="100%"
+              minWidth={1}
+              minHeight={1}
+              initialDimension={{ width: 640, height: 128 }}
+            >
               <ReChartsBarChart data={getLatencyChartData()} margin={{ top: 10, right: 10, left: -30, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                 <XAxis dataKey="name" stroke="#94a3b8" fontSize={9} tickLine={false} />

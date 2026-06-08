@@ -368,7 +368,13 @@ export function AnalyticsView({
 
             <div className="h-64 mt-2">
               {signalDoctor?.signal_rates ? (
-                <ResponsiveContainer width="100%" height="100%">
+                <ResponsiveContainer
+                  width="100%"
+                  height="100%"
+                  minWidth={1}
+                  minHeight={1}
+                  initialDimension={{ width: 640, height: 256 }}
+                >
                   <BarChart 
                     data={[
                       { name: 'Event ID', rate: signalDoctor.signal_rates.event_id || 0 },
