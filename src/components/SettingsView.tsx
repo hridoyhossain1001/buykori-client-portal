@@ -84,6 +84,18 @@ export function SettingsView({
   );
   const isCustomRoute = selectedEventRoute === '__custom__';
   const routeToAdd = isCustomRoute ? customEventRoute : selectedEventRoute;
+  const settingsSections = [
+    { id: 'settings-domain', label: 'Domain' },
+    { id: 'settings-platforms', label: 'Platform keys' },
+    { id: 'settings-courier', label: 'Courier' },
+    { id: 'settings-routing', label: 'Event routing' },
+    { id: 'settings-wordpress', label: 'WordPress bridge' },
+    { id: 'settings-alerts', label: 'Alerts' },
+  ];
+
+  const jumpToSettingsSection = (id: string) => {
+    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
 
   const submitEventRoute = async () => {
     await handleAddRule(routeToAdd);
@@ -260,11 +272,48 @@ export function SettingsView({
 
 
   return (
-    <div className="grid grid-cols-1 gap-5 lg:grid-cols-3 lg:gap-8">
+    <div className="space-y-4">
+      <div className="sticky top-[56px] z-20 rounded-lg border border-slate-200 bg-white/95 p-3 shadow-sm backdrop-blur">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Settings sections</p>
+            <p className="text-xs text-slate-400">Jump directly to the configuration area you need.</p>
+          </div>
+          <select
+            className="h-9 rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 md:hidden"
+            defaultValue=""
+            onChange={(event) => {
+              if (event.target.value) {
+                jumpToSettingsSection(event.target.value);
+                event.currentTarget.value = '';
+              }
+            }}
+          >
+            <option value="">Go to section...</option>
+            {settingsSections.map(section => (
+              <option key={section.id} value={section.id}>{section.label}</option>
+            ))}
+          </select>
+          <div className="hidden flex-wrap gap-2 md:flex">
+            {settingsSections.map(section => (
+              <button
+                key={section.id}
+                type="button"
+                onClick={() => jumpToSettingsSection(section.id)}
+                className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-600 transition-colors hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700"
+              >
+                {section.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-3 lg:gap-8">
       
       {/* Fixed controls sidebar settings tabs */}
       <div className="space-y-5 lg:col-span-2 lg:space-y-6">
-        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-4  ">
+        <div id="settings-domain" className="scroll-mt-28 rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-4  ">
           <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
             <div className="flex items-start gap-3">
               <div className="h-9 w-9 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center  ">
@@ -309,7 +358,7 @@ export function SettingsView({
         </div>
         
         {/* Pipeline credentials card */}
-        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-6  ">
+        <div id="settings-platforms" className="scroll-mt-28 rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-6  ">
           <div>
             <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wide ">Platform Credential Keys</h3>
             <p className="text-xs text-slate-400 ">Manage API keys, pixel IDs, and tracking tokens for each platform.</p>
@@ -398,7 +447,7 @@ export function SettingsView({
         </div>
 
         {/* Courier Settings Panel */}
-        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-6  ">
+        <div id="settings-courier" className="scroll-mt-28 rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-6  ">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
               <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wide ">Courier Integration Credentials</h3>
@@ -681,7 +730,7 @@ export function SettingsView({
         </div>
 
         {/* WordPress Custom tracking rules */}
-        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-4  ">
+        <div id="settings-routing" className="scroll-mt-28 rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-4  ">
           <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
             <div>
               <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wide ">WordPress event routing rules</h3>
@@ -839,7 +888,7 @@ export function SettingsView({
       <div className="space-y-6">
         
         {/* WordPress token health status */}
-        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-4  ">
+        <div id="settings-wordpress" className="scroll-mt-28 rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-4  ">
           <div>
             <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wide ">WordPress plugin bridge</h3>
             <p className="text-xs text-slate-400 ">Connection used by your WooCommerce tracking plugin.</p>
@@ -911,7 +960,7 @@ export function SettingsView({
         </div>
 
         {/* Threshold trigger alerts setting */}
-        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-4  ">
+        <div id="settings-alerts" className="scroll-mt-28 rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-4  ">
           <div>
             <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wide ">Threshold warnings</h3>
             <p className="text-xs text-slate-400  leading-normal">Send email alerts when your monthly tracking usage gets high.</p>
@@ -938,6 +987,7 @@ export function SettingsView({
           </div>
         </div>
 
+      </div>
       </div>
     </div>
   );

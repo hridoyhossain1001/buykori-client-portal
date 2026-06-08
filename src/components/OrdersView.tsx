@@ -1030,11 +1030,11 @@ export function OrdersView({
             })}
           </div>
 
-          <div className="hidden overflow-x-auto min-h-64 md:block">
-            <table className="w-full text-left text-xs text-slate-600 divide-y divide-slate-100 min-w-[1000px]  ">
+          <div className="hidden min-h-64 overflow-x-auto md:block">
+            <table className="w-full min-w-[860px] divide-y divide-slate-100 text-left text-xs text-slate-600">
               <thead className="bg-slate-50 text-[10px] font-bold uppercase tracking-wider text-slate-500  ">
                 <tr>
-                  <th className="px-5 py-3 w-10 text-center">
+                  <th className="w-10 px-4 py-3 text-center">
                     <input 
                       type="checkbox" 
                       checked={areAllFilteredSelected} 
@@ -1042,27 +1042,25 @@ export function OrdersView({
                       className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 w-3.5 h-3.5 cursor-pointer accent-indigo-600"
                     />
                   </th>
-                  <th className="px-5 py-3">Order ID</th>
-                  <th className="px-5 py-3">Courier / Tracking</th>
-                  <th className="px-5 py-3">Recipient Info</th>
-                  <th className="px-5 py-3">COD Amount</th>
-                  <th className="px-5 py-3">Courier Status</th>
-                  <th className="px-5 py-3">Tracking Status</th>
-                  <th className="px-5 py-3">Booked Date</th>
-                  <th className="px-5 py-3 text-right">Action</th>
+                  <th className="px-4 py-3">Order & recipient</th>
+                  <th className="px-4 py-3">Courier</th>
+                  <th className="px-4 py-3">Amount / booked</th>
+                  <th className="px-4 py-3">Delivery status</th>
+                  <th className="px-4 py-3">Purchase sync</th>
+                  <th className="px-4 py-3 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 ">
                 {loadingOrders ? (
                   <tr>
-                    <td colSpan={9} className="px-6 py-12 text-center text-slate-400">
+                    <td colSpan={7} className="px-6 py-12 text-center text-slate-400">
                       <Loader2 className="w-6 h-6 mx-auto animate-spin text-indigo-500 mb-2" />
                       Fetching shipment details...
                     </td>
                   </tr>
                 ) : filteredCourierOrders.length === 0 ? (
                   <tr>
-                    <td colSpan={9} className="px-6 py-12 text-center text-slate-400 font-medium">
+                    <td colSpan={7} className="px-6 py-12 text-center text-slate-400 font-medium">
                       <div className="mx-auto flex max-w-sm flex-col items-center gap-2">
                         <Truck className="h-7 w-7 text-slate-300" />
                         <p className="font-bold text-slate-600 ">No courier orders found</p>
@@ -1078,7 +1076,7 @@ export function OrdersView({
                     const isCancelling = cancellingOrderId === order.id;
                     return (
                     <tr key={order.id} className="hover:bg-slate-50/50 transition-colors ">
-                      <td className="px-5 py-3 text-center">
+                      <td className="px-4 py-3 text-center align-top">
                         <input 
                           type="checkbox" 
                           checked={selectedShippedOrderIds.includes(order.id)} 
@@ -1086,14 +1084,28 @@ export function OrdersView({
                           className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 w-3.5 h-3.5 cursor-pointer accent-indigo-600"
                         />
                       </td>
-                      <td className="px-5 py-3 font-mono font-bold text-slate-800 ">{order.order_id}</td>
-                      <td className="px-5 py-3">
+                      <td className="px-4 py-3 align-top">
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono text-sm font-bold text-slate-900">#{order.order_id}</span>
+                            <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[10px] font-bold uppercase text-slate-500">
+                              {order.courier_provider}
+                            </span>
+                          </div>
+                          <p className="mt-1 font-bold text-slate-800">{order.recipient_name || '-'}</p>
+                          <p className="font-mono text-[11px] text-slate-500">{order.recipient_phone || '-'}</p>
+                          <p className="mt-0.5 max-w-[260px] truncate text-[11px] text-slate-400" title={order.recipient_address}>
+                            {order.recipient_address || '-'}
+                          </p>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 align-top">
                         <div className="flex flex-col">
-                          <span className="font-semibold text-xs capitalize text-slate-800 ">
-                            {order.courier_provider}
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                            Tracking
                           </span>
                           {order.courier_tracking_id ? (
-                            <span className="font-mono text-[10px] text-slate-400  flex items-center gap-1 mt-0.5">
+                            <span className="mt-1 flex items-center gap-1 font-mono text-[11px] font-semibold text-slate-700">
                               {order.courier_tracking_id}
                               <a
                                 href={
@@ -1109,33 +1121,25 @@ export function OrdersView({
                               </a>
                             </span>
                           ) : (
-                            <span className="text-[10px] text-slate-400">No Tracking</span>
+                            <span className="mt-1 text-[11px] text-slate-400">No tracking yet</span>
                           )}
                         </div>
                       </td>
-                      <td className="px-5 py-3">
+                      <td className="px-4 py-3 align-top">
                         <div className="flex flex-col text-[11px] leading-tight">
-                          <span className="font-bold text-slate-800 ">{order.recipient_name || '-'}</span>
-                          <span className="text-slate-500 font-mono mt-0.5">{order.recipient_phone || '-'}</span>
-                          <span className="text-[10px] text-slate-400 truncate max-w-[200px] mt-0.5" title={order.recipient_address}>
-                            {order.recipient_address || '-'}
+                          <span className="font-bold text-slate-900">BDT {order.cod_amount.toLocaleString()}</span>
+                          {order.delivery_charge > 0 && (
+                            <span className="mt-0.5 text-[10px] font-medium text-slate-400">Charge BDT {order.delivery_charge}</span>
+                          )}
+                          <span className="mt-1 font-mono text-[10px] text-slate-400">
+                            {new Date(order.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} · {new Date(order.created_at).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
                           </span>
                         </div>
                       </td>
-                      <td className="px-5 py-3">
-                        <div className="flex flex-col">
-                          <span className="font-bold text-slate-800 ">BDT {order.cod_amount.toLocaleString()}</span>
-                          {order.delivery_charge > 0 && (
-                            <span className="text-[10px] text-rose-500 font-medium">Charge: BDT {order.delivery_charge}</span>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-5 py-3">{getStatusBadge(order.courier_status)}</td>
-                      <td className="px-5 py-3">{getCapiStatusBadge(order.purchase_event_sent)}</td>
-                      <td className="px-5 py-3 text-slate-400 font-mono text-[10px]">
-                        {new Date(order.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                      </td>
-                      <td className="px-5 py-3 text-right space-x-2 whitespace-nowrap">
+                      <td className="px-4 py-3 align-top">{getStatusBadge(order.courier_status)}</td>
+                      <td className="px-4 py-3 align-top">{getCapiStatusBadge(order.purchase_event_sent)}</td>
+                      <td className="px-4 py-3 text-right align-top">
+                        <div className="flex flex-wrap justify-end gap-2 whitespace-nowrap">
                         <button 
                           onClick={() => openInvoice(order)}
                           className="inline-flex items-center gap-1 px-2.5 py-1 text-[10px] font-bold rounded border border-slate-200 bg-slate-100 text-slate-700 hover:bg-slate-200 transition-all cursor-pointer    "
@@ -1171,6 +1175,7 @@ export function OrdersView({
                              (order.courier_status || '').toLowerCase() === 'delivered' ? 'Delivered' : 'Returned'}
                           </span>
                         )}
+                        </div>
                       </td>
                     </tr>
                     );
