@@ -97,7 +97,7 @@ export function IncompleteCheckoutsView({ data, onStatusChange, onRefresh, showT
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
             <input value={query} onChange={event => setQuery(event.target.value)} placeholder="Search phone, name, email or address..." className="w-full rounded-lg border border-slate-200 bg-slate-50 py-2 pl-9 pr-3 text-xs outline-none focus:border-indigo-400  " />
           </div>
-          <select value={filter} onChange={event => setFilter(event.target.value)} className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs  ">
+          <select value={filter} onChange={event => setFilter(event.target.value)} aria-label="Filter incomplete checkouts by status" className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs  ">
             <option value="all">All statuses</option>
             <option value="active">Active</option>
             <option value="incomplete">Incomplete</option>

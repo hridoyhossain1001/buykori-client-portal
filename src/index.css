@@ -16,8 +16,8 @@
     --bk-console-border-strong: #cbd5e1;
     --bk-console-text: #202124;
     --bk-console-text-muted: #5f6368;
-    --bk-console-text-subtle: #80868b;
-    --bk-console-blue: #1a73e8;
+    --bk-console-text-subtle: #70777d;
+    --bk-console-blue: #0069da;
     --bk-console-blue-hover: #1557b0;
     --bk-console-blue-soft: #e8f0fe;
     --bk-console-radius: 8px;
@@ -142,6 +142,8 @@
   }
 
   .bk-console-page {
+    width: 100%;
+    min-width: 0;
     max-width: 1240px;
     margin: 0 auto;
   }

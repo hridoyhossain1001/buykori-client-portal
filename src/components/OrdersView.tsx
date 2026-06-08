@@ -689,7 +689,7 @@ export function OrdersView({
       {activeTab === 'pending' && (
         <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm flex flex-col space-y-4  ">
           <div>
-            <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wide ">COD Hold Queue (Awaiting Verification)</h3>
+            <h2 className="font-bold text-slate-800 text-sm uppercase tracking-wide ">COD Hold Queue (Awaiting Verification)</h2>
             <p className="text-xs text-slate-400 ">
               Orders placed via Cash on Delivery are held here. You can manually confirm them, cancel them, or automatically book them onto couriers.
             </p>
@@ -747,8 +747,8 @@ export function OrdersView({
                   <div className="mt-4 grid grid-cols-2 gap-2">
                     <button onClick={() => openInvoice(order)} className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-bold text-slate-700">Invoice</button>
                     <button onClick={() => openPendingCourierModal(order)} className="rounded-lg bg-indigo-600 px-3 py-2 text-xs font-bold text-white">Book Courier</button>
-                    <button onClick={() => handleConfirmOrder(order.orderId)} className="rounded-lg bg-emerald-600 px-3 py-2 text-xs font-bold text-white">Confirm</button>
-                    <button onClick={() => handleCancelOrder(order.orderId)} className="rounded-lg bg-rose-600 px-3 py-2 text-xs font-bold text-white">Cancel</button>
+                    <button onClick={() => handleConfirmOrder(order.orderId)} className="rounded-lg bg-emerald-800 px-3 py-2 text-xs font-bold text-white">Confirm</button>
+                    <button onClick={() => handleCancelOrder(order.orderId)} className="rounded-lg bg-rose-700 px-3 py-2 text-xs font-bold text-white">Cancel</button>
                   </div>
                 </div>
               );
@@ -839,14 +839,14 @@ export function OrdersView({
                             </button>
                             <button 
                               onClick={() => handleConfirmOrder(order.orderId)}
-                              className="btn-touch-expand px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold rounded shadow-sm transition-colors cursor-pointer"
+                              className="btn-touch-expand px-2.5 py-1 bg-emerald-800 hover:bg-emerald-900 text-white text-[10px] font-bold rounded shadow-sm transition-colors cursor-pointer"
                               title="Confirm order. If auto courier is enabled, Purchase waits for delivery."
                             >
                               Confirm
                             </button>
                             <button 
                               onClick={() => handleCancelOrder(order.orderId)}
-                              className="btn-touch-expand px-2.5 py-1 bg-rose-600 hover:bg-rose-700 text-white text-[10px] font-bold rounded shadow-sm transition-colors cursor-pointer"
+                              className="btn-touch-expand px-2.5 py-1 bg-rose-700 hover:bg-rose-800 text-white text-[10px] font-bold rounded shadow-sm transition-colors cursor-pointer"
                             >
                               Cancel
                             </button>
@@ -894,7 +894,7 @@ export function OrdersView({
                                     {usablePhone(order.recipientPhone) && (
                                       <a
                                         href={`tel:${usablePhone(order.recipientPhone)}`}
-                                        className="btn-touch-expand inline-flex items-center gap-1.5 rounded bg-emerald-600 px-3 py-1.5 text-[10px] font-bold text-white shadow-sm transition-colors hover:bg-emerald-700"
+                                        className="btn-touch-expand inline-flex items-center gap-1.5 rounded bg-emerald-800 px-3 py-1.5 text-[10px] font-bold text-white shadow-sm transition-colors hover:bg-emerald-900"
                                       >
                                         <Phone className="w-3 h-3" /> Call Customer
                                       </a>
@@ -960,7 +960,7 @@ export function OrdersView({
         <div className="flex flex-col space-y-3 rounded-xl border border-slate-200 bg-white p-3 shadow-sm md:space-y-4 md:p-5">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
             <div>
-              <h3 className="text-xs font-black uppercase tracking-wide text-slate-800 md:text-sm">Shipped Orders & Delivery Tracking</h3>
+              <h2 className="text-xs font-black uppercase tracking-wide text-slate-800 md:text-sm">Shipped Orders & Delivery Tracking</h2>
               <p className="hidden text-xs text-slate-400 sm:block">
                 Track delivery statuses on SteadFast, Pathao, or RedX. Delivered orders send purchase data; returned orders send refund data.
               </p>
@@ -993,6 +993,7 @@ export function OrdersView({
               <select
                 value={providerFilter}
                 onChange={(e) => setProviderFilter(e.target.value)}
+                aria-label="Filter shipped orders by courier"
                 className="h-9 w-full cursor-pointer rounded-lg border border-slate-200 bg-white px-2 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500"
               >
                 <option value="all">All Couriers</option>
@@ -1006,6 +1007,7 @@ export function OrdersView({
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
+                aria-label="Filter shipped orders by status"
                 className="h-9 w-full cursor-pointer rounded-lg border border-slate-200 bg-white px-2 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500"
               >
                 <option value="all">All Statuses</option>
@@ -1638,7 +1640,7 @@ export function OrdersView({
               <button
                 type="button"
                 onClick={confirmCancelCourierOrder}
-                className="rounded-lg bg-rose-600 px-3 py-2 text-xs font-bold text-white transition-colors hover:bg-rose-700"
+                className="rounded-lg bg-rose-700 px-3 py-2 text-xs font-bold text-white transition-colors hover:bg-rose-800"
               >
                 Cancel Order
               </button>

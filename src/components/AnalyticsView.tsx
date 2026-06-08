@@ -111,6 +111,7 @@ export function AnalyticsView({
           <select 
             value={analyticsDays} 
             onChange={(e) => setAnalyticsDays(Number(e.target.value))}
+            aria-label="Select analytics timeframe"
             className="h-9 rounded-lg border border-slate-200 bg-white px-2.5 text-xs font-bold text-slate-700 shadow-sm outline-none focus:ring-1 focus:ring-blue-500 sm:px-3"
           >
             <option value="7">Last 7 Days</option>
@@ -134,7 +135,7 @@ export function AnalyticsView({
               <p className="text-2xl font-bold text-slate-900 tracking-tight">
                 {analyticsOverview.total_events?.toLocaleString() || 0}
               </p>
-              <span className="text-xs font-semibold text-indigo-700/70 ">events tracked</span>
+              <span className="text-xs font-semibold text-[#7564e0]">events tracked</span>
             </div>
           </div>
 
@@ -147,7 +148,7 @@ export function AnalyticsView({
               <p className="text-2xl font-bold text-slate-900 tracking-tight">
                 {analyticsOverview.success_rate}%
               </p>
-              <span className="text-xs font-semibold text-emerald-700/70 ">Success</span>
+              <span className="text-xs font-semibold text-[#008765]">Success</span>
             </div>
           </div>
 
@@ -160,7 +161,7 @@ export function AnalyticsView({
               <p className="text-2xl font-bold text-slate-900 tracking-tight">
                 {analyticsOverview.avg_daily_events?.toLocaleString() || 0}
               </p>
-              <span className="text-xs font-semibold text-purple-700/70 ">Avg daily</span>
+              <span className="text-xs font-semibold text-[#a647e5]">Avg daily</span>
             </div>
           </div>
 
@@ -177,7 +178,7 @@ export function AnalyticsView({
                 <p className="text-2xl font-bold text-slate-900 tracking-tight">
                   {signalDoctor.score}/100
                 </p>
-                <span className="text-xs font-semibold text-amber-700/70 ">{signalDoctor.grade}</span>
+                <span className="text-xs font-semibold text-[#b26200]">{signalDoctor.grade}</span>
               </div>
             </div>
           )}
@@ -372,7 +373,7 @@ export function AnalyticsView({
                           <span className="text-slate-500 flex items-center gap-1  font-mono">
                             {step.step}
                             {i > 0 && step.drop_off > 0 && (
-                              <span className="text-rose-500 text-[10px] font-bold">
+                              <span className="text-[#ee0000] text-[10px] font-bold">
                                 ↓{step.drop_off}% drop
                               </span>
                             )}
@@ -404,7 +405,7 @@ export function AnalyticsView({
               </div>
               {signalDoctor?.score !== undefined && (
                 <div className="px-3 py-1.5 rounded-xl border border-indigo-100 bg-indigo-50/50   text-right">
-                  <span className="block text-[8px] font-bold text-indigo-500 uppercase tracking-widest leading-none">Match Score</span>
+                  <span className="block text-[8px] font-bold text-[#5e5bfe] uppercase tracking-widest leading-none">Match Score</span>
                   <span className="text-lg font-black text-slate-800  font-mono leading-none">{signalDoctor.score}%</span>
                 </div>
               )}
@@ -579,8 +580,9 @@ export function AnalyticsView({
             {/* Source & Medium grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">Campaign Source</label>
+                <label htmlFor="campaign-source" className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">Campaign Source</label>
                 <select 
+                  id="campaign-source"
                   value={urlBuilderSource}
                   onChange={(e) => {
                     setUrlBuilderSource(e.target.value);

@@ -47,10 +47,10 @@ export function ApiLogsView({
     <div className="space-y-6">
 
       {/* Top analytic graph measuring latency rates over time */}
-      <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm  ">
+      <section aria-labelledby="api-response-times-title" className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm  ">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wide ">API Response Times</h3>
+            <h2 id="api-response-times-title" className="font-bold text-slate-800 text-sm uppercase tracking-wide ">API Response Times</h2>
             <p className="text-xs text-slate-400 ">Connection response times in milliseconds</p>
           </div>
           <div className="text-xs text-slate-500 font-mono ">
@@ -85,11 +85,11 @@ export function ApiLogsView({
             </div>
           )}
         </div>
-      </div>
+      </section>
 
       {/* Sub controls & export bar */}
       <div className="flex justify-between items-center">
-        <h4 className="font-bold text-slate-800 text-xs uppercase tracking-widest text-slate-500 ">API Logs</h4>
+        <h2 id="api-logs-title" className="font-bold text-slate-800 text-xs uppercase tracking-widest text-slate-500 ">API Logs</h2>
         
         <div className="flex items-center gap-2">
           <button 
@@ -102,7 +102,7 @@ export function ApiLogsView({
       </div>
 
       {/* Outbound logs table */}
-      <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-x-auto  ">
+      <section aria-labelledby="api-logs-title" className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-x-auto  ">
         <div className="space-y-3 p-4 md:hidden">
           {filteredApiLogsForTable.length === 0 ? (
             <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center  ">
@@ -139,11 +139,11 @@ export function ApiLogsView({
                   <div className="mt-4 grid gap-3 border-t border-slate-100 pt-3 ">
                     <div className="rounded-lg bg-slate-900 p-3 font-mono text-[10px] text-slate-200">
                       <p className="mb-2 font-bold uppercase tracking-wider text-indigo-400">Data Sent</p>
-                      <pre className="max-h-52 overflow-auto whitespace-pre-wrap break-all">{l.requestBody}</pre>
+                      <pre tabIndex={0} aria-label={`Request body for API log ${l.id}`} className="max-h-52 overflow-auto whitespace-pre-wrap break-all outline-none focus:ring-2 focus:ring-indigo-400">{l.requestBody}</pre>
                     </div>
                     <div className="rounded-lg bg-slate-900 p-3 font-mono text-[10px] text-slate-200">
                       <p className="mb-2 font-bold uppercase tracking-wider text-emerald-400">Platform Response</p>
-                      <pre className="max-h-52 overflow-auto whitespace-pre-wrap break-all">{l.responseBody}</pre>
+                      <pre tabIndex={0} aria-label={`Response body for API log ${l.id}`} className="max-h-52 overflow-auto whitespace-pre-wrap break-all outline-none focus:ring-2 focus:ring-indigo-400">{l.responseBody}</pre>
                     </div>
                   </div>
                 )}
@@ -152,7 +152,7 @@ export function ApiLogsView({
           })}
         </div>
 
-        <div className="hidden overflow-x-auto overflow-y-auto max-h-[calc(100vh-320px)] min-h-[300px] md:block">
+        <div tabIndex={0} aria-label="Scrollable API logs table" className="hidden overflow-x-auto overflow-y-auto max-h-[calc(100vh-320px)] min-h-[300px] outline-none focus:ring-2 focus:ring-indigo-400 md:block">
           <table className="w-full text-left text-xs divide-y divide-slate-100  min-w-[850px]">
             <thead className="bg-slate-50  text-[10px] font-bold uppercase tracking-wider text-slate-500  sticky top-0 z-10">
               <tr>
@@ -231,12 +231,12 @@ export function ApiLogsView({
                         <tr>
                           <td colSpan={7} className="bg-slate-50  border-t border-slate-100  px-6 py-4">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                              <div className="bg-slate-900 text-slate-200 text-[11px] font-mono p-4 rounded-lg overflow-auto max-h-60">
+                              <div tabIndex={0} aria-label={`Expanded request body for API log ${l.id}`} className="bg-slate-900 text-slate-200 text-[11px] font-mono p-4 rounded-lg overflow-auto max-h-60 outline-none focus:ring-2 focus:ring-indigo-400">
                                 <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-wider mb-2">Data Sent</p>
                                 <pre className="whitespace-pre-wrap break-all">{l.requestBody}</pre>
                               </div>
 
-                              <div className="bg-slate-900 text-slate-300 text-[11px] font-mono p-4 rounded-lg overflow-auto max-h-60">
+                              <div tabIndex={0} aria-label={`Expanded response body for API log ${l.id}`} className="bg-slate-900 text-slate-300 text-[11px] font-mono p-4 rounded-lg overflow-auto max-h-60 outline-none focus:ring-2 focus:ring-indigo-400">
                                 <p className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider mb-2">Platform Response</p>
                                 <pre className="whitespace-pre-wrap break-all">{l.responseBody}</pre>
                               </div>
@@ -251,7 +251,7 @@ export function ApiLogsView({
             </tbody>
           </table>
         </div>
-      </div>
+      </section>
 
     </div>
   );

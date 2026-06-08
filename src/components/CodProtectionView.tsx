@@ -86,7 +86,7 @@ export function CodProtectionView({
                 <Truck className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="font-bold text-slate-800 text-sm ">Order Management</h3>
+                <h2 className="font-bold text-slate-800 text-sm ">Order Management</h2>
                 <p className="text-[11px] text-slate-500  mt-0.5">Courier Integration</p>
               </div>
             </div>
@@ -100,6 +100,7 @@ export function CodProtectionView({
                   checked={orderManagementDraftEnabled}
                   disabled={!growthFeaturesEnabled}
                   onChange={(e) => setOrderManagementDraftEnabled(e.target.checked)}
+                  aria-label="Toggle order management courier integration"
                   className="sr-only peer"
                 />
                 <div className="w-10 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer  peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600" />
@@ -151,7 +152,7 @@ export function CodProtectionView({
                 <Zap className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="font-bold text-slate-800 text-sm ">COD Protection</h3>
+                <h2 className="font-bold text-slate-800 text-sm ">COD Protection</h2>
                 <p className="text-[11px] text-slate-500  mt-0.5">Verify before tracking</p>
               </div>
             </div>
@@ -165,6 +166,7 @@ export function CodProtectionView({
                   checked={deferredEnabled}
                   disabled={!growthFeaturesEnabled}
                   onChange={(e) => setDeferredEnabled(e.target.checked)} 
+                  aria-label="Toggle COD protection"
                   className="sr-only peer"
               />
                 <div className="w-10 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer  peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-600" />
@@ -179,8 +181,9 @@ export function CodProtectionView({
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-[9px] font-bold text-slate-500  uppercase tracking-wider mb-1.5">Auto-confirm after</label>
+              <label htmlFor="cod-auto-confirm-days" className="block text-[9px] font-bold text-slate-500  uppercase tracking-wider mb-1.5">Auto-confirm after</label>
               <select 
+                id="cod-auto-confirm-days"
                 value={autoConfirmDays}
                 onChange={(e) => setAutoConfirmDays(Number(e.target.value))}
                 disabled={!deferredEnabled}
@@ -195,8 +198,9 @@ export function CodProtectionView({
               </select>
             </div>
             <div>
-              <label className="block text-[9px] font-bold text-slate-500  uppercase tracking-wider mb-1.5">Confirm when status is</label>
+              <label htmlFor="cod-auto-confirm-status" className="block text-[9px] font-bold text-slate-500  uppercase tracking-wider mb-1.5">Confirm when status is</label>
               <select 
+                id="cod-auto-confirm-status"
                 value={autoConfirmStatus}
                 onChange={(e) => setAutoConfirmStatus(e.target.value)}
                 disabled={!deferredEnabled}
@@ -213,7 +217,7 @@ export function CodProtectionView({
               type="button"
               disabled={savingDeferredSettings || !growthFeaturesEnabled}
               onClick={handleSaveDeferredSettings}
-              className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-[10px] font-bold rounded-lg transition-colors"
+              className="px-4 py-1.5 bg-emerald-800 hover:bg-emerald-900 disabled:opacity-50 text-white text-[10px] font-bold rounded-lg transition-colors"
             >
               {savingDeferredSettings ? 'Saving...' : 'Save COD Settings'}
             </button>
@@ -234,7 +238,7 @@ export function CodProtectionView({
             <p className="text-3xl font-extrabold text-slate-900  tracking-tight">
               {pendingCount}
             </p>
-            <span className="text-xs font-semibold text-amber-700/70 ">Orders Pending</span>
+            <span className="text-xs font-semibold text-[#b26200]">Orders Pending</span>
           </div>
         </div>
 
@@ -247,7 +251,7 @@ export function CodProtectionView({
             <p className="text-3xl font-extrabold text-slate-900  tracking-tight">
               {pendingValue}
             </p>
-            <span className="text-xs font-semibold text-indigo-700/70 ">Pending Orders</span>
+            <span className="text-xs font-semibold text-[#7564e0]">Pending Orders</span>
           </div>
         </div>
 
@@ -260,7 +264,7 @@ export function CodProtectionView({
             <p className="text-3xl font-extrabold text-slate-900  tracking-tight">
               {confirmedToday}
             </p>
-            <span className="text-xs font-semibold text-emerald-700/70 ">Confirmed Today</span>
+            <span className="text-xs font-semibold text-[#008765]">Confirmed Today</span>
           </div>
         </div>
 
@@ -273,7 +277,7 @@ export function CodProtectionView({
             <p className="text-3xl font-extrabold text-slate-900  tracking-tight">
               {oldestPending}
             </p>
-            <span className="text-xs font-semibold text-rose-700/70 ">Needs Review</span>
+            <span className="text-xs font-semibold text-[#d33d69]">Needs Review</span>
           </div>
         </div>
 
@@ -283,7 +287,7 @@ export function CodProtectionView({
       <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm flex flex-col space-y-4  ">
         <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
           <div>
-            <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wide ">Pending COD Orders</h3>
+            <h2 className="font-bold text-slate-800 text-sm uppercase tracking-wide ">Pending COD Orders</h2>
             <p className="text-xs text-slate-400 ">Verify orders before sending purchase data to your ad platforms.</p>
           </div>
           <div className="flex flex-col items-start gap-1 sm:items-end">
@@ -354,8 +358,8 @@ export function CodProtectionView({
                   </div>
                 </div>
                 <div className="mt-4 grid grid-cols-2 gap-2">
-                  <button onClick={() => handleConfirmOrder(order.orderId)} className="rounded-lg bg-emerald-600 px-3 py-2 text-xs font-bold text-white">Confirm</button>
-                  <button onClick={() => handleCancelOrder(order.orderId)} className="rounded-lg bg-rose-600 px-3 py-2 text-xs font-bold text-white">Cancel</button>
+                  <button onClick={() => handleConfirmOrder(order.orderId)} className="rounded-lg bg-emerald-800 px-3 py-2 text-xs font-bold text-white">Confirm</button>
+                  <button onClick={() => handleCancelOrder(order.orderId)} className="rounded-lg bg-rose-700 px-3 py-2 text-xs font-bold text-white">Cancel</button>
                 </div>
               </div>
             );
@@ -370,6 +374,7 @@ export function CodProtectionView({
                   <input 
                     type="checkbox"
                     checked={pendingList.length > 0 && selectedOrderIds.length === pendingList.length}
+                    aria-label="Select all pending COD orders"
                     onChange={(el) => {
                       if (el.target.checked) {
                         setSelectedOrderIds(pendingList.map((o: any) => o.orderId));
@@ -416,6 +421,7 @@ export function CodProtectionView({
                         <input 
                           type="checkbox"
                           checked={isSelected}
+                          aria-label={`Select pending COD order ${order.orderId}`}
                           onChange={(el) => {
                             if (el.target.checked) {
                               setSelectedOrderIds(prev => [...prev, order.orderId]);
@@ -467,13 +473,13 @@ export function CodProtectionView({
                       <td className="px-6 py-3 text-right space-x-2 whitespace-nowrap">
                         <button 
                           onClick={() => handleConfirmOrder(order.orderId)}
-                          className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold rounded shadow-sm transition-colors cursor-pointer"
+                          className="px-2.5 py-1 bg-emerald-800 hover:bg-emerald-900 text-white text-[10px] font-bold rounded shadow-sm transition-colors cursor-pointer"
                         >
                           Confirm
                         </button>
                         <button 
                           onClick={() => handleCancelOrder(order.orderId)}
-                          className="px-2.5 py-1 bg-rose-600 hover:bg-rose-700 text-white text-[10px] font-bold rounded shadow-sm transition-colors cursor-pointer"
+                          className="px-2.5 py-1 bg-rose-700 hover:bg-rose-800 text-white text-[10px] font-bold rounded shadow-sm transition-colors cursor-pointer"
                         >
                           Cancel
                         </button>

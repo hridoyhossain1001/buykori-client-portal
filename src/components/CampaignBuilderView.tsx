@@ -117,7 +117,7 @@ export function CampaignBuilderView({
             <Link className="w-4 h-4" />
           </div>
           <div>
-            <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wide ">Campaign URL Builder</h3>
+            <h2 className="font-bold text-slate-800 text-sm uppercase tracking-wide ">Campaign URL Builder</h2>
             <p className="text-xs text-slate-400 ">Generate clean campaign destination links embedded with standard tracking UTMs to maintain accurate marketing performance reporting.</p>
           </div>
         </div>
@@ -129,9 +129,11 @@ export function CampaignBuilderView({
             
             {/* Base Website URL */}
             <div>
-              <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1.5 ">Base Website URL</label>
+              <label htmlFor="campaign-url-base" className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1.5 ">Base Website URL</label>
               <input 
+                id="campaign-url-base"
                 type="text" 
+                aria-label="Base website URL"
                 placeholder="https://your-domain.com/shop/item"
                 value={urlBuilderBaseUrl}
                 onChange={(e) => setUrlBuilderBaseUrl(e.target.value)}
@@ -142,8 +144,10 @@ export function CampaignBuilderView({
             {/* Source & Medium grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1.5 ">Campaign Source</label>
+                <label htmlFor="campaign-url-source" className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1.5 ">Campaign Source</label>
                 <select 
+                  id="campaign-url-source"
+                  aria-label="Campaign source"
                   value={urlBuilderSource}
                   onChange={(e) => {
                     setUrlBuilderSource(e.target.value);
@@ -162,9 +166,11 @@ export function CampaignBuilderView({
                 </select>
               </div>
               <div>
-                <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1.5 ">Campaign Medium</label>
+                <label htmlFor="campaign-url-medium" className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1.5 ">Campaign Medium</label>
                 <input 
+                  id="campaign-url-medium"
                   type="text" 
+                  aria-label="Campaign medium"
                   placeholder="paid_social"
                   value={urlBuilderMedium}
                   onChange={(e) => setUrlBuilderMedium(e.target.value)}
@@ -175,9 +181,11 @@ export function CampaignBuilderView({
 
             {/* Campaign Name */}
             <div>
-              <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1.5 ">Campaign Name</label>
+              <label htmlFor="campaign-url-name" className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1.5 ">Campaign Name</label>
               <input 
+                id="campaign-url-name"
                 type="text" 
+                aria-label="Campaign name"
                 placeholder="eid_sale_promotion"
                 value={urlBuilderCampaign}
                 onChange={(e) => setUrlBuilderCampaign(e.target.value)}
@@ -188,9 +196,11 @@ export function CampaignBuilderView({
             {/* Optional parameters Content & Term */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1.5 ">Ad Content (Optional)</label>
+                <label htmlFor="campaign-url-content" className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1.5 ">Ad Content (Optional)</label>
                 <input 
+                  id="campaign-url-content"
                   type="text" 
+                  aria-label="Ad content"
                   placeholder="video_ad_1"
                   value={urlBuilderContent}
                   onChange={(e) => setUrlBuilderContent(e.target.value)}
@@ -198,9 +208,11 @@ export function CampaignBuilderView({
                 />
               </div>
               <div>
-                <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1.5 ">Search Term (Optional)</label>
+                <label htmlFor="campaign-url-term" className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1.5 ">Search Term (Optional)</label>
                 <input 
+                  id="campaign-url-term"
                   type="text" 
+                  aria-label="Search term"
                   placeholder="buy_shoes"
                   value={urlBuilderTerm}
                   onChange={(e) => setUrlBuilderTerm(e.target.value)}
@@ -222,7 +234,7 @@ export function CampaignBuilderView({
           {/* Output generator result box */}
           <div className="rounded-xl bg-gradient-to-br from-indigo-50/40 to-slate-50/20 border border-indigo-100/50 p-5 flex flex-col justify-between   ">
             <div className="space-y-3">
-              <h4 className="text-xs font-bold text-slate-700 uppercase tracking-widest ">Attributed URL Result</h4>
+              <h3 className="text-xs font-bold text-slate-700 uppercase tracking-widest ">Attributed URL Result</h3>
               <p className="text-[11px] text-slate-400 ">Copy the compiled destination URL below and paste it as the target landing page inside Facebook Ads Manager or TikTok Campaign Editor.</p>
             </div>
 
@@ -258,14 +270,16 @@ export function CampaignBuilderView({
         {/* Builder Form controls */}
         <form onSubmit={handleDispatchSandboxTest} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm space-y-5   md:p-6 md:space-y-6">
           <div>
-            <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wide ">Campaign Event Tester</h3>
+            <h2 className="font-bold text-slate-800 text-sm uppercase tracking-wide ">Campaign Event Tester</h2>
             <p className="text-xs text-slate-400 ">Build a sample WooCommerce event and test how it reaches your ad platforms.</p>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">API target Router</label>
+              <label htmlFor="campaign-test-platform" className="block text-[10px] font-bold text-slate-400 uppercase mb-1">API target Router</label>
               <select 
+                id="campaign-test-platform"
+                aria-label="API target router"
                 value={builderPlatform}
                 onChange={(e) => setBuilderPlatform(e.target.value as Platform)}
                 className="w-full p-2 text-xs bg-slate-50 border border-slate-200 rounded font-medium    cursor-pointer"
@@ -277,8 +291,10 @@ export function CampaignBuilderView({
             </div>
 
             <div>
-              <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Standard Event Trigger</label>
+              <label htmlFor="campaign-test-event" className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Standard Event Trigger</label>
               <select 
+                id="campaign-test-event"
+                aria-label="Standard event trigger"
                 value={builderEventName}
                 onChange={(e) => setBuilderEventName(e.target.value)}
                 className="w-full p-2 text-xs bg-slate-50 border border-slate-200 rounded font-medium    cursor-pointer"
@@ -297,22 +313,26 @@ export function CampaignBuilderView({
 
           {/* Transaction info fields */}
           <div className="space-y-4">
-            <h4 className="text-[10px] font-bold text-indigo-700 uppercase tracking-widest bg-indigo-50/50   py-1 px-2 rounded">Variables catalog metadata</h4>
+            <h3 className="text-[10px] font-bold text-indigo-700 uppercase tracking-widest bg-indigo-50/50   py-1 px-2 rounded">Variables catalog metadata</h3>
             
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-[10px] font-medium text-slate-500 mb-1">Assigned value (price)</label>
+                <label htmlFor="campaign-test-value" className="block text-[10px] font-medium text-slate-500 mb-1">Assigned value (price)</label>
                 <input 
+                  id="campaign-test-value"
                   type="text" 
+                  aria-label="Assigned value price"
                   value={builderValue}
                   onChange={(e) => setBuilderValue(e.target.value)}
                   className="w-full p-2 text-xs bg-slate-50 border border-slate-200 rounded font-mono   "
                 />
               </div>
               <div>
-                <label className="block text-[10px] font-medium text-slate-500 mb-1">Currency Schema</label>
+                <label htmlFor="campaign-test-currency" className="block text-[10px] font-medium text-slate-500 mb-1">Currency Schema</label>
                 <input 
+                  id="campaign-test-currency"
                   type="text" 
+                  aria-label="Currency schema"
                   value={builderCurrency}
                   onChange={(e) => setBuilderCurrency(e.target.value)}
                   className="w-full p-2 text-xs bg-slate-50 border border-slate-200 rounded font-mono   "
@@ -323,25 +343,29 @@ export function CampaignBuilderView({
 
           {/* Customer matches indicators */}
           <div className="space-y-4">
-            <h4 className="text-[10px] font-bold text-cyan-700 uppercase tracking-widest bg-cyan-50/50   py-1 px-2 rounded flex items-center">
+            <h3 className="text-[10px] font-bold text-cyan-700 uppercase tracking-widest bg-cyan-50/50   py-1 px-2 rounded flex items-center">
               Identities (hashed automatically)
               <Tooltip content="এড প্ল্যাটফর্মে কাস্টমার প্রোফাইল ম্যাচ করার জন্য ইমেইল বা ফোন নম্বরকে SHA-256 সিকিউরড অ্যালগরিদমে হ্যাশ করে নিরাপদে পাঠানো হয়।" />
-            </h4>
+            </h3>
             
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-[10px] font-medium text-slate-500 mb-1">Email address</label>
+                <label htmlFor="campaign-test-email" className="block text-[10px] font-medium text-slate-500 mb-1">Email address</label>
                 <input 
+                  id="campaign-test-email"
                   type="email" 
+                  aria-label="Customer email address"
                   value={builderEmail}
                   onChange={(e) => setBuilderEmail(e.target.value)}
                   className="w-full p-2 text-xs bg-slate-50 border border-slate-200 rounded font-mono   "
                 />
               </div>
               <div>
-                <label className="block text-[10px] font-medium text-slate-500 mb-1">Phone number</label>
+                <label htmlFor="campaign-test-phone" className="block text-[10px] font-medium text-slate-500 mb-1">Phone number</label>
                 <input 
+                  id="campaign-test-phone"
                   type="text" 
+                  aria-label="Customer phone number"
                   value={builderPhone}
                   onChange={(e) => setBuilderPhone(e.target.value)}
                   className="w-full p-2 text-xs bg-slate-50 border border-slate-200 rounded font-mono   "
@@ -351,18 +375,22 @@ export function CampaignBuilderView({
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-[10px] font-medium text-slate-500 mb-1">Client origin IP address</label>
+                <label htmlFor="campaign-test-ip" className="block text-[10px] font-medium text-slate-500 mb-1">Client origin IP address</label>
                 <input 
+                  id="campaign-test-ip"
                   type="text" 
+                  aria-label="Client origin IP address"
                   value={builderIp}
                   onChange={(e) => setBuilderIp(e.target.value)}
                   className="w-full p-2 text-xs bg-slate-50 border border-slate-200 rounded font-mono   "
                 />
               </div>
               <div>
-                <label className="block text-[10px] font-medium text-slate-500 mb-1">Client User Agent header</label>
+                <label htmlFor="campaign-test-user-agent" className="block text-[10px] font-medium text-slate-500 mb-1">Client User Agent header</label>
                 <input 
+                  id="campaign-test-user-agent"
                   type="text" 
+                  aria-label="Client user agent header"
                   value={builderUa}
                   onChange={(e) => setBuilderUa(e.target.value)}
                   className="w-full p-2 text-xs bg-slate-50 border border-slate-200 rounded font-mono   "
@@ -376,7 +404,7 @@ export function CampaignBuilderView({
           {/* Add customized parameters */}
           <div className="space-y-3">
             <div className="flex justify-between items-center">
-              <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider ">Custom Tracking Fields</h4>
+              <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider ">Custom Tracking Fields</h3>
               <button 
                 type="button"
                 onClick={() => setCustomParams(prev => [...prev, { k: '', v: '' }])}
@@ -392,6 +420,7 @@ export function CampaignBuilderView({
                   <input 
                     type="text" 
                     placeholder="Key (e.g. content_name)"
+                    aria-label={`Custom tracking field ${index + 1} key`}
                     value={param.k}
                     onChange={(e) => {
                       const updated = [...(customParams || [])];
@@ -403,6 +432,7 @@ export function CampaignBuilderView({
                   <input 
                     type="text" 
                     placeholder="Value"
+                    aria-label={`Custom tracking field ${index + 1} value`}
                     value={param.v}
                     onChange={(e) => {
                       const updated = [...(customParams || [])];
@@ -414,6 +444,8 @@ export function CampaignBuilderView({
                   <button 
                     type="button"
                     onClick={() => setCustomParams(prev => (prev || []).filter((_, idx) => idx !== index))}
+                    aria-label={`Remove custom tracking field ${index + 1}`}
+                    title={`Remove custom tracking field ${index + 1}`}
                     className="justify-self-end p-1.5 text-slate-400 hover:text-rose-500 cursor-pointer"
                   >
                     <Trash2 className="w-4 h-4" />
@@ -451,13 +483,13 @@ export function CampaignBuilderView({
           <div className="rounded-xl border border-slate-200 bg-slate-900 p-4 shadow-sm text-slate-200 font-mono text-[11px] h-80 flex flex-col justify-between  md:h-96 md:p-5">
             <div>
               <div className="flex justify-between items-center mb-3 text-slate-400 font-sans border-b border-slate-800 pb-2">
-                <span className="text-[10px] uppercase font-bold tracking-wider">Event Data Preview</span>
+                <span className="text-[10px] uppercase font-bold tracking-wider text-[#738196]">Event Data Preview</span>
                 <span className="text-[9px] text-green-500 uppercase tracking-widest font-mono">Updating dynamically</span>
               </div>
-              <pre className="overflow-auto max-h-56 select-all leading-normal whitespace-pre-wrap break-words md:max-h-72">{renderCampaignPayloadJson()}</pre>
+              <pre tabIndex={0} aria-label="Event data JSON preview" className="overflow-auto max-h-56 select-all leading-normal whitespace-pre-wrap break-words outline-none focus:ring-2 focus:ring-indigo-400 md:max-h-72">{renderCampaignPayloadJson()}</pre>
             </div>
 
-            <p className="text-[10px] text-slate-500 font-sans leading-normal pt-2 border-t border-slate-800 italic">
+            <p className="text-[10px] text-[#7b8189] font-sans leading-normal pt-2 border-t border-slate-800 italic">
               Customer match details are protected before the test event is sent.
             </p>
           </div>
@@ -465,7 +497,7 @@ export function CampaignBuilderView({
           {/* Sandboxed API gate output response */}
           <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm flex-1 flex flex-col justify-between  ">
             <div>
-              <h4 className="font-bold text-slate-800 text-xs uppercase tracking-wider mb-2 ">Test Event Response</h4>
+              <h3 className="font-bold text-slate-800 text-xs uppercase tracking-wider mb-2 ">Test Event Response</h3>
               <p className="text-xs text-slate-400  mb-4">Responses returned after sending the test event.</p>
             </div>
 

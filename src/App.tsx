@@ -1265,6 +1265,7 @@ export default function App() {
           />
         )}
 
+        <main className="flex-1 min-w-0">
         {/* Global Error Banner */}
         {errState && (
           <div className="m-4 md:m-8 p-4 rounded-xl border border-rose-200 bg-rose-50 text-rose-800 flex items-start gap-3">
@@ -1573,6 +1574,7 @@ export default function App() {
 
           </div>
         )}
+        </main>
       </div>
 
       {/* Persistent notifications overlay alert */}

@@ -162,11 +162,12 @@ export function EventLogsView({
       )}
       
       {/* Search & filters controls panel */}
-      <div className="rounded-xl border border-slate-200 bg-white p-4 sm:p-5 shadow-sm space-y-4  ">
+      <section aria-label="Event log filters" className="rounded-xl border border-slate-200 bg-white p-4 sm:p-5 shadow-sm space-y-4  ">
         <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between">
           <div className="relative w-full lg:max-w-md">
             <input 
               type="text" 
+              aria-label="Filter event logs by keyword, event name, or details"
               placeholder="Filter by keyword, event name, or details..."
               value={searchFilter}
               onChange={(e) => setSearchFilter(e.target.value)}
@@ -211,7 +212,7 @@ export function EventLogsView({
 
         {/* Multi-select filter pills */}
         <div className="flex flex-wrap gap-2 pt-3 border-t border-slate-100  items-center">
-          <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mr-2 shrink-0">Filters:</span>
+          <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mr-2 shrink-0">Filters:</span>
           
           {/* Platforms lists */}
           {['Meta CAPI', 'TikTok Events API', 'TikTok Browser Pixel', 'GA4'].map(p => {
@@ -271,13 +272,13 @@ export function EventLogsView({
             </button>
           )}
         </div>
-      </div>
+      </section>
 
       {/* Big full-width searchable logs list */}
-      <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden flex flex-col  ">
-        <div className="p-4 bg-slate-50/50 border-b border-slate-100   flex justify-between items-center text-xs">
+      <section aria-labelledby="event-log-results-title" className="min-w-0 rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden flex flex-col  ">
+        <div className="p-4 bg-slate-50/50 border-b border-slate-100   flex justify-between items-center gap-3 text-xs">
           <span className="font-semibold text-slate-500 ">{filteredEventsForTable.length} events matching your search</span>
-          <span className="text-[10px] text-slate-400 ">Showing latest 100 events</span>
+          <span id="event-log-results-title" className="text-[10px] text-slate-500 ">Showing latest 100 events</span>
         </div>
 
         {filteredEventsForTable.length === 0 ? (
@@ -349,7 +350,7 @@ export function EventLogsView({
             })}
           </div>
 
-          <div className="hidden overflow-x-auto overflow-y-auto max-h-[calc(100vh-280px)] min-h-[400px] md:block">
+          <div tabIndex={0} aria-label="Scrollable event log table" className="hidden max-w-full overflow-x-auto overflow-y-auto max-h-[calc(100vh-280px)] min-h-[400px] outline-none focus:ring-2 focus:ring-indigo-400 md:block">
             <table className="w-full text-left text-xs text-slate-660 divide-y divide-slate-100   min-w-[900px]">
               <thead className="bg-slate-50  text-[10px] font-bold uppercase tracking-wider text-slate-500  sticky top-0 z-10">
                 <tr>
@@ -463,7 +464,7 @@ export function EventLogsView({
           </div>
           </>
         )}
-      </div>
+      </section>
     </div>
   );
 }

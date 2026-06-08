@@ -191,6 +191,7 @@ export function DashboardView({
           <select 
             value={analyticsDays} 
             onChange={(e) => setAnalyticsDays(Number(e.target.value))}
+            aria-label="Select dashboard timeframe"
             className="h-9 rounded-lg border border-slate-200 bg-white px-2.5 text-xs font-semibold text-slate-700 shadow-sm outline-none focus:ring-1 focus:ring-blue-500 sm:px-3"
           >
             <option value="7">Last 7 Days</option>

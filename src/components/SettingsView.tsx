@@ -280,6 +280,7 @@ export function SettingsView({
             <p className="text-xs text-slate-400">Jump directly to the configuration area you need.</p>
           </div>
           <select
+            aria-label="Jump to settings section"
             className="h-9 rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 md:hidden"
             defaultValue=""
             onChange={(event) => {
@@ -313,14 +314,14 @@ export function SettingsView({
       
       {/* Fixed controls sidebar settings tabs */}
       <div className="space-y-5 lg:col-span-2 lg:space-y-6">
-        <div id="settings-domain" className="scroll-mt-28 rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-4  ">
+        <section id="settings-domain" aria-labelledby="settings-domain-title" className="scroll-mt-28 rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-4  ">
           <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
             <div className="flex items-start gap-3">
               <div className="h-9 w-9 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center  ">
                 <Globe2 className="h-4 w-4" />
               </div>
               <div>
-                <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wide ">Website Domain</h3>
+                <h2 id="settings-domain-title" className="font-bold text-slate-800 text-sm uppercase tracking-wide ">Website Domain</h2>
                 <p className="text-xs text-slate-400 ">Used for custom website tracking, domain lock, and setup checks.</p>
               </div>
             </div>
@@ -335,8 +336,9 @@ export function SettingsView({
 
           <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-3">
             <div>
-              <label className="block text-[10px] font-semibold text-slate-400 uppercase mb-1">Store Domain</label>
+              <label htmlFor="store-domain" className="block text-[10px] font-semibold text-slate-400 uppercase mb-1">Store Domain</label>
               <input
+                id="store-domain"
                 type="text"
                 value={localStoreDomain}
                 placeholder="example.com"
@@ -355,12 +357,12 @@ export function SettingsView({
               {savingStoreDomain ? 'Saving' : 'Save Domain'}
             </button>
           </div>
-        </div>
+        </section>
         
         {/* Pipeline credentials card */}
-        <div id="settings-platforms" className="scroll-mt-28 rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-6  ">
+        <section id="settings-platforms" aria-labelledby="settings-platforms-title" className="scroll-mt-28 rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-6  ">
           <div>
-            <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wide ">Platform Credential Keys</h3>
+            <h2 id="settings-platforms-title" className="font-bold text-slate-800 text-sm uppercase tracking-wide ">Platform Credential Keys</h2>
             <p className="text-xs text-slate-400 ">Manage API keys, pixel IDs, and tracking tokens for each platform.</p>
           </div>
 
@@ -444,13 +446,13 @@ export function SettingsView({
               </div>
             );
           })}
-        </div>
+        </section>
 
         {/* Courier Settings Panel */}
-        <div id="settings-courier" className="scroll-mt-28 rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-6  ">
+        <section id="settings-courier" aria-labelledby="settings-courier-title" className="scroll-mt-28 rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-6  ">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
-              <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wide ">Courier Integration Credentials</h3>
+              <h2 id="settings-courier-title" className="font-bold text-slate-800 text-sm uppercase tracking-wide ">Courier Integration Credentials</h2>
               <p className="text-xs text-slate-400 ">Configure courier API settings for Pathao, SteadFast, and RedX.</p>
             </div>
             
@@ -585,8 +587,9 @@ export function SettingsView({
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-[10px] font-semibold text-slate-500  uppercase mb-1">Pathao Environment</label>
+                      <label htmlFor="pathao-environment" className="block text-[10px] font-semibold text-slate-500  uppercase mb-1">Pathao Environment</label>
                       <select
+                        id="pathao-environment"
                         value={courierSettings.pathao_environment || 'live'}
                         onChange={(e) => setCourierSettings((prev: any) => ({ ...prev, pathao_environment: e.target.value }))}
                         className="w-full p-2 text-xs bg-white border border-slate-200 rounded text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500   "
@@ -702,8 +705,9 @@ export function SettingsView({
               {/* General courier choices */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-[10px] font-bold text-slate-500  uppercase tracking-wider mb-1.5">Default Courier Provider</label>
+                  <label htmlFor="default-courier-provider" className="block text-[10px] font-bold text-slate-500  uppercase tracking-wider mb-1.5">Default Courier Provider</label>
                   <select 
+                    id="default-courier-provider"
                     value={courierSettings.default_courier || 'steadfast'}
                     onChange={(e) => setCourierSettings((prev: any) => ({ ...prev, default_courier: e.target.value }))}
                     className="w-full p-2 text-xs bg-white border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500    cursor-pointer"
@@ -727,18 +731,19 @@ export function SettingsView({
 
             </form>
           )}
-        </div>
+        </section>
 
         {/* WordPress Custom tracking rules */}
-        <div id="settings-routing" className="scroll-mt-28 rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-4  ">
+        <section id="settings-routing" aria-labelledby="settings-routing-title" className="scroll-mt-28 rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-4  ">
           <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
             <div>
-              <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wide ">WordPress event routing rules</h3>
+              <h2 id="settings-routing-title" className="font-bold text-slate-800 text-sm uppercase tracking-wide ">WordPress event routing rules</h2>
               <p className="text-xs text-slate-400 ">Keep active routes short. Add WooCommerce presets or a custom event from the dropdown.</p>
             </div>
             <div className="flex flex-col gap-2 rounded-lg border border-slate-200 bg-slate-50/70 p-3   xl:w-[520px]">
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
                 <select
+                  aria-label="Select event route to add"
                   value={selectedEventRoute}
                   onChange={(e) => setSelectedEventRoute(e.target.value)}
                   className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20   "
@@ -881,16 +886,16 @@ export function SettingsView({
               </tbody>
             </table>
           </div>
-        </div>
+        </section>
       </div>
 
       {/* Left side parameters / WordPress connection */}
       <div className="space-y-6">
         
         {/* WordPress token health status */}
-        <div id="settings-wordpress" className="scroll-mt-28 rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-4  ">
+        <section id="settings-wordpress" aria-labelledby="settings-wordpress-title" className="scroll-mt-28 rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-4  ">
           <div>
-            <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wide ">WordPress plugin bridge</h3>
+            <h2 id="settings-wordpress-title" className="font-bold text-slate-800 text-sm uppercase tracking-wide ">WordPress plugin bridge</h2>
             <p className="text-xs text-slate-400 ">Connection used by your WooCommerce tracking plugin.</p>
           </div>
 
@@ -957,12 +962,12 @@ export function SettingsView({
           >
             Test WordPress Connection
           </button>
-        </div>
+        </section>
 
         {/* Threshold trigger alerts setting */}
-        <div id="settings-alerts" className="scroll-mt-28 rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-4  ">
+        <section id="settings-alerts" aria-labelledby="settings-alerts-title" className="scroll-mt-28 rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-4  ">
           <div>
-            <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wide ">Threshold warnings</h3>
+            <h2 id="settings-alerts-title" className="font-bold text-slate-800 text-sm uppercase tracking-wide ">Threshold warnings</h2>
             <p className="text-xs text-slate-400  leading-normal">Send email alerts when your monthly tracking usage gets high.</p>
           </div>
 
@@ -985,7 +990,7 @@ export function SettingsView({
               </div>
             </div>
           </div>
-        </div>
+        </section>
 
       </div>
       </div>

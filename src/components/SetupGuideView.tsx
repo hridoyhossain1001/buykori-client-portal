@@ -276,7 +276,7 @@ capi('track', 'Purchase', {
                 1
               </div>
               <div className="space-y-2 flex-1">
-                <h4 className="font-bold text-slate-800 text-sm ">Download and Install WordPress Helper Plugin</h4>
+                <h3 className="font-bold text-slate-800 text-sm ">Download and Install WordPress Helper Plugin</h3>
                 <p className="text-xs text-slate-500  max-w-3xl leading-relaxed">
                   Download the pre-configured plugin, then go to <b>WordPress Admin &gt; Plugins &gt; Add New &gt; Upload Plugin</b>. Upload the ZIP and activate it.
                 </p>
@@ -304,7 +304,7 @@ capi('track', 'Purchase', {
                 2
               </div>
               <div className="space-y-2 flex-1">
-                <h4 className="font-bold text-slate-800 text-sm ">Connect Buykori Account</h4>
+                <h3 className="font-bold text-slate-800 text-sm ">Connect Buykori Account</h3>
                 <p className="text-xs text-slate-500  max-w-3xl leading-relaxed">
                   Open <b>Buykori AdSync</b> settings inside WordPress and click <b>Connect Buykori Account</b>. Login, approve the site, and the plugin will save its server configuration automatically.
                 </p>
@@ -317,7 +317,7 @@ capi('track', 'Purchase', {
                 3
               </div>
               <div className="space-y-2 flex-1">
-                <h4 className="font-bold text-slate-800 text-sm ">Run WordPress Connection Test</h4>
+                <h3 className="font-bold text-slate-800 text-sm ">Run WordPress Connection Test</h3>
                 <p className="text-xs text-slate-500  max-w-3xl leading-relaxed">
                   After authorization, use the plugin's <b>Test Connection</b> button to confirm everything is connected.
                 </p>
@@ -330,7 +330,7 @@ capi('track', 'Purchase', {
                 4
               </div>
               <div className="space-y-2 flex-1">
-                <h4 className="font-bold text-slate-800 text-sm ">Send a Test Event</h4>
+                <h3 className="font-bold text-slate-800 text-sm ">Send a Test Event</h3>
                 <p className="text-xs text-slate-500  max-w-3xl leading-relaxed">
                   Send a test event to make sure everything is working.
                 </p>
@@ -380,7 +380,7 @@ capi('track', 'Purchase', {
                   <span>{copiedStates['shopify_px'] ? 'Copied' : 'Copy'}</span>
                 </button>
               </div>
-              <pre className="p-4 bg-slate-50  text-xs font-mono overflow-x-auto max-h-72 text-slate-700 ">
+              <pre tabIndex={0} aria-label="Shopify custom pixel JavaScript" className="p-4 bg-slate-50  text-xs font-mono overflow-x-auto max-h-72 text-slate-700 outline-none focus:ring-2 focus:ring-indigo-400">
                 <code>{shopifyPixelCode}</code>
               </pre>
             </div>
@@ -480,7 +480,7 @@ capi('track', 'Purchase', {
                   <span>Copy</span>
                 </button>
               </div>
-              <pre className="p-4 bg-slate-50  text-xs font-mono overflow-x-auto text-slate-700 ">
+              <pre tabIndex={0} aria-label="Browser tracking JavaScript example" className="p-4 bg-slate-50  text-xs font-mono overflow-x-auto text-slate-700 outline-none focus:ring-2 focus:ring-indigo-400">
                 <code>{customCapiCode}</code>
               </pre>
             </div>
@@ -507,7 +507,7 @@ capi('track', 'Purchase', {
                   <span>Copy</span>
                 </button>
               </div>
-              <pre className="p-4 bg-slate-50  text-xs font-mono overflow-x-auto text-slate-700 ">
+              <pre tabIndex={0} aria-label="Server event cURL example" className="p-4 bg-slate-50  text-xs font-mono overflow-x-auto text-slate-700 outline-none focus:ring-2 focus:ring-indigo-400">
                 <code>{customBackendCode}</code>
               </pre>
             </div>
@@ -519,7 +519,7 @@ capi('track', 'Purchase', {
       {/* FAQ Troubleshooting accordion list */}
       <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-4  ">
         <div>
-          <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wide ">FAQ & Troubleshooting</h3>
+          <h2 className="font-bold text-slate-800 text-sm uppercase tracking-wide ">FAQ & Troubleshooting</h2>
           <p className="text-xs text-slate-400 ">Common questions and solutions</p>
         </div>
 
