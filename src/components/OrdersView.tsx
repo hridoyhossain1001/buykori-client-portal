@@ -1,4 +1,5 @@
 ﻿import React, { useState, useEffect } from 'react';
+import { useRef } from 'react';
 import { 
   Truck, 
   CheckCircle2, 
@@ -84,6 +85,9 @@ export function OrdersView({
   storeEmail,
 }: OrdersViewProps) {
   const [activeTab, setActiveTab] = useState<'pending' | 'shipped'>('pending');
+  const [shippedStatsOpen, setShippedStatsOpen] = useState(false);
+  const [shippedStatsVisible, setShippedStatsVisible] = useState(true);
+  const shippedStatsLastYRef = useRef(0);
   const [webhookGuideExpanded, setWebhookGuideExpanded] = useState<Record<string, boolean>>({});
   const [copiedWebhookUrl, setCopiedWebhookUrl] = useState<string | null>(null);
 
@@ -156,6 +160,25 @@ export function OrdersView({
   useEffect(() => {
     setSelectedShippedOrderIds([]);
   }, [activeTab, searchQuery, providerFilter, statusFilter]);
+
+  useEffect(() => {
+    shippedStatsLastYRef.current = window.scrollY;
+    const handleScroll = () => {
+      const currentY = window.scrollY;
+      const scrollingUp = currentY < shippedStatsLastYRef.current;
+      const nearTop = currentY < 120;
+
+      setShippedStatsVisible(nearTop || scrollingUp);
+      if (!nearTop && currentY > shippedStatsLastYRef.current + 8) {
+        setShippedStatsOpen(false);
+      }
+
+      shippedStatsLastYRef.current = currentY;
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   const toggleSelectShippedOrder = (orderId: number) => {
     setSelectedShippedOrderIds(prev => 
@@ -496,6 +519,13 @@ export function OrdersView({
     inTransit: courierOrders.filter(order => ['in_transit', 'picked_up', 'shipped'].includes((order.courier_status || '').toLowerCase())).length,
     delivered: courierOrders.filter(order => ['delivered', 'completed'].includes((order.courier_status || '').toLowerCase())).length,
   };
+  const shippedStatItems = [
+    { label: 'Shipped', shortLabel: 'Ship', value: shippedSummary.total, tone: 'text-slate-900', dot: 'bg-slate-500' },
+    { label: 'Pending', shortLabel: 'Pend', value: shippedSummary.pending, tone: 'text-amber-700', dot: 'bg-amber-500' },
+    { label: 'Failed', shortLabel: 'Fail', value: shippedSummary.failed, tone: 'text-rose-700', dot: 'bg-rose-500' },
+    { label: 'In transit', shortLabel: 'Transit', value: shippedSummary.inTransit, tone: 'text-indigo-700', dot: 'bg-indigo-500' },
+    { label: 'Delivered', shortLabel: 'Done', value: shippedSummary.delivered, tone: 'text-emerald-700', dot: 'bg-emerald-500' },
+  ];
 
   const filteredShippedIds = filteredCourierOrders.map(o => o.id);
   const areAllFilteredSelected = filteredShippedIds.length > 0 && 
@@ -574,30 +604,73 @@ export function OrdersView({
 
   return (
     <div className="space-y-6">
+      {activeTab === 'shipped' && (
+        <div
+          className={`fixed right-2 top-32 z-30 md:hidden transition-all duration-200 ${
+            shippedStatsVisible ? 'translate-x-0 opacity-100' : 'translate-x-16 opacity-0 pointer-events-none'
+          }`}
+        >
+          <button
+            type="button"
+            onClick={() => setShippedStatsOpen(prev => !prev)}
+            className="flex w-[72px] flex-col gap-1 rounded-2xl border border-slate-200 bg-white/95 p-1.5 text-left shadow-lg shadow-slate-200/70 backdrop-blur"
+            aria-label="Shipment status summary"
+          >
+            {shippedStatItems.map(item => (
+              <span key={item.label} className="flex items-center justify-between rounded-xl bg-slate-50 px-1.5 py-1">
+                <span className={`h-1.5 w-1.5 rounded-full ${item.dot}`} />
+                <span className="text-[9px] font-bold uppercase leading-none text-slate-500">{item.shortLabel}</span>
+                <span className={`font-mono text-[10px] font-black leading-none ${item.tone}`}>{item.value}</span>
+              </span>
+            ))}
+          </button>
+
+          {shippedStatsOpen && (
+            <div className="absolute right-20 top-0 w-40 rounded-2xl border border-slate-200 bg-white p-2 shadow-xl shadow-slate-200/80">
+              <p className="px-1 pb-1 text-[10px] font-black uppercase tracking-wide text-slate-500">Shipment summary</p>
+              <div className="space-y-1">
+                {shippedStatItems.map(item => (
+                  <div key={item.label} className="flex items-center justify-between rounded-xl bg-slate-50 px-2 py-1.5">
+                    <span className="flex items-center gap-1.5 text-[11px] font-bold text-slate-600">
+                      <span className={`h-1.5 w-1.5 rounded-full ${item.dot}`} />
+                      {item.label}
+                    </span>
+                    <span className={`font-mono text-xs font-black ${item.tone}`}>{item.value}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
       
       {/* Tab bar header */}
       <div className="flex border-b border-slate-200 ">
         <button
           onClick={() => setActiveTab('pending')}
-          className={`px-5 py-3 text-sm font-bold border-b-2 transition-all flex items-center gap-2 cursor-pointer ${
+          className={`flex flex-1 items-center justify-center gap-1.5 border-b-2 px-2 py-2 text-xs font-bold transition-all cursor-pointer sm:flex-none sm:justify-start sm:gap-2 sm:px-5 sm:py-3 sm:text-sm ${
             activeTab === 'pending'
               ? 'border-indigo-600 text-indigo-600  '
               : 'border-transparent text-slate-500 hover:text-slate-700  '
           }`}
         >
           <Package className="w-4 h-4" />
-          Pending COD Queue ({deferredData?.pendingCount || 0})
+          <span className="sm:hidden">Pending</span>
+          <span className="hidden sm:inline">Pending COD Queue</span>
+          <span className="rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] font-black text-slate-600">{deferredData?.pendingCount || 0}</span>
         </button>
         <button
           onClick={() => setActiveTab('shipped')}
-          className={`px-5 py-3 text-sm font-bold border-b-2 transition-all flex items-center gap-2 cursor-pointer ${
+          className={`flex flex-1 items-center justify-center gap-1.5 border-b-2 px-2 py-2 text-xs font-bold transition-all cursor-pointer sm:flex-none sm:justify-start sm:gap-2 sm:px-5 sm:py-3 sm:text-sm ${
             activeTab === 'shipped'
               ? 'border-indigo-600 text-indigo-600  '
               : 'border-transparent text-slate-500 hover:text-slate-700  '
           }`}
         >
           <Truck className="w-4 h-4" />
-          Shipped Courier Log ({courierOrders.length})
+          <span className="sm:hidden">Shipped</span>
+          <span className="hidden sm:inline">Shipped Courier Log</span>
+          <span className="rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] font-black text-slate-600">{courierOrders.length}</span>
         </button>
         
         <button 
@@ -884,24 +957,18 @@ export function OrdersView({
       )}
 
       {activeTab === 'shipped' && (
-        <div className="flex flex-col space-y-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm md:p-5">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex flex-col space-y-3 rounded-xl border border-slate-200 bg-white p-3 shadow-sm md:space-y-4 md:p-5">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
             <div>
-              <h3 className="text-sm font-bold uppercase tracking-wide text-slate-800">Shipped Orders & Delivery Tracking</h3>
-              <p className="text-xs text-slate-400 ">
+              <h3 className="text-xs font-black uppercase tracking-wide text-slate-800 md:text-sm">Shipped Orders & Delivery Tracking</h3>
+              <p className="hidden text-xs text-slate-400 sm:block">
                 Track delivery statuses on SteadFast, Pathao, or RedX. Delivered orders send purchase data; returned orders send refund data.
               </p>
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
-            {[
-              { label: 'Shipped', value: shippedSummary.total, tone: 'text-slate-900' },
-              { label: 'Pending', value: shippedSummary.pending, tone: 'text-amber-700' },
-              { label: 'Failed', value: shippedSummary.failed, tone: 'text-rose-700' },
-              { label: 'In transit', value: shippedSummary.inTransit, tone: 'text-indigo-700' },
-              { label: 'Delivered', value: shippedSummary.delivered, tone: 'text-emerald-700' },
-            ].map(item => (
+          <div className="hidden grid-cols-5 gap-2 md:grid">
+            {shippedStatItems.map(item => (
               <div key={item.label} className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
                 <p className={`text-base font-bold leading-none ${item.tone}`}>{item.value}</p>
                 <p className="mt-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">{item.label}</p>
@@ -911,7 +978,7 @@ export function OrdersView({
 
           {/* Filters Bar */}
           <div className="flex flex-wrap gap-2 rounded-lg border border-slate-100 bg-slate-50 p-2">
-            <div className="relative flex-1 min-w-[200px]">
+            <div className="relative min-w-full flex-1 sm:min-w-[200px]">
               <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-slate-400" />
               <input
                 type="text"
@@ -922,7 +989,7 @@ export function OrdersView({
               />
             </div>
             
-            <div className="w-[140px]">
+            <div className="min-w-0 flex-1 sm:w-[140px] sm:flex-none">
               <select
                 value={providerFilter}
                 onChange={(e) => setProviderFilter(e.target.value)}
@@ -935,7 +1002,7 @@ export function OrdersView({
               </select>
             </div>
 
-            <div className="w-[140px]">
+            <div className="min-w-0 flex-1 sm:w-[140px] sm:flex-none">
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
