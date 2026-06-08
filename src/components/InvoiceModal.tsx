@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import QRCode from 'qrcode';
 import { 
   Printer, 
@@ -555,7 +555,7 @@ function InvoiceContent({ onClose, ordersList, storeName = "Buykori AdSync Shop"
                       <h5 className="text-[10px] font-bold text-slate-600  uppercase tracking-wide mb-2">Order Customizations</h5>
                       <div className="space-y-3">
                         <div>
-                          <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Delivery Charge (à§³)</label>
+                          <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Delivery Charge (৳)</label>
                           <input
                             type="number"
                             value={orderSettings[String(ordersList[0].orderId || ordersList[0].order_id)]?.deliveryCharge ?? 80}
@@ -602,7 +602,7 @@ function InvoiceContent({ onClose, ordersList, storeName = "Buykori AdSync Shop"
                                 />
                               </div>
                               <div>
-                                <label className="block text-[8px] font-bold text-slate-400 uppercase mb-0.5">Delivery (à§³)</label>
+                                <label className="block text-[8px] font-bold text-slate-400 uppercase mb-0.5">Delivery (৳)</label>
                                 <input
                                   type="number"
                                   value={settings.deliveryCharge}
@@ -631,8 +631,8 @@ function InvoiceContent({ onClose, ordersList, storeName = "Buykori AdSync Shop"
               {ordersList.map((ord, idx) => {
                 const oId = String(ord.orderId || ord.order_id || 'N/A');
                 const customerName = ord.recipientName || ord.recipient_name || 'Customer';
-                const customerPhone = ord.recipientPhone || ord.recipient_phone || 'â€”';
-                const customerAddress = ord.recipientAddress || ord.recipient_address || 'â€”';
+                const customerPhone = ord.recipientPhone || ord.recipient_phone || '-';
+                const customerAddress = ord.recipientAddress || ord.recipient_address || '-';
                 
                 const rawDate = ord.created_at || ord.timestamp || new Date().toISOString();
                 const invoiceDate = new Date(rawDate).toLocaleDateString(undefined, { 
@@ -734,9 +734,9 @@ function InvoiceContent({ onClose, ordersList, storeName = "Buykori AdSync Shop"
                               <td className="px-3 py-2 text-slate-500 italic text-[10px]">
                                 Standard E-Commerce Product Order
                               </td>
-                              <td className="px-3 py-2 text-center font-mono text-[10px]">à§³{subtotal.toLocaleString()}</td>
+                              <td className="px-3 py-2 text-center font-mono text-[10px]">৳{subtotal.toLocaleString()}</td>
                               <td className="px-3 py-2 text-center text-[10px]">1</td>
-                              <td className="px-3 py-2 text-right font-semibold font-mono text-[10px]">à§³{subtotal.toLocaleString()}</td>
+                              <td className="px-3 py-2 text-right font-semibold font-mono text-[10px]">৳{subtotal.toLocaleString()}</td>
                             </tr>
                           ) : (
                             products.map((p, i) => (
@@ -745,13 +745,13 @@ function InvoiceContent({ onClose, ordersList, storeName = "Buykori AdSync Shop"
                                   {p.name}
                                 </td>
                                 <td className="px-3 py-2 text-center font-mono text-slate-500  print:text-black text-[10px]">
-                                  à§³{p.price.toLocaleString()}
+                                  ৳{p.price.toLocaleString()}
                                 </td>
                                 <td className="px-3 py-2 text-center font-bold text-slate-600  print:text-black text-[10px]">
                                   {p.quantity}
                                 </td>
                                 <td className="px-3 py-2 text-right font-semibold font-mono text-slate-800  print:text-black text-[10px]">
-                                  à§³{(p.price * p.quantity).toLocaleString()}
+                                  ৳{(p.price * p.quantity).toLocaleString()}
                                 </td>
                               </tr>
                             ))
@@ -797,21 +797,21 @@ function InvoiceContent({ onClose, ordersList, storeName = "Buykori AdSync Shop"
                       <div className="w-48 text-[10px] space-y-1.5 shrink-0">
                         <div className="flex justify-between text-slate-500  print:text-slate-600 font-mono">
                           <span>Subtotal:</span>
-                          <span>à§³{subtotal.toLocaleString()}</span>
+                          <span>৳{subtotal.toLocaleString()}</span>
                         </div>
                         <div className="flex justify-between text-slate-500  print:text-slate-600 font-mono">
                           <span>Delivery Charge:</span>
-                          <span>à§³{deliveryCharge.toLocaleString()}</span>
+                          <span>৳{deliveryCharge.toLocaleString()}</span>
                         </div>
                         {discount > 0 && (
                           <div className="flex justify-between text-rose-600 print:text-rose-700 font-mono">
                             <span>Discount:</span>
-                            <span>-à§³{discount.toLocaleString()}</span>
+                            <span>-৳{discount.toLocaleString()}</span>
                           </div>
                         )}
                         <div className="flex justify-between text-xs font-bold text-slate-800  border-t border-slate-200  pt-1.5 print:border-slate-200 print:text-black">
                           <span>Total (COD):</span>
-                          <span className="font-mono text-indigo-600  print:text-black">à§³{finalTotal.toLocaleString()}</span>
+                          <span className="font-mono text-indigo-600  print:text-black">৳{finalTotal.toLocaleString()}</span>
                         </div>
                       </div>
                     </div>

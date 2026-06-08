@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import { CheckCircle2, XCircle, Truck, Zap, ChevronDown, ChevronUp, User, Phone, MapPin, Package } from 'lucide-react';
 
 interface CodProtectionViewProps {
@@ -341,7 +341,7 @@ export function CodProtectionView({
                       {customer.secondary && <span className="block truncate font-mono text-[11px] text-slate-500">{customer.secondary}</span>}
                     </span>
                   </label>
-                  <span className="font-bold text-slate-900 ">à§³{(Number(order.amount) || 0).toLocaleString()}</span>
+                  <span className="font-bold text-slate-900 ">৳{(Number(order.amount) || 0).toLocaleString()}</span>
                 </div>
                 <div className="mt-4 grid grid-cols-2 gap-2 text-[11px]">
                   <div className="rounded-lg bg-slate-50 p-2 ">
@@ -446,7 +446,7 @@ export function CodProtectionView({
                           )}
                         </div>
                       </td>
-                      <td className="px-6 py-3 font-semibold text-slate-800 ">à§³{(Number(order.amount) || 0).toLocaleString()}</td>
+                      <td className="px-6 py-3 font-semibold text-slate-800 ">৳{(Number(order.amount) || 0).toLocaleString()}</td>
                       <td className="px-6 py-3">
                         <span 
                           className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded text-[10px] font-bold border cursor-help ${

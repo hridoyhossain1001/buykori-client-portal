@@ -325,7 +325,7 @@ export function CampaignBuilderView({
           <div className="space-y-4">
             <h4 className="text-[10px] font-bold text-cyan-700 uppercase tracking-widest bg-cyan-50/50   py-1 px-2 rounded flex items-center">
               Identities (hashed automatically)
-              <Tooltip content="à¦à¦¡ à¦ªà§à¦²à§à¦¯à¦¾à¦Ÿà¦«à¦°à§à¦®à§‡ à¦•à¦¾à¦¸à§à¦Ÿà¦®à¦¾à¦° à¦ªà§à¦°à§‹à¦«à¦¾à¦‡à¦² à¦®à§à¦¯à¦¾à¦š à¦•à¦°à¦¾à¦° à¦œà¦¨à§à¦¯ à¦‡à¦®à§‡à¦‡à¦² à¦¬à¦¾ à¦«à§‹à¦¨ à¦¨à¦®à§à¦¬à¦°à¦•à§‡ SHA-256 à¦¸à¦¿à¦•à¦¿à¦‰à¦°à¦¡ à¦…à§à¦¯à¦¾à¦²à¦—à¦°à¦¿à¦¦à¦®à§‡ à¦¹à§à¦¯à¦¾à¦¶ à¦•à¦°à§‡ à¦¨à¦¿à¦°à¦¾à¦ªà¦¦à§‡ à¦ªà¦¾à¦ à¦¾à¦¨à§‹ à¦¹à§Ÿà¥¤" />
+              <Tooltip content="এড প্ল্যাটফর্মে কাস্টমার প্রোফাইল ম্যাচ করার জন্য ইমেইল বা ফোন নম্বরকে SHA-256 সিকিউরড অ্যালগরিদমে হ্যাশ করে নিরাপদে পাঠানো হয়।" />
             </h4>
             
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

@@ -68,7 +68,7 @@ interface OrdersViewProps {
   handleConfirmOrder: (orderId: string) => Promise<void>;
   handleCancelOrder: (orderId: string) => Promise<void>;
   showToast: (msg: string, isErr?: boolean) => void;
-  apiKey?: string; // Client-à¦à¦° api_key â€” webhook URL à¦¤à§ˆà¦°à¦¿à¦¤à§‡ à¦¬à§à¦¯à¦¬à¦¹à¦¾à¦° à¦¹à¦¯à¦¼
+  apiKey?: string; // Client-à¦à¦° api_key - webhook URL à¦¤à§ˆà¦°à¦¿à¦¤à§‡ à¦¬à§à¦¯à¦¬à¦¹à¦¾à¦° à¦¹à¦¯à¦¼
   storeName?: string;
   storeEmail?: string;
 }
@@ -633,7 +633,7 @@ export function OrdersView({
                         <p className="mt-1 text-sm font-semibold text-slate-800 ">{order.recipientName || 'Customer unavailable'}</p>
                         <p className="mt-0.5 font-mono text-[11px] text-slate-500">{usablePhone(order.recipientPhone) || usablePhone(order.customer) || 'No phone'}</p>
                       </div>
-                      <span className="font-bold text-slate-900 ">à§³{order.amount.toLocaleString()}</span>
+                      <span className="font-bold text-slate-900 ">BDT {order.amount.toLocaleString()}</span>
                     </div>
                     <div className="mt-4 grid grid-cols-2 gap-2 text-[11px]">
                       <div className="rounded-lg bg-slate-50 p-2 ">
@@ -713,7 +713,7 @@ export function OrdersView({
                           </td>
                           <td className="px-6 py-3">
                             <div className="flex flex-col gap-0.5">
-                              {order.recipientName && order.recipientName !== 'â€”' && (
+                              {order.recipientName && order.recipientName !== '-' && (
                                 <button
                                   type="button"
                                   onClick={() => toggleExpand(order.orderId)}
@@ -726,7 +726,7 @@ export function OrdersView({
                               )}
                             </div>
                           </td>
-                          <td className="px-6 py-3 font-semibold text-slate-800 ">à§³{order.amount.toLocaleString()}</td>
+                          <td className="px-6 py-3 font-semibold text-slate-800 ">BDT {order.amount.toLocaleString()}</td>
                           <td className="px-6 py-3">
                             <span 
                               className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded text-[10px] font-bold border ${
@@ -788,7 +788,7 @@ export function OrdersView({
                                       </div>
                                       <div>
                                         <p className="text-[9px] text-slate-400 uppercase font-bold">Name</p>
-                                        <p className="text-xs font-semibold text-slate-800 ">{order.recipientName || 'â€”'}</p>
+                                        <p className="text-xs font-semibold text-slate-800 ">{order.recipientName || '-'}</p>
                                       </div>
                                     </div>
                                     <div className="flex items-start gap-2.5">
@@ -797,7 +797,7 @@ export function OrdersView({
                                       </div>
                                       <div>
                                         <p className="text-[9px] text-slate-400 uppercase font-bold">Phone</p>
-                                        <p className="text-xs font-semibold text-slate-800  font-mono">{usablePhone(order.recipientPhone) || 'â€”'}</p>
+                                        <p className="text-xs font-semibold text-slate-800  font-mono">{usablePhone(order.recipientPhone) || '-'}</p>
                                       </div>
                                     </div>
                                     <div className="flex items-start gap-2.5">
@@ -806,7 +806,7 @@ export function OrdersView({
                                       </div>
                                       <div>
                                         <p className="text-[9px] text-slate-400 uppercase font-bold">Address</p>
-                                        <p className="text-xs font-semibold text-slate-800 ">{order.recipientAddress || 'â€”'}</p>
+                                        <p className="text-xs font-semibold text-slate-800 ">{order.recipientAddress || '-'}</p>
                                       </div>
                                     </div>
                                   </div>
@@ -854,7 +854,7 @@ export function OrdersView({
                                             <tr key={i} className="hover:bg-slate-50/50 ">
                                               <td className="px-3 py-2 font-medium text-slate-700  max-w-[160px] truncate" title={p.name}>{p.name}</td>
                                               <td className="px-3 py-2 text-center font-bold text-slate-600 ">{p.quantity}</td>
-                                              <td className="px-3 py-2 text-right font-semibold text-slate-700 ">{p.price > 0 ? `à§³${p.price.toLocaleString()}` : 'â€”'}</td>
+                                              <td className="px-3 py-2 text-right font-semibold text-slate-700 ">{p.price > 0 ? `BDT ${p.price.toLocaleString()}` : '-'}</td>
                                             </tr>
                                           ))}
                                         </tbody>
@@ -1001,7 +1001,7 @@ export function OrdersView({
                         <span className="mt-0.5 block font-mono text-[10px] text-slate-500">{order.courier_tracking_id || 'No tracking'}</span>
                       </span>
                     </label>
-                    <span className="font-bold text-slate-900 ">à§³{order.cod_amount.toLocaleString()}</span>
+                    <span className="font-bold text-slate-900 ">BDT {order.cod_amount.toLocaleString()}</span>
                   </div>
                   <div className="mt-4 rounded-lg bg-slate-50 p-3 text-xs ">
                     <p className="font-bold text-slate-900 ">{order.recipient_name || 'Customer'}</p>
@@ -1012,7 +1012,7 @@ export function OrdersView({
                     <div>{getStatusBadge(order.courier_status)}</div>
                     <div className="text-right">{getCapiStatusBadge(order.purchase_event_sent)}</div>
                     <span className="font-mono text-slate-500">{new Date(order.created_at).toLocaleDateString()}</span>
-                    <span className="text-right text-slate-500">{order.delivery_charge > 0 ? `Charge à§³${order.delivery_charge}` : 'No charge'}</span>
+                    <span className="text-right text-slate-500">{order.delivery_charge > 0 ? `Charge BDT ${order.delivery_charge}` : 'No charge'}</span>
                   </div>
                   <div className="mt-4 flex flex-wrap justify-end gap-2">
                     <button onClick={() => openInvoice(order)} className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-bold text-slate-700">Invoice</button>
@@ -1115,18 +1115,18 @@ export function OrdersView({
                       </td>
                       <td className="px-5 py-3">
                         <div className="flex flex-col text-[11px] leading-tight">
-                          <span className="font-bold text-slate-800 ">{order.recipient_name || 'â€”'}</span>
-                          <span className="text-slate-500 font-mono mt-0.5">{order.recipient_phone || 'â€”'}</span>
+                          <span className="font-bold text-slate-800 ">{order.recipient_name || '-'}</span>
+                          <span className="text-slate-500 font-mono mt-0.5">{order.recipient_phone || '-'}</span>
                           <span className="text-[10px] text-slate-400 truncate max-w-[200px] mt-0.5" title={order.recipient_address}>
-                            {order.recipient_address || 'â€”'}
+                            {order.recipient_address || '-'}
                           </span>
                         </div>
                       </td>
                       <td className="px-5 py-3">
                         <div className="flex flex-col">
-                          <span className="font-bold text-slate-800 ">à§³{order.cod_amount.toLocaleString()}</span>
+                          <span className="font-bold text-slate-800 ">BDT {order.cod_amount.toLocaleString()}</span>
                           {order.delivery_charge > 0 && (
-                            <span className="text-[10px] text-rose-500 font-medium">Charge: à§³{order.delivery_charge}</span>
+                            <span className="text-[10px] text-rose-500 font-medium">Charge: BDT {order.delivery_charge}</span>
                           )}
                         </div>
                       </td>
@@ -1212,7 +1212,7 @@ export function OrdersView({
                 </div>
                 <div className="p-3 bg-slate-50 rounded-lg  border border-slate-100 ">
                   <span className="block text-[10px] text-slate-400 uppercase font-bold tracking-wider">Original Value</span>
-                  <span className="font-bold text-sm text-slate-800 ">à§³{(selectedOrder.amount || selectedOrder.cod_amount || 0).toLocaleString()}</span>
+                  <span className="font-bold text-sm text-slate-800 ">BDT {(selectedOrder.amount || selectedOrder.cod_amount || 0).toLocaleString()}</span>
                 </div>
               </div>
 
@@ -1238,7 +1238,7 @@ export function OrdersView({
                           <tr key={i} className="hover:bg-slate-50/50 ">
                             <td className="px-3 py-1.5 font-medium text-slate-700  max-w-[160px] truncate" title={p.name}>{p.name}</td>
                             <td className="px-3 py-1.5 text-center font-bold text-slate-600 ">{p.quantity}</td>
-                            <td className="px-3 py-1.5 text-right font-semibold text-slate-700 ">{p.price > 0 ? `à§³${p.price.toLocaleString()}` : 'â€”'}</td>
+                            <td className="px-3 py-1.5 text-right font-semibold text-slate-700 ">{p.price > 0 ? `BDT ${p.price.toLocaleString()}` : '-'}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -1390,7 +1390,7 @@ export function OrdersView({
                       {loadingStores ? (
                         <div className="py-2 px-3 bg-slate-50  border border-slate-200  rounded-lg text-xs text-slate-500 flex items-center gap-1.5">
                           <Truck className="w-3.5 h-3.5 shrink-0 animate-pulse" />
-                          Stores à¦²à§‹à¦¡ à¦¹à¦šà§à¦›à§‡...
+                          Stores loading...
                         </div>
                       ) : pathaoStores.length > 0 ? (
                         <select

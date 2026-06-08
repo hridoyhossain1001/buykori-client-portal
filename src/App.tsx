@@ -1177,7 +1177,7 @@ export default function App() {
   }
 
   return (
-    <div className="flex min-h-screen bg-transparent font-sans text-slate-800 transition-colors duration-205">
+    <div className="bk-console-shell flex min-h-screen font-sans transition-colors duration-200">
       {/* Sidebar Navigation */}
       {profile && (
         <Sidebar 
@@ -1203,7 +1203,7 @@ export default function App() {
       {/* Mobile Drawer Overlay Backdrop */}
       {mobileSidebarOpen && (
         <div 
-          className="fixed inset-0 bg-slate-900/40 z-40 md:hidden transition-opacity duration-300"
+          className="fixed inset-0 z-40 bg-slate-900/35 backdrop-blur-[1px] transition-opacity duration-200 md:hidden"
           onClick={() => setMobileSidebarOpen(false)}
         />
       )}
@@ -1236,7 +1236,7 @@ export default function App() {
       )}
 
       {/* Main Container */}
-      <div className={`flex-1 flex flex-col min-w-0 transition-all duration-300 ${sidebarCollapsed ? 'md:pl-20' : 'md:pl-64'}`}>
+      <div className={`flex-1 flex flex-col min-w-0 transition-all duration-200 ${sidebarCollapsed ? 'md:pl-[72px]' : 'md:pl-[288px]'}`}>
         {connection && (
           <Header 
             title={pageTitles[activePage] || activePage.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')} 
@@ -1269,7 +1269,7 @@ export default function App() {
 
         {/* Main Dashboard Skeleton */}
         {loading && !errState ? (
-          <div className="flex-1 p-4 md:p-8 space-y-6">
+          <div className="bk-console-page flex-1 space-y-6 p-4 md:p-6">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 animate-pulse">
               {[...Array(4)].map((_, i) => (
                 <div key={i} className="h-28 rounded-xl border border-slate-200 bg-white p-5 space-y-3">
@@ -1285,7 +1285,7 @@ export default function App() {
             <div className="h-64 rounded-xl border border-slate-200 bg-white animate-pulse" />
           </div>
         ) : !errState && (
-          <div className="flex-1 p-4 sm:p-6 md:p-8 space-y-4 md:space-y-6">
+          <div className="bk-console-page flex-1 space-y-4 p-4 sm:p-5 md:space-y-6 md:p-6">
 
             {/* --- CORE VIEWS DISPATCHER --- */}
             <Suspense fallback={

@@ -68,7 +68,7 @@ export function IncompleteCheckoutsView({ data, onStatusChange, onRefresh, showT
         <div>
           <h2 className="text-lg font-bold flex items-center">
             Incomplete Checkout Recovery
-            <Tooltip content="à¦¯à§‡à¦¸à¦¬ à¦•à§à¦°à§‡à¦¤à¦¾ à¦šà§‡à¦•à¦†à¦‰à¦Ÿ à¦ªà§‡à¦œà§‡ à¦—à¦¿à§Ÿà§‡ à¦‡à¦¨à¦«à¦°à¦®à§‡à¦¶à¦¨ à¦ªà§‚à¦°à¦£ à¦•à¦°à¦¾à¦° à¦ªà¦°à¦“ à¦ªà§‡à¦®à§‡à¦¨à§à¦Ÿ à¦¶à§‡à¦· à¦¨à¦¾ à¦•à¦°à§‡ à¦šà¦²à§‡ à¦—à§‡à¦›à§‡à¦¨, à¦¤à¦¾à¦¦à§‡à¦° à¦²à¦¿à¦¸à§à¦Ÿà¥¤ à§¨à§¦ à¦®à¦¿à¦¨à¦¿à¦Ÿ à¦ªà¦° à¦à¦•à¦Ÿà¦¿ à¦¸à§‡à¦¶à¦¨ à¦à¦–à¦¾à¦¨à§‡ à¦‡à¦¨à¦•à¦®à¦ªà§à¦²à¦¿à¦Ÿ à¦¦à§‡à¦–à¦¾à§Ÿà¥¤" />
+            <Tooltip content="Incomplete checkout sessions that remain unfinished after the customer entered checkout details." />
           </h2>
           <p className="mt-1 text-xs text-slate-500">Customers who started checkout but didn't complete. Active ones become incomplete after 20 minutes.</p>
         </div>
@@ -131,7 +131,7 @@ export function IncompleteCheckoutsView({ data, onStatusChange, onRefresh, showT
                   </div>
                   <div className="rounded-lg bg-slate-50 p-2 ">
                     <p className="font-bold uppercase text-slate-400">Amount</p>
-                    <p className="mt-1 font-bold text-slate-800 ">à§³{Number(item.amount || 0).toLocaleString()}</p>
+                    <p className="mt-1 font-bold text-slate-800 ">BDT {Number(item.amount || 0).toLocaleString()}</p>
                   </div>
                   <div className="rounded-lg bg-slate-50 p-2 ">
                     <p className="font-bold uppercase text-slate-400">Source</p>
@@ -192,7 +192,7 @@ export function IncompleteCheckoutsView({ data, onStatusChange, onRefresh, showT
                       <p className="font-semibold">{product?.content_name || product?.name || 'Product details unavailable'}</p>
                       <p className="mt-1 text-[10px] text-slate-400">Qty {product?.quantity || 1}</p>
                     </td>
-                    <td className="px-4 py-3 font-bold">à§³{Number(item.amount || 0).toLocaleString()}</td>
+                    <td className="px-4 py-3 font-bold">BDT {Number(item.amount || 0).toLocaleString()}</td>
                     <td className="px-4 py-3 capitalize">{source}</td>
                     <td className="px-4 py-3 text-slate-500">{new Date(item.lastActivityAt).toLocaleString()}</td>
                     <td className="px-4 py-3"><span className={`rounded-full border px-2 py-1 text-[10px] font-bold capitalize ${STATUS_STYLES[item.status] || 'border-slate-200 text-slate-500'}`}>{item.status}</span></td>

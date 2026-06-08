@@ -138,7 +138,7 @@ export function SuggestionsView({
                         : 'bg-indigo-50 border-indigo-100 text-indigo-700 hover:bg-indigo-100   '
                     }`}
                   >
-                    {s.resolved ? 'âœ“ Resolved' : 'Mark Fixed'}
+                    {s.resolved ? '✓ Resolved' : 'Mark Fixed'}
                   </button>
                   
                   <button 

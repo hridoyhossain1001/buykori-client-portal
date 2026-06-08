@@ -91,6 +91,12 @@ export function Sidebar({
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [storeSwitcherOpen, setStoreSwitcherOpen] = useState(false);
   const [switchingStore, setSwitchingStore] = useState<number | null>(null);
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({
+    'YOUR STORE': true,
+    'YOUR ORDERS': true,
+    GROW: true,
+    SYSTEM: true,
+  });
   const storeSwitcherRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -182,23 +188,23 @@ export function Sidebar({
   return (
     <>
     <aside
-      className={`fixed top-0 bottom-0 left-0 z-50 flex flex-col bg-white border-r border-slate-200 transition-transform duration-300 md:transition-all   ${
-        collapsed ? 'md:w-20' : 'md:w-64'
+      className={`bk-console-sidebar fixed top-0 bottom-0 left-0 z-50 flex flex-col transition-transform duration-200 md:transition-all ${
+        collapsed ? 'is-collapsed' : ''
       } ${
-        mobileOpen ? 'translate-x-0 w-64' : '-translate-x-full md:translate-x-0'
+        mobileOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
       }`}
     >
       {/* Brand Header */}
-      <div className={`flex items-center h-12 md:h-14 border-b border-slate-100  ${
+      <div className={`bk-console-brand flex items-center ${
         collapsed ? 'justify-center px-2 gap-1' : 'justify-between px-5'
       }`}>
         <div className="flex items-center gap-2.5 overflow-hidden">
-          <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-indigo-600 text-white font-bold shrink-0">
+          <div className="bk-console-logo flex h-8 w-8 shrink-0 items-center justify-center text-sm font-bold text-white">
             B
           </div>
           {!collapsed && (
-            <span className="font-sans font-bold text-lg tracking-tight text-slate-800  truncate">
-              Buykori
+            <span className="truncate font-sans text-[18px] font-semibold tracking-tight text-slate-900">
+              Buykori AdSync
             </span>
           )}
         </div>
@@ -210,7 +216,7 @@ export function Sidebar({
               setCollapsed(!collapsed);
             }
           }}
-          className="p-1 px-[5px] rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-50    transition-colors"
+          className="rounded-full p-1.5 text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900"
           title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         >
           <span className="md:hidden"><X className="w-4 h-4" /></span>
@@ -223,14 +229,14 @@ export function Sidebar({
       {/* Store Switcher (expanded mode) */}
       {!collapsed && stores.length > 0 && (
         <div className="px-3 pt-3 pb-1" ref={storeSwitcherRef}>
-          <p className="text-[9px] font-bold uppercase tracking-widest text-slate-400  mb-1.5 px-1">Active Store</p>
+          <p className="bk-console-group-label mb-1.5 px-1">Active store</p>
           <div className="relative">
             <button
               onClick={() => setStoreSwitcherOpen(prev => !prev)}
-              className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg border border-slate-200  bg-slate-50  hover:bg-white  transition-all cursor-pointer"
+              className="flex w-full cursor-pointer items-center gap-2.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-left transition-colors hover:bg-slate-50"
             >
-              <div className="flex items-center justify-center w-6 h-6 rounded-md bg-indigo-100  shrink-0">
-                <Store className="w-3.5 h-3.5 text-indigo-600 " />
+              <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-blue-50">
+                <Store className="h-3.5 w-3.5 text-blue-700" />
               </div>
               <div className="flex-1 min-w-0 text-left">
                 <p className="text-xs font-bold text-slate-800  truncate leading-tight">
@@ -244,7 +250,7 @@ export function Sidebar({
             </button>
 
             {storeSwitcherOpen && (
-              <div className="absolute top-full left-0 right-0 mt-1.5 z-50 bg-white  rounded-xl border border-slate-200  shadow-xl overflow-hidden">
+              <div className="absolute left-0 right-0 top-full z-50 mt-1.5 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xl">
                 <div className="py-1 max-h-48 overflow-y-auto">
                   {stores.map(store => (
                     <button
@@ -280,7 +286,7 @@ export function Sidebar({
                 <div className="border-t border-slate-100 ">
                   <button
                     onClick={() => { setStoreSwitcherOpen(false); onCreateStore?.(); }}
-                    className="w-full flex items-center gap-2 px-3 py-2.5 text-xs font-semibold text-indigo-600  hover:bg-indigo-50  transition-colors cursor-pointer"
+                    className="flex w-full cursor-pointer items-center gap-2 px-3 py-2.5 text-xs font-semibold text-blue-700 transition-colors hover:bg-blue-50"
                   >
                     <Plus className="w-4 h-4" />
                     Add New Store
@@ -297,7 +303,7 @@ export function Sidebar({
         <div className="flex justify-center pt-2">
           <button
             onClick={() => { setCollapsed(false); setTimeout(() => setStoreSwitcherOpen(true), 310); }}
-            className="group relative p-2 rounded-lg hover:bg-slate-100  transition-colors cursor-pointer"
+            className="group relative cursor-pointer rounded-full p-2 transition-colors hover:bg-slate-100"
             title="Switch Store"
           >
             <Store className="w-4 h-4 text-indigo-500" />
@@ -309,7 +315,7 @@ export function Sidebar({
       )}
 
       {/* Primary Navigation Links */}
-      <nav className="flex-1 overflow-y-auto px-3 py-4">
+      <nav className="flex-1 overflow-y-auto py-4 pr-3">
         {menuGroups.map((group, groupIndex) => {
           const visibleItems = group.items.filter(
             (item) => !item.requireOrderMgmt || orderManagementEnabled
@@ -319,15 +325,20 @@ export function Sidebar({
           return (
             <div key={group.label} className={groupIndex === 0 ? '' : collapsed ? 'mt-3' : 'mt-5'}>
               {!collapsed && (
-                <div className="mb-2 flex items-center gap-2 px-3">
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400 ">
+                <button
+                  type="button"
+                  onClick={() => setOpenGroups(prev => ({ ...prev, [group.label]: !prev[group.label] }))}
+                  className="mb-2 flex w-full items-center gap-2 rounded-full px-5 py-1.5 text-left transition-colors hover:bg-slate-100"
+                >
+                  <span className="bk-console-group-label">
                     {group.label}
                   </span>
-                  <span className="h-px flex-1 bg-slate-200/70 " />
-                </div>
+                  <span className="h-px flex-1 bg-slate-200/70" />
+                  <ChevronDown className={`h-3.5 w-3.5 text-slate-500 transition-transform ${openGroups[group.label] ? 'rotate-180' : ''}`} />
+                </button>
               )}
 
-              <div className="space-y-1">
+              <div className={`space-y-1 ${!collapsed && !openGroups[group.label] ? 'hidden' : ''}`}>
                 {visibleItems.map((item) => {
                   const Icon = item.icon;
                   const isActive = activePage === item.id;
@@ -339,11 +350,11 @@ export function Sidebar({
                         setActivePage(item.id);
                         setMobileOpen(false);
                       }}
-                      className={`group relative flex w-full overflow-visible rounded-md text-sm transition-all duration-200 ${
+                      className={`bk-console-nav-item group relative flex w-full overflow-visible text-sm transition-colors duration-150 ${
                         isActive
-                          ? 'sidebar-active-glow font-semibold shadow-sm'
-                          : 'font-medium text-slate-600 hover:bg-white/70 hover:text-slate-900 hover:shadow-sm   '
-                      } ${collapsed ? 'justify-center px-0 py-2.5' : 'items-center gap-3 px-3 py-2.5'}`}
+                          ? 'is-active sidebar-active-glow'
+                          : 'font-medium'
+                      } ${collapsed ? 'justify-center px-0 py-2.5' : 'items-center gap-3 py-2.5 pl-5 pr-3'}`}
                     >
                       {isActive && (
                         <span className="sidebar-active-indicator absolute left-0 top-1/2 h-6 w-[3px] -translate-y-1/2 rounded-r-full" />
@@ -351,11 +362,7 @@ export function Sidebar({
 
                       <Icon
                         strokeWidth={isActive ? 2.5 : 2}
-                        className={`h-[18px] w-[18px] shrink-0 transition-colors ${
-                          isActive
-                            ? 'text-indigo-600 '
-                            : 'text-slate-400 group-hover:text-slate-600 '
-                        }`}
+                        className="bk-console-nav-icon h-[18px] w-[18px] shrink-0 transition-colors"
                       />
 
                       {!collapsed && (
@@ -370,7 +377,7 @@ export function Sidebar({
                       )}
 
                       {Boolean(item.count) && !collapsed && (
-                        <span className="ml-auto rounded-full border border-indigo-200/60 bg-indigo-100 px-1.5 py-0.5 text-[10px] font-bold text-indigo-700   ">
+                        <span className="bk-console-chip ml-auto rounded-full px-1.5 py-0.5 text-[10px] font-bold">
                           {item.count}
                         </span>
                       )}
@@ -394,7 +401,7 @@ export function Sidebar({
       </nav>
 
       {/* Usage Indicator */}
-      <div className={`border-t border-slate-100 bg-slate-50/50   p-4 ${collapsed ? 'hidden md:block' : ''}`}>
+      <div className={`border-t border-slate-200 bg-slate-50 p-4 ${collapsed ? 'hidden md:block' : ''}`}>
         {collapsed ? (
           <div className="flex flex-col items-center gap-1.5" title="Monthly Event Usage">
             <span className={`text-[10px] font-mono font-semibold leading-none ${textQuotaColor}`}>
@@ -433,7 +440,7 @@ export function Sidebar({
       </div>
 
       {/* User Profile & Logout */}
-      <div className="p-4 bg-slate-50/85 border-t border-slate-150   space-y-3 shrink-0">
+      <div className="shrink-0 space-y-3 border-t border-slate-200 bg-white p-4">
         {collapsed ? (
           <div className="flex justify-center">
             <button

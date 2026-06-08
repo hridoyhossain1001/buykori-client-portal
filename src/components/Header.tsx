@@ -154,41 +154,41 @@ export function Header({
 
   return (
     <>
-      <header className="sticky top-0 z-[35] flex h-12 md:h-14 shrink-0 items-center justify-between border-b border-slate-200 bg-white px-4 md:px-8  ">
+      <header className="bk-console-topbar sticky top-0 z-[35] flex shrink-0 items-center justify-between px-4 md:px-6">
         {/* Title & Status */}
         <div className="flex items-center gap-3 md:gap-4 overflow-hidden">
           {onMenuClick && (
             <button
               onClick={onMenuClick}
-              className="block md:hidden p-1.5 -ml-1 text-slate-500 hover:text-slate-800 hover:bg-slate-100    rounded-lg transition-colors focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              className="-ml-1 block rounded-full p-2 text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900 focus:outline-none focus:ring-1 focus:ring-blue-500 md:hidden"
               aria-label="Toggle navigation menu"
             >
               <Menu className="w-5 h-5" />
             </button>
           )}
-          <h1 className="text-sm md:text-lg font-bold tracking-tight text-slate-800  truncate">{title}</h1>
+          <h1 className="truncate text-sm font-semibold tracking-tight text-slate-900 md:text-base">{title}</h1>
           <div className="hidden sm:block shrink-0">{getStatusBadge()}</div>
         </div>
 
         {/* Centered quick navigation search */}
         <div ref={searchContainerRef} className="relative hidden lg:flex flex-1 justify-center max-w-xs xl:max-w-md mx-auto group">
-          <div className="orange-glow-capsule-input relative z-10 flex items-center justify-between w-full max-w-[340px] rounded-full px-5 py-2">
+          <div className="bk-console-search relative z-10 flex w-full max-w-[420px] items-center justify-between px-5 py-2">
             <input
               type="text"
               placeholder="Search pages..."
               value={searchVal}
               onChange={(e) => setSearchVal(e.target.value)}
               onFocus={() => setIsSearchFocused(true)}
-              className="text-xs text-slate-800  placeholder-slate-400  font-semibold"
+              className="text-xs font-medium text-slate-800 placeholder-slate-500"
               aria-label="Quick navigation search"
             />
-            <Search className="absolute right-4 top-3 h-3.5 w-3.5 text-slate-700  pointer-events-none" />
+            <Search className="pointer-events-none absolute right-4 top-3 h-3.5 w-3.5 text-slate-600" />
           </div>
 
           {/* Quick-navigation suggestions dropdown */}
           {isSearchFocused && matchingPages.length > 0 && setActivePage && (
-            <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-full max-w-[320px] bg-white  border border-slate-200  rounded-xl shadow-xl z-50 overflow-hidden animate-slide-up">
-              <div className="px-3 py-2 border-b border-slate-100  bg-slate-50  text-[9px] font-bold text-slate-400 uppercase tracking-widest select-none">
+            <div className="absolute left-1/2 top-full z-50 mt-2 w-full max-w-[360px] -translate-x-1/2 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xl animate-slide-up">
+              <div className="select-none border-b border-slate-100 bg-slate-50 px-3 py-2 text-[10px] font-semibold text-slate-500">
                 Quick navigation
               </div>
               <div className="py-1 divide-y divide-slate-100 ">
@@ -200,7 +200,7 @@ export function Header({
                       setSearchVal('');
                       setIsSearchFocused(false);
                     }}
-                    className="w-full px-4 py-2.5 text-left text-xs font-semibold text-slate-700 hover:bg-slate-50   transition-colors flex items-center justify-between group cursor-pointer select-none"
+                    className="group flex w-full cursor-pointer select-none items-center justify-between px-4 py-2.5 text-left text-xs font-medium text-slate-700 transition-colors hover:bg-slate-50"
                     role="button"
                   >
                     <span>{page.name}</span>
@@ -218,7 +218,7 @@ export function Header({
           <button
             type="button"
             onClick={() => setIsSearchOpen(true)}
-            className="block lg:hidden p-2 rounded-full text-slate-500 hover:text-slate-800 hover:bg-slate-50    transition-colors focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            className="block rounded-full p-2 text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900 focus:outline-none focus:ring-1 focus:ring-blue-500 lg:hidden"
             title="Search pages"
             aria-label="Open quick navigation search"
           >
@@ -231,7 +231,7 @@ export function Header({
           <button
             onClick={triggerHeartbeat}
             disabled={testing}
-            className={`p-1.5 md:p-2 rounded-full text-slate-400 hover:bg-slate-50  transition-colors ${
+            className={`rounded-full p-1.5 text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900 md:p-2 ${
               testing ? 'animate-spin' : ''
             }`}
             title="Check Connection"
@@ -241,11 +241,11 @@ export function Header({
           </button>
 
            {/* Notifications & Help */}
-          <div className="flex items-center gap-1 border-l border-slate-200  pl-2 md:pl-4">
+          <div className="flex items-center gap-1 border-l border-slate-200 pl-2 md:pl-4">
             <div className="relative" ref={notificationsRef}>
               <button 
                 onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
-                className="relative rounded-full p-1.5 md:p-2 text-slate-400 hover:bg-slate-50  transition-colors focus:outline-none cursor-pointer"
+                className="relative cursor-pointer rounded-full p-1.5 text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900 focus:outline-none md:p-2"
                 title="Notifications"
                 aria-label="Open notifications"
               >
@@ -256,7 +256,7 @@ export function Header({
 
               {/* Interactive notification dropdown menu listing diagnostics issues */}
               {isNotificationsOpen && (
-                <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white  border border-slate-200  rounded-xl shadow-xl z-50 overflow-hidden animate-slide-up">
+                <div className="absolute right-0 z-50 mt-2 w-80 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xl animate-slide-up sm:w-96">
                   {/* Dropdown Header */}
                   <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100  bg-slate-50 ">
                     <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Issues Found</span>
@@ -318,7 +318,7 @@ export function Header({
               )}
             </div>
             
-            <button className="hidden sm:block rounded-full p-1.5 md:p-2 text-slate-400 hover:bg-slate-50 " title="Help & Support">
+            <button className="hidden rounded-full p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-900 sm:block md:p-2" title="Help & Support">
               <HelpCircle className="w-4 h-4" />
             </button>
           </div>

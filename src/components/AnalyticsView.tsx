@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import { Tooltip } from './common/Tooltip';
 import { 
   ShieldAlert, 
@@ -149,7 +149,7 @@ export function AnalyticsView({
               <div className="flex items-center justify-between">
                 <p className="text-xs font-bold text-amber-800  border border-amber-300/30 bg-amber-100/50  px-2 py-1 rounded-md flex items-center">
                   Data Quality
-                  <Tooltip content="à¦¡à§‡à¦Ÿà¦¾à¦° à¦¸à¦®à§à¦ªà§‚à¦°à§à¦£à¦¤à¦¾à¦° à¦“à¦ªà¦° à¦­à¦¿à¦¤à§à¦¤à¦¿ à¦•à¦°à§‡ à¦¤à§ˆà¦°à¦¿ à¦®à§à¦¯à¦¾à¦šà¦¿à¦‚ à¦°à§‡à¦Ÿà¦¿à¦‚à¥¤ à¦«à§‹à¦¨ à¦¨à¦®à§à¦¬à¦°, à¦‡à¦®à§‡à¦² à¦¬à¦¾ à¦‡à¦­à§‡à¦¨à§à¦Ÿ à¦†à¦‡à¦¡à¦¿ à¦¯à¦¤ à¦¬à§‡à¦¶à¦¿ à¦¥à¦¾à¦•à¦¬à§‡, à¦à¦¡ à¦ªà§à¦²à§à¦¯à¦¾à¦Ÿà¦«à¦°à§à¦®à§‡ à¦®à§à¦¯à¦¾à¦šà¦¿à¦‚ à¦¤à¦¤ à¦­à¦¾à¦²à§‹ à¦¹à¦¬à§‡à¥¤" />
+                  <Tooltip content="ডেটার সম্পূর্ণতার ওপর ভিত্তি করে তৈরি ম্যাচিং রেটিং। ফোন নম্বর, ইমেল বা ইভেন্ট আইডি যত বেশি থাকবে, এড প্ল্যাটফর্মে ম্যাচিং তত ভালো হবে।" />
                 </p>
               </div>
               <div className="mt-8 flex items-baseline gap-2">
@@ -329,7 +329,7 @@ export function AnalyticsView({
                             {step.step}
                             {i > 0 && step.drop_off > 0 && (
                               <span className="text-rose-500 text-[10px] font-bold">
-                                â†“{step.drop_off}% drop
+                                ↓{step.drop_off}% drop
                               </span>
                             )}
                           </span>
@@ -475,7 +475,7 @@ export function AnalyticsView({
                     <td className="px-6 py-3.5 font-semibold">{row.add_to_cart.toLocaleString()}</td>
                     <td className="px-6 py-3.5 font-semibold">{row.initiate_checkout.toLocaleString()}</td>
                     <td className="px-6 py-3.5 font-bold text-slate-800 ">{row.purchase.toLocaleString()}</td>
-                    <td className="px-6 py-3.5 font-bold text-indigo-600  text-right">à§³{row.revenue.toLocaleString()}</td>
+                    <td className="px-6 py-3.5 font-bold text-indigo-600  text-right">৳{row.revenue.toLocaleString()}</td>
                   </tr>
                 ))
               )}

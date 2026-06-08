@@ -378,7 +378,7 @@ export function SettingsView({
                     <div>
                       <label className="text-[10px] font-semibold text-slate-400 uppercase mb-1 flex items-center">
                         Test Event Code (Optional)
-                        <Tooltip content="Meta à¦¬à¦¾ TikTok-à¦à¦° Test Events à¦Ÿà§à¦¯à¦¾à¦¬ à¦¥à§‡à¦•à§‡ à¦ªà¦¾à¦“à§Ÿà¦¾ à¦•à§‹à¦¡à¥¤ à¦à¦Ÿà¦¿ à¦¶à§à¦§à§à¦®à¦¾à¦¤à§à¦° à¦¡à§‡à¦­à¦²à¦ªà¦®à§‡à¦¨à§à¦Ÿà§‡à¦° à¦¸à¦®à§Ÿ à¦Ÿà§à¦°à§à¦¯à¦¾à¦•à¦¿à¦‚ à¦Ÿà§‡à¦¸à§à¦Ÿ à¦•à¦°à¦¤à§‡ à¦¬à§à¦¯à¦¬à¦¹à¦¾à¦° à¦•à¦°à¦¾ à¦¹à§Ÿà¥¤" />
+                        <Tooltip content="Use this optional Meta or TikTok test event code only while validating tracking setup." />
                       </label>
                       <input 
                         type="text"

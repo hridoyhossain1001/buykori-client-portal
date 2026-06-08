@@ -135,7 +135,7 @@ export function DashboardView({
           <div className="flex items-center justify-between">
             <p className="text-xs font-bold text-emerald-800  border border-emerald-300/30 bg-emerald-100/50  px-2 py-1 rounded-md flex items-center">
               Monthly Quota
-              <Tooltip content="à¦†à¦ªà¦¨à¦¾à¦° à¦•à¦¾à¦°à§‡à¦¨à§à¦Ÿ à¦¸à¦¾à¦¬à¦¸à§à¦•à§à¦°à¦¿à¦ªà¦¶à¦¨ à¦ªà§à¦²à§à¦¯à¦¾à¦¨à§‡à¦° à¦†à¦“à¦¤à¦¾à§Ÿ à¦ à¦®à¦¾à¦¸à§‡ à¦®à§‹à¦Ÿ à¦•à¦¤à¦—à§à¦²à§‹ à¦Ÿà§à¦°à§à¦¯à¦¾à¦•à¦¿à¦‚ à¦‡à¦­à§‡à¦¨à§à¦Ÿ à¦ªà§à¦°à¦¸à§‡à¦¸ à¦•à¦°à¦¾ à¦¹à§Ÿà§‡à¦›à§‡ à¦¤à¦¾à¦° à¦¹à¦¿à¦¸à¦¾à¦¬à¥¤ à¦¬à¦¿à¦²à¦¿à¦‚ à¦¡à§‡à¦Ÿà§‡ à¦à¦Ÿà¦¿ à¦†à¦¬à¦¾à¦° à§¦ à¦¥à§‡à¦•à§‡ à¦¶à§à¦°à§ à¦¹à§Ÿà¥¤" />
+              <Tooltip content="আপনার কারেন্ট সাবস্ক্রিপশন প্ল্যানের আওতায় এই মাসে মোট কতগুলো ট্র্যাকিং ইভেন্ট প্রসেস করা হয়েছে তার হিসাব। বিলিং ডেটে এটি আবার ০ থেকে শুরু হয়।" />
             </p>
             <span className="text-xs font-semibold text-emerald-700  flex items-center gap-0.5 font-mono bg-white/40  px-2 py-0.5 rounded-full backdrop-blur-md">
               <TrendingUp className="w-3.5 h-3.5" />
@@ -385,7 +385,7 @@ export function DashboardView({
                 <th className="px-6 py-3 text-right">
                   <div className="flex items-center justify-end">
                     Event Key
-                    <Tooltip content="à¦¡à§à¦ªà§à¦²à¦¿à¦•à§‡à¦Ÿ à¦‡à¦­à§‡à¦¨à§à¦Ÿ à¦«à¦¿à¦²à§à¦Ÿà¦¾à¦°à¦¿à¦‚ à¦¬à¦¾ Deduplication Keyà¥¤ à¦¬à§à¦°à¦¾à¦‰à¦œà¦¾à¦° à¦ªà¦¿à¦•à§à¦¸à§‡à¦² à¦à¦¬à¦‚ à¦¸à¦¾à¦°à§à¦­à¦¾à¦° à¦‡à¦­à§‡à¦¨à§à¦Ÿà¦•à§‡ à¦®à§à¦¯à¦¾à¦š à¦•à¦°à¦¾à¦° à¦œà¦¨à§à¦¯ à¦à¦Ÿà¦¿ à¦¬à§à¦¯à¦¬à¦¹à§ƒà¦¤ à¦¹à§Ÿ à¦¯à§‡à¦¨ à¦à¦•à¦‡ à¦¸à§‡à¦²à¦¸ à¦¦à§à¦‡à¦¬à¦¾à¦° à¦•à¦¾à¦‰à¦¨à§à¦Ÿ à¦¨à¦¾ à¦¹à§Ÿà¥¤" />
+                    <Tooltip content="ডুপ্লিকেট ইভেন্ট ফিল্টারিং বা Deduplication Key। ব্রাউজার পিক্সেল এবং সার্ভার ইভেন্টকে ম্যাচ করার জন্য এটি ব্যবহৃত হয় যেন একই সেলস দুইবার কাউন্ট না হয়।" />
                   </div>
                 </th>
               </tr>

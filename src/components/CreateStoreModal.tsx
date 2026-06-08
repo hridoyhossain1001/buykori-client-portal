@@ -109,7 +109,7 @@ export function CreateStoreModal({ open, onClose, onCreated, showToast }: Create
           <div className="flex items-start gap-2.5 p-3 rounded-xl bg-indigo-50  border border-indigo-100 ">
             <Check className="w-4 h-4 text-indigo-500 mt-0.5 shrink-0" />
             <p className="text-[11px] text-indigo-700  leading-relaxed">
-              à¦¨à¦¤à§à¦¨ store à¦¤à§ˆà¦°à¦¿ à¦¹à¦²à§‡ à¦†à¦ªà¦¨à¦¾à¦•à§‡ automatically à¦“à¦‡ store-à¦ switch à¦•à¦°à¦¾ à¦¹à¦¬à§‡à¥¤ à¦†à¦ªà¦¨à¦¾à¦° password à¦à¦•à¦‡ à¦¥à¦¾à¦•à¦¬à§‡ â€” à¦¨à¦¤à§à¦¨ login à¦•à¦°à¦¤à§‡ à¦¹à¦¬à§‡ à¦¨à¦¾à¥¤
+              নতুন store তৈরি হলে আপনাকে automatically ওই store-এ switch করা হবে। আপনার password একই থাকবে — নতুন login করতে হবে না।
             </p>
           </div>
 
@@ -153,7 +153,7 @@ export function CreateStoreModal({ open, onClose, onCreated, showToast }: Create
                 disabled={loading}
               />
             </div>
-            <p className="text-[10px] text-slate-400">Later-à¦ Settings à¦¥à§‡à¦•à§‡ domain, pixel ID à¦¸à¦¬ configure à¦•à¦°à¦¤à§‡ à¦ªà¦¾à¦°à¦¬à§‡à¦¨à¥¤</p>
+            <p className="text-[10px] text-slate-400">You can add or change this domain later.</p>
           </div>
         </div>
 

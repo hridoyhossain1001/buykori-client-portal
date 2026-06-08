@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import JsBarcode from 'jsbarcode';
 import QRCode from 'qrcode';
 import { Package, Printer, Ruler, X } from 'lucide-react';
@@ -322,7 +322,7 @@ export function CourierLabelModal({
                   </div>
                   <div className="courier-label-cod mt-auto flex items-center justify-between border-2 border-slate-900 px-1.5 py-1 text-[10px] font-black uppercase">
                     <span>Cash on delivery</span>
-                    <strong className="text-[15px]">à§³ {codAmount.toLocaleString()}</strong>
+                    <strong className="text-[15px]">৳ {codAmount.toLocaleString()}</strong>
                   </div>
                   <div className="courier-label-footer flex justify-between gap-1 text-[7px] text-slate-500">
                     <span>Printed: {new Date().toLocaleString()}</span>

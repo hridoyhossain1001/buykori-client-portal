@@ -130,7 +130,7 @@ export function AccountView({
                 <input 
                   type="password" 
                   value={passCurrent} 
-                  placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
+                  placeholder="**************"
                   onChange={(e) => setPassCurrent(e.target.value)}
                   className="w-full p-2 text-xs bg-slate-50 border border-slate-200    rounded font-mono"
                 />
@@ -258,7 +258,7 @@ export function AccountView({
 
             <div className="flex justify-between pb-2">
               <span className="text-slate-400 ">Ad Blocker Bypass:</span>
-              <span className="font-semibold text-indigo-700 ">Fully Enabled âœ“</span>
+              <span className="font-semibold text-indigo-700 ">Fully Enabled ✓</span>
             </div>
           </div>
 
