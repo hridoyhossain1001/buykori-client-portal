@@ -12,6 +12,7 @@ interface GuideStep {
   id: string;
   selector?: string;
   page?: string;
+  sectionId?: string;
   text: Record<GuideLanguage, GuideStepText>;
 }
 
@@ -92,6 +93,53 @@ const guideSteps: GuideStep[] = [
       en: {
         title: 'Order controls',
         body: 'Control COD holds, confirms, cancels, and courier workflow from here.',
+      },
+    },
+  },
+  {
+    id: 'courier-shipping',
+    selector: '[data-guide="nav-orders"]',
+    page: 'orders',
+    text: {
+      bn: {
+        title: 'Courier Shipping',
+        body: 'Courier booking আর delivery status দেখার জায়গা এটা। এর ভেতরে দুইটা ভাগ আছে।',
+      },
+      en: {
+        title: 'Courier Shipping',
+        body: 'This is where you manage courier booking and delivery status. It has two parts.',
+      },
+    },
+  },
+  {
+    id: 'orders-pending',
+    selector: '[data-guide="orders-pending-tab"]',
+    page: 'orders',
+    sectionId: 'orders-pending',
+    text: {
+      bn: {
+        title: 'Pending COD Queue',
+        body: 'যে COD order এখনো courier-এ পাঠানো হয়নি, সেগুলো এখানে থাকবে। এখান থেকে order book করতে পারবেন।',
+      },
+      en: {
+        title: 'Pending COD Queue',
+        body: 'COD orders that are not sent to courier yet stay here. You can book courier from here.',
+      },
+    },
+  },
+  {
+    id: 'orders-shipped',
+    selector: '[data-guide="orders-shipped-tab"]',
+    page: 'orders',
+    sectionId: 'orders-shipped',
+    text: {
+      bn: {
+        title: 'Shipped Courier Log',
+        body: 'Courier-এ পাঠানো order, tracking status, invoice, label, আর cancel action এখানে দেখা যাবে।',
+      },
+      en: {
+        title: 'Shipped Courier Log',
+        body: 'See sent orders, tracking status, invoices, labels, and cancel actions here.',
       },
     },
   },
@@ -223,6 +271,13 @@ export function ProductGuide({ open, onClose, setActivePage, setMobileSidebarOpe
     const current = guideSteps[stepIndex];
     if (current.page) {
       setActivePage(current.page);
+    }
+    if (current.page && current.sectionId) {
+      window.setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('buykori:page-section', {
+          detail: { pageId: current.page, sectionId: current.sectionId },
+        }));
+      }, 180);
     }
 
     const isSidebarTarget = current.selector?.includes('nav-') || current.selector?.includes('active-store');

@@ -661,6 +661,7 @@ export function OrdersView({
       <div className="flex border-b border-slate-200 ">
         <button
           onClick={() => setActiveTab('pending')}
+          data-guide="orders-pending-tab"
           className={`flex flex-1 items-center justify-center gap-1.5 border-b-2 px-2 py-2 text-xs font-bold transition-all cursor-pointer sm:flex-none sm:justify-start sm:gap-2 sm:px-5 sm:py-3 sm:text-sm ${
             activeTab === 'pending'
               ? 'border-indigo-600 text-indigo-600  '
@@ -674,6 +675,7 @@ export function OrdersView({
         </button>
         <button
           onClick={() => setActiveTab('shipped')}
+          data-guide="orders-shipped-tab"
           className={`flex flex-1 items-center justify-center gap-1.5 border-b-2 px-2 py-2 text-xs font-bold transition-all cursor-pointer sm:flex-none sm:justify-start sm:gap-2 sm:px-5 sm:py-3 sm:text-sm ${
             activeTab === 'shipped'
               ? 'border-indigo-600 text-indigo-600  '
