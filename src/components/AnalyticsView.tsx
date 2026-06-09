@@ -463,13 +463,13 @@ export function AnalyticsView({
         </div>
 
         {/* Signal Doctor Heuristics Checklist */}
-        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm flex flex-col justify-between  ">
+        <div className="self-start rounded-xl border border-slate-200 bg-white p-6 shadow-sm  ">
           <div>
             <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wide ">Tracking Checklist</h3>
             <p className="text-xs text-slate-400 ">Simple checks that help improve ad tracking quality.</p>
           </div>
 
-          <div className="mt-4 space-y-3 flex-1 overflow-y-auto max-h-96 pr-1">
+          <div className="mt-4 space-y-3 overflow-y-auto max-h-96 pr-1">
             {signalDoctor?.issues ? (
               signalDoctor.issues.map((issue: any, idx: number) => (
                 <div key={idx} className={`p-3 rounded-lg border text-xs flex gap-2.5 ${

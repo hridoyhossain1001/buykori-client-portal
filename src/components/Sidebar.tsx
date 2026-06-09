@@ -68,6 +68,7 @@ interface SidebarProps {
   stores?: StoreInfo[];
   onSwitchStore?: (clientId: number) => Promise<void>;
   onCreateStore?: () => void;
+  onOpenGuide?: () => void;
 }
 
 export function Sidebar({
@@ -87,6 +88,7 @@ export function Sidebar({
   stores = [],
   onSwitchStore,
   onCreateStore,
+  onOpenGuide,
 }: SidebarProps) {
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [storeSwitcherOpen, setStoreSwitcherOpen] = useState(false);
@@ -241,7 +243,7 @@ export function Sidebar({
       }`}
     >
       {/* Brand Header */}
-      <div className={`bk-console-brand flex items-center ${
+      <div data-guide="brand" className={`bk-console-brand flex items-center ${
         collapsed ? 'justify-center px-2 gap-1' : 'justify-between px-5'
       }`}>
         <div className="flex items-center gap-2.5 overflow-hidden">
@@ -279,6 +281,7 @@ export function Sidebar({
           <div className="relative">
             <button
               onClick={() => setStoreSwitcherOpen(prev => !prev)}
+              data-guide="active-store"
               className="flex w-full cursor-pointer items-center gap-2.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-left transition-colors hover:bg-slate-50"
             >
               <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-blue-50">
@@ -396,6 +399,7 @@ export function Sidebar({
                       <button
                         aria-current={isActive ? 'page' : undefined}
                         aria-expanded={hasSubmenu && !collapsed ? submenuOpen : undefined}
+                        data-guide={`nav-${item.id}`}
                         onClick={() => {
                           if (hasSubmenu && !collapsed) {
                             setActivePage(item.id);
@@ -555,6 +559,27 @@ export function Sidebar({
           <LogOut className="w-4 h-4 shrink-0 transition-transform group-hover:translate-x-0.5" />
           {!collapsed && <span className="text-xs">Log Out</span>}
         </button>
+        {collapsed ? (
+          <button
+            type="button"
+            onClick={onOpenGuide}
+            className="flex w-full items-center justify-center rounded-lg py-2 text-blue-700 transition-colors hover:bg-blue-50"
+            title="Open Guide"
+            aria-label="Open product guide"
+          >
+            <BookOpen className="h-4 w-4 shrink-0" />
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={onOpenGuide}
+            className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-blue-700 transition-colors hover:bg-blue-50"
+            aria-label="Open product guide"
+          >
+            <BookOpen className="h-4 w-4 shrink-0" />
+            <span className="text-xs">Guide</span>
+          </button>
+        )}
       </div>
     </aside>
     {showLogoutConfirm && (

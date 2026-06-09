@@ -14,6 +14,7 @@ import { Sidebar } from './components/Sidebar';
 import { CreateStoreModal } from './components/CreateStoreModal';
 import { Header } from './components/Header';
 import { PluginConnectAuthorizeView } from './components/PluginConnectAuthorizeView';
+import { ProductGuide } from './components/ProductGuide';
 import { CAPIEvent, APILog, Suggestion, Platform, EventRule, PlatformConfig, UserProfile, ClientConnection, OutboxItem, PluginReleaseInfo } from './types';
 
 const lazyWithReload = <T extends React.ComponentType<any>>(
@@ -187,10 +188,28 @@ export default function App() {
 
   // Trigger feedback toasts
   const [globalToast, setGlobalToast] = useState<{ show: boolean; msg: string; err: boolean }>({ show: false, msg: '', err: false });
+  const [productGuideOpen, setProductGuideOpen] = useState<boolean>(false);
 
   useEffect(() => {
     sessionStorage.removeItem('buykori_chunk_reload');
   }, []);
+
+  const getGuideStorageKey = (user?: UserProfile | null) => {
+    const owner = user?.email || 'guest';
+    return `buykori_client_tour_seen_${owner}`;
+  };
+
+  const openProductGuide = () => {
+    setProductGuideOpen(true);
+  };
+
+  const closeProductGuide = () => {
+    if (profile) {
+      localStorage.setItem(getGuideStorageKey(profile), '1');
+    }
+    setProductGuideOpen(false);
+    setMobileSidebarOpen(false);
+  };
 
   const showToast = (msg: string, isErr = false) => {
     setGlobalToast({ show: true, msg, err: isErr });
@@ -198,6 +217,13 @@ export default function App() {
       setGlobalToast(prev => ({ ...prev, show: false }));
     }, 4000);
   };
+
+  useEffect(() => {
+    if (loading || !profile || isPluginConnectRoute) return;
+    if (localStorage.getItem(getGuideStorageKey(profile)) === '1') return;
+    const timer = window.setTimeout(() => setProductGuideOpen(true), 650);
+    return () => window.clearTimeout(timer);
+  }, [loading, profile, isPluginConnectRoute]);
 
   const redirectToClientLogin = () => {
     window.location.assign('/client');
@@ -1092,8 +1118,8 @@ export default function App() {
       if (format === 'json') {
         payload = JSON.stringify(apiLogs, null, 2);
       } else {
-        payload = "Date,Platform,Endpoint,Method,Status,LatencyMs\n" + 
-          apiLogs.map(l => `"${l.timestamp}","${l.platform}","${l.endpoint}","${l.method}",${l.statusCode},${l.latencyMs}`).join("\n");
+        payload = "Date,Platform,Endpoint,Method,Status,Retries\n" + 
+          apiLogs.map(l => `"${l.timestamp}","${l.platform}","${l.endpoint}","${l.method}",${l.statusCode},${l.retryCount}`).join("\n");
       }
     }
 
@@ -1212,6 +1238,7 @@ export default function App() {
           stores={stores}
           onSwitchStore={handleSwitchStore}
           onCreateStore={() => setCreateStoreModalOpen(true)}
+          onOpenGuide={openProductGuide}
         />
       )}
 
@@ -1262,6 +1289,7 @@ export default function App() {
             onMenuClick={() => setMobileSidebarOpen(true)}
             suggestions={suggestions}
             setActivePage={setActivePage}
+            onOpenGuide={openProductGuide}
           />
         )}
 
@@ -1440,7 +1468,6 @@ export default function App() {
             {activePage === 'api-logs' && (
               <ApiLogsView 
                 filteredApiLogsForTable={filteredApiLogsForTable}
-                apiLogs={apiLogs}
                 expandedApiLogId={expandedApiLogId}
                 setExpandedApiLogId={setExpandedApiLogId}
                 handleExportData={handleExportData}
@@ -1601,6 +1628,12 @@ export default function App() {
           loadSystemData(true);
           setActivePage('dashboard');
         }}
+      />
+      <ProductGuide
+        open={productGuideOpen}
+        onClose={closeProductGuide}
+        setActivePage={setActivePage}
+        setMobileSidebarOpen={setMobileSidebarOpen}
       />
     </div>
   );

@@ -25,6 +25,7 @@ interface HeaderProps {
   onMenuClick?: () => void;
   suggestions?: Suggestion[];
   setActivePage?: (p: string) => void;
+  onOpenGuide?: () => void;
 }
 
 const pageSuggestions = [
@@ -37,7 +38,7 @@ const pageSuggestions = [
   { id: 'suggestions', name: 'Smart Tips', keywords: ['suggestions', 'tips', 'health', 'issues'] },
   { id: 'setup-guide', name: 'Setup Guide / Docs', keywords: ['setup guide', 'docs', 'faq', 'wordpress', 'installation'] },
   { id: 'event-logs', name: 'Event Logs', keywords: ['event history', 'logs', 'success', 'retry', 'event key'] },
-  { id: 'api-logs', name: 'API Logs', keywords: ['api logs', 'endpoint', 'latency', 'responses'] },
+  { id: 'api-logs', name: 'API Logs', keywords: ['api logs', 'endpoint', 'responses', 'retries'] },
   { id: 'settings', name: 'Settings', keywords: ['settings', 'pixel', 'access token', 'rules', 'connection'] },
   { id: 'account', name: 'Account Details', keywords: ['account', 'profile', 'password', 'delete', 'reset'] }
 ];
@@ -50,7 +51,8 @@ export function Header({
   setSearchVal, 
   onMenuClick,
   suggestions = [],
-  setActivePage
+  setActivePage,
+  onOpenGuide
 }: HeaderProps) {
   const [testing, setTesting] = useState(false);
   const [toast, setToast] = useState<{ show: boolean; msg: string; err: boolean }>({ show: false, msg: '', err: false });
@@ -171,7 +173,7 @@ export function Header({
         </div>
 
         {/* Centered quick navigation search */}
-        <div ref={searchContainerRef} className="relative mx-8 hidden w-full max-w-[420px] lg:flex">
+        <div ref={searchContainerRef} data-guide="top-search" className="relative mx-8 hidden w-full max-w-[420px] lg:flex">
           <div className="bk-console-search relative z-10 flex h-9 w-full items-center px-4">
             <input
               type="text"
@@ -218,6 +220,7 @@ export function Header({
           <button
             type="button"
             onClick={() => setIsSearchOpen(true)}
+            data-guide="top-search-mobile"
             className="block rounded-full p-2 text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900 focus:outline-none focus:ring-1 focus:ring-blue-500 lg:hidden"
             title="Search pages"
             aria-label="Open quick navigation search"
@@ -231,6 +234,7 @@ export function Header({
           <button
             onClick={triggerHeartbeat}
             disabled={testing}
+            data-guide="refresh"
             className={`rounded-full p-1.5 text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900 md:p-2 ${
               testing ? 'animate-spin' : ''
             }`}
@@ -245,6 +249,7 @@ export function Header({
             <div className="relative" ref={notificationsRef}>
               <button 
                 onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
+                data-guide="notifications"
                 className="relative cursor-pointer rounded-full p-1.5 text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900 focus:outline-none md:p-2"
                 title="Notifications"
                 aria-label="Open notifications"
@@ -318,7 +323,13 @@ export function Header({
               )}
             </div>
             
-            <button className="hidden rounded-full p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-900 sm:block md:p-2" title="Help & Support">
+            <button
+              type="button"
+              onClick={onOpenGuide}
+              className="hidden rounded-full p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-900 sm:block md:p-2"
+              title="Open guide"
+              aria-label="Open product guide"
+            >
               <HelpCircle className="w-4 h-4" />
             </button>
           </div>

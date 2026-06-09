@@ -1,19 +1,9 @@
 ﻿import React from 'react';
-import { 
-  BarChart as ReChartsBarChart, 
-  Bar, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip as ReChartsTooltip, 
-  ResponsiveContainer 
-} from 'recharts';
 import { Download, AlertTriangle, Activity } from 'lucide-react';
 import { APILog } from '../types';
 
 interface ApiLogsViewProps {
   filteredApiLogsForTable: APILog[];
-  apiLogs: APILog[];
   expandedApiLogId: string | null;
   setExpandedApiLogId: (id: string | null) => void;
   handleExportData: (format: 'csv' | 'json', type: 'events' | 'apilogs') => void;
@@ -21,71 +11,12 @@ interface ApiLogsViewProps {
 
 export function ApiLogsView({
   filteredApiLogsForTable,
-  apiLogs,
   expandedApiLogId,
   setExpandedApiLogId,
   handleExportData
 }: ApiLogsViewProps) {
-  const latencyValues = apiLogs
-    .map((log) => Number(log.latencyMs))
-    .filter((value) => Number.isFinite(value) && value > 0);
-  const averageLatency = latencyValues.length > 0
-    ? Math.round(latencyValues.reduce((sum, value) => sum + value, 0) / latencyValues.length)
-    : null;
-  
-  // API Latency Graph distribution
-  const getLatencyChartData = () => {
-    return apiLogs.slice(0, 15).reverse().map((l, index) => ({
-      name: `#${index + 1}`,
-      'Latency (ms)': Number.isFinite(Number(l.latencyMs)) ? Number(l.latencyMs) : 0,
-      'Status': l.statusCode === 200 ? 'Success' : 'Error'
-    }));
-  };
-  const hasLatencySamples = getLatencyChartData().some((point) => point['Latency (ms)'] > 0);
-
   return (
     <div className="space-y-6">
-
-      {/* Top analytic graph measuring latency rates over time */}
-      <section aria-labelledby="api-response-times-title" className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm  ">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h2 id="api-response-times-title" className="font-bold text-slate-800 text-sm uppercase tracking-wide ">API Response Times</h2>
-            <p className="text-xs text-slate-400 ">Connection response times in milliseconds</p>
-          </div>
-          <div className="text-xs text-slate-500 font-mono ">
-            Avg Latency: <span className="font-bold text-indigo-600 ">{averageLatency !== null ? `${averageLatency}ms` : 'No samples'}</span>
-          </div>
-        </div>
-
-        <div className="h-32">
-          {hasLatencySamples ? (
-            <ResponsiveContainer
-              width="100%"
-              height="100%"
-              minWidth={1}
-              minHeight={1}
-              initialDimension={{ width: 640, height: 128 }}
-            >
-              <ReChartsBarChart data={getLatencyChartData()} margin={{ top: 10, right: 10, left: -30, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                <XAxis dataKey="name" stroke="#94a3b8" fontSize={9} tickLine={false} />
-                <YAxis stroke="#94a3b8" fontSize={9} tickLine={false} unit="ms" />
-                <ReChartsTooltip contentStyle={{ fontSize: '10px', borderRadius: '6px', backgroundColor: '#ffffff', borderColor: '#e2e8f0', color: '#1e293b' }} />
-                <Bar dataKey="Latency (ms)" fill="#4f46e5" radius={[4, 4, 0, 0]} barSize={12} />
-              </ReChartsBarChart>
-            </ResponsiveContainer>
-          ) : (
-            <div className="flex h-full items-center justify-center rounded-lg border border-dashed border-slate-200 bg-slate-50/70 text-center  ">
-              <div>
-                <Activity className="mx-auto h-6 w-6 text-slate-300" />
-                <p className="mt-2 text-xs font-bold text-slate-600 ">No latency samples yet</p>
-                <p className="mt-1 text-[11px] text-slate-400">Response time bars will appear after API calls include latency values.</p>
-              </div>
-            </div>
-          )}
-        </div>
-      </section>
 
       {/* Sub controls & export bar */}
       <div className="flex justify-between items-center">
@@ -131,7 +62,7 @@ export function ApiLogsView({
                   <div className="mt-3 grid grid-cols-3 gap-2 text-[11px] text-slate-500">
                     <span className="font-mono">{new Date(l.timestamp).toLocaleTimeString()}</span>
                     <span className="text-center font-mono">{l.method}</span>
-                    <span className="text-right font-mono">{Number.isFinite(Number(l.latencyMs)) && Number(l.latencyMs) > 0 ? `${Number(l.latencyMs)}ms` : 'N/A'}</span>
+                    <span className="text-right font-mono">{l.retryCount > 0 ? `${l.retryCount} retries` : 'No retry'}</span>
                   </div>
                   {l.retryCount > 0 && <p className="mt-2 text-[11px] font-bold text-amber-600">{l.retryCount} retried</p>}
                 </button>
@@ -161,14 +92,13 @@ export function ApiLogsView({
                 <th className="px-6 py-3">Endpoint URL</th>
                 <th className="px-6 py-3">Method</th>
                 <th className="px-6 py-3">Status code</th>
-                <th className="px-6 py-3">Latency</th>
                 <th className="px-6 py-3 text-right">Retries</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 ">
               {filteredApiLogsForTable.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-8 text-center text-slate-400 font-medium">
+                  <td colSpan={6} className="px-6 py-8 text-center text-slate-400 font-medium">
                     <div className="mx-auto flex max-w-sm flex-col items-center gap-2">
                       <Activity className="h-7 w-7 text-slate-300" />
                       <p className="font-bold text-slate-600 ">No API logs yet</p>
@@ -213,9 +143,6 @@ export function ApiLogsView({
                             {l.statusCode}
                           </span>
                         </td>
-                        <td className="px-6 py-3.5 font-mono text-slate-500 ">
-                          {Number.isFinite(Number(l.latencyMs)) && Number(l.latencyMs) > 0 ? `${Number(l.latencyMs)}ms` : 'N/A'}
-                        </td>
                         <td className="px-6 py-3.5 text-right font-mono font-medium">
                           {l.retryCount > 0 ? (
                             <span className="text-amber-600 font-bold bg-amber-50 px-1.5 py-0.5 rounded border border-amber-100 whitespace-nowrap   ">
@@ -229,7 +156,7 @@ export function ApiLogsView({
 
                       {isExpanded && (
                         <tr>
-                          <td colSpan={7} className="bg-slate-50  border-t border-slate-100  px-6 py-4">
+                          <td colSpan={6} className="bg-slate-50  border-t border-slate-100  px-6 py-4">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                               <div tabIndex={0} aria-label={`Expanded request body for API log ${l.id}`} className="bg-slate-900 text-slate-200 text-[11px] font-mono p-4 rounded-lg overflow-auto max-h-60 outline-none focus:ring-2 focus:ring-indigo-400">
                                 <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-wider mb-2">Data Sent</p>
