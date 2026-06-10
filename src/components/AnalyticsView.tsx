@@ -78,6 +78,28 @@ export function AnalyticsView({
   const districtFunnel = districtFunnelMode === 'visitors' ? visitorDistrictFunnel : eventDistrictFunnel;
   const districtFunnelUnit = districtFunnelMode === 'visitors' ? 'visitors' : 'events';
 
+  const [adPerformance, setAdPerformance] = React.useState<any[]>([]);
+  const [loadingAdPerformance, setLoadingAdPerformance] = React.useState<boolean>(false);
+
+  React.useEffect(() => {
+    const fetchAdPerformance = async () => {
+      setLoadingAdPerformance(true);
+      try {
+        const res = await fetch(`/api/v1/analytics/ad-performance?days=${analyticsDays}`);
+        if (res.ok) {
+          const json = await res.json();
+          setAdPerformance(json.data || []);
+        }
+      } catch (err) {
+        console.error("Failed to fetch ad performance analytics", err);
+      } finally {
+        setLoadingAdPerformance(false);
+      }
+    };
+
+    fetchAdPerformance();
+  }, [analyticsDays]);
+
   React.useEffect(() => {
     const host = matchChartHostRef.current;
     if (!host) return;
@@ -494,6 +516,162 @@ export function AnalyticsView({
           </div>
         </div>
 
+      </div>
+
+      {/* Ad Platform Campaign Performance & ROAS Attribution Dashboard */}
+      <div id="analytics-ad-performance" className="scroll-mt-24 flex flex-col space-y-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm md:p-6">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wide">Ad Platform Campaign Performance & ROAS Attribution</h3>
+            <p className="text-xs text-slate-400 font-medium">Attributed campaign insights and real-time ROAS from Meta and TikTok ad account syncs.</p>
+          </div>
+          {loadingAdPerformance && (
+            <div className="flex items-center gap-1.5 text-xs text-slate-400">
+              <span className="animate-spin h-3.5 w-3.5 border-2 border-indigo-500 border-t-transparent rounded-full" />
+              <span>Updating platform data...</span>
+            </div>
+          )}
+        </div>
+
+        {/* Info Explainer Banner */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 rounded-xl border border-indigo-50 bg-indigo-50/20 text-xs text-slate-600">
+          <div className="space-y-1">
+            <p className="font-bold text-indigo-700 uppercase tracking-wider text-[10px]">Placed ROAS vs CPA</p>
+            <p className="leading-normal">Calculated based on front-end orders placed at checkout (including pending cash-on-delivery). Provides an immediate look at campaign response.</p>
+          </div>
+          <div className="space-y-1 border-t md:border-t-0 md:border-l border-slate-200/60 pt-3 md:pt-0 md:pl-4">
+            <p className="font-bold text-indigo-700 uppercase tracking-wider text-[10px]">Confirmed ROAS vs CPA</p>
+            <p className="leading-normal">Calculated purely using completed/paid/confirmed orders, deducting cancellations and returned COD. Shows your actual net business returns.</p>
+          </div>
+          <div className="space-y-1 border-t md:border-t-0 md:border-l border-slate-200/60 pt-3 md:pt-0 md:pl-4">
+            <p className="font-bold text-indigo-700 uppercase tracking-wider text-[10px]">Tracking Bypass Efficiency</p>
+            <p className="leading-normal">Percentage of visitors tracked via server-side CAPI that were missed by standard browser pixels. Represents the direct data gain using Buykori.</p>
+          </div>
+        </div>
+
+        {/* Mobile View */}
+        <div className="space-y-2 md:hidden">
+          {!adPerformance || adPerformance.length === 0 ? (
+            <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center text-xs text-slate-400">
+              No campaign performance data available. Connect an ad account in Settings and verify your tracking params are active.
+            </div>
+          ) : adPerformance.map((row: any, idx: number) => (
+            <div key={idx} className="rounded-lg border border-slate-200 bg-white p-3 space-y-2.5">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <span className={`inline-flex px-1.5 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider mb-1 ${
+                    row.platform === 'meta' ? 'bg-blue-50 text-blue-700 border border-blue-200' : 'bg-slate-900 text-white'
+                  }`}>
+                    {row.platform}
+                  </span>
+                  <p className="font-bold text-slate-800 text-xs truncate">{row.campaign_name}</p>
+                  <p className="font-mono text-[9px] text-slate-400 truncate">ID: {row.campaign_id}</p>
+                </div>
+                <div className="text-right shrink-0">
+                  <p className="text-xs font-black text-slate-900">${row.spend.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                  <p className="text-[9px] uppercase tracking-wider text-slate-400 font-bold">Spend</p>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-2 bg-slate-50 p-2 rounded text-[11px] font-semibold text-slate-600">
+                <div>
+                  <span className="block text-[8px] uppercase tracking-wider text-slate-400 font-bold">Placed ROAS / CPA</span>
+                  <span className="text-indigo-600 font-black">{row.placed_roas}x</span> · ৳{row.placed_cpa.toLocaleString()}
+                </div>
+                <div>
+                  <span className="block text-[8px] uppercase tracking-wider text-slate-400 font-bold">Confirmed ROAS / CPA</span>
+                  <span className="text-emerald-600 font-black">{row.confirmed_roas}x</span> · ৳{row.confirmed_cpa.toLocaleString()}
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between text-[10px] text-slate-500 pt-1">
+                <span>Clicks: {row.clicks} (CTR: {row.ctr}%)</span>
+                <span className="bg-emerald-50 text-emerald-700 border border-emerald-100 rounded px-1.5 py-0.5 font-bold uppercase text-[8px]">
+                  Bypass Gain: +{row.tracking_bypass_rate}%
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Desktop View */}
+        <div className="hidden overflow-x-auto md:block border border-slate-200 rounded-lg">
+          <table className="w-full text-left text-xs text-slate-600 divide-y divide-slate-100 min-w-[1000px]">
+            <thead className="bg-slate-50 text-[10px] font-bold uppercase tracking-wider text-slate-500 border-b border-slate-150">
+              <tr>
+                <th className="px-4 py-3">Campaign Details</th>
+                <th className="px-4 py-3">Spend & Clicks</th>
+                <th className="px-4 py-3">CTR / CPC</th>
+                <th className="px-4 py-3">Placed Performance</th>
+                <th className="px-4 py-3">Confirmed (Net)</th>
+                <th className="px-4 py-3 text-right">Bypass Efficiency</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {!adPerformance || adPerformance.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="px-4 py-10 text-center text-slate-400 font-medium">
+                    No active campaign data found. Daily ad account sync runs every 6 hours.
+                  </td>
+                </tr>
+              ) : (
+                adPerformance.map((row: any, idx: number) => (
+                  <tr key={idx} className="hover:bg-slate-50/50 transition-colors">
+                    <td className="px-4 py-3.5 align-middle max-w-[280px]">
+                      <div className="flex flex-col gap-1 min-w-0">
+                        <span className={`w-fit px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider ${
+                          row.platform === 'meta' ? 'bg-blue-50 text-blue-700 border border-blue-200' : 'bg-slate-900 text-white'
+                        }`}>
+                          {row.platform}
+                        </span>
+                        <span className="font-bold text-slate-800 truncate" title={row.campaign_name}>
+                          {row.campaign_name}
+                        </span>
+                        <span className="font-mono text-[9px] text-slate-400 truncate">
+                          ID: {row.campaign_id}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3.5 align-middle">
+                      <div className="flex flex-col">
+                        <span className="font-black text-slate-800">${row.spend.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                        <span className="text-slate-500 text-[10px]">{row.clicks.toLocaleString()} clicks · {row.impressions.toLocaleString()} imp</span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3.5 align-middle">
+                      <div className="flex flex-col">
+                        <span className="font-bold text-slate-800">{row.ctr}% CTR</span>
+                        <span className="text-slate-400 text-[10px]">${row.cpc} CPC</span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3.5 align-middle bg-slate-50/30">
+                      <div className="flex flex-col">
+                        <span className="font-black text-indigo-600">{row.placed_roas}x ROAS</span>
+                        <span className="text-slate-600 text-[10px]">{row.placed_purchases} Orders (৳{row.placed_revenue.toLocaleString()})</span>
+                        <span className="text-slate-400 text-[9px]">CPA: ৳{row.placed_cpa.toLocaleString()}</span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3.5 align-middle bg-emerald-50/10">
+                      <div className="flex flex-col">
+                        <span className="font-black text-emerald-600">{row.confirmed_roas}x ROAS</span>
+                        <span className="text-slate-600 text-[10px]">{row.confirmed_purchases} Confirmed (৳{row.confirmed_revenue.toLocaleString()})</span>
+                        <span className="text-slate-400 text-[9px]">CPA: ৳{row.confirmed_cpa.toLocaleString()}</span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3.5 align-middle text-right">
+                      <div className="flex flex-col items-end gap-1">
+                        <span className="font-black text-slate-800">+{row.tracking_bypass_rate}%</span>
+                        <span className="rounded bg-emerald-50 px-1 py-0.5 text-[9px] font-bold uppercase text-emerald-700 tracking-wider">
+                          efficiency gain
+                        </span>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {/* Campaign UTM Performance Table */}

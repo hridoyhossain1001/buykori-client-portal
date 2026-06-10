@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Check, Copy, Globe2, Plus, Save, Trash2 } from 'lucide-react';
 import { Tooltip } from './common/Tooltip';
 import { Platform, PlatformConfig, EventRule, ClientConnection, PluginReleaseInfo } from '../types';
@@ -168,6 +168,103 @@ export function SettingsView({
   const [savingCourier, setSavingCourier] = useState<boolean>(false);
   const [copyingPathaoSecret, setCopyingPathaoSecret] = useState<boolean>(false);
   const [copyingCourierSecret, setCopyingCourierSecret] = useState<string>('');
+
+  // Connected ad accounts states
+  const [adAccounts, setAdAccounts] = useState<any[]>([]);
+  const [loadingAdAccounts, setLoadingAdAccounts] = useState<boolean>(false);
+  const [savingAdAccount, setSavingAdAccount] = useState<boolean>(false);
+  const [deletingAdAccountId, setDeletingAdAccountId] = useState<number | null>(null);
+
+  // Form states for ad accounts
+  const [adPlatform, setAdPlatform] = useState<'meta' | 'tiktok'>('meta');
+  const [adAccountId, setAdAccountId] = useState<string>('');
+  const [adAccountName, setAdAccountName] = useState<string>('');
+  const [adAccessToken, setAdAccessToken] = useState<string>('');
+  const [adRefreshToken, setAdRefreshToken] = useState<string>('');
+  const [adCurrency, setAdCurrency] = useState<string>('USD');
+  const [adTimezone, setAdTimezone] = useState<string>('Asia/Dhaka');
+
+  const fetchAdAccounts = async () => {
+    setLoadingAdAccounts(true);
+    try {
+      const res = await fetch('/api/v1/ad-accounts');
+      if (res.ok) {
+        const data = await res.json();
+        setAdAccounts(data);
+      }
+    } catch (err) {
+      console.error("Failed to load ad accounts", err);
+    } finally {
+      setLoadingAdAccounts(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchAdAccounts();
+  }, []);
+
+  const handleConnectAdAccount = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!adAccountId.trim() || !adAccessToken.trim()) {
+      showToast("Please enter both Ad Account ID and Access Token.", true);
+      return;
+    }
+    setSavingAdAccount(true);
+    try {
+      const res = await fetch('/api/v1/ad-accounts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          platform: adPlatform,
+          external_account_id: adAccountId.trim(),
+          account_name: adAccountName.trim() || null,
+          access_token: adAccessToken.trim(),
+          refresh_token: adRefreshToken.trim() || null,
+          account_currency: adCurrency,
+          account_timezone: adTimezone
+        })
+      });
+      if (res.ok) {
+        showToast("Ad account connected successfully.", false);
+        setAdAccountId('');
+        setAdAccountName('');
+        setAdAccessToken('');
+        setAdRefreshToken('');
+        fetchAdAccounts();
+      } else {
+        const errData = await res.json();
+        showToast(errData.detail || "Failed to connect ad account.", true);
+      }
+    } catch (err) {
+      showToast("Error connecting ad account.", true);
+    } finally {
+      setSavingAdAccount(false);
+    }
+  };
+
+  const handleDisconnectAdAccount = async (id: number) => {
+    if (!window.confirm("Are you sure you want to disconnect this ad account? Daily syncing for this account will stop.")) {
+      return;
+    }
+    setDeletingAdAccountId(id);
+    try {
+      const res = await fetch(`/api/v1/ad-accounts/${id}`, {
+        method: 'DELETE'
+      });
+      if (res.ok) {
+        showToast("Ad account disconnected successfully.", false);
+        fetchAdAccounts();
+      } else {
+        const errData = await res.json();
+        showToast(errData.detail || "Failed to disconnect ad account.", true);
+      }
+    } catch (err) {
+      showToast("Error disconnecting ad account.", true);
+    } finally {
+      setDeletingAdAccountId(null);
+    }
+  };
+
 
   useEffect(() => {
     setLoadingCourier(true);
@@ -411,6 +508,207 @@ export function SettingsView({
               </div>
             );
           })}
+        </section>
+
+        {/* Ad Sync Integration Settings Card */}
+        <section id="settings-ad-accounts" aria-labelledby="settings-ad-accounts-title" className="scroll-mt-28 rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-6">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div>
+              <h2 id="settings-ad-accounts-title" className="font-bold text-slate-800 text-sm uppercase tracking-wide">Marketing Ad Account Insights</h2>
+              <p className="text-xs text-slate-400">Connect your Facebook (Meta) and TikTok Advertiser ad accounts to sync daily campaign spend, clicks, and impressions.</p>
+            </div>
+          </div>
+
+          <form onSubmit={handleConnectAdAccount} className="space-y-4 p-4 rounded-lg border border-slate-200 bg-slate-50/50">
+            <h4 className="font-bold text-xs text-indigo-600 uppercase tracking-wider pb-2 border-b border-slate-100">
+              Connect Ad Account
+            </h4>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-[10px] font-semibold text-slate-500 uppercase mb-1">Platform</label>
+                <select
+                  value={adPlatform}
+                  onChange={(e) => setAdPlatform(e.target.value as 'meta' | 'tiktok')}
+                  className="w-full p-2 text-xs bg-white border border-slate-200 rounded text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500 cursor-pointer"
+                >
+                  <option value="meta">Meta (Facebook Ads)</option>
+                  <option value="tiktok">TikTok Business Ads</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-semibold text-slate-500 uppercase mb-1">
+                  {adPlatform === 'meta' ? 'Meta Act ID (e.g. act_123456)' : 'TikTok Advertiser ID'}
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder={adPlatform === 'meta' ? 'act_123456789' : '71234567890123'}
+                  value={adAccountId}
+                  onChange={(e) => setAdAccountId(e.target.value)}
+                  className="w-full p-2 text-xs bg-white border border-slate-200 rounded font-mono text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-semibold text-slate-500 uppercase mb-1">Account Display Name</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Main Ad Account"
+                  value={adAccountName}
+                  onChange={(e) => setAdAccountName(e.target.value)}
+                  className="w-full p-2 text-xs bg-white border border-slate-200 rounded text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-[10px] font-semibold text-slate-500 uppercase mb-1">Access Token</label>
+                <input
+                  type="password"
+                  required
+                  placeholder="Paste ad API access token"
+                  value={adAccessToken}
+                  onChange={(e) => setAdAccessToken(e.target.value)}
+                  className="w-full p-2 text-xs bg-white border border-slate-200 rounded font-mono text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                />
+              </div>
+
+              {adPlatform === 'tiktok' ? (
+                <div>
+                  <label className="block text-[10px] font-semibold text-slate-500 uppercase mb-1">Refresh Token (Optional)</label>
+                  <input
+                    type="password"
+                    placeholder="TikTok OAuth Refresh Token"
+                    value={adRefreshToken}
+                    onChange={(e) => setAdRefreshToken(e.target.value)}
+                    className="w-full p-2 text-xs bg-white border border-slate-200 rounded font-mono text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  />
+                </div>
+              ) : (
+                <div className="flex items-end text-[10px] text-slate-400 pb-2">
+                  Meta Graph API uses a permanent system user access token.
+                </div>
+              )}
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-[10px] font-semibold text-slate-500 uppercase mb-1">Account Currency</label>
+                <select
+                  value={adCurrency}
+                  onChange={(e) => setAdCurrency(e.target.value)}
+                  className="w-full p-2 text-xs bg-white border border-slate-200 rounded text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500 cursor-pointer"
+                >
+                  <option value="USD">USD ($)</option>
+                  <option value="BDT">BDT (৳)</option>
+                  <option value="EUR">EUR (€)</option>
+                  <option value="GBP">GBP (£)</option>
+                  <option value="AED">AED (د.إ)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-semibold text-slate-500 uppercase mb-1">Account Timezone</label>
+                <select
+                  value={adTimezone}
+                  onChange={(e) => setAdTimezone(e.target.value)}
+                  className="w-full p-2 text-xs bg-white border border-slate-200 rounded text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500 cursor-pointer"
+                >
+                  <option value="Asia/Dhaka">Asia/Dhaka (GMT+6)</option>
+                  <option value="UTC">UTC</option>
+                  <option value="America/New_York">America/New_York (EST)</option>
+                  <option value="America/Los_Angeles">America/Los_Angeles (PST)</option>
+                  <option value="Europe/London">Europe/London (GMT)</option>
+                  <option value="Asia/Dubai">Asia/Dubai (GST)</option>
+                </select>
+              </div>
+
+              <div className="flex items-end">
+                <button
+                  type="submit"
+                  disabled={savingAdAccount}
+                  className="w-full py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded shadow-md transition-colors cursor-pointer text-center"
+                >
+                  {savingAdAccount ? 'Connecting...' : 'Connect Account'}
+                </button>
+              </div>
+            </div>
+          </form>
+
+          {/* Connected Accounts List */}
+          <div className="space-y-3">
+            <h4 className="font-bold text-xs text-slate-700 uppercase tracking-wider">
+              Connected Ad Accounts
+            </h4>
+            
+            {loadingAdAccounts ? (
+              <div className="flex items-center justify-center py-4 text-slate-400 gap-2">
+                <span className="animate-spin h-3.5 w-3.5 border-2 border-indigo-500 border-t-transparent rounded-full" />
+                <span className="text-xs">Loading ad connections...</span>
+              </div>
+            ) : adAccounts.length === 0 ? (
+              <p className="text-xs text-slate-400 bg-slate-50/50 border border-slate-200 rounded-lg p-4 text-center">
+                No active ad account integrations connected. Fill the form above to add one.
+              </p>
+            ) : (
+              <div className="overflow-x-auto border border-slate-200 rounded-lg">
+                <table className="w-full text-xs text-slate-600 text-left min-w-[600px]">
+                  <thead className="bg-slate-50 text-[10px] font-bold uppercase tracking-wider text-slate-500 border-b border-slate-100">
+                    <tr>
+                      <th className="px-4 py-2.5">Platform</th>
+                      <th className="px-4 py-2.5">Account Details</th>
+                      <th className="px-4 py-2.5">Settings</th>
+                      <th className="px-4 py-2.5">Last Synced</th>
+                      <th className="px-4 py-2.5 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {adAccounts.map((account) => (
+                      <tr key={account.id} className="hover:bg-slate-50/50">
+                        <td className="px-4 py-3 align-middle">
+                          <span className={`inline-flex px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
+                            account.platform === 'meta' ? 'bg-blue-50 text-blue-700 border border-blue-200' : 'bg-slate-900 text-white border border-slate-900'
+                          }`}>
+                            {account.platform}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 align-middle">
+                          <div className="flex flex-col">
+                            <span className="font-bold text-slate-800">{account.account_name || 'Unnamed Account'}</span>
+                            <span className="font-mono text-[10px] text-slate-400">{account.external_account_id}</span>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 align-middle">
+                          <span className="text-[10px] font-medium text-slate-500">
+                            {account.account_currency} · {account.account_timezone}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 align-middle">
+                          <span className="text-[10px] text-slate-500">
+                            {account.last_synced_at ? new Date(account.last_synced_at).toLocaleString() : 'Never'}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 align-middle text-right">
+                          <button
+                            type="button"
+                            disabled={deletingAdAccountId === account.id}
+                            onClick={() => handleDisconnectAdAccount(account.id)}
+                            className="inline-flex items-center justify-center rounded p-1 text-slate-400 transition-colors hover:bg-rose-50 hover:text-rose-600 disabled:opacity-50"
+                            title="Disconnect Account"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
         </section>
 
         {/* Courier Settings Panel */}
