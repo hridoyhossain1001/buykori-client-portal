@@ -93,6 +93,8 @@ export interface UserProfile {
   eventsQuota: number;
   renewalDate: string;
   growthFeaturesEnabled?: boolean;
+  ownerNotifyWhatsapp?: boolean;
+  ownerWhatsappNumber?: string;
 }
 
 export interface Suggestion {

@@ -176,6 +176,8 @@ export default function App() {
   const [profName, setProfName] = useState<string>('');
   const [profEmail, setProfEmail] = useState<string>('');
   const [profNotifEmail, setProfNotifEmail] = useState<string>('');
+  const [profNotifyWhatsapp, setProfNotifyWhatsapp] = useState<boolean>(false);
+  const [profWhatsappNumber, setProfWhatsappNumber] = useState<string>('');
   const [profUpdating, setProfUpdating] = useState<boolean>(false);
   const [passCurrent, setPassCurrent] = useState<string>('');
   const [passNew, setPassNew] = useState<string>('');
@@ -491,6 +493,8 @@ export default function App() {
       setProfName(dProf.name);
       setProfEmail(dProf.email);
       setProfNotifEmail(dProf.notificationEmail || dProf.email);
+      setProfNotifyWhatsapp(dProf.ownerNotifyWhatsapp || false);
+      setProfWhatsappNumber(dProf.ownerWhatsappNumber || '');
 
       setErrState(null);
       await loadActivePageData(activePage);
@@ -957,12 +961,19 @@ export default function App() {
         body: JSON.stringify({
           name: profName,
           email: profEmail,
-          notificationEmail: profNotifEmail
+          notificationEmail: profNotifEmail,
+          ownerNotifyWhatsapp: profNotifyWhatsapp,
+          ownerWhatsappNumber: profWhatsappNumber
         })
       });
       if (res.ok) {
         const data = await res.json();
         setProfile(data.profile);
+        setProfName(data.profile.name);
+        setProfEmail(data.profile.email);
+        setProfNotifEmail(data.profile.notificationEmail || data.profile.email);
+        setProfNotifyWhatsapp(data.profile.ownerNotifyWhatsapp || false);
+        setProfWhatsappNumber(data.profile.ownerWhatsappNumber || '');
         showToast("Profile saved!", false);
       }
     } catch {
@@ -1575,6 +1586,10 @@ export default function App() {
                 setProfEmail={setProfEmail}
                 profNotifEmail={profNotifEmail}
                 setProfNotifEmail={setProfNotifEmail}
+                profNotifyWhatsapp={profNotifyWhatsapp}
+                setProfNotifyWhatsapp={setProfNotifyWhatsapp}
+                profWhatsappNumber={profWhatsappNumber}
+                setProfWhatsappNumber={setProfWhatsappNumber}
                 profUpdating={profUpdating}
                 submitProfileSave={submitProfileSave}
                 passCurrent={passCurrent}
