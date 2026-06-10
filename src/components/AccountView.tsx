@@ -10,10 +10,6 @@ interface AccountViewProps {
   setProfEmail: (v: string) => void;
   profNotifEmail: string;
   setProfNotifEmail: (v: string) => void;
-  profNotifyWhatsapp: boolean;
-  setProfNotifyWhatsapp: (v: boolean) => void;
-  profWhatsappNumber: string;
-  setProfWhatsappNumber: (v: string) => void;
   profUpdating: boolean;
   submitProfileSave: (e: React.FormEvent) => Promise<void>;
   passCurrent: string;
@@ -41,10 +37,6 @@ export function AccountView({
   setProfEmail,
   profNotifEmail,
   setProfNotifEmail,
-  profNotifyWhatsapp,
-  setProfNotifyWhatsapp,
-  profWhatsappNumber,
-  setProfWhatsappNumber,
   profUpdating,
   submitProfileSave,
   passCurrent,
@@ -115,39 +107,6 @@ export function AccountView({
               />
             </div>
 
-            {/* WhatsApp Notifications Section */}
-            <div className="border-t border-slate-100 pt-4 mt-4 space-y-4">
-              <h4 className="font-bold text-slate-700 text-xs uppercase tracking-wider">WhatsApp Notifications</h4>
-              
-              <div className="flex items-center justify-between">
-                <div>
-                  <span className="block text-xs font-semibold text-slate-700">Enable WhatsApp Alerts</span>
-                  <span className="block text-[11px] text-slate-400">Receive purchase and lost checkout notifications directly on WhatsApp.</span>
-                </div>
-                <label className="relative inline-flex items-center cursor-pointer select-none">
-                  <input 
-                    type="checkbox" 
-                    checked={profNotifyWhatsapp}
-                    onChange={(e) => setProfNotifyWhatsapp(e.target.checked)}
-                    className="sr-only peer"
-                  />
-                  <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600"></div>
-                </label>
-              </div>
-
-              {profNotifyWhatsapp && (
-                <div className="animate-fadeIn transition-all">
-                  <label className="block text-[10px] font-semibold text-slate-400 uppercase mb-1">WhatsApp Number (with Country Code)</label>
-                  <input 
-                    type="text" 
-                    placeholder="e.g. 88017XXXXXXXX"
-                    value={profWhatsappNumber}
-                    onChange={(e) => setProfWhatsappNumber(e.target.value)}
-                    className="w-full p-2 text-xs bg-slate-50 border border-slate-200 rounded"
-                  />
-                </div>
-              )}
-            </div>
 
             <div className="pt-2 text-right">
               <button 

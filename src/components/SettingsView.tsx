@@ -20,6 +20,12 @@ interface SettingsViewProps {
   pluginReleaseInfo?: PluginReleaseInfo | null;
   storeDomain?: string;
   onSaveStoreDomain?: (domain: string) => Promise<void>;
+  profNotifyWhatsapp: boolean;
+  setProfNotifyWhatsapp: (v: boolean) => void;
+  profWhatsappNumber: string;
+  setProfWhatsappNumber: (v: string) => void;
+  profUpdating: boolean;
+  submitProfileSave: (e: React.FormEvent) => Promise<void>;
 }
 
 export function SettingsView({
@@ -38,7 +44,13 @@ export function SettingsView({
   growthFeaturesEnabled = false,
   pluginReleaseInfo,
   storeDomain = '',
-  onSaveStoreDomain
+  onSaveStoreDomain,
+  profNotifyWhatsapp,
+  setProfNotifyWhatsapp,
+  profWhatsappNumber,
+  setProfWhatsappNumber,
+  profUpdating,
+  submitProfileSave
 }: SettingsViewProps) {
   // Local state for inputs to prevent key-stroke POST spamming
   const [localPixelIds, setLocalPixelIds] = useState<Record<Platform, string>>({
@@ -1225,6 +1237,58 @@ export function SettingsView({
           >
             Test WordPress Connection
           </button>
+        </section>
+
+        {/* WhatsApp Notification Settings Card */}
+        <section id="settings-whatsapp" aria-labelledby="settings-whatsapp-title" className="scroll-mt-28 rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-4  ">
+          <div>
+            <h2 id="settings-whatsapp-title" className="font-bold text-slate-800 text-sm uppercase tracking-wide ">WhatsApp Notifications</h2>
+            <p className="text-xs text-slate-400  leading-normal">Receive purchase alerts and incomplete checkout recovery details on WhatsApp.</p>
+          </div>
+
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <span className="block text-xs font-semibold text-slate-700">Enable WhatsApp Alerts</span>
+                <span className="block text-[11px] text-slate-400">Send automatic alerts to WhatsApp number.</span>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer select-none">
+                <input 
+                  type="checkbox" 
+                  checked={profNotifyWhatsapp}
+                  onChange={(e) => setProfNotifyWhatsapp(e.target.checked)}
+                  className="sr-only peer"
+                />
+                <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600"></div>
+              </label>
+            </div>
+
+            {profNotifyWhatsapp && (
+              <div className="animate-fadeIn transition-all space-y-3">
+                <div>
+                  <label className="block text-[10px] font-semibold text-slate-400 uppercase mb-1">WhatsApp Number (with Country Code)</label>
+                  <input 
+                    type="text" 
+                    placeholder="e.g. 88017XXXXXXXX"
+                    value={profWhatsappNumber}
+                    onChange={(e) => setProfWhatsappNumber(e.target.value)}
+                    className="w-full p-2 text-xs bg-slate-50 border border-slate-200 rounded text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500 font-mono"
+                  />
+                </div>
+              </div>
+            )}
+
+            <div className="pt-2 text-right">
+              <button 
+                type="button"
+                onClick={submitProfileSave}
+                disabled={profUpdating}
+                className="w-full px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white text-xs font-bold rounded-lg transition-colors shadow-sm cursor-pointer"
+              >
+                {profUpdating ? 'Saving...' : 'Save WhatsApp Settings'}
+              </button>
+            </div>
+          </div>
         </section>
 
         {/* Threshold trigger alerts setting */}

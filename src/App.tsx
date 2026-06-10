@@ -1504,6 +1504,12 @@ export default function App() {
                 pluginReleaseInfo={pluginReleaseInfo}
                 storeDomain={currentStore?.domain || ''}
                 onSaveStoreDomain={handleSaveStoreDomain}
+                profNotifyWhatsapp={profNotifyWhatsapp}
+                setProfNotifyWhatsapp={setProfNotifyWhatsapp}
+                profWhatsappNumber={profWhatsappNumber}
+                setProfWhatsappNumber={setProfWhatsappNumber}
+                profUpdating={profUpdating}
+                submitProfileSave={submitProfileSave}
               />
             )}
 
