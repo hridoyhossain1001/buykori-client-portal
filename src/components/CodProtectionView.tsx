@@ -54,16 +54,28 @@ export function CodProtectionView({
 
   const getCustomerSummary = (order: any) => {
     const rawCustomer = String(order.customer || '').trim();
-    const protectedHash = /^[a-f0-9]{32,}$/i.test(rawCustomer);
-    const name = order.customerName || order.customer_name || order.recipientName || order.recipient_name || order.name || '';
-    const phone = order.phone || order.customerPhone || order.customer_phone || order.recipientPhone || order.recipient_phone || '';
-    const address = order.address || order.customerAddress || order.customer_address || order.recipientAddress || order.recipient_address || '';
+    const isHash = (val: string) => /^[a-f0-9]{32,}$/i.test(val.trim());
+
+    const name = String(order.customerName || order.customer_name || order.recipientName || order.recipient_name || order.name || '').trim();
+    const phone = String(order.phone || order.customerPhone || order.customer_phone || order.recipientPhone || order.recipient_phone || '').trim();
+    const address = String(order.address || order.customerAddress || order.customer_address || order.recipientAddress || order.recipient_address || '').trim();
+
+    const isCustomerHash = isHash(rawCustomer);
+    const isNameHash = isHash(name);
+    const isPhoneHash = isHash(phone);
+
+    const protectedHash = isCustomerHash || isNameHash || isPhoneHash;
+    const displayHash = isCustomerHash ? rawCustomer : (isNameHash ? name : (isPhoneHash ? phone : ''));
+
+    const cleanName = isNameHash ? '' : name;
+    const cleanPhone = isPhoneHash ? '' : phone;
+    const cleanAddress = isHash(address) ? '' : address;
 
     return {
-      primary: name || (protectedHash ? 'Protected customer' : rawCustomer || 'Customer unavailable'),
-      secondary: phone || (protectedHash ? `ID ${rawCustomer.slice(0, 10)}...` : ''),
-      tertiary: address,
-      title: protectedHash ? rawCustomer : [name || rawCustomer, phone, address].filter(Boolean).join(' | '),
+      primary: cleanName || (protectedHash ? 'Protected customer' : rawCustomer || 'Customer unavailable'),
+      secondary: cleanPhone || (protectedHash && displayHash ? `ID ${displayHash.slice(0, 10)}...` : ''),
+      tertiary: cleanAddress,
+      title: protectedHash ? (displayHash || 'Protected') : [cleanName || rawCustomer, cleanPhone, cleanAddress].filter(Boolean).join(' | '),
     };
   };
 
@@ -80,6 +92,32 @@ export function CodProtectionView({
     } else {
       setSelectedOrderIds(prev => prev.filter(id => id !== orderId));
     }
+  };
+
+  const renderRiskGauge = (scoreValue: number) => {
+    const score = Math.max(0, Math.min(100, Number(scoreValue) || 0));
+    const tone = score >= 75
+      ? { label: 'High', text: 'text-rose-700', bar: 'bg-rose-500' }
+      : score >= 35
+        ? { label: 'Medium', text: 'text-amber-700', bar: 'bg-amber-500' }
+        : { label: 'Low', text: 'text-green-700', bar: 'bg-green-500' };
+
+    return (
+      <div className="min-w-[120px]">
+        <div className="mb-1 flex items-center justify-between gap-2">
+          <span className={`text-[10px] font-black uppercase tracking-wide ${tone.text}`}>{tone.label}</span>
+          <span className="font-mono text-[10px] font-bold text-slate-500">{score}/100</span>
+        </div>
+        <div className="grid h-2 grid-cols-3 overflow-hidden rounded-full bg-slate-100">
+          <span className="bg-green-400" />
+          <span className="bg-amber-400" />
+          <span className="bg-rose-400" />
+        </div>
+        <div className="mt-1 h-1 rounded-full bg-slate-100">
+          <div className={`h-full rounded-full ${tone.bar}`} style={{ width: `${score}%` }} />
+        </div>
+      </div>
+    );
   };
 
   const desktopSummaryRow = (
@@ -333,7 +371,7 @@ export function CodProtectionView({
                   onClick={handleBulkCancel}
                   className="inline-flex items-center gap-1.5 rounded-lg border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs font-bold text-rose-700 transition-colors hover:bg-rose-100 disabled:opacity-50"
                 >
-                  <XCircle className="h-3.5 w-3.5" /> Cancel
+                  <XCircle className="h-3.5 w-3.5" /> Skip Selected
                 </button>
               </div>
             </div>
@@ -348,7 +386,6 @@ export function CodProtectionView({
             ) : pendingList.map((order: any) => {
               const isSelected = selectedOrderIds.includes(order.orderId);
               const customer = getCustomerSummary(order);
-              const riskTone = order.fraudScore >= 75 ? 'text-rose-700' : order.fraudScore >= 35 ? 'text-amber-700' : 'text-green-700';
               return (
                 <article key={order.orderId} className={`rounded-xl border bg-white p-4 shadow-sm ${isSelected ? 'border-indigo-200 ring-1 ring-indigo-100' : 'border-slate-200'}`}>
                   <div className="flex items-start justify-between gap-3">
@@ -370,16 +407,46 @@ export function CodProtectionView({
                   <div className="mt-4 grid grid-cols-2 gap-2 text-[11px]">
                     <div className="rounded-lg bg-slate-50 p-2">
                       <p className="font-bold uppercase text-slate-400">Risk</p>
-                      <p className={`mt-1 font-bold ${riskTone}`}>{order.fraudScore}/100</p>
+                      <div className="mt-1">{renderRiskGauge(order.fraudScore)}</div>
                     </div>
                     <div className="rounded-lg bg-slate-50 p-2">
                       <p className="font-bold uppercase text-slate-400">Held</p>
                       <p className="mt-1 font-mono font-bold text-slate-700">{order.ageHours}h</p>
                     </div>
                   </div>
+                  {order.products && order.products.length > 0 && (
+                    <details className="mt-3 group/prod">
+                      <summary className="flex cursor-pointer items-center justify-between text-[11px] font-bold text-indigo-700 select-none">
+                        <span>Order Items ({order.products.length})</span>
+                        <span className="text-[9px] text-indigo-500 group-open/prod:hidden">Show</span>
+                        <span className="text-[9px] text-indigo-500 hidden group-open/prod:inline">Hide</span>
+                      </summary>
+                      <div className="mt-2 space-y-1.5 border-t border-slate-100 pt-2">
+                        {order.products.map((p: any, idx: number) => {
+                          const pName = p.name || p.content_name || `Item ${idx + 1}`;
+                          const qty = p.quantity ? ` x${p.quantity}` : '';
+                          const category = p.category || p.content_category || '';
+                          const attrs = p.attributes && typeof p.attributes === 'object'
+                            ? Object.entries(p.attributes).map(([k, v]) => `${k}: ${v}`).join(', ')
+                            : '';
+                          const meta = [category, attrs].filter(Boolean).join(' - ');
+                          return (
+                            <div key={idx} className="flex items-start gap-1.5 text-[10px] text-slate-500 leading-tight">
+                              <Package className="h-3.5 w-3.5 mt-0.5 shrink-0 text-slate-400" />
+                              <div>
+                                <span className="font-medium text-slate-700">{pName}</span>
+                                {qty && <span className="font-bold text-slate-500">{qty}</span>}
+                                {meta && <span className="block text-slate-400 font-normal">{meta}</span>}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </details>
+                  )}
                   <div className="mt-4 grid grid-cols-2 gap-2">
                     <button type="button" onClick={() => handleConfirmOrder(order.orderId)} className="rounded-lg bg-emerald-800 px-3 py-2 text-xs font-bold text-white">Confirm</button>
-                    <button type="button" onClick={() => handleCancelOrder(order.orderId)} className="rounded-lg bg-rose-900 px-3 py-2 text-xs font-bold text-white">Cancel</button>
+                    <button type="button" onClick={() => handleCancelOrder(order.orderId)} className="rounded-lg bg-rose-900 px-3 py-2 text-xs font-bold text-white">Skip Event</button>
                   </div>
                 </article>
               );
@@ -437,29 +504,38 @@ export function CodProtectionView({
                           {customer.secondary && <span className="truncate font-mono text-[10px] text-slate-500">{customer.secondary}</span>}
                           {customer.tertiary && <span className="truncate text-[10px] text-slate-400">{customer.tertiary}</span>}
                           {products.length > 0 && (
-                            <span className="mt-1 inline-flex items-center gap-1 text-[10px] text-slate-500">
-                              <Package className="h-3 w-3" />
-                              {products[0]?.name || products[0]?.content_name || `${products.length} item${products.length > 1 ? 's' : ''}`}
-                              {products[0]?.category ? ` · ${products[0].category}` : ''}
-                            </span>
+                            <div className="mt-1.5 space-y-1">
+                              {products.map((p: any, idx: number) => {
+                                const pName = p.name || p.content_name || `Item ${idx + 1}`;
+                                const qty = p.quantity ? ` x${p.quantity}` : '';
+                                const category = p.category || p.content_category || '';
+                                const attrs = p.attributes && typeof p.attributes === 'object'
+                                  ? Object.entries(p.attributes).map(([k, v]) => `${k}: ${v}`).join(', ')
+                                  : '';
+                                const meta = [category, attrs].filter(Boolean).join(' - ');
+                                return (
+                                  <div key={idx} className="flex items-start gap-1 text-[10px] text-slate-500 leading-tight">
+                                    <Package className="h-3 w-3 mt-0.5 shrink-0 text-slate-400" />
+                                    <div>
+                                      <span className="font-medium text-slate-700">{pName}</span>
+                                      {qty && <span className="font-bold text-slate-500">{qty}</span>}
+                                      {meta && <span className="block text-slate-400 font-normal">{meta}</span>}
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
                           )}
                         </div>
                       </td>
                       <td className="px-6 py-3 font-semibold text-slate-800">{(Number(order.amount) || 0).toLocaleString()}</td>
                       <td className="px-6 py-3">
-                        <span className={`inline-flex items-center gap-1 rounded border px-2.5 py-0.5 text-[10px] font-bold ${
-                          order.fraudScore >= 75 ? 'border-rose-200 bg-rose-50 text-rose-700' :
-                          order.fraudScore >= 35 ? 'border-amber-200 bg-amber-50 text-amber-700' :
-                          'border-green-200 bg-green-50 text-green-700'
-                        }`}>
-                          <span className={`h-1.5 w-1.5 rounded-full ${order.fraudScore >= 75 ? 'bg-rose-500' : order.fraudScore >= 35 ? 'bg-amber-500' : 'bg-green-500'}`} />
-                          Score: {order.fraudScore}/100
-                        </span>
+                        {renderRiskGauge(order.fraudScore)}
                       </td>
                       <td className="px-6 py-3 font-mono text-slate-500">{order.ageHours}h ago</td>
                       <td className="space-x-2 whitespace-nowrap px-6 py-3 text-right">
                         <button type="button" onClick={() => handleConfirmOrder(order.orderId)} className="rounded bg-emerald-800 px-2.5 py-1 text-[10px] font-bold text-white hover:bg-emerald-900">Confirm</button>
-                        <button type="button" onClick={() => handleCancelOrder(order.orderId)} className="rounded bg-rose-900 px-2.5 py-1 text-[10px] font-bold text-white hover:bg-rose-950">Cancel</button>
+                        <button type="button" onClick={() => handleCancelOrder(order.orderId)} className="rounded bg-rose-900 px-2.5 py-1 text-[10px] font-bold text-white hover:bg-rose-950">Skip Event</button>
                       </td>
                     </tr>
                   );

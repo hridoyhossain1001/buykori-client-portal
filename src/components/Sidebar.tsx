@@ -1,4 +1,4 @@
-﻿/**
+/**
  * @license
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -183,7 +183,7 @@ export function Sidebar({
       items: [
         {
           id: 'pending-purchases',
-          name: 'COD Order Holds',
+          name: 'COD Verification Queue',
           icon: ShieldCheck,
           subtitle: 'Hold COD orders until confirmed',
           count: orderVerificationCount,
@@ -196,7 +196,7 @@ export function Sidebar({
         },
         {
           id: 'incomplete-checkouts',
-          name: 'Lost Sales Recovery',
+          name: 'Abandoned Checkouts',
           icon: PhoneCall,
           subtitle: 'Recover abandoned checkouts with a phone number',
           count: incompleteCheckoutCount,
@@ -207,8 +207,8 @@ export function Sidebar({
     {
       label: 'GROW',
       items: [
-        { id: 'campaign-builder', name: 'Campaign Helper', icon: Megaphone },
-        { id: 'suggestions', name: 'Smart Tips', icon: Lightbulb, count: suggestionsCount },
+        { id: 'campaign-builder', name: 'UTM & Sandbox Link Builder', icon: Megaphone },
+        { id: 'suggestions', name: 'Setup Diagnostics & Health', icon: Lightbulb, count: suggestionsCount },
       ],
     },
     {

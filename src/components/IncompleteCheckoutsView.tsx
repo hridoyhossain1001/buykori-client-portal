@@ -1,5 +1,5 @@
-﻿import React, { useMemo, useState } from 'react';
-import { CheckCircle2, Clock3, Copy, ExternalLink, Phone, Search, UserRoundX } from 'lucide-react';
+import React, { useMemo, useState } from 'react';
+import { CheckCircle2, Clock3, Copy, ExternalLink, MessageCircle, Phone, Search, UserRoundX } from 'lucide-react';
 import { Tooltip } from './common/Tooltip';
 
 interface IncompleteCheckoutItem {
@@ -32,6 +32,24 @@ const STATUS_STYLES: Record<string, string> = {
   recovered: 'bg-emerald-50 text-emerald-700 border-emerald-200   ',
 };
 
+const normalizeWhatsAppPhone = (phone: string) => {
+  const digits = String(phone || '').replace(/[^0-9]/g, '');
+  if (!digits) return '';
+  if (digits.startsWith('8801') && digits.length >= 13) return digits;
+  if (digits.startsWith('01') && digits.length === 11) return `88${digits}`;
+  if (digits.startsWith('1') && digits.length === 10) return `880${digits}`;
+  return digits.length >= 10 ? digits : '';
+};
+
+const getWhatsAppLink = (phone: string, name: string, amount: number, currency: string, products: any[]) => {
+  const cleanPhone = normalizeWhatsAppPhone(phone);
+  if (!cleanPhone) return '';
+  const productName = products?.[0]?.name || products?.[0]?.content_name || 'items';
+  const currencySymbol = currency || 'BDT';
+  const text = `Hi ${name || 'there'}, we noticed you left ${productName} in your cart for ${currencySymbol} ${amount.toLocaleString()}. Would you like to complete your order?`;
+  return `https://wa.me/${cleanPhone}?text=${encodeURIComponent(text)}`;
+};
+
 export function IncompleteCheckoutsView({ data, onStatusChange, onRefresh, showToast }: Props) {
   const [filter, setFilter] = useState('all');
   const [query, setQuery] = useState('');
@@ -58,7 +76,7 @@ export function IncompleteCheckoutsView({ data, onStatusChange, onRefresh, showT
     const attributes = product.attributes && typeof product.attributes === 'object'
       ? Object.entries(product.attributes).map(([key, value]) => `${key}: ${value}`).join(', ')
       : '';
-    return [category, attributes].filter(Boolean).join(' · ');
+    return [category, attributes].filter(Boolean).join(' - ');
   };
 
   if (data.restricted) {
@@ -124,6 +142,7 @@ export function IncompleteCheckoutsView({ data, onStatusChange, onRefresh, showT
             const product = item.products?.[0];
             const meta = productMeta(product);
             const source = item.campaignData?.utm_source || 'Direct';
+            const whatsAppLink = getWhatsAppLink(item.phone, item.customerName, item.amount, item.currency, item.products);
             return (
               <div key={item.id} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm  ">
                 <div className="flex items-start justify-between gap-3">
@@ -142,7 +161,7 @@ export function IncompleteCheckoutsView({ data, onStatusChange, onRefresh, showT
                   </div>
                   <div className="rounded-lg bg-slate-50 p-2 ">
                     <p className="font-bold uppercase text-slate-400">Amount</p>
-                    <p className="mt-1 font-bold text-slate-800 ">BDT {Number(item.amount || 0).toLocaleString()}</p>
+                    <p className="mt-1 font-bold text-slate-800 ">{item.currency || 'BDT'} {Number(item.amount || 0).toLocaleString()}</p>
                   </div>
                   <div className="rounded-lg bg-slate-50 p-2 ">
                     <p className="font-bold uppercase text-slate-400">Source</p>
@@ -155,9 +174,21 @@ export function IncompleteCheckoutsView({ data, onStatusChange, onRefresh, showT
                 </div>
                 <div className="mt-4 flex flex-wrap justify-end gap-2">
                   <a href={`tel:+${item.phone}`} title="Call customer" className="rounded-lg border border-slate-200 p-2 hover:bg-slate-50  "><Phone className="h-3.5 w-3.5" /></a>
+                  {whatsAppLink && (
+                    <a
+                      href={whatsAppLink}
+                      target="_blank"
+                      rel="noreferrer"
+                      title="WhatsApp recovery"
+                      className="rounded-lg border border-green-200 bg-green-50 p-2 text-green-600 hover:bg-green-100"
+                    >
+                      <MessageCircle className="h-3.5 w-3.5" />
+                    </a>
+                  )}
                   <button title="Copy phone" onClick={() => { navigator.clipboard.writeText(item.phone); showToast('Phone number copied.'); }} className="rounded-lg border border-slate-200 p-2 hover:bg-slate-50  "><Copy className="h-3.5 w-3.5" /></button>
                   {item.pageUrl && <a href={item.pageUrl} target="_blank" rel="noreferrer" title="Open landing page" className="rounded-lg border border-slate-200 p-2 hover:bg-slate-50  "><ExternalLink className="h-3.5 w-3.5" /></a>}
                   {!['recovered', 'contacted'].includes(item.status) && <button disabled={updatingId === item.id} title="Mark contacted" onClick={() => updateStatus(item.id, 'contacted')} className="rounded-lg border border-emerald-200 p-2 text-emerald-600 hover:bg-emerald-50 disabled:opacity-50  "><CheckCircle2 className="h-3.5 w-3.5" /></button>}
+                  {item.status !== 'recovered' && <button disabled={updatingId === item.id} title="Mark recovered" onClick={() => updateStatus(item.id, 'recovered')} className="rounded-lg border border-indigo-200 p-2 text-indigo-600 hover:bg-indigo-50 disabled:opacity-50  "><CheckCircle2 className="h-3.5 w-3.5" /></button>}
                   {!['recovered', 'ignored'].includes(item.status) && <button disabled={updatingId === item.id} title="Ignore draft" onClick={() => updateStatus(item.id, 'ignored')} className="rounded-lg border border-rose-200 p-2 text-rose-600 hover:bg-rose-50 disabled:opacity-50  "><UserRoundX className="h-3.5 w-3.5" /></button>}
                 </div>
               </div>
@@ -193,6 +224,7 @@ export function IncompleteCheckoutsView({ data, onStatusChange, onRefresh, showT
                 const product = item.products?.[0];
                 const meta = productMeta(product);
                 const source = item.campaignData?.utm_source || 'Direct';
+                const whatsAppLink = getWhatsAppLink(item.phone, item.customerName, item.amount, item.currency, item.products);
                 return (
                   <tr key={item.id} className="hover:bg-slate-50/70 ">
                     <td className="px-4 py-3">
@@ -205,16 +237,28 @@ export function IncompleteCheckoutsView({ data, onStatusChange, onRefresh, showT
                       <p className="mt-1 text-[10px] text-slate-400">Qty {product?.quantity || 1}</p>
                       {meta && <p className="mt-1 max-w-[220px] truncate text-[10px] text-slate-500" title={meta}>{meta}</p>}
                     </td>
-                    <td className="px-4 py-3 font-bold">BDT {Number(item.amount || 0).toLocaleString()}</td>
+                    <td className="px-4 py-3 font-bold">{item.currency || 'BDT'} {Number(item.amount || 0).toLocaleString()}</td>
                     <td className="px-4 py-3 capitalize">{source}</td>
                     <td className="px-4 py-3 text-slate-500">{new Date(item.lastActivityAt).toLocaleString()}</td>
                     <td className="px-4 py-3"><span className={`rounded-full border px-2 py-1 text-[10px] font-bold capitalize ${STATUS_STYLES[item.status] || 'border-slate-200 text-slate-500'}`}>{item.status}</span></td>
                     <td className="px-4 py-3">
                       <div className="flex justify-end gap-1.5">
                         <a href={`tel:+${item.phone}`} title="Call customer" className="rounded-lg border border-slate-200 p-2 hover:bg-slate-50  "><Phone className="h-3.5 w-3.5" /></a>
+                        {whatsAppLink && (
+                          <a
+                            href={whatsAppLink}
+                            target="_blank"
+                            rel="noreferrer"
+                            title="WhatsApp recovery"
+                            className="rounded-lg border border-green-200 bg-green-50 p-2 text-green-600 hover:bg-green-100"
+                          >
+                            <MessageCircle className="h-3.5 w-3.5" />
+                          </a>
+                        )}
                         <button title="Copy phone" onClick={() => { navigator.clipboard.writeText(item.phone); showToast('Phone number copied.'); }} className="rounded-lg border border-slate-200 p-2 hover:bg-slate-50  "><Copy className="h-3.5 w-3.5" /></button>
                         {item.pageUrl && <a href={item.pageUrl} target="_blank" rel="noreferrer" title="Open landing page" className="rounded-lg border border-slate-200 p-2 hover:bg-slate-50  "><ExternalLink className="h-3.5 w-3.5" /></a>}
                         {!['recovered', 'contacted'].includes(item.status) && <button disabled={updatingId === item.id} title="Mark contacted" onClick={() => updateStatus(item.id, 'contacted')} className="rounded-lg border border-emerald-200 p-2 text-emerald-600 hover:bg-emerald-50 disabled:opacity-50  "><CheckCircle2 className="h-3.5 w-3.5" /></button>}
+                        {item.status !== 'recovered' && <button disabled={updatingId === item.id} title="Mark recovered" onClick={() => updateStatus(item.id, 'recovered')} className="rounded-lg border border-indigo-200 p-2 text-indigo-600 hover:bg-indigo-50 disabled:opacity-50  "><CheckCircle2 className="h-3.5 w-3.5" /></button>}
                         {!['recovered', 'ignored'].includes(item.status) && <button disabled={updatingId === item.id} title="Ignore draft" onClick={() => updateStatus(item.id, 'ignored')} className="rounded-lg border border-rose-200 p-2 text-rose-600 hover:bg-rose-50 disabled:opacity-50  "><UserRoundX className="h-3.5 w-3.5" /></button>}
                       </div>
                     </td>

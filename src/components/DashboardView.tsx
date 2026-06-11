@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import { useEffect, useRef, useState } from 'react';
 import { 
   AreaChart, 
@@ -170,7 +170,7 @@ export function DashboardView({
                     </div>
                     <div className="text-right">
                       <p className="text-sm font-bold text-slate-950">{card.rate}%</p>
-                      <p className="text-[10px] font-bold uppercase text-slate-400">{card.total} calls</p>
+                      <p className="text-[10px] font-bold uppercase text-slate-400">{card.total} events</p>
                     </div>
                   </div>
                 ))}
@@ -277,7 +277,7 @@ export function DashboardView({
                 <span className={`h-1.5 w-1.5 rounded-full ${card.dotClass}`} />
                 {card.label}
               </span>
-              <span className="text-[10px] font-bold uppercase text-slate-400">{card.total} calls</span>
+              <span className="text-[10px] font-bold uppercase text-slate-400">{card.total} events</span>
             </div>
             <p className="mt-4 text-2xl font-bold tracking-tight text-slate-950">{card.rate}%</p>
             <p className="mt-1 truncate font-mono text-[10px] text-slate-400">Last: {card.lastTime}</p>
@@ -339,7 +339,7 @@ export function DashboardView({
         {/* Deduplication & optimization indicator */}
         <div className="flex flex-col justify-between rounded-lg border border-slate-200 bg-white p-4 shadow-sm md:p-5">
           <div>
-            <h2 className="text-xs font-bold uppercase tracking-wide text-slate-800 md:text-sm">Smart Tips</h2>
+            <h2 className="text-xs font-bold uppercase tracking-wide text-slate-800 md:text-sm">Setup Diagnostics</h2>
             <p className="mt-1 text-xs leading-normal text-slate-400">
               {totalSuggCount === 0 ? 'Tracking setup health' : 'How well your tracking is configured'}
             </p>

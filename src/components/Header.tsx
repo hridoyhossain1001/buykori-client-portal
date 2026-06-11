@@ -1,4 +1,4 @@
-﻿/**
+/**
  * @license
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -31,11 +31,11 @@ interface HeaderProps {
 const pageSuggestions = [
   { id: 'dashboard', name: 'Dashboard / Overview', keywords: ['dashboard', 'home', 'overview', 'main', 'quota'] },
   { id: 'analytics', name: 'Insights & Analytics', keywords: ['insights', 'analytics', 'chart', 'trend', 'volume', 'quality'] },
-  { id: 'pending-purchases', name: 'COD Order Holds', keywords: ['order verification', 'cod protection', 'verify', 'pending', 'cancel', 'hold'] },
-  { id: 'orders', name: 'Courier Shipping', keywords: ['orders', 'delivery', 'courier', 'pathao', 'steadfast', 'redx'] },
-  { id: 'incomplete-checkouts', name: 'Lost Sales Recovery', keywords: ['incomplete checkouts', 'abandoned', 'recovery', 'checkout', 'phone'] },
-  { id: 'campaign-builder', name: 'Campaign Helper', keywords: ['campaigns', 'builder', 'url', 'utm', 'test'] },
-  { id: 'suggestions', name: 'Smart Tips', keywords: ['suggestions', 'tips', 'health', 'issues'] },
+  { id: 'pending-purchases', name: 'COD Verification Queue', keywords: ['order verification', 'cod protection', 'verify', 'pending', 'skip', 'hold'] },
+  { id: 'orders', name: 'Courier Dispatch Logs', keywords: ['orders', 'delivery', 'courier', 'pathao', 'steadfast', 'redx'] },
+  { id: 'incomplete-checkouts', name: 'Abandoned Checkouts', keywords: ['incomplete checkouts', 'abandoned', 'recovery', 'checkout', 'phone'] },
+  { id: 'campaign-builder', name: 'UTM & Sandbox Link Builder', keywords: ['campaigns', 'builder', 'url', 'utm', 'test'] },
+  { id: 'suggestions', name: 'Setup Diagnostics & Health', keywords: ['suggestions', 'diagnostics', 'health', 'issues'] },
   { id: 'setup-guide', name: 'Setup Guide / Docs', keywords: ['setup guide', 'docs', 'faq', 'wordpress', 'installation'] },
   { id: 'event-logs', name: 'Event Logs', keywords: ['event history', 'logs', 'success', 'retry', 'event key'] },
   { id: 'api-logs', name: 'API Logs', keywords: ['api logs', 'endpoint', 'responses', 'retries'] },

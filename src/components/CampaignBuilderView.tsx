@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import { Plus, Trash2, Send, Terminal, Link, Copy, Check, Info } from 'lucide-react';
 import { Tooltip } from './common/Tooltip';
 import { Platform } from '../types';
@@ -166,6 +166,7 @@ export function CampaignBuilderView({
                     if (e.target.value === 'facebook') setUrlBuilderMedium('paid_social');
                     else if (e.target.value === 'tiktok') setUrlBuilderMedium('paid_social');
                     else if (e.target.value === 'google') setUrlBuilderMedium('cpc');
+                    else if (e.target.value === 'newsletter') setUrlBuilderMedium('email');
                     else setUrlBuilderMedium('referral');
                   }}
                   className="w-full p-2.5 text-xs text-slate-800 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all duration-200    cursor-pointer"
@@ -238,7 +239,7 @@ export function CampaignBuilderView({
               onClick={handleGenerateCampaignUrl}
               className="px-5 py-2.5 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white text-xs font-bold rounded-lg transition-all duration-300 transform hover:-translate-y-0.5 shadow-md shadow-indigo-500/10 hover:shadow-indigo-500/20 cursor-pointer"
             >
-              Generate Campaign URL
+              Validate Campaign URL
             </button>
 
           </div>
@@ -264,7 +265,7 @@ export function CampaignBuilderView({
                   </button>
                 </>
               ) : (
-                <span className="text-slate-400 italic">Attributed UTM campaign URL will display here...</span>
+                <span className="text-slate-400 italic">Enter a base URL and campaign name to compile the UTM link automatically...</span>
               )}
             </div>
 

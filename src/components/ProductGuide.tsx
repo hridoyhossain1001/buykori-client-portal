@@ -102,12 +102,12 @@ const guideSteps: GuideStep[] = [
     page: 'orders',
     text: {
       bn: {
-        title: 'Courier Shipping',
+        title: 'Courier Dispatch Logs',
         body: 'Courier booking আর delivery status দেখার জায়গা এটা। এর ভেতরে দুইটা ভাগ আছে।',
       },
       en: {
-        title: 'Courier Shipping',
-        body: 'This is where you manage courier booking and delivery status. It has two parts.',
+        title: 'Courier Dispatch Logs',
+        body: 'This is where you manage courier booking and delivery status logs. It has two parts.',
       },
     },
   },
@@ -149,12 +149,12 @@ const guideSteps: GuideStep[] = [
     page: 'campaign-builder',
     text: {
       bn: {
-        title: 'Campaign Helper',
+        title: 'UTM & Sandbox Link Builder',
         body: 'Campaign link বানাতে এবং test event পাঠাতে এই জায়গা ব্যবহার করবেন।',
       },
       en: {
-        title: 'Campaign Helper',
-        body: 'Use this area to build campaign links and send test events.',
+        title: 'UTM & Sandbox Link Builder',
+        body: 'Use this area to build campaign links and send sandbox test events.',
       },
     },
   },
@@ -164,12 +164,12 @@ const guideSteps: GuideStep[] = [
     page: 'suggestions',
     text: {
       bn: {
-        title: 'Smart Tips',
+        title: 'Setup Diagnostics',
         body: 'Tracking কোথায় ঠিক আছে আর কোথায় fix দরকার, এখানে সহজভাবে দেখাবে।',
       },
       en: {
-        title: 'Smart Tips',
-        body: 'See what is working and what needs fixing in simple words.',
+        title: 'Setup Diagnostics',
+        body: 'See what is working and what needs fixing in the tracking setup.',
       },
     },
   },

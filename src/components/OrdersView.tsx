@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRef } from 'react';
 import { 
   Truck, 
@@ -615,6 +615,32 @@ export function OrdersView({
     );
   };
 
+  const renderRiskGauge = (scoreValue: number) => {
+    const score = Math.max(0, Math.min(100, Number(scoreValue) || 0));
+    const tone = score >= 75
+      ? { label: 'High', text: 'text-rose-700', bar: 'bg-rose-500' }
+      : score >= 35
+        ? { label: 'Medium', text: 'text-amber-700', bar: 'bg-amber-500' }
+        : { label: 'Low', text: 'text-green-700', bar: 'bg-green-500' };
+
+    return (
+      <div className="min-w-[120px]">
+        <div className="mb-1 flex items-center justify-between gap-2">
+          <span className={`text-[10px] font-black uppercase tracking-wide ${tone.text}`}>{tone.label}</span>
+          <span className="font-mono text-[10px] font-bold text-slate-500">{score}/100</span>
+        </div>
+        <div className="grid h-2 grid-cols-3 overflow-hidden rounded-full bg-slate-100">
+          <span className="bg-green-400" />
+          <span className="bg-amber-400" />
+          <span className="bg-rose-400" />
+        </div>
+        <div className="mt-1 h-1 rounded-full bg-slate-100">
+          <div className={`h-full rounded-full ${tone.bar}`} style={{ width: `${score}%` }} />
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-6">
       {activeTab === 'shipped' && (
@@ -733,7 +759,7 @@ export function OrdersView({
                     <div className="mt-4 grid grid-cols-2 gap-2 text-[11px]">
                       <div className="rounded-lg bg-slate-50 p-2 ">
                         <p className="font-bold uppercase text-slate-400">Risk</p>
-                        <p className={`mt-1 font-bold ${order.fraudScore >= 75 ? 'text-rose-700' : order.fraudScore >= 35 ? 'text-amber-700' : 'text-green-700'}`}>{order.fraudScore}/100</p>
+                        <div className="mt-1">{renderRiskGauge(order.fraudScore)}</div>
                       </div>
                       <div className="rounded-lg bg-slate-50 p-2 ">
                         <p className="font-bold uppercase text-slate-400">Held</p>
@@ -763,7 +789,7 @@ export function OrdersView({
                     <button onClick={() => openInvoice(order)} className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-bold text-slate-700">Invoice</button>
                     <button onClick={() => openPendingCourierModal(order)} className="rounded-lg bg-indigo-600 px-3 py-2 text-xs font-bold text-white">Book Courier</button>
                     <button onClick={() => handleConfirmOrder(order.orderId)} className="rounded-lg bg-emerald-800 px-3 py-2 text-xs font-bold text-white">Confirm</button>
-                    <button onClick={() => handleCancelOrder(order.orderId)} className="rounded-lg bg-rose-900 px-3 py-2 text-xs font-bold text-white">Cancel</button>
+                    <button onClick={() => handleCancelOrder(order.orderId)} className="rounded-lg bg-rose-900 px-3 py-2 text-xs font-bold text-white">Skip Event</button>
                   </div>
                 </div>
               );
@@ -823,19 +849,7 @@ export function OrdersView({
                           </td>
                           <td className="px-6 py-3 font-semibold text-slate-800 ">BDT {order.amount.toLocaleString()}</td>
                           <td className="px-6 py-3">
-                            <span 
-                              className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded text-[10px] font-bold border ${
-                                order.fraudScore >= 75 ? 'bg-rose-50 text-rose-700 border-rose-200   ' : 
-                                order.fraudScore >= 35 ? 'bg-amber-50 text-amber-700 border-amber-200   ' : 
-                                'bg-green-50 text-green-700 border-green-200   '
-                              }`}
-                            >
-                              <span className={`w-1.5 h-1.5 rounded-full ${
-                                order.fraudScore >= 75 ? 'bg-rose-500' : 
-                                order.fraudScore >= 35 ? 'bg-amber-500' : 'bg-green-500'
-                              }`} />
-                              Score: {order.fraudScore}/100
-                            </span>
+                            {renderRiskGauge(order.fraudScore)}
                           </td>
                           <td className="px-6 py-3 text-slate-400 font-mono ">{formatHeldAge(order.ageHours)}</td>
                           <td className="px-6 py-3 text-right space-x-2 whitespace-nowrap">
@@ -863,7 +877,7 @@ export function OrdersView({
                               onClick={() => handleCancelOrder(order.orderId)}
                               className="btn-touch-expand px-2.5 py-1 bg-rose-900 hover:bg-rose-950 text-white text-[10px] font-bold rounded shadow-sm transition-colors cursor-pointer"
                             >
-                              Cancel
+                              Skip Event
                             </button>
                           </td>
                         </tr>

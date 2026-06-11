@@ -141,15 +141,8 @@ export default function App() {
     }
   }, [profile]);
 
-  const handleGenerateCampaignUrl = () => {
-    if (!urlBuilderBaseUrl.trim()) {
-      showToast("Please enter a base website URL", true);
-      return;
-    }
-    if (!urlBuilderCampaign.trim()) {
-      showToast("Please enter a campaign name", true);
-      return;
-    }
+  const compileCampaignUrl = () => {
+    if (!urlBuilderBaseUrl.trim() || !urlBuilderCampaign.trim()) return '';
     try {
       let base = urlBuilderBaseUrl.trim();
       if (!/^https?:\/\//i.test(base)) {
@@ -165,9 +158,30 @@ export default function App() {
       if (urlBuilderTerm.trim()) {
         url.searchParams.set('utm_term', urlBuilderTerm.trim());
       }
-      setGeneratedCampaignUrl(url.toString());
-      showToast("Campaign URL generated successfully!", false);
-    } catch (err) {
+      return url.toString();
+    } catch {
+      return '';
+    }
+  };
+
+  useEffect(() => {
+    setGeneratedCampaignUrl(compileCampaignUrl());
+  }, [urlBuilderBaseUrl, urlBuilderSource, urlBuilderMedium, urlBuilderCampaign, urlBuilderContent, urlBuilderTerm]);
+
+  const handleGenerateCampaignUrl = () => {
+    if (!urlBuilderBaseUrl.trim()) {
+      showToast("Please enter a base website URL", true);
+      return;
+    }
+    if (!urlBuilderCampaign.trim()) {
+      showToast("Please enter a campaign name", true);
+      return;
+    }
+    const compiled = compileCampaignUrl();
+    if (compiled) {
+      setGeneratedCampaignUrl(compiled);
+      showToast("Campaign URL is ready.", false);
+    } else {
       showToast("Invalid base URL format", true);
     }
   };
@@ -856,12 +870,12 @@ export default function App() {
         body: JSON.stringify({ order_id: orderId })
       });
       if (res.ok) {
-        showToast("Order cancelled.", false);
+        showToast("Event skipped.", false);
         fetchDeferred();
         loadSystemData(false);
       }
     } catch {
-      showToast("Cancellation action failed.", true);
+      showToast("Skip action failed.", true);
     }
   };
 
@@ -893,13 +907,13 @@ export default function App() {
         body: JSON.stringify({ order_ids: selectedOrderIds })
       });
       if (res.ok) {
-        showToast(`${selectedOrderIds.length} orders cancelled.`, false);
+        showToast(`${selectedOrderIds.length} events skipped.`, false);
         setSelectedOrderIds([]);
         fetchDeferred();
         loadSystemData(false);
       }
     } catch {
-      showToast("Bulk cancellation failed.", true);
+      showToast("Bulk skip failed.", true);
     }
   };
 
@@ -1236,11 +1250,11 @@ export default function App() {
   const pageTitles: Record<string, string> = {
     dashboard: 'Dashboard',
     analytics: 'Insights',
-    'pending-purchases': 'Pending COD Orders',
+    'pending-purchases': 'COD Verification Queue',
     orders: 'Orders & Delivery',
-    'incomplete-checkouts': 'Lost Sales Recovery',
-    'campaign-builder': 'Campaign Helper',
-    suggestions: 'Smart Tips',
+    'incomplete-checkouts': 'Abandoned Checkouts',
+    'campaign-builder': 'UTM & Sandbox Link Builder',
+    suggestions: 'Setup Diagnostics & Health',
     'event-logs': 'Event Logs',
     'api-logs': 'API Logs',
     settings: 'Settings',

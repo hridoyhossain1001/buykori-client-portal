@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { ChevronDown, Copy, Check, Globe, ShoppingBag, Code, Download } from 'lucide-react';
 import { staticFAQs } from '../lib/mock-data';
 import { PluginReleaseInfo } from '../types';
@@ -163,7 +163,13 @@ analytics.subscribe("checkout_started", (event) => {
 });`;
 
   // Custom Coded Website JS SDK
-  const customScriptTag = `<script src="${apiDomain}/t.js?key=${publicToken || 'YOUR_PUBLIC_TRACKER_KEY'}" defer></script>`;
+  const customScriptTag = `<script>
+    !function(b,k,o,r,i,s,y){if(b.capi)return;s=b.capi=function(){s.callMethod?
+    s.callMethod.apply(s,arguments):s.q.push(arguments)};s.q=[];
+    y=k.createElement(o);y.async=!0;y.src=r;
+    var t=k.getElementsByTagName(o)[0];t.parentNode.insertBefore(y,t)}
+    (window,document,'script','${apiDomain}/t.js?key=${publicToken || 'YOUR_PUBLIC_TRACKER_KEY'}');
+  </script>`;
 
   const customCapiCode = `// 1. Identify User (before firing events, e.g. on checkout, login, or registration)
 capi('setUser', {
@@ -352,7 +358,7 @@ capi('track', 'Purchase', {
                   onClick={() => setActivePage('campaign-builder')}
                   className="px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200/50 rounded text-xs font-semibold shrink-0 cursor-pointer    "
                 >
-                  Go to Campaign Helper
+                  Go to UTM & Sandbox Link Builder
                 </button>
               </div>
             </div>
@@ -541,7 +547,7 @@ capi('track', 'Purchase', {
           {staticFAQs.map((faq, index) => {
             const expanded = faqExpanded === index;
             return (
-              <div key={index} className="rounded-lg border border-slate-150  overflow-hidden bg-slate-50/50 ">
+              <div key={index} className="rounded-lg border border-slate-200  overflow-hidden bg-slate-50/50 ">
                 <button
                   onClick={() => setFaqExpanded(expanded ? null : index)}
                   className="w-full text-left px-4 py-3 bg-white hover:bg-slate-50 text-xs font-bold text-slate-700    flex items-center justify-between transition-colors cursor-pointer"
@@ -550,7 +556,7 @@ capi('track', 'Purchase', {
                   <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${expanded ? 'rotate-180' : ''}`} />
                 </button>
                 {expanded && (
-                  <div className="p-4 border-t border-slate-150  text-xs leading-relaxed text-slate-500  bg-white  max-w-4xl">
+                  <div className="p-4 border-t border-slate-200  text-xs leading-relaxed text-slate-500  bg-white  max-w-4xl">
                     {faq.a}
                   </div>
                 )}

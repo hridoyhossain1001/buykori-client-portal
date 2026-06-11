@@ -604,7 +604,7 @@ export function AnalyticsView({
         {/* Desktop View */}
         <div className="hidden overflow-x-auto md:block border border-slate-200 rounded-lg">
           <table className="w-full text-left text-xs text-slate-600 divide-y divide-slate-100 min-w-[1000px]">
-            <thead className="bg-slate-50 text-[10px] font-bold uppercase tracking-wider text-slate-500 border-b border-slate-150">
+            <thead className="bg-slate-50 text-[10px] font-bold uppercase tracking-wider text-slate-500 border-b border-slate-200">
               <tr>
                 <th className="px-4 py-3">Campaign Details</th>
                 <th className="px-4 py-3">Spend & Clicks</th>
@@ -786,6 +786,7 @@ export function AnalyticsView({
                     if (e.target.value === 'facebook') setUrlBuilderMedium('paid_social');
                     else if (e.target.value === 'tiktok') setUrlBuilderMedium('paid_social');
                     else if (e.target.value === 'google') setUrlBuilderMedium('cpc');
+                    else if (e.target.value === 'newsletter') setUrlBuilderMedium('email');
                     else setUrlBuilderMedium('referral');
                   }}
                   className="w-full p-2.5 text-xs text-slate-800 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:ring-1 focus:ring-indigo-500   "
@@ -849,7 +850,7 @@ export function AnalyticsView({
               onClick={handleGenerateCampaignUrl}
               className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-lg transition-colors cursor-pointer  "
             >
-              Generate Campaign URL
+              Validate Campaign URL
             </button>
 
           </div>
@@ -857,8 +858,8 @@ export function AnalyticsView({
           {/* Output generator result box */}
           <div className="rounded-xl bg-slate-50 border border-slate-200 p-5 flex flex-col justify-between  ">
             <div className="space-y-3">
-              <h4 className="text-xs font-bold text-slate-700 uppercase tracking-widest ">Generated URL</h4>
-              <p className="text-[11px] text-slate-400 ">Use this URL in your ads to track which campaign drives sales.</p>
+              <h4 className="text-xs font-bold text-slate-700 uppercase tracking-widest ">Compiled URL</h4>
+              <p className="text-[11px] text-slate-400 ">Use this auto-compiled URL in your ads to track which campaign drives sales.</p>
             </div>
 
             <div className="my-4 bg-white border border-slate-200 rounded-lg p-3 text-xs font-mono text-slate-700 break-all select-all    relative group min-h-24 flex items-center">
