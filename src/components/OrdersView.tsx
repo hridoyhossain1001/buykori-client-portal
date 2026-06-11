@@ -146,10 +146,18 @@ export function OrdersView({
   // Pathao Store and Package details states
   const [pathaoStores, setPathaoStores] = useState<Array<{store_id: number, store_name: string}>>([]);
   const [selectedStoreId, setSelectedStoreId] = useState<number | ''>('');
+  const [pathaoCities, setPathaoCities] = useState<Array<{city_id: number, city_name: string}>>([]);
+  const [pathaoZones, setPathaoZones] = useState<Array<{zone_id: number, zone_name: string}>>([]);
+  const [pathaoAreas, setPathaoAreas] = useState<Array<{area_id: number, area_name: string}>>([]);
+  const [selectedPathaoCity, setSelectedPathaoCity] = useState<number | ''>('');
+  const [selectedPathaoZone, setSelectedPathaoZone] = useState<number | ''>('');
+  const [selectedPathaoArea, setSelectedPathaoArea] = useState<number | ''>('');
+  const [loadingPathaoLocations, setLoadingPathaoLocations] = useState<boolean>(false);
   const [redxDeliveryAreaId, setRedxDeliveryAreaId] = useState<string>('');
   const [redxDeliveryAreaName, setRedxDeliveryAreaName] = useState<string>('');
   const [redxPickupStoreId, setRedxPickupStoreId] = useState<string>('');
   const [redxAreas, setRedxAreas] = useState<Array<{id: number, name: string, post_code?: number}>>([]);
+  const [redxAreaSearch, setRedxAreaSearch] = useState<string>('');
   const [loadingRedxAreas, setLoadingRedxAreas] = useState<boolean>(false);
   const [loadingStores, setLoadingStores] = useState<boolean>(false);
   const [itemWeight, setItemWeight] = useState<number>(0.5);
@@ -294,6 +302,24 @@ export function OrdersView({
     }
   };
 
+  const fetchPathaoLocations = async (level: 'cities' | 'zones' | 'areas', parentId?: number) => {
+    setLoadingPathaoLocations(true);
+    try {
+      const query = level === 'zones' ? `?city_id=${parentId}` : level === 'areas' ? `?zone_id=${parentId}` : '';
+      const res = await fetch(`/api/courier/pathao/${level}${query}`);
+      if (!res.ok) throw new Error(`Failed to fetch Pathao ${level}`);
+      const data = await res.json();
+      if (level === 'cities') setPathaoCities(data);
+      if (level === 'zones') setPathaoZones(data);
+      if (level === 'areas') setPathaoAreas(data);
+    } catch (err) {
+      console.error(err);
+      showToast(`Failed to fetch Pathao ${level}.`, true);
+    } finally {
+      setLoadingPathaoLocations(false);
+    }
+  };
+
   const fetchRedxAreas = async () => {
     setLoadingRedxAreas(true);
     try {
@@ -316,11 +342,26 @@ export function OrdersView({
   useEffect(() => {
     if (isSendModalOpen && courierProvider === 'pathao') {
       fetchPathaoStores();
+      fetchPathaoLocations('cities');
     }
     if (isSendModalOpen && courierProvider === 'redx') {
       fetchRedxAreas();
     }
   }, [isSendModalOpen, courierProvider, courierSettings]);
+
+  useEffect(() => {
+    setSelectedPathaoZone('');
+    setSelectedPathaoArea('');
+    setPathaoZones([]);
+    setPathaoAreas([]);
+    if (selectedPathaoCity !== '') fetchPathaoLocations('zones', Number(selectedPathaoCity));
+  }, [selectedPathaoCity]);
+
+  useEffect(() => {
+    setSelectedPathaoArea('');
+    setPathaoAreas([]);
+    if (selectedPathaoZone !== '') fetchPathaoLocations('areas', Number(selectedPathaoZone));
+  }, [selectedPathaoZone]);
 
   const openSendModal = (order: any) => {
     // Find the original pending event from deferredData or fallback to fields
@@ -424,6 +465,11 @@ export function OrdersView({
       } else if (courierProvider === 'pathao' && courierSettings?.pathao_store_id) {
         // Fallback to the saved Pathao store ID when the live store list is unavailable.
         payload.store_id = Number(courierSettings.pathao_store_id);
+      }
+      if (courierProvider === 'pathao' && selectedPathaoCity !== '' && selectedPathaoZone !== '' && selectedPathaoArea !== '') {
+        payload.recipient_city = Number(selectedPathaoCity);
+        payload.recipient_zone = Number(selectedPathaoZone);
+        payload.recipient_area = Number(selectedPathaoArea);
       }
       if (courierProvider === 'redx') {
         payload.delivery_area_id = Number(redxDeliveryAreaId);
@@ -615,6 +661,21 @@ export function OrdersView({
     );
   };
 
+  const getCourierTrackingUrl = (provider: string, trackingId: string) => {
+    const id = encodeURIComponent(trackingId);
+    if (provider === 'steadfast') return `https://portal.packzy.com/tracking/${id}`;
+    if (provider === 'redx') return `https://redx.com.bd/track-delivery/?trackingId=${id}`;
+    if (provider === 'pathao') return `https://pathao.com/courier/tracking?tracking_id=${id}`;
+    return '';
+  };
+  const filteredRedxAreas = redxAreas
+    .filter(area => {
+      const needle = redxAreaSearch.trim().toLowerCase();
+      if (!needle) return true;
+      return `${area.name} ${area.post_code || ''} ${area.id}`.toLowerCase().includes(needle);
+    })
+    .slice(0, 30);
+
   const renderRiskGauge = (scoreValue: number) => {
     const score = Math.max(0, Math.min(100, Number(scoreValue) || 0));
     const tone = score >= 75
@@ -624,17 +685,17 @@ export function OrdersView({
         : { label: 'Low', text: 'text-green-700', bar: 'bg-green-500' };
 
     return (
-      <div className="min-w-[120px]">
+      <div className="w-[96px]">
         <div className="mb-1 flex items-center justify-between gap-2">
           <span className={`text-[10px] font-black uppercase tracking-wide ${tone.text}`}>{tone.label}</span>
           <span className="font-mono text-[10px] font-bold text-slate-500">{score}/100</span>
         </div>
-        <div className="grid h-2 grid-cols-3 overflow-hidden rounded-full bg-slate-100">
+        <div className="grid h-1.5 grid-cols-3 overflow-hidden rounded-full bg-slate-100">
           <span className="bg-green-400" />
           <span className="bg-amber-400" />
           <span className="bg-rose-400" />
         </div>
-        <div className="mt-1 h-1 rounded-full bg-slate-100">
+        <div className="mt-1 h-0.5 rounded-full bg-slate-100">
           <div className={`h-full rounded-full ${tone.bar}`} style={{ width: `${score}%` }} />
         </div>
       </div>
@@ -775,12 +836,28 @@ export function OrdersView({
                       </div>
                       {products.length > 0 && (
                         <div className="rounded-lg border border-slate-200 ">
-                          {products.slice(0, 4).map((p: any, i: number) => (
-                            <div key={i} className="flex justify-between gap-3 border-b border-slate-100 px-3 py-2 text-xs last:border-b-0 ">
-                              <span className="font-semibold text-slate-700 ">{p.name || p.content_name || 'Product'}</span>
-                              <span className="text-slate-500">x{p.quantity || 1}</span>
-                            </div>
-                          ))}
+                          {products.slice(0, 4).map((p: any, i: number) => {
+                            const attributes = p.attributes && typeof p.attributes === 'object'
+                              ? Object.entries(p.attributes).filter(([, value]) => String(value || '').trim())
+                              : [];
+                            return (
+                              <div key={i} className="border-b border-slate-100 px-3 py-2 text-xs last:border-b-0 ">
+                                <p className="font-semibold text-slate-700 ">{p.name || p.content_name || 'Product'}</p>
+                                {attributes.length > 0 && (
+                                  <div className="mt-1 flex flex-wrap gap-1">
+                                    {attributes.map(([key, value]) => (
+                                      <span key={key} className="rounded bg-indigo-50 px-1.5 py-0.5 text-[10px] font-semibold text-indigo-700">
+                                        {key}: {String(value)}
+                                      </span>
+                                    ))}
+                                  </div>
+                                )}
+                                <p className="mt-1 text-[10px] text-slate-500">
+                                  Qty {p.quantity || 1} · {p.price > 0 ? `BDT ${p.price.toLocaleString()}` : 'Price unavailable'}
+                                </p>
+                              </div>
+                            );
+                          })}
                         </div>
                       )}
                     </div>
@@ -943,31 +1020,38 @@ export function OrdersView({
                                   <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 ">
                                     Order Items {products.length > 0 && <span className="ml-1 text-indigo-500">({products.length})</span>}
                                   </p>
-                                  <div className="bg-white  rounded-xl border border-slate-200  overflow-hidden">
+                                  <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
                                     {products.length === 0 ? (
                                       <div className="px-4 py-5 text-center">
                                         <Package className="w-5 h-5 mx-auto text-slate-300  mb-1" />
                                         <p className="text-[10px] text-slate-400">Product details not available for this order</p>
                                       </div>
                                     ) : (
-                                      <table className="w-full text-xs">
-                                        <thead className="bg-slate-50 ">
-                                          <tr>
-                                            <th className="px-3 py-2 text-left text-[9px] font-bold uppercase text-slate-400">Product</th>
-                                            <th className="px-3 py-2 text-center text-[9px] font-bold uppercase text-slate-400">Qty</th>
-                                            <th className="px-3 py-2 text-right text-[9px] font-bold uppercase text-slate-400">Price</th>
-                                          </tr>
-                                        </thead>
-                                        <tbody className="divide-y divide-slate-100 ">
-                                          {products.map((p: any, i: number) => (
-                                            <tr key={i} className="hover:bg-slate-50/50 ">
-                                              <td className="px-3 py-2 font-medium text-slate-700  max-w-[160px] truncate" title={p.name}>{p.name}</td>
-                                              <td className="px-3 py-2 text-center font-bold text-slate-600 ">{p.quantity}</td>
-                                              <td className="px-3 py-2 text-right font-semibold text-slate-700 ">{p.price > 0 ? `BDT ${p.price.toLocaleString()}` : '-'}</td>
-                                            </tr>
-                                          ))}
-                                        </tbody>
-                                      </table>
+                                      <div className="divide-y divide-slate-100">
+                                        {products.map((p: any, i: number) => {
+                                          const attributes = p.attributes && typeof p.attributes === 'object'
+                                            ? Object.entries(p.attributes).filter(([, value]) => String(value || '').trim())
+                                            : [];
+                                          return (
+                                            <div key={i} className="px-3 py-2.5 hover:bg-slate-50/50">
+                                              <p className="text-xs font-semibold leading-snug text-slate-800">{p.name || p.content_name || 'Product'}</p>
+                                              {attributes.length > 0 && (
+                                                <div className="mt-1.5 flex flex-wrap gap-1">
+                                                  {attributes.map(([key, value]) => (
+                                                    <span key={key} className="rounded-md border border-indigo-100 bg-indigo-50 px-1.5 py-0.5 text-[9px] font-bold text-indigo-700">
+                                                      {key}: {String(value)}
+                                                    </span>
+                                                  ))}
+                                                </div>
+                                              )}
+                                              <div className="mt-1.5 flex items-center gap-3 text-[10px] text-slate-500">
+                                                <span>Qty <strong className="text-slate-700">{p.quantity || 1}</strong></span>
+                                                <span>{p.price > 0 ? `BDT ${p.price.toLocaleString()}` : 'Price unavailable'}</span>
+                                              </div>
+                                            </div>
+                                          );
+                                        })}
+                                      </div>
                                     )}
                                   </div>
                                 </div>
@@ -1238,11 +1322,7 @@ export function OrdersView({
                             <span className="mt-1 flex items-center gap-1 font-mono text-[11px] font-semibold text-slate-700">
                               {order.courier_tracking_id}
                               <a
-                                href={
-                                  order.courier_provider === 'steadfast'
-                                    ? `https://portal.packzy.com/tracking/${order.courier_tracking_id}`
-                                    : `https://pathao.com/courier/tracking`
-                                }
+                                href={getCourierTrackingUrl(order.courier_provider, order.courier_tracking_id)}
                                 target="_blank"
                                 rel="noreferrer"
                                 className="text-indigo-500 hover:text-indigo-700 inline"
@@ -1522,7 +1602,7 @@ export function OrdersView({
                   
                   {/* Pathao stores are fetched from the courier API when credentials are available. */}
                   {courierProvider === 'pathao' && (
-                    <div>
+                    <div className="space-y-3 md:col-span-2">
                       <label className="block text-[10px] font-semibold text-slate-500  uppercase mb-1">Pathao Store</label>
                       {loadingStores ? (
                         <div className="py-2 px-3 bg-slate-50  border border-slate-200  rounded-lg text-xs text-slate-500 flex items-center gap-1.5">
@@ -1547,28 +1627,69 @@ export function OrdersView({
                           Pathao credentials missing. Set them up in settings.
                         </div>
                       )}
+                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                        <select
+                          value={selectedPathaoCity}
+                          onChange={(e) => setSelectedPathaoCity(e.target.value ? Number(e.target.value) : '')}
+                          disabled={loadingPathaoLocations || pathaoCities.length === 0}
+                          className="w-full py-2 px-3 text-xs bg-slate-50 border border-slate-200 rounded-lg disabled:opacity-60"
+                        >
+                          <option value="">Auto-detect city</option>
+                          {pathaoCities.map((city) => <option key={city.city_id} value={city.city_id}>{city.city_name}</option>)}
+                        </select>
+                        <select
+                          value={selectedPathaoZone}
+                          onChange={(e) => setSelectedPathaoZone(e.target.value ? Number(e.target.value) : '')}
+                          disabled={selectedPathaoCity === '' || pathaoZones.length === 0}
+                          className="w-full py-2 px-3 text-xs bg-slate-50 border border-slate-200 rounded-lg disabled:opacity-60"
+                        >
+                          <option value="">Auto-detect zone</option>
+                          {pathaoZones.map((zone) => <option key={zone.zone_id} value={zone.zone_id}>{zone.zone_name}</option>)}
+                        </select>
+                        <select
+                          value={selectedPathaoArea}
+                          onChange={(e) => setSelectedPathaoArea(e.target.value ? Number(e.target.value) : '')}
+                          disabled={selectedPathaoZone === '' || pathaoAreas.length === 0}
+                          className="w-full py-2 px-3 text-xs bg-slate-50 border border-slate-200 rounded-lg disabled:opacity-60"
+                        >
+                          <option value="">Auto-detect area</option>
+                          {pathaoAreas.map((area) => <option key={area.area_id} value={area.area_id}>{area.area_name}</option>)}
+                        </select>
+                      </div>
                     </div>
                   )}
                   {courierProvider === 'redx' && (
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:col-span-2">
                       <div>
-                        <label className="block text-[10px] font-semibold text-slate-500  uppercase mb-1">RedX Delivery Area ID</label>
+                        <label className="block text-[10px] font-semibold text-slate-500  uppercase mb-1">RedX Delivery Area</label>
                         {loadingRedxAreas ? (
                           <div className="py-2 px-3 text-xs bg-slate-50 border border-slate-200 rounded-lg   ">Loading areas...</div>
                         ) : (
-                          <select
-                            required
-                            value={redxDeliveryAreaId}
-                            onChange={(e) => {
-                              const area = redxAreas.find((item) => String(item.id) === e.target.value);
-                              setRedxDeliveryAreaId(e.target.value);
-                              if (area) setRedxDeliveryAreaName(area.name);
-                            }}
-                            className="w-full py-2 px-3 text-xs bg-slate-50 border border-slate-200 rounded-lg   "
-                          >
-                            <option value="">Select delivery area</option>
-                            {redxAreas.map((area) => <option key={area.id} value={area.id}>{area.name}{area.post_code ? ` (${area.post_code})` : ''}</option>)}
-                          </select>
+                          <div className="space-y-1.5">
+                            <input
+                              type="search"
+                              value={redxAreaSearch}
+                              onChange={(e) => setRedxAreaSearch(e.target.value)}
+                              placeholder="Search area, post code, or ID"
+                              className="w-full py-2 px-3 text-xs bg-slate-50 border border-slate-200 rounded-lg"
+                            />
+                            <select
+                              required
+                              value={redxDeliveryAreaId}
+                              onChange={(e) => {
+                                const area = redxAreas.find((item) => String(item.id) === e.target.value);
+                                setRedxDeliveryAreaId(e.target.value);
+                                if (area) {
+                                  setRedxDeliveryAreaName(area.name);
+                                  setRedxAreaSearch(area.name);
+                                }
+                              }}
+                              className="w-full py-2 px-3 text-xs bg-slate-50 border border-slate-200 rounded-lg"
+                            >
+                              <option value="">Select from matches</option>
+                              {filteredRedxAreas.map((area) => <option key={area.id} value={area.id}>{area.name}{area.post_code ? ` (${area.post_code})` : ''} - ID {area.id}</option>)}
+                            </select>
+                          </div>
                         )}
                       </div>
                       <div>
