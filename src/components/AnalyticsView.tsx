@@ -80,6 +80,13 @@ export function AnalyticsView({
 
   const [adPerformance, setAdPerformance] = React.useState<any[]>([]);
   const [loadingAdPerformance, setLoadingAdPerformance] = React.useState<boolean>(false);
+  const formatMoney = (value: number, currency?: string) => {
+    const code = String(currency || '').trim().toUpperCase();
+    const amount = Number(value || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    if (code === 'BDT') return `৳${amount}`;
+    if (code === 'USD') return `$${amount}`;
+    return code ? `${code} ${amount}` : amount;
+  };
 
   React.useEffect(() => {
     const fetchAdPerformance = async () => {
@@ -568,7 +575,7 @@ export function AnalyticsView({
                   <p className="font-mono text-[9px] text-slate-400 truncate">ID: {row.campaign_id}</p>
                 </div>
                 <div className="text-right shrink-0">
-                  <p className="text-xs font-black text-slate-900">${row.spend.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                  <p className="text-xs font-black text-slate-900">{formatMoney(row.spend, row.spend_currency)}</p>
                   <p className="text-[9px] uppercase tracking-wider text-slate-400 font-bold">Spend</p>
                 </div>
               </div>
@@ -576,11 +583,11 @@ export function AnalyticsView({
               <div className="grid grid-cols-2 gap-2 bg-slate-50 p-2 rounded text-[11px] font-semibold text-slate-600">
                 <div>
                   <span className="block text-[8px] uppercase tracking-wider text-slate-400 font-bold">Placed ROAS / CPA</span>
-                  <span className="text-indigo-600 font-black">{row.placed_roas}x</span> · ৳{row.placed_cpa.toLocaleString()}
+                  <span className="text-indigo-600 font-black">{row.placed_roas}x</span> · {formatMoney(row.placed_cpa, row.spend_currency)}
                 </div>
                 <div>
                   <span className="block text-[8px] uppercase tracking-wider text-slate-400 font-bold">Confirmed ROAS / CPA</span>
-                  <span className="text-emerald-600 font-black">{row.confirmed_roas}x</span> · ৳{row.confirmed_cpa.toLocaleString()}
+                  <span className="text-emerald-600 font-black">{row.confirmed_roas}x</span> · {formatMoney(row.confirmed_cpa, row.spend_currency)}
                 </div>
               </div>
 
@@ -634,28 +641,28 @@ export function AnalyticsView({
                     </td>
                     <td className="px-4 py-3.5 align-middle">
                       <div className="flex flex-col">
-                        <span className="font-black text-slate-800">${row.spend.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                        <span className="font-black text-slate-800">{formatMoney(row.spend, row.spend_currency)}</span>
                         <span className="text-slate-500 text-[10px]">{row.clicks.toLocaleString()} clicks · {row.impressions.toLocaleString()} imp</span>
                       </div>
                     </td>
                     <td className="px-4 py-3.5 align-middle">
                       <div className="flex flex-col">
                         <span className="font-bold text-slate-800">{row.ctr}% CTR</span>
-                        <span className="text-slate-400 text-[10px]">${row.cpc} CPC</span>
+                        <span className="text-slate-400 text-[10px]">{formatMoney(row.cpc, row.spend_currency)} CPC</span>
                       </div>
                     </td>
                     <td className="px-4 py-3.5 align-middle bg-slate-50/30">
                       <div className="flex flex-col">
                         <span className="font-black text-indigo-600">{row.placed_roas}x ROAS</span>
-                        <span className="text-slate-600 text-[10px]">{row.placed_purchases} Orders (৳{row.placed_revenue.toLocaleString()})</span>
-                        <span className="text-slate-400 text-[9px]">CPA: ৳{row.placed_cpa.toLocaleString()}</span>
+                        <span className="text-slate-600 text-[10px]">{row.placed_purchases} Orders ({formatMoney(row.placed_revenue, row.revenue_currency)})</span>
+                        <span className="text-slate-400 text-[9px]">CPA: {formatMoney(row.placed_cpa, row.spend_currency)}</span>
                       </div>
                     </td>
                     <td className="px-4 py-3.5 align-middle bg-emerald-50/10">
                       <div className="flex flex-col">
                         <span className="font-black text-emerald-600">{row.confirmed_roas}x ROAS</span>
-                        <span className="text-slate-600 text-[10px]">{row.confirmed_purchases} Confirmed (৳{row.confirmed_revenue.toLocaleString()})</span>
-                        <span className="text-slate-400 text-[9px]">CPA: ৳{row.confirmed_cpa.toLocaleString()}</span>
+                        <span className="text-slate-600 text-[10px]">{row.confirmed_purchases} Confirmed ({formatMoney(row.confirmed_revenue, row.revenue_currency)})</span>
+                        <span className="text-slate-400 text-[9px]">CPA: {formatMoney(row.confirmed_cpa, row.spend_currency)}</span>
                       </div>
                     </td>
                     <td className="px-4 py-3.5 align-middle text-right">

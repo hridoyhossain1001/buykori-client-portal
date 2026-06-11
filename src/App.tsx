@@ -646,6 +646,30 @@ export default function App() {
     return () => window.clearInterval(intervalId);
   }, [activePage]);
 
+  // Periodic polling for Incomplete Checkouts and COD holds
+  useEffect(() => {
+    if (activePage !== 'incomplete-checkouts' && activePage !== 'pending-purchases' && activePage !== 'orders') {
+      return;
+    }
+
+    const pollData = () => {
+      if (document.hidden) return;
+
+      if (activePage === 'incomplete-checkouts') {
+        fetchIncompleteCheckouts().catch(err => {
+          console.error('Failed to auto-refresh incomplete checkouts', err);
+        });
+      } else if (activePage === 'pending-purchases' || activePage === 'orders') {
+        fetchDeferred().catch(err => {
+          console.error('Failed to auto-refresh COD holds/orders', err);
+        });
+      }
+    };
+
+    const intervalId = window.setInterval(pollData, 15000);
+    return () => window.clearInterval(intervalId);
+  }, [activePage]);
+
   // Live Tracking Mode Polling Simulator
   useEffect(() => {
     if (liveMode) {

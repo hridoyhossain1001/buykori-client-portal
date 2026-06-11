@@ -55,9 +55,9 @@ export function CodProtectionView({
   const getCustomerSummary = (order: any) => {
     const rawCustomer = String(order.customer || '').trim();
     const protectedHash = /^[a-f0-9]{32,}$/i.test(rawCustomer);
-    const name = order.customerName || order.customer_name || order.name || '';
-    const phone = order.phone || order.customerPhone || order.customer_phone || '';
-    const address = order.address || order.customerAddress || order.customer_address || '';
+    const name = order.customerName || order.customer_name || order.recipientName || order.recipient_name || order.name || '';
+    const phone = order.phone || order.customerPhone || order.customer_phone || order.recipientPhone || order.recipient_phone || '';
+    const address = order.address || order.customerAddress || order.customer_address || order.recipientAddress || order.recipient_address || '';
 
     return {
       primary: name || (protectedHash ? 'Protected customer' : rawCustomer || 'Customer unavailable'),
@@ -440,6 +440,7 @@ export function CodProtectionView({
                             <span className="mt-1 inline-flex items-center gap-1 text-[10px] text-slate-500">
                               <Package className="h-3 w-3" />
                               {products[0]?.name || products[0]?.content_name || `${products.length} item${products.length > 1 ? 's' : ''}`}
+                              {products[0]?.category ? ` · ${products[0].category}` : ''}
                             </span>
                           )}
                         </div>

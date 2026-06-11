@@ -8,7 +8,7 @@ interface IncompleteCheckoutItem {
   customerName: string;
   email: string;
   address: string;
-  products: Array<{ name?: string; content_name?: string; quantity?: number }>;
+  products: Array<{ name?: string; content_name?: string; category?: string; content_category?: string; attributes?: Record<string, string>; quantity?: number }>;
   amount: number;
   currency: string;
   pageUrl: string;
@@ -50,6 +50,15 @@ export function IncompleteCheckoutsView({ data, onStatusChange, onRefresh, showT
     } finally {
       setUpdatingId(null);
     }
+  };
+
+  const productMeta = (product?: IncompleteCheckoutItem['products'][number]) => {
+    if (!product) return '';
+    const category = product.content_category || product.category || '';
+    const attributes = product.attributes && typeof product.attributes === 'object'
+      ? Object.entries(product.attributes).map(([key, value]) => `${key}: ${value}`).join(', ')
+      : '';
+    return [category, attributes].filter(Boolean).join(' · ');
   };
 
   if (data.restricted) {
@@ -113,6 +122,7 @@ export function IncompleteCheckoutsView({ data, onStatusChange, onRefresh, showT
             </div>
           ) : filtered.map(item => {
             const product = item.products?.[0];
+            const meta = productMeta(product);
             const source = item.campaignData?.utm_source || 'Direct';
             return (
               <div key={item.id} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm  ">
@@ -128,6 +138,7 @@ export function IncompleteCheckoutsView({ data, onStatusChange, onRefresh, showT
                   <div className="rounded-lg bg-slate-50 p-2 ">
                     <p className="font-bold uppercase text-slate-400">Product</p>
                     <p className="mt-1 font-semibold text-slate-800 ">{product?.content_name || product?.name || 'Unavailable'}</p>
+                    {meta && <p className="mt-1 text-[10px] text-slate-500">{meta}</p>}
                   </div>
                   <div className="rounded-lg bg-slate-50 p-2 ">
                     <p className="font-bold uppercase text-slate-400">Amount</p>
@@ -180,6 +191,7 @@ export function IncompleteCheckoutsView({ data, onStatusChange, onRefresh, showT
                 </tr>
               ) : filtered.map(item => {
                 const product = item.products?.[0];
+                const meta = productMeta(product);
                 const source = item.campaignData?.utm_source || 'Direct';
                 return (
                   <tr key={item.id} className="hover:bg-slate-50/70 ">
@@ -191,6 +203,7 @@ export function IncompleteCheckoutsView({ data, onStatusChange, onRefresh, showT
                     <td className="px-4 py-3">
                       <p className="font-semibold">{product?.content_name || product?.name || 'Product details unavailable'}</p>
                       <p className="mt-1 text-[10px] text-slate-400">Qty {product?.quantity || 1}</p>
+                      {meta && <p className="mt-1 max-w-[220px] truncate text-[10px] text-slate-500" title={meta}>{meta}</p>}
                     </td>
                     <td className="px-4 py-3 font-bold">BDT {Number(item.amount || 0).toLocaleString()}</td>
                     <td className="px-4 py-3 capitalize">{source}</td>
