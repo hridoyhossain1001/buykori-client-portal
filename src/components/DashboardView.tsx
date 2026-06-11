@@ -28,6 +28,13 @@ interface DashboardViewProps {
   profile: UserProfile;
   events: CAPIEvent[];
   trendData: any[];
+  recoverySummary: {
+    browser_events: number;
+    server_events: number;
+    matched_events: number;
+    recovered_events: number;
+    recovery_rate: number;
+  } | null;
   metaStats: { total: number; rate: number; lastTime: string };
   tiktokStats: { total: number; rate: number; lastTime: string };
   ga4Stats: { total: number; rate: number; lastTime: string };
@@ -47,6 +54,7 @@ export function DashboardView({
   profile,
   events,
   trendData,
+  recoverySummary,
   metaStats,
   tiktokStats,
   ga4Stats,
@@ -94,6 +102,10 @@ export function DashboardView({
       badgeClass: 'border-green-200 bg-green-50 text-green-700',
     },
   ];
+  const browserEventCount = Number(recoverySummary?.browser_events || 0);
+  const serverEventCount = Number(recoverySummary?.server_events || 0);
+  const recoveredEventCount = Number(recoverySummary?.recovered_events || 0);
+  const serverRecoveryRate = Number(recoverySummary?.recovery_rate || 0);
 
   useEffect(() => {
     lastScrollYRef.current = window.scrollY;
@@ -312,6 +324,10 @@ export function DashboardView({
                     <stop offset="5%" stopColor="#06b6d4" stopOpacity={0.2}/>
                     <stop offset="95%" stopColor="#06b6d4" stopOpacity={0}/>
                   </linearGradient>
+                  <linearGradient id="ga4Grad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#34a853" stopOpacity={0.18}/>
+                    <stop offset="95%" stopColor="#34a853" stopOpacity={0}/>
+                  </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                 <XAxis dataKey="name" stroke="#94a3b8" fontSize={10} tickLine={false} axisLine={false} />
@@ -332,6 +348,7 @@ export function DashboardView({
                 <Legend wrapperStyle={{ fontSize: '10px', paddingTop: '10px' }} />
                 <Area type="monotone" dataKey="Meta CAPI" stroke="#4f46e5" strokeWidth={2} fillOpacity={1} fill="url(#metaGrad)" />
                 <Area type="monotone" dataKey="TikTok Events" stroke="#06b6d4" strokeWidth={2} fillOpacity={1} fill="url(#tiktokGrad)" />
+                <Area type="monotone" dataKey="GA4" stroke="#34a853" strokeWidth={2} fillOpacity={1} fill="url(#ga4Grad)" />
               </AreaChart>
           </div>
         </div>
@@ -385,6 +402,26 @@ export function DashboardView({
               {totalSuggCount === 0 ? 'Run Health Check' : 'View Suggestions'}
             </span>
           </button>
+
+          <div className="mt-3 rounded-lg border border-emerald-100 bg-emerald-50/60 p-3">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-wide text-emerald-700">Server-Side Recovery</p>
+                <p className="mt-1 text-xs text-emerald-900">Deduplicated browser gaps covered by server events.</p>
+              </div>
+              <span className="font-mono text-lg font-black text-emerald-700">{serverRecoveryRate}%</span>
+            </div>
+            <div className="mt-3 grid grid-cols-2 gap-2 text-[10px] font-bold text-slate-600">
+              <div className="rounded-md bg-white px-2 py-1.5 ring-1 ring-emerald-100">
+                <span className="block text-slate-400">Browser seen</span>
+                <span className="font-mono text-slate-800">{browserEventCount.toLocaleString()}</span>
+              </div>
+              <div className="rounded-md bg-white px-2 py-1.5 ring-1 ring-emerald-100">
+                <span className="block text-slate-400">Recovered</span>
+                <span className="font-mono text-slate-800">{recoveredEventCount.toLocaleString()} / {serverEventCount.toLocaleString()}</span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 

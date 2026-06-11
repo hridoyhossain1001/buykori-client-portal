@@ -222,11 +222,11 @@ const guideSteps: GuideStep[] = [
     text: {
       bn: {
         title: 'সব প্রস্তুত',
-        body: 'এখন আপনি কাজ শুরু করতে পারেন। পরে আবার Guide button থেকে এই গাইড দেখতে পারবেন।',
+        body: 'এখন আপনি কাজ শুরু করতে পারেন। গাইড বন্ধ করলে এটি আপনার অ্যাকাউন্টে সম্পন্ন হিসেবে সংরক্ষিত হবে।',
       },
       en: {
         title: 'You are ready',
-        body: 'You can start now. Later, open this guide again from the Guide button.',
+        body: 'You can start now. Closing the guide saves it as completed for your account.',
       },
     },
   },

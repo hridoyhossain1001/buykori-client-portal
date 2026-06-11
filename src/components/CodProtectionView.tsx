@@ -46,11 +46,12 @@ export function CodProtectionView({
   handleSaveOrderManagement,
   growthFeaturesEnabled = false,
 }: CodProtectionViewProps) {
-  const pendingList = deferredData?.pendingList || [];
-  const pendingCount = deferredData?.pendingCount ?? 0;
-  const pendingValue = deferredData?.pendingValue ?? 0;
+  const pendingList = (deferredData?.deferredPendingList || deferredData?.pendingList || [])
+    .filter((order: any) => !order?.operationsOnly);
+  const pendingCount = deferredData?.deferredPendingCount ?? deferredData?.pendingCount ?? pendingList.length;
+  const pendingValue = deferredData?.deferredPendingValue ?? deferredData?.pendingValue ?? 0;
   const confirmedToday = deferredData?.confirmedToday ?? 0;
-  const oldestPending = deferredData?.oldestPending ?? 'None';
+  const oldestPending = deferredData?.deferredOldestPending ?? deferredData?.oldestPending ?? 'None';
 
   const getCustomerSummary = (order: any) => {
     const rawCustomer = String(order.customer || '').trim();
@@ -256,12 +257,12 @@ export function CodProtectionView({
           </div>
         </details>
 
-        <div className="hidden items-end gap-4 p-3 md:grid md:grid-cols-[minmax(0,1fr)_minmax(0,1.35fr)_auto]">
-          <div className="grid grid-cols-2 gap-2">
-            <label className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+        <div className="hidden items-end gap-3 p-3 md:grid md:grid-cols-[minmax(0,.8fr)_minmax(0,.8fr)_minmax(0,1.4fr)]">
+          <div className="flex items-stretch gap-1.5">
+            <label className="flex min-w-0 flex-1 items-center justify-between gap-2 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5">
               <span className="min-w-0">
-                <span className="block truncate text-xs font-bold text-slate-900">Order Management</span>
-                <span className="block truncate text-[10px] text-slate-500">Courier workflow</span>
+                <span className="block truncate text-[11px] font-bold text-slate-900">Order Management</span>
+                <span className="block truncate text-[9px] text-slate-500">Courier workflow</span>
               </span>
               <input
                 type="checkbox"
@@ -272,10 +273,21 @@ export function CodProtectionView({
                 className="h-4 w-4 rounded accent-indigo-600"
               />
             </label>
-            <label className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+            <button
+              type="button"
+              disabled={savingOrderMgmt || !growthFeaturesEnabled}
+              onClick={handleSaveOrderManagement}
+              className="rounded-lg border border-slate-200 bg-white px-2.5 text-[9px] font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+            >
+              {savingOrderMgmt ? 'Saving' : 'Save'}
+            </button>
+          </div>
+
+          <div className="flex items-stretch gap-1.5">
+            <label className="flex min-w-0 flex-1 items-center justify-between gap-2 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5">
               <span className="min-w-0">
-                <span className="block truncate text-xs font-bold text-slate-900">COD Protection</span>
-                <span className="block truncate text-[10px] text-slate-500">Verify tracking</span>
+                <span className="block truncate text-[11px] font-bold text-slate-900">COD Protection</span>
+                <span className="block truncate text-[9px] text-slate-500">Verify tracking</span>
               </span>
               <input
                 type="checkbox"
@@ -286,6 +298,14 @@ export function CodProtectionView({
                 className="h-4 w-4 rounded accent-emerald-700"
               />
             </label>
+            <button
+              type="button"
+              disabled={savingDeferredSettings || !growthFeaturesEnabled}
+              onClick={handleSaveDeferredSettings}
+              className="rounded-lg bg-emerald-800 px-2.5 text-[9px] font-bold text-white hover:bg-emerald-900 disabled:opacity-50"
+            >
+              {savingDeferredSettings ? 'Saving' : 'Save'}
+            </button>
           </div>
 
           <div className="grid grid-cols-2 gap-2">
@@ -321,24 +341,6 @@ export function CodProtectionView({
             </div>
           </div>
 
-          <div className="flex gap-2">
-            <button
-              type="button"
-              disabled={savingOrderMgmt || !growthFeaturesEnabled}
-              onClick={handleSaveOrderManagement}
-              className="h-9 rounded-lg border border-slate-200 bg-white px-3 text-[10px] font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
-            >
-              Save order
-            </button>
-            <button
-              type="button"
-              disabled={savingDeferredSettings || !growthFeaturesEnabled}
-              onClick={handleSaveDeferredSettings}
-              className="h-9 rounded-lg bg-emerald-800 px-3 text-[10px] font-bold text-white hover:bg-emerald-900 disabled:opacity-50"
-            >
-              Save COD
-            </button>
-          </div>
         </div>
       </section>
 
@@ -497,15 +499,14 @@ export function CodProtectionView({
                           className="rounded accent-indigo-600"
                         />
                       </td>
-                      <td className="px-6 py-3 font-mono font-bold text-slate-800">{order.orderId}</td>
-                      <td className="px-6 py-3" title={customer.title}>
+                      <td className="px-6 py-2.5 font-mono font-bold text-slate-800">{order.orderId}</td>
+                      <td className="px-6 py-2" title={customer.title}>
                         <div className="flex max-w-[300px] flex-col gap-0.5">
                           <span className="truncate font-semibold text-slate-800">{customer.primary}</span>
                           {customer.secondary && <span className="truncate font-mono text-[10px] text-slate-500">{customer.secondary}</span>}
-                          {customer.tertiary && <span className="truncate text-[10px] text-slate-400">{customer.tertiary}</span>}
                           {products.length > 0 && (
-                            <div className="mt-1.5 space-y-1">
-                              {products.map((p: any, idx: number) => {
+                            <div className="mt-0.5">
+                              {products.slice(0, 1).map((p: any, idx: number) => {
                                 const pName = p.name || p.content_name || `Item ${idx + 1}`;
                                 const qty = p.quantity ? ` x${p.quantity}` : '';
                                 const category = p.category || p.content_category || '';
@@ -514,26 +515,30 @@ export function CodProtectionView({
                                   : '';
                                 const meta = [category, attrs].filter(Boolean).join(' - ');
                                 return (
-                                  <div key={idx} className="flex items-start gap-1 text-[10px] text-slate-500 leading-tight">
+                                  <div key={idx} className="flex items-start gap-1 text-[10px] text-slate-500 leading-tight" title={[pName + qty, meta].filter(Boolean).join(' | ')}>
                                     <Package className="h-3 w-3 mt-0.5 shrink-0 text-slate-400" />
-                                    <div>
-                                      <span className="font-medium text-slate-700">{pName}</span>
-                                      {qty && <span className="font-bold text-slate-500">{qty}</span>}
-                                      {meta && <span className="block text-slate-400 font-normal">{meta}</span>}
+                                    <div className="min-w-0">
+                                      <p className="truncate font-medium text-slate-700">{pName}{qty && <span className="font-bold text-slate-500">{qty}</span>}</p>
+                                      {meta && <p className="truncate text-[9px] font-normal text-slate-400">{meta}</p>}
                                     </div>
                                   </div>
                                 );
                               })}
+                              {products.length > 1 && (
+                                <p className="mt-0.5 pl-4 text-[9px] font-semibold text-indigo-600">+{products.length - 1} more items</p>
+                              )}
                             </div>
                           )}
                         </div>
                       </td>
-                      <td className="px-6 py-3 font-semibold text-slate-800">{(Number(order.amount) || 0).toLocaleString()}</td>
-                      <td className="px-6 py-3">
+                      <td className="px-6 py-2.5 font-semibold text-slate-800">
+                        <span className="text-[10px] font-bold text-slate-400">BDT </span>{(Number(order.amount) || 0).toLocaleString()}
+                      </td>
+                      <td className="px-6 py-2.5">
                         {renderRiskGauge(order.fraudScore)}
                       </td>
-                      <td className="px-6 py-3 font-mono text-slate-500">{order.ageHours}h ago</td>
-                      <td className="space-x-2 whitespace-nowrap px-6 py-3 text-right">
+                      <td className="px-6 py-2.5 font-mono text-slate-500">{order.ageHours}h ago</td>
+                      <td className="space-x-2 whitespace-nowrap px-6 py-2.5 text-right">
                         <button type="button" onClick={() => handleConfirmOrder(order.orderId)} className="rounded bg-emerald-800 px-2.5 py-1 text-[10px] font-bold text-white hover:bg-emerald-900">Confirm</button>
                         <button type="button" onClick={() => handleCancelOrder(order.orderId)} className="rounded bg-rose-900 px-2.5 py-1 text-[10px] font-bold text-white hover:bg-rose-950">Skip Event</button>
                       </td>

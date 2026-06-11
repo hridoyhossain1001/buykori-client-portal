@@ -30,6 +30,72 @@ const lazyWithReload = <T extends React.ComponentType<any>>(
 
 // Lazy-loaded modular views (code-splitting for smaller initial bundle)
 const DashboardView = lazyWithReload(() => import('./components/DashboardView').then(m => ({ default: m.DashboardView })));
+
+const suggestionDedupeKey = (item: Suggestion) => [
+  item.platform || 'global',
+  item.title,
+  item.explanation,
+  item.fixAction,
+].map(value => String(value || '').trim().toLowerCase()).join('|');
+
+const uniqueSuggestions = (items: Suggestion[] = []) => {
+  const byContent = new Map<string, Suggestion>();
+  items.forEach((item) => {
+    const key = suggestionDedupeKey(item) || item.id;
+    const existing = byContent.get(key);
+    if (!existing) {
+      byContent.set(key, item);
+      return;
+    }
+
+    byContent.set(key, {
+      ...existing,
+      ...item,
+      id: existing.id,
+      resolved: existing.resolved && item.resolved,
+    });
+  });
+  return Array.from(byContent.values());
+};
+
+class PageErrorBoundary extends React.Component<
+  { pageKey: string; children: React.ReactNode },
+  { error: Error | null }
+> {
+  declare props: Readonly<{ pageKey: string; children: React.ReactNode }>;
+  declare setState: React.Component<
+    { pageKey: string; children: React.ReactNode },
+    { error: Error | null }
+  >['setState'];
+  state = { error: null as Error | null };
+
+  static getDerivedStateFromError(error: Error) {
+    return { error };
+  }
+
+  componentDidCatch(error: Error) {
+    console.error(`Page render failed: ${this.props.pageKey}`, error);
+  }
+
+  componentDidUpdate(previousProps: { pageKey: string }) {
+    if (previousProps.pageKey !== this.props.pageKey && this.state.error) {
+      this.setState({ error: null });
+    }
+  }
+
+  render() {
+    if (this.state.error) {
+      return (
+        <div className="rounded-xl border border-rose-200 bg-rose-50 p-5 text-rose-800">
+          <h2 className="text-sm font-bold">This workspace could not be displayed</h2>
+          <p className="mt-1 text-xs">Refresh the page and try again. The error has been logged for diagnosis.</p>
+          <p className="mt-2 rounded bg-white/70 px-2 py-1 font-mono text-[10px]">{this.state.error.message}</p>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 const AnalyticsView = lazyWithReload(() => import('./components/AnalyticsView').then(m => ({ default: m.AnalyticsView })));
 const CodProtectionView = lazyWithReload(() => import('./components/CodProtectionView').then(m => ({ default: m.CodProtectionView })));
 const EventLogsView = lazyWithReload(() => import('./components/EventLogsView').then(m => ({ default: m.EventLogsView })));
@@ -86,7 +152,9 @@ export default function App() {
   const [analyticsAudience, setAnalyticsAudience] = useState<any>(null);
   const [signalDoctor, setSignalDoctor] = useState<any>(null);
   const [analyticsDays, setAnalyticsDays] = useState<number>(7);
+  const [analyticsError, setAnalyticsError] = useState<string | null>(null);
   const [trendData, setTrendData] = useState<any[]>([]);
+  const [recoverySummary, setRecoverySummary] = useState<any>(null);
 
   // Async Lifecycle States
   const [loading, setLoading] = useState<boolean>(true);
@@ -203,8 +271,9 @@ export default function App() {
   const [copiedStates, setCopiedStates] = useState<Record<string, boolean>>({});
 
   // Trigger feedback toasts
-  const [globalToast, setGlobalToast] = useState<{ show: boolean; msg: string; err: boolean }>({ show: false, msg: '', err: false });
+  const [globalToast, setGlobalToast] = useState<{ show: boolean; msg: string; err: boolean; actionLabel?: string; onAction?: () => void }>({ show: false, msg: '', err: false });
   const [productGuideOpen, setProductGuideOpen] = useState<boolean>(false);
+  const [deferredLoadError, setDeferredLoadError] = useState<string | null>(null);
 
   useEffect(() => {
     sessionStorage.removeItem('buykori_chunk_reload');
@@ -222,13 +291,17 @@ export default function App() {
   const closeProductGuide = () => {
     if (profile) {
       localStorage.setItem(getGuideStorageKey(profile), '1');
+      setProfile(prev => prev ? { ...prev, guideDismissed: true } : prev);
+      fetch('/api/guide/dismiss', { method: 'POST' }).catch(err => {
+        console.error('Failed to persist guide dismissal', err);
+      });
     }
     setProductGuideOpen(false);
     setMobileSidebarOpen(false);
   };
 
-  const showToast = (msg: string, isErr = false) => {
-    setGlobalToast({ show: true, msg, err: isErr });
+  const showToast = (msg: string, isErr = false, action?: { label: string; onClick: () => void }) => {
+    setGlobalToast({ show: true, msg, err: isErr, actionLabel: action?.label, onAction: action?.onClick });
     setTimeout(() => {
       setGlobalToast(prev => ({ ...prev, show: false }));
     }, 4000);
@@ -236,7 +309,7 @@ export default function App() {
 
   useEffect(() => {
     if (loading || !profile || isPluginConnectRoute) return;
-    if (localStorage.getItem(getGuideStorageKey(profile)) === '1') return;
+    if (profile.guideDismissed || localStorage.getItem(getGuideStorageKey(profile)) === '1') return;
     const timer = window.setTimeout(() => setProductGuideOpen(true), 650);
     return () => window.clearTimeout(timer);
   }, [loading, profile, isPluginConnectRoute]);
@@ -274,15 +347,20 @@ export default function App() {
   const fetchDeferred = async () => {
     try {
       const res = await fetch('/api/deferred');
-      if (res.ok) {
-        const data = await res.json();
-        setDeferredData(data);
-        setDeferredEnabled(data.deferredEnabled);
-        setAutoConfirmDays(data.autoConfirmDays);
-        setAutoConfirmStatus(data.autoConfirmStatus);
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.detail || `Could not load verification queue (${res.status}).`);
       }
+      const data = await res.json();
+      setDeferredData(data);
+      setDeferredEnabled(data.deferredEnabled);
+      setAutoConfirmDays(data.autoConfirmDays);
+      setAutoConfirmStatus(data.autoConfirmStatus);
+      setDeferredLoadError(null);
     } catch (err) {
       console.error("Failed to fetch COD Protection", err);
+      setDeferredData(prev => prev || { pendingList: [], pendingCount: 0, pendingValue: 0 });
+      setDeferredLoadError(err instanceof Error ? err.message : 'Could not load the verification queue.');
     }
   };
 
@@ -356,10 +434,16 @@ export default function App() {
 
   const fetchTrendData = async (days = 7) => {
     try {
-      const res = await fetch(`/api/events/trend?days=${days}`);
-      if (res.ok) {
-        const data = await res.json();
+      const [trendRes, recoveryRes] = await Promise.all([
+        fetch(`/api/events/trend?days=${days}`),
+        fetch(`/api/events/recovery-summary?days=${days}`)
+      ]);
+      if (trendRes.ok) {
+        const data = await trendRes.json();
         setTrendData(data.trend || []);
+      }
+      if (recoveryRes.ok) {
+        setRecoverySummary(await recoveryRes.json());
       }
     } catch (err) {
       console.error("Failed to fetch trend data", err);
@@ -495,7 +579,7 @@ export default function App() {
 
       setProfile(dProf);
       setConnection(dConn);
-      setSuggestions(dSugg);
+      setSuggestions(uniqueSuggestions(dSugg));
       setEvents(dLogs.events);
       setSidebarStatus(dSidebar);
       setPluginReleaseInfo(dPlugin);
@@ -522,6 +606,7 @@ export default function App() {
 
   const loadAnalyticsData = async (days = 7) => {
     try {
+      setAnalyticsError(null);
       const [resAnOver, resAnCamp, resAnHour, resAnAudience, resAnDoc] = await Promise.all([
         fetch(`/api/v1/analytics/overview?days=${days}`),
         fetch(`/api/v1/analytics/campaigns?days=${days}`),
@@ -529,13 +614,46 @@ export default function App() {
         fetch(`/api/v1/analytics/audience?days=${days}`),
         fetch(`/api/v1/analytics/signal-doctor?days=${days}`)
       ]);
-      if (resAnOver.ok) setAnalyticsOverview(await resAnOver.json());
-      if (resAnCamp.ok) setAnalyticsCampaigns(await resAnCamp.json());
+      const failedSections: string[] = [];
+      if (!resAnOver.ok) failedSections.push('summary');
+      if (!resAnCamp.ok) failedSections.push('sales source');
+      if (!resAnHour.ok) failedSections.push('hourly data');
+      if (!resAnAudience.ok) failedSections.push('customers');
+      if (!resAnDoc.ok) failedSections.push('tracking health');
+      if (resAnOver.ok) {
+        const data = await resAnOver.json();
+        setAnalyticsOverview({ ...data, funnel: Array.isArray(data.funnel) ? data.funnel : [] });
+      }
+      if (resAnCamp.ok) {
+        const data = await resAnCamp.json();
+        setAnalyticsCampaigns({ ...data, campaigns: Array.isArray(data.campaigns) ? data.campaigns : [] });
+      }
       if (resAnHour.ok) setAnalyticsHourly(await resAnHour.json());
-      if (resAnAudience.ok) setAnalyticsAudience(await resAnAudience.json());
-      if (resAnDoc.ok) setSignalDoctor(await resAnDoc.json());
+      if (resAnAudience.ok) {
+        const data = await resAnAudience.json();
+        setAnalyticsAudience({
+          ...data,
+          top_districts: Array.isArray(data.top_districts) ? data.top_districts : [],
+          device_mix: Array.isArray(data.device_mix) ? data.device_mix : [],
+          browser_mix: Array.isArray(data.browser_mix) ? data.browser_mix : [],
+          district_funnel: Array.isArray(data.district_funnel) ? data.district_funnel : [],
+          visitor_district_funnel: Array.isArray(data.visitor_district_funnel) ? data.visitor_district_funnel : [],
+        });
+      }
+      if (resAnDoc.ok) {
+        const data = await resAnDoc.json();
+        setSignalDoctor({
+          ...data,
+          issues: Array.isArray(data.issues) ? data.issues : [],
+          signal_rates: data.signal_rates && Object.keys(data.signal_rates).length ? data.signal_rates : null,
+        });
+      }
+      if (failedSections.length) {
+        setAnalyticsError(`Some ad insight data could not load: ${failedSections.join(', ')}.`);
+      }
     } catch (err) {
       console.error("Failed to load analytics data", err);
+      setAnalyticsError("Ad insight data could not load. Please refresh and try again.");
     }
   };
 
@@ -870,12 +988,31 @@ export default function App() {
         body: JSON.stringify({ order_id: orderId })
       });
       if (res.ok) {
-        showToast("Event skipped.", false);
+        showToast("Event skipped.", false, {
+          label: 'Undo',
+          onClick: () => handleRestoreSkippedOrder(orderId),
+        });
         fetchDeferred();
         loadSystemData(false);
       }
     } catch {
       showToast("Skip action failed.", true);
+    }
+  };
+
+  const handleRestoreSkippedOrder = async (orderId: string) => {
+    try {
+      const res = await fetch('/api/deferred/restore', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ order_id: orderId })
+      });
+      if (!res.ok) throw new Error();
+      showToast("Event restored to verification queue.", false);
+      fetchDeferred();
+      loadSystemData(false);
+    } catch {
+      showToast("Could not restore skipped event.", true);
     }
   };
 
@@ -945,7 +1082,7 @@ export default function App() {
       const res = await fetch('/api/suggestions/ai-review', { method: 'POST' });
       if (!res.ok) throw new Error("Setup scan failed.");
       const data = await res.json();
-      setSuggestions(data.suggestions);
+      setSuggestions(uniqueSuggestions(data.suggestions));
       showToast("Scan complete! Suggestions updated.", false);
     } catch (err: any) {
       showToast("Setup scan failed. Please try again.", true);
@@ -1250,11 +1387,11 @@ export default function App() {
   const pageTitles: Record<string, string> = {
     dashboard: 'Dashboard',
     analytics: 'Insights',
-    'pending-purchases': 'COD Verification Queue',
+    'pending-purchases': "Order's Verification( COD)",
     orders: 'Orders & Delivery',
-    'incomplete-checkouts': 'Abandoned Checkouts',
-    'campaign-builder': 'UTM & Sandbox Link Builder',
-    suggestions: 'Setup Diagnostics & Health',
+    'incomplete-checkouts': "Incomplete Order's",
+    'campaign-builder': 'Campaign Tools',
+    suggestions: 'Setup Health',
     'event-logs': 'Event Logs',
     'api-logs': 'API Logs',
     settings: 'Settings',
@@ -1287,7 +1424,6 @@ export default function App() {
           stores={stores}
           onSwitchStore={handleSwitchStore}
           onCreateStore={() => setCreateStoreModalOpen(true)}
-          onOpenGuide={openProductGuide}
         />
       )}
 
@@ -1338,7 +1474,7 @@ export default function App() {
             onMenuClick={() => setMobileSidebarOpen(true)}
             suggestions={suggestions}
             setActivePage={setActivePage}
-            onOpenGuide={openProductGuide}
+            onOpenGuide={profile?.guideDismissed ? undefined : openProductGuide}
           />
         )}
 
@@ -1381,6 +1517,7 @@ export default function App() {
           <div className="bk-console-page flex-1 space-y-4 p-4 sm:p-5 md:space-y-6 md:p-6">
 
             {/* --- CORE VIEWS DISPATCHER --- */}
+            <PageErrorBoundary pageKey={activePage}>
             <Suspense fallback={
               <div className="flex-1 flex items-center justify-center min-h-[400px]">
                 <div className="flex flex-col items-center gap-3">
@@ -1396,6 +1533,7 @@ export default function App() {
                 profile={profile}
                 events={events}
                 trendData={trendData}
+                recoverySummary={recoverySummary}
                 metaStats={metaStats}
                 tiktokStats={tiktokStats}
                 ga4Stats={ga4Stats}
@@ -1439,9 +1577,10 @@ export default function App() {
             )}
 
             {/* PAGE 11: ORDERS & COURIER — only when Order Management is enabled */}
-            {activePage === 'orders' && deferredData && (
+            {activePage === 'orders' && (
               <OrdersView 
-                deferredData={deferredData}
+                deferredData={deferredData || { pendingList: [] }}
+                deferredLoadError={deferredLoadError}
                 fetchDeferred={fetchDeferred}
                 handleConfirmOrder={handleConfirmOrder}
                 handleCancelOrder={handleCancelOrder}
@@ -1468,6 +1607,7 @@ export default function App() {
                 analyticsCampaigns={analyticsCampaigns}
                 analyticsAudience={analyticsAudience}
                 signalDoctor={signalDoctor}
+                analyticsError={analyticsError}
                 urlBuilderBaseUrl={urlBuilderBaseUrl}
                 setUrlBuilderBaseUrl={setUrlBuilderBaseUrl}
                 urlBuilderSource={urlBuilderSource}
@@ -1655,6 +1795,7 @@ export default function App() {
             )}
 
             </Suspense>
+            </PageErrorBoundary>
 
             {/* --- END DISPATCHER --- */}
 
@@ -1674,6 +1815,19 @@ export default function App() {
           <span className="text-xs text-slate-800 font-medium">
             {globalToast.msg}
           </span>
+          {globalToast.actionLabel && globalToast.onAction && (
+            <button
+              type="button"
+              onClick={() => {
+                const action = globalToast.onAction;
+                setGlobalToast(prev => ({ ...prev, show: false }));
+                action?.();
+              }}
+              className="rounded-md border border-slate-200 px-2 py-1 text-[11px] font-bold text-indigo-700 hover:bg-indigo-50"
+            >
+              {globalToast.actionLabel}
+            </button>
+          )}
         </div>
       )}
 

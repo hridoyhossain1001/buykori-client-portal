@@ -68,7 +68,6 @@ interface SidebarProps {
   stores?: StoreInfo[];
   onSwitchStore?: (clientId: number) => Promise<void>;
   onCreateStore?: () => void;
-  onOpenGuide?: () => void;
 }
 
 export function Sidebar({
@@ -88,7 +87,6 @@ export function Sidebar({
   stores = [],
   onSwitchStore,
   onCreateStore,
-  onOpenGuide,
 }: SidebarProps) {
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [storeSwitcherOpen, setStoreSwitcherOpen] = useState(false);
@@ -115,11 +113,10 @@ export function Sidebar({
   const currentStore = stores.find(s => s.is_current);
   const subNavSections: Record<string, { id: string; label: string }[]> = {
     analytics: [
-      { id: 'analytics-overview', label: 'Overview' },
-      { id: 'analytics-audience', label: 'Audience' },
-      { id: 'analytics-funnel', label: 'Funnel' },
-      { id: 'analytics-campaigns', label: 'Campaigns' },
-      { id: 'analytics-url-builder', label: 'URL builder' },
+      { id: 'analytics-overview', label: 'Summary' },
+      { id: 'analytics-ad-performance', label: 'Ad Results' },
+      { id: 'analytics-campaigns', label: 'Sales Source' },
+      { id: 'analytics-audience', label: 'Customers' },
     ],
     orders: [
       { id: 'orders-pending', label: 'Pending queue' },
@@ -136,12 +133,11 @@ export function Sidebar({
       { id: 'setup-custom', label: 'Custom website' },
     ],
     settings: [
-      { id: 'settings-domain', label: 'Domain' },
-      { id: 'settings-platforms', label: 'Platform keys' },
-      { id: 'settings-courier', label: 'Courier' },
-      { id: 'settings-routing', label: 'Event routing' },
-      { id: 'settings-wordpress', label: 'WordPress bridge' },
-      { id: 'settings-alerts', label: 'Alerts' },
+      { id: 'settings-domain', label: 'Store Connection' },
+      { id: 'settings-platforms', label: 'Conversions API' },
+      { id: 'settings-ad-accounts', label: 'Ad Accounts' },
+      { id: 'settings-courier', label: 'Courier Logistics' },
+      { id: 'settings-whatsapp', label: 'Alerts & Notifications' },
     ],
   };
 
@@ -183,7 +179,7 @@ export function Sidebar({
       items: [
         {
           id: 'pending-purchases',
-          name: 'COD Verification Queue',
+          name: "Order's Verification( COD)",
           icon: ShieldCheck,
           subtitle: 'Hold COD orders until confirmed',
           count: orderVerificationCount,
@@ -196,7 +192,7 @@ export function Sidebar({
         },
         {
           id: 'incomplete-checkouts',
-          name: 'Abandoned Checkouts',
+          name: "Incomplete Order's",
           icon: PhoneCall,
           subtitle: 'Recover abandoned checkouts with a phone number',
           count: incompleteCheckoutCount,
@@ -207,8 +203,8 @@ export function Sidebar({
     {
       label: 'GROW',
       items: [
-        { id: 'campaign-builder', name: 'UTM & Sandbox Link Builder', icon: Megaphone },
-        { id: 'suggestions', name: 'Setup Diagnostics & Health', icon: Lightbulb, count: suggestionsCount },
+        { id: 'campaign-builder', name: 'Campaign Tools', icon: Megaphone },
+        { id: 'suggestions', name: 'Setup Health', icon: Lightbulb, count: suggestionsCount },
       ],
     },
     {
@@ -395,17 +391,12 @@ export function Sidebar({
                   const hasSubmenu = Boolean(subSections?.length);
                   const submenuOpen = Boolean(openSubmenus[item.id]);
                   return (
-                    <div key={item.id}>
+                    <div key={item.id} className="group/nav relative">
                       <button
                         aria-current={isActive ? 'page' : undefined}
                         aria-expanded={hasSubmenu && !collapsed ? submenuOpen : undefined}
                         data-guide={`nav-${item.id}`}
                         onClick={() => {
-                          if (hasSubmenu && !collapsed) {
-                            setActivePage(item.id);
-                            setOpenSubmenus(prev => ({ ...prev, [item.id]: !prev[item.id] || activePage !== item.id }));
-                            return;
-                          }
                           setActivePage(item.id);
                           setMobileOpen(false);
                         }}
@@ -436,7 +427,25 @@ export function Sidebar({
                         )}
 
                         {hasSubmenu && !collapsed && (
-                          <ChevronDown className={`h-3.5 w-3.5 text-slate-500 transition-transform ${submenuOpen ? 'rotate-180' : ''}`} />
+                          <span
+                            role="button"
+                            tabIndex={0}
+                            aria-label={`${submenuOpen ? 'Collapse' : 'Expand'} ${item.name} sections`}
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              setOpenSubmenus(prev => ({ ...prev, [item.id]: !prev[item.id] }));
+                            }}
+                            onKeyDown={(event) => {
+                              if (event.key === 'Enter' || event.key === ' ') {
+                                event.preventDefault();
+                                event.stopPropagation();
+                                setOpenSubmenus(prev => ({ ...prev, [item.id]: !prev[item.id] }));
+                              }
+                            }}
+                            className="rounded p-1 text-slate-500 hover:bg-slate-100 hover:text-slate-800"
+                          >
+                            <ChevronDown className={`h-3.5 w-3.5 transition-transform ${submenuOpen ? 'rotate-180' : ''}`} />
+                          </span>
                         )}
 
                         {Boolean(item.count) && !collapsed && !hasSubmenu && (
@@ -455,6 +464,27 @@ export function Sidebar({
                           </div>
                         )}
                       </button>
+
+                      {hasSubmenu && collapsed && (
+                        <div className="pointer-events-none absolute left-full top-0 z-50 ml-3 w-52 rounded-lg border border-slate-200 bg-white p-2 opacity-0 shadow-xl shadow-slate-900/15 transition-opacity duration-150 group-hover/nav:pointer-events-auto group-hover/nav:opacity-100">
+                          <p className="px-2 py-1 text-[10px] font-black uppercase tracking-wide text-slate-400">{item.name}</p>
+                          <div className="mt-1 space-y-0.5">
+                            {subSections.map((section) => (
+                              <button
+                                key={section.id}
+                                type="button"
+                                onClick={() => {
+                                  jumpToPageSection(item.id, section.id);
+                                  setMobileOpen(false);
+                                }}
+                                className="block w-full rounded-md px-2 py-1.5 text-left text-xs font-semibold text-slate-600 hover:bg-indigo-50 hover:text-indigo-700"
+                              >
+                                {section.label}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
 
                       {hasSubmenu && !collapsed && submenuOpen && (
                         <div className="ml-11 mt-1 space-y-0.5 pb-1">
@@ -559,27 +589,6 @@ export function Sidebar({
           <LogOut className="w-4 h-4 shrink-0 transition-transform group-hover:translate-x-0.5" />
           {!collapsed && <span className="text-xs">Log Out</span>}
         </button>
-        {collapsed ? (
-          <button
-            type="button"
-            onClick={onOpenGuide}
-            className="flex w-full items-center justify-center rounded-lg py-2 text-blue-700 transition-colors hover:bg-blue-50"
-            title="Open Guide"
-            aria-label="Open product guide"
-          >
-            <BookOpen className="h-4 w-4 shrink-0" />
-          </button>
-        ) : (
-          <button
-            type="button"
-            onClick={onOpenGuide}
-            className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-blue-700 transition-colors hover:bg-blue-50"
-            aria-label="Open product guide"
-          >
-            <BookOpen className="h-4 w-4 shrink-0" />
-            <span className="text-xs">Guide</span>
-          </button>
-        )}
       </div>
     </aside>
     {showLogoutConfirm && (

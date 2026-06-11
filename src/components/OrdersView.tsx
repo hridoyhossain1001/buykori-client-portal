@@ -65,6 +65,7 @@ function formatHeldAge(ageHours: unknown): string {
 
 interface OrdersViewProps {
   deferredData: any;
+  deferredLoadError?: string | null;
   fetchDeferred: () => Promise<void>;
   handleConfirmOrder: (orderId: string) => Promise<void>;
   handleCancelOrder: (orderId: string) => Promise<void>;
@@ -76,6 +77,7 @@ interface OrdersViewProps {
 
 export function OrdersView({
   deferredData,
+  deferredLoadError,
   fetchDeferred,
   handleConfirmOrder,
   handleCancelOrder,
@@ -115,6 +117,8 @@ export function OrdersView({
   const [orderToCancel, setOrderToCancel] = useState<CourierOrder | null>(null);
   const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
   const toggleExpand = (id: string) => setExpandedOrderId(prev => prev === id ? null : id);
+  const codVerificationOrders = (deferredData?.deferredPendingList || deferredData?.pendingList || [])
+    .filter((order: any) => !order?.operationsOnly);
 
   useEffect(() => {
     const handleSectionJump = (event: Event) => {
@@ -246,7 +250,18 @@ export function OrdersView({
       const res = await fetch('/api/courier/orders');
       if (res.ok) {
         const data = await res.json();
-        setCourierOrders(data);
+        setCourierOrders(Array.isArray(data) ? data.map((order: any) => ({
+          ...order,
+          order_id: String(order?.order_id || ''),
+          courier_provider: String(order?.courier_provider || ''),
+          courier_status: String(order?.courier_status || 'pending'),
+          recipient_name: String(order?.recipient_name || ''),
+          recipient_phone: String(order?.recipient_phone || ''),
+          courier_tracking_id: String(order?.courier_tracking_id || ''),
+          cod_amount: Number(order?.cod_amount || 0),
+          delivery_charge: Number(order?.delivery_charge || 0),
+          products: Array.isArray(order?.products) ? order.products : [],
+        })) : []);
       } else {
         showToast("Failed to fetch courier orders.", true);
       }
@@ -366,7 +381,7 @@ export function OrdersView({
   const openSendModal = (order: any) => {
     // Find the original pending event from deferredData or fallback to fields
     // Find the event ID corresponding to orderId
-    const pendingEvent = deferredData?.pendingList?.find((o: any) => o.orderId === order.orderId);
+    const pendingEvent = codVerificationOrders.find((o: any) => o.orderId === order.orderId);
     
     // We need to fetch the full pending event metadata to get name, phone, address if available
     // For now, let's prefill with what we have
@@ -599,7 +614,7 @@ export function OrdersView({
   };
 
   const getStatusBadge = (status: string) => {
-    const s = status.toLowerCase();
+    const s = String(status || 'pending').toLowerCase();
     if (s === 'booking_queued' || s === 'booking_processing') {
       return (
         <span className="inline-flex min-w-[86px] justify-center rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-[11px] font-bold text-sky-700">
@@ -704,6 +719,15 @@ export function OrdersView({
 
   return (
     <div className="space-y-6">
+      {deferredLoadError && (
+        <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs text-amber-800">
+          <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0" />
+          <div>
+            <p className="font-bold">Verification queue could not be loaded</p>
+            <p className="mt-0.5 text-[11px] text-amber-700">{deferredLoadError} Courier settings and shipped orders are still available.</p>
+          </div>
+        </div>
+      )}
       {activeTab === 'shipped' && (
         <div
           className={`fixed right-2 top-32 z-30 md:hidden transition-all duration-200 ${
@@ -758,7 +782,7 @@ export function OrdersView({
           <Package className="w-4 h-4" />
           <span className="sm:hidden">Pending</span>
           <span className="hidden sm:inline">Pending COD Queue</span>
-          <span className="rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] font-black text-slate-600">{deferredData?.pendingCount || 0}</span>
+          <span className="rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] font-black text-slate-600">{deferredData?.deferredPendingCount ?? deferredData?.pendingCount ?? codVerificationOrders.length}</span>
         </button>
         <button
           onClick={() => setActiveTab('shipped')}
@@ -798,12 +822,12 @@ export function OrdersView({
           </div>
 
           <div className="space-y-3 md:hidden">
-            {!deferredData?.pendingList || deferredData.pendingList.length === 0 ? (
+            {codVerificationOrders.length === 0 ? (
               <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center text-slate-400  ">
                 <CheckCircle2 className="mx-auto mb-2 h-8 w-8 text-emerald-400" />
                 <p className="text-xs font-semibold">No pending orders waiting in the verification queue.</p>
               </div>
-            ) : deferredData.pendingList.map((order: any) => {
+            ) : codVerificationOrders.map((order: any) => {
               const isExpanded = expandedOrderId === order.orderId;
               const products: any[] = order.products || [];
               return (
@@ -815,7 +839,7 @@ export function OrdersView({
                         <p className="mt-1 text-sm font-semibold text-slate-800 ">{order.recipientName || 'Customer unavailable'}</p>
                         <p className="mt-0.5 font-mono text-[11px] text-slate-500">{usablePhone(order.recipientPhone) || usablePhone(order.customer) || 'No phone'}</p>
                       </div>
-                      <span className="font-bold text-slate-900 ">BDT {order.amount.toLocaleString()}</span>
+                      <span className="font-bold text-slate-900 ">BDT {Number(order.amount || 0).toLocaleString()}</span>
                     </div>
                     <div className="mt-4 grid grid-cols-2 gap-2 text-[11px]">
                       <div className="rounded-lg bg-slate-50 p-2 ">
@@ -853,7 +877,7 @@ export function OrdersView({
                                   </div>
                                 )}
                                 <p className="mt-1 text-[10px] text-slate-500">
-                                  Qty {p.quantity || 1} · {p.price > 0 ? `BDT ${p.price.toLocaleString()}` : 'Price unavailable'}
+                                  Qty {p.quantity || 1} · {Number(p.price || 0) > 0 ? `BDT ${Number(p.price || 0).toLocaleString()}` : 'Price unavailable'}
                                 </p>
                               </div>
                             );
@@ -886,7 +910,7 @@ export function OrdersView({
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 ">
-                {!deferredData?.pendingList || deferredData.pendingList.length === 0 ? (
+                {codVerificationOrders.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="px-6 py-12 text-center text-slate-400 font-medium ">
                       <CheckCircle2 className="w-8 h-8 mx-auto text-emerald-400 mb-2" />
@@ -894,7 +918,7 @@ export function OrdersView({
                     </td>
                   </tr>
                 ) : (
-                  deferredData.pendingList.map((order: any) => {
+                  codVerificationOrders.map((order: any) => {
                     const isExpanded = expandedOrderId === order.orderId;
                     const products: any[] = order.products || [];
                     return (
@@ -924,7 +948,7 @@ export function OrdersView({
                               )}
                             </div>
                           </td>
-                          <td className="px-6 py-3 font-semibold text-slate-800 ">BDT {order.amount.toLocaleString()}</td>
+                          <td className="px-6 py-3 font-semibold text-slate-800 ">BDT {Number(order.amount || 0).toLocaleString()}</td>
                           <td className="px-6 py-3">
                             {renderRiskGauge(order.fraudScore)}
                           </td>
@@ -1046,7 +1070,7 @@ export function OrdersView({
                                               )}
                                               <div className="mt-1.5 flex items-center gap-3 text-[10px] text-slate-500">
                                                 <span>Qty <strong className="text-slate-700">{p.quantity || 1}</strong></span>
-                                                <span>{p.price > 0 ? `BDT ${p.price.toLocaleString()}` : 'Price unavailable'}</span>
+                                                <span>{Number(p.price || 0) > 0 ? `BDT ${Number(p.price || 0).toLocaleString()}` : 'Price unavailable'}</span>
                                               </div>
                                             </div>
                                           );
@@ -1206,7 +1230,7 @@ export function OrdersView({
                         <span className="mt-0.5 block font-mono text-[10px] text-slate-500">{order.courier_tracking_id || 'No tracking'}</span>
                       </span>
                     </label>
-                    <span className="font-bold text-slate-900 ">BDT {order.cod_amount.toLocaleString()}</span>
+                    <span className="font-bold text-slate-900 ">BDT {Number(order.cod_amount || 0).toLocaleString()}</span>
                   </div>
                   <div className="mt-4 rounded-lg bg-slate-50 p-3 text-xs ">
                     <p className="font-bold text-slate-900 ">{order.recipient_name || 'Customer'}</p>
@@ -1337,7 +1361,7 @@ export function OrdersView({
                       </td>
                       <td className="px-4 py-3 align-top">
                         <div className="flex flex-col text-[11px] leading-tight">
-                          <span className="font-bold text-slate-900">BDT {order.cod_amount.toLocaleString()}</span>
+                          <span className="font-bold text-slate-900">BDT {Number(order.cod_amount || 0).toLocaleString()}</span>
                           {order.delivery_charge > 0 && (
                             <span className="mt-0.5 text-[10px] font-medium text-slate-400">Charge BDT {order.delivery_charge}</span>
                           )}
@@ -1455,7 +1479,7 @@ export function OrdersView({
                           <tr key={i} className="hover:bg-slate-50/50 ">
                             <td className="px-3 py-1.5 font-medium text-slate-700  max-w-[160px] truncate" title={p.name}>{p.name}</td>
                             <td className="px-3 py-1.5 text-center font-bold text-slate-600 ">{p.quantity}</td>
-                            <td className="px-3 py-1.5 text-right font-semibold text-slate-700 ">{p.price > 0 ? `BDT ${p.price.toLocaleString()}` : '-'}</td>
+                              <td className="px-3 py-1.5 text-right font-semibold text-slate-700 ">{Number(p.price || 0) > 0 ? `BDT ${Number(p.price || 0).toLocaleString()}` : '-'}</td>
                           </tr>
                         ))}
                       </tbody>

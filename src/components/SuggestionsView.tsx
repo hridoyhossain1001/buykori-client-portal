@@ -19,7 +19,21 @@ export function SuggestionsView({
   toggleResolveSuggestion,
   dismissSuggestion
 }: SuggestionsViewProps) {
-  const unresolvedSuggestions = suggestions.filter(s => !s.resolved);
+  const uniqueSuggestions = Array.from(
+    suggestions.reduce((map, suggestion) => {
+      const key = [
+        suggestion.platform || 'global',
+        suggestion.title,
+        suggestion.explanation,
+        suggestion.fixAction,
+      ].map(value => String(value || '').trim().toLowerCase()).join('|') || suggestion.id;
+      if (!map.has(key)) {
+        map.set(key, suggestion);
+      }
+      return map;
+    }, new Map<string, Suggestion>()).values()
+  );
+  const unresolvedSuggestions = uniqueSuggestions.filter(s => !s.resolved);
 
   return (
     <div className="space-y-6">
@@ -102,7 +116,7 @@ export function SuggestionsView({
 
         {/* Suggestions cards mapping */}
         <div className="grid grid-cols-1 gap-4">
-          {suggestions.map((s) => (
+          {uniqueSuggestions.map((s) => (
             <div 
               key={s.id} 
               className={`rounded-xl border bg-white  p-5 shadow-sm space-y-4 transition-all ${

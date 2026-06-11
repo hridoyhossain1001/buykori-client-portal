@@ -95,6 +95,7 @@ export interface UserProfile {
   growthFeaturesEnabled?: boolean;
   ownerNotifyWhatsapp?: boolean;
   ownerWhatsappNumber?: string;
+  guideDismissed?: boolean;
 }
 
 export interface Suggestion {

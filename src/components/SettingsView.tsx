@@ -86,6 +86,46 @@ export function SettingsView({
     { value: 'Subscribe', label: 'Subscribe - newsletter or membership signup' },
   ];
   const coreEventRoutes = new Set(['PageView', 'AddToCart', 'InitiateCheckout', 'Purchase']);
+  const settingsTabs = [
+    {
+      id: 'store',
+      label: 'Store Connection',
+      sections: [
+        { id: 'settings-domain', label: 'Domain lock' },
+        { id: 'settings-wordpress', label: 'WooCommerce Sync API' },
+      ],
+    },
+    {
+      id: 'conversions',
+      label: 'Conversions API',
+      sections: [
+        { id: 'settings-platforms', label: 'Tracking destinations' },
+        { id: 'settings-routing', label: 'Event routing' },
+      ],
+    },
+    {
+      id: 'ads',
+      label: 'Ad Accounts',
+      sections: [
+        { id: 'settings-ad-accounts', label: 'Account sync' },
+      ],
+    },
+    {
+      id: 'courier',
+      label: 'Courier Logistics',
+      sections: [
+        { id: 'settings-courier', label: 'Fulfillment APIs' },
+      ],
+    },
+    {
+      id: 'alerts',
+      label: 'Alerts & Notifications',
+      sections: [
+        { id: 'settings-whatsapp', label: 'WhatsApp alerts' },
+      ],
+    },
+  ];
+  const [activeSettingsTab, setActiveSettingsTab] = useState<string>('store');
   const normalizeVersion = (version?: string) => (version || '').replace(/^v/i, '').trim();
   const installedVersion = normalizeVersion(connection.wpVersion);
   const latestVersion = normalizeVersion(pluginReleaseInfo?.version);
@@ -101,6 +141,7 @@ export function SettingsView({
     setSelectedEventRoute('');
     setCustomEventRoute('');
   };
+  const activeSectionIds = settingsTabs.find(tab => tab.id === activeSettingsTab)?.sections.map(section => section.id) || [];
 
   useEffect(() => {
     const handleSectionJump = (event: Event) => {
@@ -108,8 +149,12 @@ export function SettingsView({
       if (detail?.pageId !== 'settings') return;
       const sectionId = detail.sectionId;
       if (!sectionId) return;
+      const targetTab = settingsTabs.find(tab => tab.sections.some(section => section.id === sectionId));
+      if (targetTab) setActiveSettingsTab(targetTab.id);
       window.requestAnimationFrame(() => {
-        document.getElementById(sectionId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        window.setTimeout(() => {
+          document.getElementById(sectionId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 0);
       });
     };
 
@@ -384,7 +429,33 @@ export function SettingsView({
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-3 lg:gap-8">
+      <section className="rounded-xl border border-slate-200 bg-white p-2 shadow-sm">
+        <div className="flex gap-1 overflow-x-auto">
+          {settingsTabs.map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setActiveSettingsTab(tab.id)}
+              className={`min-w-fit rounded-lg px-3 py-2 text-xs font-bold transition-colors ${
+                activeSettingsTab === tab.id
+                  ? 'bg-indigo-600 text-white shadow-sm'
+                  : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      </section>
+      <div
+        className="settings-tab-view grid grid-cols-1 gap-5 lg:gap-6"
+        data-visible-sections={activeSectionIds.join(' ')}
+      >
+      <style>{`
+        .settings-tab-view section[id^="settings-"] { display: none; }
+        ${activeSectionIds.map(id => `.settings-tab-view #${id} { display: block; }`).join('\n')}
+        .settings-tab-view > div { display: contents; }
+      `}</style>
       
       {/* Fixed controls sidebar settings tabs */}
       <div className="space-y-5 lg:col-span-2 lg:space-y-6">
@@ -1170,8 +1241,8 @@ export function SettingsView({
         {/* WordPress token health status */}
         <section id="settings-wordpress" aria-labelledby="settings-wordpress-title" className="scroll-mt-28 rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-4  ">
           <div>
-            <h2 id="settings-wordpress-title" className="font-bold text-slate-800 text-sm uppercase tracking-wide ">WordPress plugin bridge</h2>
-            <p className="text-xs text-slate-400 ">Connection used by your WooCommerce tracking plugin.</p>
+            <h2 id="settings-wordpress-title" className="font-bold text-slate-800 text-sm uppercase tracking-wide ">WordPress Plugin Connection</h2>
+            <p className="text-xs text-slate-400 ">Your WooCommerce plugin uses this connection to send tracking data.</p>
           </div>
 
           <div className="p-4 rounded-lg bg-slate-50 border border-slate-200   space-y-3 font-mono text-xs text-slate-700 ">
@@ -1263,6 +1334,17 @@ export function SettingsView({
               </label>
             </div>
 
+            <div className="rounded-lg border border-sky-200 bg-sky-50 p-3 text-xs text-sky-950">
+              <p className="font-bold">For smooth WhatsApp notifications</p>
+              <ol className="mt-2 list-decimal space-y-1 pl-4 text-[11px] leading-relaxed text-sky-900">
+                <li>Save the Buykori WhatsApp number that sends your notifications to your contacts using any name.</li>
+                <li>Open that contact in WhatsApp and send one message such as "Hi", "Hello", or "Start".</li>
+              </ol>
+              <p className="mt-2 text-[10px] leading-relaxed text-sky-700">
+                These steps help WhatsApp recognize the conversation and improve reliable notification delivery.
+              </p>
+            </div>
+
             {profNotifyWhatsapp && (
               <div className="animate-fadeIn transition-all space-y-3">
                 <div>
@@ -1274,6 +1356,16 @@ export function SettingsView({
                     onChange={(e) => setProfWhatsappNumber(e.target.value)}
                     className="w-full p-2 text-xs bg-slate-50 border border-slate-200 rounded text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500 font-mono"
                   />
+                </div>
+                <div className="hidden rounded-lg border border-sky-200 bg-sky-50 p-3 text-xs text-sky-950">
+                  <p className="font-bold">For smooth WhatsApp notifications</p>
+                  <ol className="mt-2 list-decimal space-y-1 pl-4 text-[11px] leading-relaxed text-sky-900">
+                    <li>Save the Buykori WhatsApp number that sends your notifications to your contacts using any name.</li>
+                    <li>Open that contact in WhatsApp and send one message such as “Hi”, “Hello”, or “Start”.</li>
+                  </ol>
+                  <p className="mt-2 text-[10px] leading-relaxed text-sky-700">
+                    These steps help WhatsApp recognize the conversation and improve reliable notification delivery.
+                  </p>
                 </div>
               </div>
             )}
@@ -1287,34 +1379,6 @@ export function SettingsView({
               >
                 {profUpdating ? 'Saving...' : 'Save WhatsApp Settings'}
               </button>
-            </div>
-          </div>
-        </section>
-
-        {/* Threshold trigger alerts setting */}
-        <section id="settings-alerts" aria-labelledby="settings-alerts-title" className="scroll-mt-28 rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-4  ">
-          <div>
-            <h2 id="settings-alerts-title" className="font-bold text-slate-800 text-sm uppercase tracking-wide ">Threshold warnings</h2>
-            <p className="text-xs text-slate-400  leading-normal">Send email alerts when your monthly tracking usage gets high.</p>
-          </div>
-
-          <div className="space-y-4">
-            <div>
-              <label className="block text-[10px] font-bold text-slate-500  uppercase tracking-wider mb-2">Threshold Limits Alert</label>
-              <div className="space-y-2">
-                <label className="flex items-center gap-2 text-xs  cursor-pointer">
-                  <input type="checkbox" defaultChecked className="rounded border-slate-300 text-indigo-600 cursor-pointer" />
-                  <span>Notify at 80% quota consumed</span>
-                </label>
-                <label className="flex items-center gap-2 text-xs  cursor-pointer">
-                  <input type="checkbox" defaultChecked className="rounded border-slate-300 text-indigo-600 cursor-pointer" />
-                  <span>Notify at 95% quota consumed</span>
-                </label>
-                <label className="flex items-center gap-2 text-xs  cursor-pointer">
-                  <input type="checkbox" defaultChecked className="rounded border-slate-300 text-indigo-600 cursor-pointer" />
-                  <span>Alert me on tracking errors</span>
-                </label>
-              </div>
             </div>
           </div>
         </section>

@@ -31,11 +31,11 @@ interface HeaderProps {
 const pageSuggestions = [
   { id: 'dashboard', name: 'Dashboard / Overview', keywords: ['dashboard', 'home', 'overview', 'main', 'quota'] },
   { id: 'analytics', name: 'Insights & Analytics', keywords: ['insights', 'analytics', 'chart', 'trend', 'volume', 'quality'] },
-  { id: 'pending-purchases', name: 'COD Verification Queue', keywords: ['order verification', 'cod protection', 'verify', 'pending', 'skip', 'hold'] },
+  { id: 'pending-purchases', name: "Order's Verification( COD)", keywords: ['order verification', 'cod protection', 'verify', 'pending', 'skip', 'hold'] },
   { id: 'orders', name: 'Courier Dispatch Logs', keywords: ['orders', 'delivery', 'courier', 'pathao', 'steadfast', 'redx'] },
-  { id: 'incomplete-checkouts', name: 'Abandoned Checkouts', keywords: ['incomplete checkouts', 'abandoned', 'recovery', 'checkout', 'phone'] },
-  { id: 'campaign-builder', name: 'UTM & Sandbox Link Builder', keywords: ['campaigns', 'builder', 'url', 'utm', 'test'] },
-  { id: 'suggestions', name: 'Setup Diagnostics & Health', keywords: ['suggestions', 'diagnostics', 'health', 'issues'] },
+  { id: 'incomplete-checkouts', name: "Incomplete Order's", keywords: ['incomplete orders', 'abandoned', 'recovery', 'checkout', 'phone'] },
+  { id: 'campaign-builder', name: 'Campaign Tools', keywords: ['campaigns', 'builder', 'url', 'utm', 'sandbox', 'test'] },
+  { id: 'suggestions', name: 'Setup Health', keywords: ['setup', 'suggestions', 'diagnostics', 'health', 'issues'] },
   { id: 'setup-guide', name: 'Setup Guide / Docs', keywords: ['setup guide', 'docs', 'faq', 'wordpress', 'installation'] },
   { id: 'event-logs', name: 'Event Logs', keywords: ['event history', 'logs', 'success', 'retry', 'event key'] },
   { id: 'api-logs', name: 'API Logs', keywords: ['api logs', 'endpoint', 'responses', 'retries'] },
@@ -72,7 +72,9 @@ export function Header({
     };
   }, []);
 
-  const unresolvedSuggestions = suggestions.filter(s => !s.resolved);
+  const unresolvedSuggestions = Array.from(
+    new Map(suggestions.filter(s => !s.resolved).map(s => [s.id, s])).values()
+  );
 
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const searchContainerRef = useRef<HTMLDivElement>(null);
@@ -323,15 +325,17 @@ export function Header({
               )}
             </div>
             
-            <button
-              type="button"
-              onClick={onOpenGuide}
-              className="hidden rounded-full p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-900 sm:block md:p-2"
-              title="Open guide"
-              aria-label="Open product guide"
-            >
-              <HelpCircle className="w-4 h-4" />
-            </button>
+            {onOpenGuide && (
+              <button
+                type="button"
+                onClick={onOpenGuide}
+                className="hidden rounded-full p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-900 sm:block md:p-2"
+                title="Open guide"
+                aria-label="Open product guide"
+              >
+                <HelpCircle className="w-4 h-4" />
+              </button>
+            )}
           </div>
         </div>
 
