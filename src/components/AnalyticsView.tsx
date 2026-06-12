@@ -1204,7 +1204,7 @@ export function AnalyticsView({
       </div>
 
       {/* Campaign URL Builder widget */}
-      <div
+      {false && <div
         id="analytics-url-builder"
         aria-hidden={activeInsightTab !== 'sales'}
         className={`${activeInsightTab === 'sales' ? 'flex' : 'hidden'} scroll-mt-24 flex-col space-y-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm md:p-6`}
@@ -1345,7 +1345,7 @@ export function AnalyticsView({
           </div>
 
         </div>
-      </div>
+      </div>}
 
     </div>
   );

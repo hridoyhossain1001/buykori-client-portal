@@ -135,6 +135,37 @@ export function IncompleteCheckoutsView({ data, onStatusChange, onCreateOrder, o
     });
   };
 
+  const updateOrderItemAttribute = (itemIndex: number, oldKey: string, nextKey: string, nextValue: string) => {
+    setOrderDraft(prev => {
+      if (!prev) return prev;
+      const nextItems = prev.items.map((item, index) => {
+        if (index !== itemIndex) return item;
+        const attributes = { ...item.attributes };
+        delete attributes[oldKey];
+        if (nextKey.trim()) attributes[nextKey] = nextValue;
+        return { ...item, attributes };
+      });
+      return { ...prev, items: nextItems };
+    });
+  };
+
+  const addOrderItemAttribute = (itemIndex: number) => {
+    const item = orderDraft?.items[itemIndex];
+    if (!item) return;
+    let key = 'Attribute';
+    let suffix = 2;
+    while (Object.prototype.hasOwnProperty.call(item.attributes, key)) key = `Attribute ${suffix++}`;
+    updateOrderItem(itemIndex, { attributes: { ...item.attributes, [key]: '' } });
+  };
+
+  const removeOrderItemAttribute = (itemIndex: number, key: string) => {
+    const item = orderDraft?.items[itemIndex];
+    if (!item) return;
+    const attributes = { ...item.attributes };
+    delete attributes[key];
+    updateOrderItem(itemIndex, { attributes });
+  };
+
   const addOrderItem = () => {
     setOrderDraft(prev => prev ? {
       ...prev,
@@ -409,10 +440,23 @@ export function IncompleteCheckoutsView({ data, onStatusChange, onCreateOrder, o
                         <Trash2 className="h-4 w-4" />
                       </button>
                       <input value={item.category} onChange={event => updateOrderItem(index, { category: event.target.value })} placeholder="Category" className="md:col-span-2 rounded-lg border border-slate-200 px-3 py-2 text-xs outline-none focus:border-indigo-400" />
-                      <input value={Object.entries(item.attributes || {}).map(([key, value]) => `${key}: ${value}`).join(', ')} onChange={event => {
-                        const attrs = Object.fromEntries(event.target.value.split(',').map(part => part.split(':').map(value => value.trim())).filter(parts => parts[0] && parts[1]) as [string, string][]);
-                        updateOrderItem(index, { attributes: attrs });
-                      }} placeholder="Attributes, e.g. Color: Black, Size: 36" className="md:col-span-2 rounded-lg border border-slate-200 px-3 py-2 text-xs outline-none focus:border-indigo-400" />
+                      <div className="space-y-2 md:col-span-4">
+                        <div className="flex items-center justify-between">
+                          <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Attributes</p>
+                          <button type="button" onClick={() => addOrderItemAttribute(index)} className="inline-flex items-center gap-1 rounded-md border border-indigo-200 px-2 py-1 text-[10px] font-bold text-indigo-700 hover:bg-indigo-50">
+                            <Plus className="h-3 w-3" /> Add attribute
+                          </button>
+                        </div>
+                        {Object.entries(item.attributes || {}).map(([key, value]) => (
+                          <div key={key} className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.5fr)_auto] gap-2">
+                            <input value={key} onChange={event => updateOrderItemAttribute(index, key, event.target.value, String(value ?? ''))} placeholder="Key, e.g. Color" aria-label="Attribute key" className="rounded-lg border border-slate-200 px-3 py-2 text-xs outline-none focus:border-indigo-400" />
+                            <input value={String(value ?? '')} onChange={event => updateOrderItemAttribute(index, key, key, event.target.value)} placeholder="Value, e.g. Black, Blue" aria-label="Attribute value" className="rounded-lg border border-slate-200 px-3 py-2 text-xs outline-none focus:border-indigo-400" />
+                            <button type="button" onClick={() => removeOrderItemAttribute(index, key)} className="rounded-lg border border-rose-200 p-2 text-rose-600 hover:bg-rose-50" title="Remove attribute">
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   ))}
                 </div>

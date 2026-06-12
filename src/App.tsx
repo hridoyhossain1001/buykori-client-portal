@@ -97,7 +97,6 @@ class PageErrorBoundary extends React.Component<
   }
 }
 const AnalyticsView = lazyWithReload(() => import('./components/AnalyticsView').then(m => ({ default: m.AnalyticsView })));
-const CodProtectionView = lazyWithReload(() => import('./components/CodProtectionView').then(m => ({ default: m.CodProtectionView })));
 const EventLogsView = lazyWithReload(() => import('./components/EventLogsView').then(m => ({ default: m.EventLogsView })));
 const ApiLogsView = lazyWithReload(() => import('./components/ApiLogsView').then(m => ({ default: m.ApiLogsView })));
 const SettingsView = lazyWithReload(() => import('./components/SettingsView').then(m => ({ default: m.SettingsView })));
@@ -475,7 +474,7 @@ export default function App() {
   };
 
   const loadActivePageData = async (page: string) => {
-    if (page === 'pending-purchases' || page === 'orders') {
+    if (page === 'orders') {
       await fetchDeferred();
     } else if (page === 'incomplete-checkouts') {
       await fetchIncompleteCheckouts();
@@ -778,9 +777,8 @@ export default function App() {
   };
 
   useEffect(() => {
-    if (activePage === 'pending-purchases') {
+    if (activePage === 'orders') {
       markSidebarSeen('order_verification');
-    } else if (activePage === 'orders') {
       markSidebarSeen('orders_delivery');
     }
     if (activePage !== 'dashboard') {
@@ -803,7 +801,7 @@ export default function App() {
 
   // Periodic polling for Incomplete Checkouts and COD holds
   useEffect(() => {
-    if (activePage !== 'incomplete-checkouts' && activePage !== 'pending-purchases' && activePage !== 'orders') {
+    if (activePage !== 'incomplete-checkouts' && activePage !== 'orders') {
       return;
     }
 
@@ -814,7 +812,7 @@ export default function App() {
         fetchIncompleteCheckouts().catch(err => {
           console.error('Failed to auto-refresh incomplete checkouts', err);
         });
-      } else if (activePage === 'pending-purchases' || activePage === 'orders') {
+      } else if (activePage === 'orders') {
         fetchDeferred().catch(err => {
           console.error('Failed to auto-refresh COD holds/orders', err);
         });
@@ -1410,9 +1408,8 @@ export default function App() {
   const pageTitles: Record<string, string> = {
     dashboard: 'Dashboard',
     analytics: 'Insights',
-    'pending-purchases': "Order's Verification( COD)",
-    orders: 'Orders & Delivery',
-    'incomplete-checkouts': "Incomplete Order's",
+    orders: 'COD & Shipping',
+    'incomplete-checkouts': 'Incomplete Orders',
     'campaign-builder': 'Campaign Tools',
     suggestions: 'Setup Health',
     'event-logs': 'Event Logs',
@@ -1573,16 +1570,22 @@ export default function App() {
               />
             )}
 
-            {/* PAGE 2: COD PROTECTION */}
-            {activePage === 'pending-purchases' && (
-              <CodProtectionView 
-                deferredData={deferredData ?? { pendingList: [], pendingCount: 0, pendingValue: '৳0', confirmedToday: 0, oldestPending: 'N/A' }}
+            {/* PAGE 11: ORDERS & COURIER — only when Order Management is enabled */}
+            {activePage === 'orders' && (
+              <OrdersView
+                deferredData={deferredData || { pendingList: [] }}
+                deferredLoadError={deferredLoadError}
+                fetchDeferred={fetchDeferred}
+                handleConfirmOrder={handleConfirmOrder}
+                handleCancelOrder={handleCancelOrder}
+                showToast={showToast}
+                apiKey={connection?.api_key}
+                storeName={profile?.name}
+                storeEmail={profile?.email}
                 selectedOrderIds={selectedOrderIds}
                 setSelectedOrderIds={setSelectedOrderIds}
                 handleBulkConfirm={handleBulkConfirm}
                 handleBulkCancel={handleBulkCancel}
-                handleConfirmOrder={handleConfirmOrder}
-                handleCancelOrder={handleCancelOrder}
                 deferredEnabled={deferredEnabled}
                 setDeferredEnabled={setDeferredEnabled}
                 autoConfirmDays={autoConfirmDays}
@@ -1596,21 +1599,6 @@ export default function App() {
                 savingOrderMgmt={savingOrderMgmt}
                 handleSaveOrderManagement={handleSaveOrderManagement}
                 growthFeaturesEnabled={profile?.growthFeaturesEnabled}
-              />
-            )}
-
-            {/* PAGE 11: ORDERS & COURIER — only when Order Management is enabled */}
-            {activePage === 'orders' && (
-              <OrdersView 
-                deferredData={deferredData || { pendingList: [] }}
-                deferredLoadError={deferredLoadError}
-                fetchDeferred={fetchDeferred}
-                handleConfirmOrder={handleConfirmOrder}
-                handleCancelOrder={handleCancelOrder}
-                showToast={showToast}
-                apiKey={connection?.api_key}
-                storeName={profile?.name}
-                storeEmail={profile?.email}
               />
             )}
 

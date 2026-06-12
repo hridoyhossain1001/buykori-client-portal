@@ -32,7 +32,7 @@ async function startServer() {
   let deferredEnabled = false;
   let autoConfirmDays = 3;
   let autoConfirmStatus = "completed";
-  let pendingOrders = [
+  let pendingOrders: any[] = [
     {
       orderId: "WC-9283",
       amount: 2490,
@@ -84,7 +84,7 @@ async function startServer() {
     steadfast_secret_key: "",
     redx_access_token: "",
   };
-  let incompleteCheckouts = [
+  let incompleteCheckouts: any[] = [
     {
       id: 301,
       customer_name: "Rafi Ahmed",

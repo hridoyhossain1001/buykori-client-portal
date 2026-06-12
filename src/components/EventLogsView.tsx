@@ -10,6 +10,7 @@ import {
   Loader2
 } from 'lucide-react';
 import { CAPIEvent, OutboxItem } from '../types';
+import { JsonViewer } from './common/JsonViewer';
 
 // Helper function to safely escape regular expressions
 function escapeRegExp(str: string): string {
@@ -337,11 +338,11 @@ export function EventLogsView({
                     <div className="mt-4 space-y-3 border-t border-slate-100 pt-3 ">
                       <div className="rounded-lg bg-slate-900 p-3 font-mono text-[10px] text-slate-200">
                         <p className="mb-2 font-bold uppercase tracking-wider text-indigo-400">Raw Event Data</p>
-                        <pre className="max-h-56 overflow-auto whitespace-pre-wrap break-all">{JSON.stringify(e.payload, null, 2)}</pre>
+                        <JsonViewer value={e.payload} search={searchFilter} className="max-h-56" />
                       </div>
                       <div className="rounded-lg bg-slate-900 p-3 font-mono text-[10px] text-slate-200">
                         <p className="mb-2 font-bold uppercase tracking-wider text-emerald-400">Platform Response</p>
-                        <pre className="max-h-40 overflow-auto whitespace-pre-wrap break-all">{JSON.stringify(e.responseBody, null, 2)}</pre>
+                        <JsonViewer value={e.responseBody} search={searchFilter} className="max-h-40" />
                       </div>
                     </div>
                   )}
@@ -435,19 +436,19 @@ export function EventLogsView({
                                     </button>
                                   </div>
                                   <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-wider mb-2">Raw Event Data</p>
-                                  <pre className="whitespace-pre-wrap break-all">{highlightText(JSON.stringify(e.payload, null, 2), searchFilter)}</pre>
+                                  <JsonViewer value={e.payload} search={searchFilter} className="max-h-80" />
                                 </div>
 
                                 {/* Headers / Response */}
                                 <div className="space-y-4">
                                   <div className="bg-slate-900 leading-relaxed text-slate-300 text-[11px] font-mono p-4 rounded-lg overflow-auto max-h-40 relative group">
                                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Request Headers</p>
-                                    <pre className="whitespace-pre-wrap break-all">{highlightText(JSON.stringify(e.headers, null, 2), searchFilter)}</pre>
+                                    <JsonViewer value={e.headers} search={searchFilter} className="max-h-64" />
                                   </div>
 
                                   <div className="bg-slate-900 leading-relaxed text-slate-300 text-[11px] font-mono p-4 rounded-lg overflow-auto max-h-40 relative group">
                                     <p className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider mb-2">Platform Response</p>
-                                    <pre className="whitespace-pre-wrap break-all">{highlightText(JSON.stringify(e.responseBody, null, 2), searchFilter)}</pre>
+                                    <JsonViewer value={e.responseBody} search={searchFilter} className="max-h-64" />
                                   </div>
                                 </div>
 

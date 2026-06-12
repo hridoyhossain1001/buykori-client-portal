@@ -13,7 +13,6 @@ import {
   LogOut,
   ChevronLeft,
   ChevronRight,
-  ShieldCheck,
   TrendingUp,
   Terminal,
   X,
@@ -89,6 +88,7 @@ export function Sidebar({
   onCreateStore,
 }: SidebarProps) {
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [showLockedFeature, setShowLockedFeature] = useState(false);
   const [storeSwitcherOpen, setStoreSwitcherOpen] = useState(false);
   const [switchingStore, setSwitchingStore] = useState<number | null>(null);
   const [openSubmenus, setOpenSubmenus] = useState<Record<string, boolean>>({});
@@ -178,21 +178,14 @@ export function Sidebar({
       label: 'YOUR ORDERS',
       items: [
         {
-          id: 'pending-purchases',
-          name: "Order's Verification( COD)",
-          icon: ShieldCheck,
-          subtitle: 'Hold COD orders until confirmed',
-          count: orderVerificationCount,
-        },
-        {
           id: 'orders',
-          name: 'Courier Shipping',
+          name: 'COD & Shipping',
           icon: Truck,
-          count: deliveryBadgeCount,
+          count: orderVerificationCount + deliveryBadgeCount,
         },
         {
           id: 'incomplete-checkouts',
-          name: "Incomplete Order's",
+          name: 'Incomplete Orders',
           icon: PhoneCall,
           subtitle: 'Recover abandoned checkouts with a phone number',
           count: incompleteCheckoutCount,
@@ -397,6 +390,11 @@ export function Sidebar({
                         aria-expanded={hasSubmenu && !collapsed ? submenuOpen : undefined}
                         data-guide={`nav-${item.id}`}
                         onClick={() => {
+                          if (item.locked) {
+                            setShowLockedFeature(true);
+                            setMobileOpen(false);
+                            return;
+                          }
                           setActivePage(item.id);
                           setMobileOpen(false);
                         }}
@@ -617,6 +615,16 @@ export function Sidebar({
               Log Out
             </button>
           </div>
+        </div>
+      </div>
+    )}
+    {showLockedFeature && (
+      <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-900/40 px-4 backdrop-blur-sm">
+        <div className="w-full max-w-sm rounded-xl border border-slate-200 bg-white p-5 shadow-2xl">
+          <LockKeyhole className="h-6 w-6 text-amber-500" />
+          <h3 className="mt-3 text-sm font-bold text-slate-900">Growth feature locked</h3>
+          <p className="mt-1 text-xs leading-relaxed text-slate-500">Incomplete Orders is available with a Growth trial or paid plan.</p>
+          <button type="button" onClick={() => setShowLockedFeature(false)} className="mt-5 w-full rounded-lg bg-indigo-600 px-3 py-2 text-xs font-bold text-white hover:bg-indigo-700">Got it</button>
         </div>
       </div>
     )}

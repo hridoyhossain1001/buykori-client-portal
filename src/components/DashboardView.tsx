@@ -406,8 +406,8 @@ export function DashboardView({
           <div className="mt-3 rounded-lg border border-emerald-100 bg-emerald-50/60 p-3">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <p className="text-[10px] font-black uppercase tracking-wide text-emerald-700">Server-Side Recovery</p>
-                <p className="mt-1 text-xs text-emerald-900">Deduplicated browser gaps covered by server events.</p>
+                <p className="text-[10px] font-black uppercase tracking-wide text-emerald-700">Browser / Server Coverage Gap</p>
+                <p className="mt-1 text-xs text-emerald-900">Server events that did not have a matching browser event ID.</p>
               </div>
               <span className="font-mono text-lg font-black text-emerald-700">{serverRecoveryRate}%</span>
             </div>
@@ -417,7 +417,7 @@ export function DashboardView({
                 <span className="font-mono text-slate-800">{browserEventCount.toLocaleString()}</span>
               </div>
               <div className="rounded-md bg-white px-2 py-1.5 ring-1 ring-emerald-100">
-                <span className="block text-slate-400">Recovered</span>
+                <span className="block text-slate-400">Server-only</span>
                 <span className="font-mono text-slate-800">{recoveredEventCount.toLocaleString()} / {serverEventCount.toLocaleString()}</span>
               </div>
             </div>

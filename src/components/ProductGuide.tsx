@@ -83,8 +83,8 @@ const guideSteps: GuideStep[] = [
   },
   {
     id: 'orders',
-    selector: '[data-guide="nav-pending-purchases"]',
-    page: 'pending-purchases',
+    selector: '[data-guide="nav-orders"]',
+    page: 'orders',
     text: {
       bn: {
         title: 'Order controls',
