@@ -141,8 +141,10 @@ export function IncompleteCheckoutsView({ data, onStatusChange, onCreateOrder, o
       const nextItems = prev.items.map((item, index) => {
         if (index !== itemIndex) return item;
         const attributes = { ...item.attributes };
+        const cleanNextKey = nextKey.trim();
+        if (cleanNextKey !== oldKey && Object.prototype.hasOwnProperty.call(attributes, cleanNextKey)) return item;
         delete attributes[oldKey];
-        if (nextKey.trim()) attributes[nextKey] = nextValue;
+        if (cleanNextKey) attributes[cleanNextKey] = nextValue;
         return { ...item, attributes };
       });
       return { ...prev, items: nextItems };
@@ -189,7 +191,18 @@ export function IncompleteCheckoutsView({ data, onStatusChange, onCreateOrder, o
     }
     setCreatingOrder(true);
     try {
-      const ok = await onCreateOrder(orderLead.id, orderDraft);
+      const payload = {
+        ...orderDraft,
+        items: orderDraft.items.map(item => ({
+          ...item,
+          attributes: Object.fromEntries(
+            Object.entries(item.attributes)
+              .map(([key, value]) => [key.trim(), String(value ?? '').trim()])
+              .filter(([key, value]) => key && value)
+          ),
+        })),
+      };
+      const ok = await onCreateOrder(orderLead.id, payload);
       if (ok) {
         setOrderLead(null);
         setOrderDraft(null);

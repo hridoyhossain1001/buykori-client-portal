@@ -1579,7 +1579,6 @@ export default function App() {
                 handleConfirmOrder={handleConfirmOrder}
                 handleCancelOrder={handleCancelOrder}
                 showToast={showToast}
-                apiKey={connection?.api_key}
                 storeName={profile?.name}
                 storeEmail={profile?.email}
                 selectedOrderIds={selectedOrderIds}

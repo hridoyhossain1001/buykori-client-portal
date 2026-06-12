@@ -18,10 +18,8 @@ import {
   MapPin,
   DollarSign,
   Wifi,
-  Copy,
   ChevronDown,
   ChevronUp,
-  Info,
   Printer,
   Zap
 } from 'lucide-react';
@@ -71,7 +69,6 @@ interface OrdersViewProps {
   handleConfirmOrder: (orderId: string) => Promise<void>;
   handleCancelOrder: (orderId: string) => Promise<void>;
   showToast: (msg: string, isErr?: boolean) => void;
-  apiKey?: string; // Client-à¦à¦° api_key - webhook URL à¦¤à§ˆà¦°à¦¿à¦¤à§‡ à¦¬à§à¦¯à¦¬à¦¹à¦¾à¦° à¦¹à¦¯à¦¼
   storeName?: string;
   storeEmail?: string;
   selectedOrderIds: string[];
@@ -100,7 +97,6 @@ export function OrdersView({
   handleConfirmOrder,
   handleCancelOrder,
   showToast,
-  apiKey,
   storeName,
   storeEmail,
   selectedOrderIds,
@@ -125,25 +121,7 @@ export function OrdersView({
   const [shippedStatsOpen, setShippedStatsOpen] = useState(false);
   const [shippedStatsVisible, setShippedStatsVisible] = useState(true);
   const shippedStatsLastYRef = useRef(0);
-  const [webhookGuideExpanded, setWebhookGuideExpanded] = useState<Record<string, boolean>>({});
-  const [copiedWebhookUrl, setCopiedWebhookUrl] = useState<string | null>(null);
 
-  // Webhook URLs
-  const PATHAO_WEBHOOK_URL = `https://api.buykori.app/api/v1/webhook/pathao`;
-  const STEADFAST_WEBHOOK_URL = `https://api.buykori.app/api/v1/webhook/steadfast`;
-  const REDX_WEBHOOK_URL = `https://api.buykori.app/api/v1/webhook/redx`;
-  const WEBHOOK_SECRET = apiKey ? apiKey.slice(0, 32) : ''; // api_key-à¦à¦° à¦ªà§à¦°à¦¥à¦® 32 char
-
-  const handleCopyWebhook = (url: string, label: string) => {
-    navigator.clipboard.writeText(url);
-    setCopiedWebhookUrl(label);
-    setTimeout(() => setCopiedWebhookUrl(null), 2500);
-    showToast('Webhook URL copied to clipboard!', false);
-  };
-
-  const toggleWebhookGuide = (provider: string) => {
-    setWebhookGuideExpanded(prev => ({ ...prev, [provider]: !prev[provider] }));
-  };
   const [courierOrders, setCourierOrders] = useState<CourierOrder[]>([]);
   const [courierSettings, setCourierSettings] = useState<CourierSettings | null>(null);
   const [loadingOrders, setLoadingOrders] = useState<boolean>(false);
@@ -998,7 +976,7 @@ export function OrdersView({
               <thead className="bg-slate-50 text-[10px] font-bold uppercase tracking-wider text-slate-500  ">
                 <tr>
                   <th className="w-10 px-3 py-3">
-                    <input type="checkbox" checked={codVerificationOrders.length > 0 && selectedOrderIds.length === codVerificationOrders.length} onChange={event => setSelectedOrderIds(event.target.checked ? codVerificationOrders.map((order: any) => order.orderId) : [])} aria-label="Select all pending COD orders" className="accent-indigo-600" />
+                    <input type="checkbox" checked={codVerificationOrders.length > 0 && codVerificationOrders.every((order: any) => selectedOrderIds.includes(order.orderId))} onChange={event => setSelectedOrderIds(event.target.checked ? codVerificationOrders.map((order: any) => order.orderId) : [])} aria-label="Select all pending COD orders" className="accent-indigo-600" />
                   </th>
                   <th className="px-6 py-3">Order ID</th>
                   <th className="px-6 py-3">Customer Info</th>
