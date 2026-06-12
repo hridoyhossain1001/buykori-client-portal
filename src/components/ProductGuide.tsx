@@ -82,17 +82,17 @@ const guideSteps: GuideStep[] = [
     },
   },
   {
-    id: 'orders',
-    selector: '[data-guide="nav-orders"]',
-    page: 'orders',
+    id: 'cod-protection',
+    selector: '[data-guide="nav-pending-purchases"]',
+    page: 'pending-purchases',
     text: {
       bn: {
         title: 'Order controls',
         body: 'COD order hold, confirm, cancel, আর courier workflow এখান থেকে control করবেন।',
       },
       en: {
-        title: 'Order controls',
-        body: 'Control COD holds, confirms, cancels, and courier workflow from here.',
+        title: 'COD Protection',
+        body: 'Verify, skip, and configure protected COD Purchase events from here.',
       },
     },
   },

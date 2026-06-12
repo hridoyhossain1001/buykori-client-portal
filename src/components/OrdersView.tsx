@@ -20,8 +20,7 @@ import {
   Wifi,
   ChevronDown,
   ChevronUp,
-  Printer,
-  Zap
+  Printer
 } from 'lucide-react';
 import { CourierOrder, CourierSettings } from '../types';
 import { CourierLabelModal } from './CourierLabelModal';
@@ -66,56 +65,18 @@ interface OrdersViewProps {
   deferredData: any;
   deferredLoadError?: string | null;
   fetchDeferred: () => Promise<void>;
-  handleConfirmOrder: (orderId: string) => Promise<void>;
-  handleCancelOrder: (orderId: string) => Promise<void>;
   showToast: (msg: string, isErr?: boolean) => void;
   storeName?: string;
   storeEmail?: string;
-  selectedOrderIds: string[];
-  setSelectedOrderIds: React.Dispatch<React.SetStateAction<string[]>>;
-  handleBulkConfirm: () => Promise<void>;
-  handleBulkCancel: () => Promise<void>;
-  deferredEnabled: boolean;
-  setDeferredEnabled: (enabled: boolean) => void;
-  autoConfirmDays: number;
-  setAutoConfirmDays: (days: number) => void;
-  autoConfirmStatus: string;
-  setAutoConfirmStatus: (status: string) => void;
-  savingDeferredSettings: boolean;
-  handleSaveDeferredSettings: () => Promise<void>;
-  orderManagementDraftEnabled: boolean;
-  setOrderManagementDraftEnabled: (enabled: boolean) => void;
-  savingOrderMgmt: boolean;
-  handleSaveOrderManagement: () => Promise<void>;
-  growthFeaturesEnabled?: boolean;
 }
 
 export function OrdersView({
   deferredData,
   deferredLoadError,
   fetchDeferred,
-  handleConfirmOrder,
-  handleCancelOrder,
   showToast,
   storeName,
   storeEmail,
-  selectedOrderIds,
-  setSelectedOrderIds,
-  handleBulkConfirm,
-  handleBulkCancel,
-  deferredEnabled,
-  setDeferredEnabled,
-  autoConfirmDays,
-  setAutoConfirmDays,
-  autoConfirmStatus,
-  setAutoConfirmStatus,
-  savingDeferredSettings,
-  handleSaveDeferredSettings,
-  orderManagementDraftEnabled,
-  setOrderManagementDraftEnabled,
-  savingOrderMgmt,
-  handleSaveOrderManagement,
-  growthFeaturesEnabled = false,
 }: OrdersViewProps) {
   const [activeTab, setActiveTab] = useState<'pending' | 'shipped'>('pending');
   const [shippedStatsOpen, setShippedStatsOpen] = useState(false);
@@ -130,8 +91,7 @@ export function OrdersView({
   const [orderToCancel, setOrderToCancel] = useState<CourierOrder | null>(null);
   const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
   const toggleExpand = (id: string) => setExpandedOrderId(prev => prev === id ? null : id);
-  const codVerificationOrders = (deferredData?.deferredPendingList || deferredData?.pendingList || [])
-    .filter((order: any) => !order?.operationsOnly);
+  const codVerificationOrders = deferredData?.operationsPendingList || deferredData?.pendingList || [];
 
   useEffect(() => {
     const handleSectionJump = (event: Event) => {
@@ -781,57 +741,6 @@ export function OrdersView({
         </div>
       )}
       
-      <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.35fr)]">
-          <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2">
-                <Truck className="h-4 w-4 text-indigo-600" />
-                <div>
-                  <p className="text-xs font-bold text-slate-900">Courier workflow</p>
-                  <p className="text-[10px] text-slate-500">Order booking and delivery tracking.</p>
-                </div>
-              </div>
-              <input type="checkbox" checked={orderManagementDraftEnabled} disabled={!growthFeaturesEnabled} onChange={event => setOrderManagementDraftEnabled(event.target.checked)} aria-label="Toggle courier workflow" className="h-4 w-4 accent-indigo-600" />
-            </div>
-            <button type="button" onClick={handleSaveOrderManagement} disabled={savingOrderMgmt || !growthFeaturesEnabled} className="mt-3 w-full rounded-lg bg-indigo-600 px-3 py-2 text-[10px] font-bold text-white hover:bg-indigo-700 disabled:opacity-50">
-              {savingOrderMgmt ? 'Saving...' : 'Save courier settings'}
-            </button>
-          </div>
-
-          <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2">
-                <Zap className="h-4 w-4 text-emerald-700" />
-                <div>
-                  <p className="text-xs font-bold text-slate-900">COD protection</p>
-                  <p className="text-[10px] text-slate-500">Verify Purchase events before forwarding.</p>
-                </div>
-              </div>
-              <input type="checkbox" checked={deferredEnabled} disabled={!growthFeaturesEnabled} onChange={event => setDeferredEnabled(event.target.checked)} aria-label="Toggle COD protection" className="h-4 w-4 accent-emerald-700" />
-            </div>
-            <button type="button" onClick={handleSaveDeferredSettings} disabled={savingDeferredSettings || !growthFeaturesEnabled} className="mt-3 w-full rounded-lg bg-emerald-800 px-3 py-2 text-[10px] font-bold text-white hover:bg-emerald-900 disabled:opacity-50">
-              {savingDeferredSettings ? 'Saving...' : 'Save COD settings'}
-            </button>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
-            <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
-              Auto-confirm after
-              <select value={autoConfirmDays} onChange={event => setAutoConfirmDays(Number(event.target.value))} disabled={!deferredEnabled} className="mt-1.5 w-full rounded-lg border border-slate-200 bg-white p-2 text-xs normal-case tracking-normal text-slate-800 disabled:opacity-50">
-                <option value="0">Off</option><option value="1">1 day</option><option value="2">2 days</option><option value="3">3 days</option><option value="5">5 days</option><option value="7">7 days</option>
-              </select>
-            </label>
-            <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
-              Confirm status
-              <select value={autoConfirmStatus} onChange={event => setAutoConfirmStatus(event.target.value)} disabled={!deferredEnabled} className="mt-1.5 w-full rounded-lg border border-slate-200 bg-white p-2 text-xs normal-case tracking-normal text-slate-800 disabled:opacity-50">
-                <option value="completed">Completed / Delivered</option><option value="processing">Processing / Confirmed</option>
-              </select>
-            </label>
-          </div>
-        </div>
-      </section>
-
       {/* Tab bar header */}
       <div className="flex border-b border-slate-200 ">
         <button
@@ -845,8 +754,8 @@ export function OrdersView({
         >
           <Package className="w-4 h-4" />
           <span className="sm:hidden">Pending</span>
-          <span className="hidden sm:inline">Pending COD Queue</span>
-          <span className="rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] font-black text-slate-600">{deferredData?.deferredPendingCount ?? deferredData?.pendingCount ?? codVerificationOrders.length}</span>
+          <span className="hidden sm:inline">Pending Orders</span>
+          <span className="rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] font-black text-slate-600">{deferredData?.operationsPendingCount ?? deferredData?.pendingCount ?? codVerificationOrders.length}</span>
         </button>
         <button
           onClick={() => setActiveTab('shipped')}
@@ -880,14 +789,10 @@ export function OrdersView({
         <div id="orders-pending" className="scroll-mt-24 rounded-xl border border-slate-200 bg-white p-6 shadow-sm flex flex-col space-y-4  ">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div>
-              <h2 className="font-bold text-slate-800 text-sm uppercase tracking-wide ">COD Hold Queue (Awaiting Verification)</h2>
+              <h2 className="font-bold text-slate-800 text-sm uppercase tracking-wide ">Pending Courier Orders</h2>
               <p className="text-xs text-slate-400 ">
-                Verify Purchase events, skip invalid orders, or book confirmed orders with a courier.
+                Review order details, create invoices, and book orders with a courier.
               </p>
-            </div>
-            <div className="flex items-center gap-2">
-              <button type="button" onClick={handleBulkConfirm} disabled={selectedOrderIds.length === 0} className="rounded-lg bg-emerald-800 px-3 py-2 text-[10px] font-bold text-white disabled:opacity-40">Confirm selected</button>
-              <button type="button" onClick={handleBulkCancel} disabled={selectedOrderIds.length === 0} className="rounded-lg bg-rose-900 px-3 py-2 text-[10px] font-bold text-white disabled:opacity-40">Skip selected</button>
             </div>
           </div>
 
@@ -902,10 +807,6 @@ export function OrdersView({
               const products: any[] = order.products || [];
               return (
                 <div key={order.orderId} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm  ">
-                  <label className="mb-3 flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                    <input type="checkbox" checked={selectedOrderIds.includes(order.orderId)} onChange={event => setSelectedOrderIds(current => event.target.checked ? [...new Set([...current, order.orderId])] : current.filter(id => id !== order.orderId))} className="accent-indigo-600" />
-                    Select for bulk action
-                  </label>
                   <button type="button" onClick={() => toggleExpand(order.orderId)} className="w-full text-left">
                     <div className="flex items-start justify-between gap-3">
                       <div>
@@ -963,8 +864,6 @@ export function OrdersView({
                   <div className="mt-4 grid grid-cols-2 gap-2">
                     <button onClick={() => openInvoice(order)} className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-bold text-slate-700">Invoice</button>
                     <button onClick={() => openPendingCourierModal(order)} className="rounded-lg bg-indigo-600 px-3 py-2 text-xs font-bold text-white">Book Courier</button>
-                    <button onClick={() => handleConfirmOrder(order.orderId)} className="rounded-lg bg-emerald-800 px-3 py-2 text-xs font-bold text-white">Confirm</button>
-                    <button onClick={() => handleCancelOrder(order.orderId)} className="rounded-lg bg-rose-900 px-3 py-2 text-xs font-bold text-white">Skip Event</button>
                   </div>
                 </div>
               );
@@ -975,9 +874,6 @@ export function OrdersView({
             <table className="w-full text-left text-xs text-slate-600 divide-y divide-slate-100 min-w-[750px]  ">
               <thead className="bg-slate-50 text-[10px] font-bold uppercase tracking-wider text-slate-500  ">
                 <tr>
-                  <th className="w-10 px-3 py-3">
-                    <input type="checkbox" checked={codVerificationOrders.length > 0 && codVerificationOrders.every((order: any) => selectedOrderIds.includes(order.orderId))} onChange={event => setSelectedOrderIds(event.target.checked ? codVerificationOrders.map((order: any) => order.orderId) : [])} aria-label="Select all pending COD orders" className="accent-indigo-600" />
-                  </th>
                   <th className="px-6 py-3">Order ID</th>
                   <th className="px-6 py-3">Customer Info</th>
                   <th className="px-6 py-3">Value</th>
@@ -989,7 +885,7 @@ export function OrdersView({
               <tbody className="divide-y divide-slate-100 ">
                 {codVerificationOrders.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="px-6 py-12 text-center text-slate-400 font-medium ">
+                    <td colSpan={6} className="px-6 py-12 text-center text-slate-400 font-medium ">
                       <CheckCircle2 className="w-8 h-8 mx-auto text-emerald-400 mb-2" />
                       No pending orders waiting in the verification queue.
                     </td>
@@ -1001,9 +897,6 @@ export function OrdersView({
                     return (
                       <React.Fragment key={order.orderId}>
                         <tr className={`hover:bg-slate-50/50 transition-colors  ${isExpanded ? 'bg-indigo-50/20 ' : ''}`}>
-                          <td className="px-3 py-3">
-                            <input type="checkbox" checked={selectedOrderIds.includes(order.orderId)} onChange={event => setSelectedOrderIds(current => event.target.checked ? [...new Set([...current, order.orderId])] : current.filter(id => id !== order.orderId))} aria-label={`Select order ${order.orderId}`} className="accent-indigo-600" />
-                          </td>
                           <td className="px-6 py-3">
                             <button
                               onClick={() => toggleExpand(order.orderId)}
@@ -1047,26 +940,13 @@ export function OrdersView({
                             >
                               <Send className="w-2.5 h-2.5" /> Book Courier
                             </button>
-                            <button 
-                              onClick={() => handleConfirmOrder(order.orderId)}
-                              className="btn-touch-expand px-2.5 py-1 bg-emerald-800 hover:bg-emerald-900 text-white text-[10px] font-bold rounded shadow-sm transition-colors cursor-pointer"
-                              title="Confirm order. If auto courier is enabled, Purchase waits for delivery."
-                            >
-                              Confirm
-                            </button>
-                            <button 
-                              onClick={() => handleCancelOrder(order.orderId)}
-                              className="btn-touch-expand px-2.5 py-1 bg-rose-900 hover:bg-rose-950 text-white text-[10px] font-bold rounded shadow-sm transition-colors cursor-pointer"
-                            >
-                              Skip Event
-                            </button>
                           </td>
                         </tr>
 
                         {/* Expanded Detail Row */}
                         {isExpanded && (
                           <tr className="bg-slate-50/80 ">
-                            <td colSpan={7} className="px-6 py-4">
+                            <td colSpan={6} className="px-6 py-4">
                               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 {/* Customer Info Card */}
                                 <div className="space-y-2.5">

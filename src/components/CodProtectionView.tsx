@@ -462,7 +462,7 @@ export function CodProtectionView({
                   <th className="w-10 px-6 py-3">
                     <input
                       type="checkbox"
-                      checked={pendingList.length > 0 && selectedOrderIds.length === pendingList.length}
+                      checked={pendingList.length > 0 && pendingList.every((order: any) => selectedOrderIds.includes(order.orderId))}
                       aria-label="Select all pending COD orders"
                       onChange={(event) => setSelectedOrderIds(event.target.checked ? pendingList.map((order: any) => order.orderId) : [])}
                       className="rounded accent-indigo-600"

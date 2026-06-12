@@ -13,6 +13,7 @@ import {
   LogOut,
   ChevronLeft,
   ChevronRight,
+  ShieldCheck,
   TrendingUp,
   Terminal,
   X,
@@ -178,10 +179,17 @@ export function Sidebar({
       label: 'YOUR ORDERS',
       items: [
         {
+          id: 'pending-purchases',
+          name: 'COD Protection',
+          icon: ShieldCheck,
+          subtitle: 'Verify COD orders before sending Purchase events',
+          count: orderVerificationCount,
+        },
+        {
           id: 'orders',
-          name: 'COD & Shipping',
+          name: 'Courier Shipping',
           icon: Truck,
-          count: orderVerificationCount + deliveryBadgeCount,
+          count: deliveryBadgeCount,
         },
         {
           id: 'incomplete-checkouts',

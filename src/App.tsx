@@ -97,6 +97,7 @@ class PageErrorBoundary extends React.Component<
   }
 }
 const AnalyticsView = lazyWithReload(() => import('./components/AnalyticsView').then(m => ({ default: m.AnalyticsView })));
+const CodProtectionView = lazyWithReload(() => import('./components/CodProtectionView').then(m => ({ default: m.CodProtectionView })));
 const EventLogsView = lazyWithReload(() => import('./components/EventLogsView').then(m => ({ default: m.EventLogsView })));
 const ApiLogsView = lazyWithReload(() => import('./components/ApiLogsView').then(m => ({ default: m.ApiLogsView })));
 const SettingsView = lazyWithReload(() => import('./components/SettingsView').then(m => ({ default: m.SettingsView })));
@@ -474,7 +475,7 @@ export default function App() {
   };
 
   const loadActivePageData = async (page: string) => {
-    if (page === 'orders') {
+    if (page === 'pending-purchases' || page === 'orders') {
       await fetchDeferred();
     } else if (page === 'incomplete-checkouts') {
       await fetchIncompleteCheckouts();
@@ -777,8 +778,9 @@ export default function App() {
   };
 
   useEffect(() => {
-    if (activePage === 'orders') {
+    if (activePage === 'pending-purchases') {
       markSidebarSeen('order_verification');
+    } else if (activePage === 'orders') {
       markSidebarSeen('orders_delivery');
     }
     if (activePage !== 'dashboard') {
@@ -801,7 +803,7 @@ export default function App() {
 
   // Periodic polling for Incomplete Checkouts and COD holds
   useEffect(() => {
-    if (activePage !== 'incomplete-checkouts' && activePage !== 'orders') {
+    if (activePage !== 'incomplete-checkouts' && activePage !== 'pending-purchases' && activePage !== 'orders') {
       return;
     }
 
@@ -812,7 +814,7 @@ export default function App() {
         fetchIncompleteCheckouts().catch(err => {
           console.error('Failed to auto-refresh incomplete checkouts', err);
         });
-      } else if (activePage === 'orders') {
+      } else if (activePage === 'pending-purchases' || activePage === 'orders') {
         fetchDeferred().catch(err => {
           console.error('Failed to auto-refresh COD holds/orders', err);
         });
@@ -991,13 +993,12 @@ export default function App() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ order_id: orderId })
       });
-      if (res.ok) {
-        showToast("Order verified & queued successfully.", false);
-        fetchDeferred();
-        loadSystemData(false);
-      }
-    } catch {
-      showToast("Verification action failed.", true);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || 'Verification action failed.');
+      showToast(data.message || "Order verified & queued successfully.", false);
+      await Promise.all([fetchDeferred(), loadSystemData(false)]);
+    } catch (err: any) {
+      showToast(err.message || "Verification action failed.", true);
     }
   };
 
@@ -1008,16 +1009,15 @@ export default function App() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ order_id: orderId })
       });
-      if (res.ok) {
-        showToast("Event skipped.", false, {
-          label: 'Undo',
-          onClick: () => handleRestoreSkippedOrder(orderId),
-        });
-        fetchDeferred();
-        loadSystemData(false);
-      }
-    } catch {
-      showToast("Skip action failed.", true);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || 'Skip action failed.');
+      showToast(data.message || "Event skipped.", false, {
+        label: 'Undo',
+        onClick: () => handleRestoreSkippedOrder(orderId),
+      });
+      await Promise.all([fetchDeferred(), loadSystemData(false)]);
+    } catch (err: any) {
+      showToast(err.message || "Skip action failed.", true);
     }
   };
 
@@ -1028,12 +1028,12 @@ export default function App() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ order_id: orderId })
       });
-      if (!res.ok) throw new Error();
-      showToast("Event restored to verification queue.", false);
-      fetchDeferred();
-      loadSystemData(false);
-    } catch {
-      showToast("Could not restore skipped event.", true);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || 'Could not restore skipped event.');
+      showToast(data.message || "Event restored to verification queue.", false);
+      await Promise.all([fetchDeferred(), loadSystemData(false)]);
+    } catch (err: any) {
+      showToast(err.message || "Could not restore skipped event.", true);
     }
   };
 
@@ -1045,14 +1045,13 @@ export default function App() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ order_ids: selectedOrderIds })
       });
-      if (res.ok) {
-        showToast(`Successfully verified ${selectedOrderIds.length} orders.`, false);
-        setSelectedOrderIds([]);
-        fetchDeferred();
-        loadSystemData(false);
-      }
-    } catch {
-      showToast("Bulk verification failed.", true);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || 'Bulk verification failed.');
+      showToast(`${Number(data.confirmed || 0)} orders verified${data.failed ? `, ${data.failed} failed` : ''}.`, Boolean(data.failed));
+      setSelectedOrderIds([]);
+      await Promise.all([fetchDeferred(), loadSystemData(false)]);
+    } catch (err: any) {
+      showToast(err.message || "Bulk verification failed.", true);
     }
   };
 
@@ -1064,14 +1063,13 @@ export default function App() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ order_ids: selectedOrderIds })
       });
-      if (res.ok) {
-        showToast(`${selectedOrderIds.length} events skipped.`, false);
-        setSelectedOrderIds([]);
-        fetchDeferred();
-        loadSystemData(false);
-      }
-    } catch {
-      showToast("Bulk skip failed.", true);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || 'Bulk skip failed.');
+      showToast(`${Number(data.cancelled || 0)} events skipped${data.failed ? `, ${data.failed} failed` : ''}.`, Boolean(data.failed));
+      setSelectedOrderIds([]);
+      await Promise.all([fetchDeferred(), loadSystemData(false)]);
+    } catch (err: any) {
+      showToast(err.message || "Bulk skip failed.", true);
     }
   };
 
@@ -1408,7 +1406,8 @@ export default function App() {
   const pageTitles: Record<string, string> = {
     dashboard: 'Dashboard',
     analytics: 'Insights',
-    orders: 'COD & Shipping',
+    'pending-purchases': 'COD Protection',
+    orders: 'Courier Shipping',
     'incomplete-checkouts': 'Incomplete Orders',
     'campaign-builder': 'Campaign Tools',
     suggestions: 'Setup Health',
@@ -1571,20 +1570,15 @@ export default function App() {
             )}
 
             {/* PAGE 11: ORDERS & COURIER — only when Order Management is enabled */}
-            {activePage === 'orders' && (
-              <OrdersView
-                deferredData={deferredData || { pendingList: [] }}
-                deferredLoadError={deferredLoadError}
-                fetchDeferred={fetchDeferred}
-                handleConfirmOrder={handleConfirmOrder}
-                handleCancelOrder={handleCancelOrder}
-                showToast={showToast}
-                storeName={profile?.name}
-                storeEmail={profile?.email}
+            {activePage === 'pending-purchases' && (
+              <CodProtectionView
+                deferredData={deferredData ?? { pendingList: [], pendingCount: 0, pendingValue: '৳0', confirmedToday: 0, oldestPending: 'N/A' }}
                 selectedOrderIds={selectedOrderIds}
                 setSelectedOrderIds={setSelectedOrderIds}
                 handleBulkConfirm={handleBulkConfirm}
                 handleBulkCancel={handleBulkCancel}
+                handleConfirmOrder={handleConfirmOrder}
+                handleCancelOrder={handleCancelOrder}
                 deferredEnabled={deferredEnabled}
                 setDeferredEnabled={setDeferredEnabled}
                 autoConfirmDays={autoConfirmDays}
@@ -1598,6 +1592,17 @@ export default function App() {
                 savingOrderMgmt={savingOrderMgmt}
                 handleSaveOrderManagement={handleSaveOrderManagement}
                 growthFeaturesEnabled={profile?.growthFeaturesEnabled}
+              />
+            )}
+
+            {activePage === 'orders' && (
+              <OrdersView
+                deferredData={deferredData || { pendingList: [] }}
+                deferredLoadError={deferredLoadError}
+                fetchDeferred={fetchDeferred}
+                showToast={showToast}
+                storeName={profile?.name}
+                storeEmail={profile?.email}
               />
             )}
 
@@ -1619,22 +1624,6 @@ export default function App() {
                 analyticsAudience={analyticsAudience}
                 signalDoctor={signalDoctor}
                 analyticsError={analyticsError}
-                urlBuilderBaseUrl={urlBuilderBaseUrl}
-                setUrlBuilderBaseUrl={setUrlBuilderBaseUrl}
-                urlBuilderSource={urlBuilderSource}
-                setUrlBuilderSource={setUrlBuilderSource}
-                urlBuilderMedium={urlBuilderMedium}
-                setUrlBuilderMedium={setUrlBuilderMedium}
-                urlBuilderCampaign={urlBuilderCampaign}
-                setUrlBuilderCampaign={setUrlBuilderCampaign}
-                urlBuilderContent={urlBuilderContent}
-                setUrlBuilderContent={setUrlBuilderContent}
-                urlBuilderTerm={urlBuilderTerm}
-                setUrlBuilderTerm={setUrlBuilderTerm}
-                generatedCampaignUrl={generatedCampaignUrl}
-                handleGenerateCampaignUrl={handleGenerateCampaignUrl}
-                copiedStates={copiedStates}
-                handleCopy={handleCopy}
                 analyticsDays={analyticsDays}
                 setAnalyticsDays={setAnalyticsDays}
               />

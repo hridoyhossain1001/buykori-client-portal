@@ -16,6 +16,38 @@ import {
 } from "./src/lib/mock-data.js";
 import { CAPIEvent, APILog, Suggestion, Platform, EventRule, PlatformConfig, OutboxItem } from "./src/types.js";
 
+interface MockPendingOrder {
+  orderId: string;
+  amount: number;
+  customer: string;
+  fraudScore: number;
+  fraudDetails: Record<string, boolean>;
+  ageHours: number;
+  timestamp: string;
+  recipientName?: string;
+  recipientPhone?: string;
+  recipientAddress?: string;
+  customerName?: string;
+  phone?: string;
+  address?: string;
+  products?: Array<Record<string, unknown>>;
+}
+
+interface MockIncompleteCheckout {
+  id: number;
+  customer_name: string;
+  customer_phone: string;
+  customer_email: string;
+  amount: number;
+  currency: string;
+  source: string;
+  status: string;
+  recovery_url: string;
+  created_at: string;
+  updated_at: string;
+  items: string[];
+  orderId?: string;
+}
 
 async function startServer() {
   const app = express();
@@ -32,7 +64,7 @@ async function startServer() {
   let deferredEnabled = false;
   let autoConfirmDays = 3;
   let autoConfirmStatus = "completed";
-  let pendingOrders: any[] = [
+  let pendingOrders: MockPendingOrder[] = [
     {
       orderId: "WC-9283",
       amount: 2490,
@@ -84,7 +116,7 @@ async function startServer() {
     steadfast_secret_key: "",
     redx_access_token: "",
   };
-  let incompleteCheckouts: any[] = [
+  let incompleteCheckouts: MockIncompleteCheckout[] = [
     {
       id: 301,
       customer_name: "Rafi Ahmed",

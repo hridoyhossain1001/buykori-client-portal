@@ -31,7 +31,8 @@ interface HeaderProps {
 const pageSuggestions = [
   { id: 'dashboard', name: 'Dashboard / Overview', keywords: ['dashboard', 'home', 'overview', 'main', 'quota'] },
   { id: 'analytics', name: 'Insights & Analytics', keywords: ['insights', 'analytics', 'chart', 'trend', 'volume', 'quality'] },
-  { id: 'orders', name: 'COD & Shipping', keywords: ['orders', 'order verification', 'cod protection', 'verify', 'pending', 'skip', 'hold', 'delivery', 'courier', 'pathao', 'steadfast', 'redx'] },
+  { id: 'pending-purchases', name: 'COD Protection', keywords: ['order verification', 'cod protection', 'verify', 'pending', 'skip', 'hold'] },
+  { id: 'orders', name: 'Courier Shipping', keywords: ['orders', 'delivery', 'courier', 'pathao', 'steadfast', 'redx'] },
   { id: 'incomplete-checkouts', name: 'Incomplete Orders', keywords: ['incomplete orders', 'abandoned', 'recovery', 'checkout', 'phone'] },
   { id: 'campaign-builder', name: 'Campaign Tools', keywords: ['campaigns', 'builder', 'url', 'utm', 'sandbox', 'test'] },
   { id: 'suggestions', name: 'Setup Health', keywords: ['setup', 'suggestions', 'diagnostics', 'health', 'issues'] },

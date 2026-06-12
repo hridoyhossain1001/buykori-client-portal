@@ -4,9 +4,6 @@ import {
   ShieldAlert, 
   AlertTriangle, 
   CheckCircle, 
-  Info, 
-  Check, 
-  Copy,
   Download,
   MapPin,
   Smartphone
@@ -25,22 +22,6 @@ interface AnalyticsViewProps {
   analyticsAudience: any;
   signalDoctor: any;
   analyticsError?: string | null;
-  urlBuilderBaseUrl: string;
-  setUrlBuilderBaseUrl: (url: string) => void;
-  urlBuilderSource: string;
-  setUrlBuilderSource: (source: string) => void;
-  urlBuilderMedium: string;
-  setUrlBuilderMedium: (medium: string) => void;
-  urlBuilderCampaign: string;
-  setUrlBuilderCampaign: (campaign: string) => void;
-  urlBuilderContent: string;
-  setUrlBuilderContent: (content: string) => void;
-  urlBuilderTerm: string;
-  setUrlBuilderTerm: (term: string) => void;
-  generatedCampaignUrl: string;
-  handleGenerateCampaignUrl: () => void;
-  copiedStates: Record<string, boolean>;
-  handleCopy: (text: string, labelId: string) => void;
   analyticsDays: number;
   setAnalyticsDays: (days: number) => void;
 }
@@ -51,22 +32,6 @@ export function AnalyticsView({
   analyticsAudience,
   signalDoctor,
   analyticsError,
-  urlBuilderBaseUrl,
-  setUrlBuilderBaseUrl,
-  urlBuilderSource,
-  setUrlBuilderSource,
-  urlBuilderMedium,
-  setUrlBuilderMedium,
-  urlBuilderCampaign,
-  setUrlBuilderCampaign,
-  urlBuilderContent,
-  setUrlBuilderContent,
-  urlBuilderTerm,
-  setUrlBuilderTerm,
-  generatedCampaignUrl,
-  handleGenerateCampaignUrl,
-  copiedStates,
-  handleCopy,
   analyticsDays,
   setAnalyticsDays
 }: AnalyticsViewProps) {
@@ -1202,150 +1167,6 @@ export function AnalyticsView({
           </table>
         </div>
       </div>
-
-      {/* Campaign URL Builder widget */}
-      {false && <div
-        id="analytics-url-builder"
-        aria-hidden={activeInsightTab !== 'sales'}
-        className={`${activeInsightTab === 'sales' ? 'flex' : 'hidden'} scroll-mt-24 flex-col space-y-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm md:p-6`}
-      >
-        <div>
-          <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wide">Sales Link Builder</h3>
-          <p className="text-xs text-slate-400">Create a clean ad link so sales source data is easier to read.</p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
-          
-          {/* Input parameters Form */}
-          <div className="space-y-4">
-            
-            {/* Base Website URL */}
-            <div>
-              <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">Product or page link</label>
-              <input 
-                type="text" 
-                placeholder="https://your-domain.com/shop/item"
-                value={urlBuilderBaseUrl}
-                onChange={(e) => setUrlBuilderBaseUrl(e.target.value)}
-                className="w-full p-2.5 text-xs text-slate-800 placeholder-slate-400 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:ring-1 focus:ring-indigo-500 font-mono   "
-              />
-            </div>
-
-            {/* Source & Medium grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label htmlFor="campaign-source" className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">Ad place</label>
-                <select 
-                  id="campaign-source"
-                  value={urlBuilderSource}
-                  onChange={(e) => {
-                    setUrlBuilderSource(e.target.value);
-                    if (e.target.value === 'facebook') setUrlBuilderMedium('paid_social');
-                    else if (e.target.value === 'tiktok') setUrlBuilderMedium('paid_social');
-                    else if (e.target.value === 'google') setUrlBuilderMedium('cpc');
-                    else if (e.target.value === 'newsletter') setUrlBuilderMedium('email');
-                    else setUrlBuilderMedium('referral');
-                  }}
-                  className="w-full p-2.5 text-xs text-slate-800 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:ring-1 focus:ring-indigo-500   "
-                >
-                  <option value="facebook">Facebook Ads</option>
-                  <option value="tiktok">TikTok Ads</option>
-                  <option value="google">Google CPC</option>
-                  <option value="newsletter">Email Newsletter</option>
-                  <option value="custom">Custom Partner</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">Link type</label>
-                <input 
-                  type="text" 
-                  placeholder="paid_social"
-                  value={urlBuilderMedium}
-                  onChange={(e) => setUrlBuilderMedium(e.target.value)}
-                  className="w-full p-2.5 text-xs text-slate-800 placeholder-slate-400 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:ring-1 focus:ring-indigo-500   "
-                />
-              </div>
-            </div>
-
-            {/* Campaign Name */}
-            <div>
-              <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">Campaign name</label>
-              <input 
-                type="text" 
-                placeholder="eid_sale_promotion"
-                value={urlBuilderCampaign}
-                onChange={(e) => setUrlBuilderCampaign(e.target.value)}
-                className="w-full p-2.5 text-xs text-slate-800 placeholder-slate-400 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:ring-1 focus:ring-indigo-500   "
-              />
-            </div>
-
-            {/* Optional parameters Content & Term */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">Ad name (optional)</label>
-                <input 
-                  type="text" 
-                  placeholder="video_ad_1"
-                  value={urlBuilderContent}
-                  onChange={(e) => setUrlBuilderContent(e.target.value)}
-                  className="w-full p-2.5 text-xs text-slate-800 placeholder-slate-400 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:ring-1 focus:ring-indigo-500   "
-                />
-              </div>
-              <div>
-                <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">Keyword (optional)</label>
-                <input 
-                  type="text" 
-                  placeholder="buy_shoes"
-                  value={urlBuilderTerm}
-                  onChange={(e) => setUrlBuilderTerm(e.target.value)}
-                  className="w-full p-2.5 text-xs text-slate-800 placeholder-slate-400 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:ring-1 focus:ring-indigo-500   "
-                />
-              </div>
-            </div>
-
-            <button
-              type="button"
-              onClick={handleGenerateCampaignUrl}
-              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-lg transition-colors cursor-pointer  "
-            >
-              Create Sales Link
-            </button>
-
-          </div>
-
-          {/* Output generator result box */}
-          <div className="rounded-xl bg-slate-50 border border-slate-200 p-5 flex flex-col justify-between  ">
-            <div className="space-y-3">
-              <h4 className="text-xs font-bold text-slate-700 uppercase tracking-widest ">Your Sales Link</h4>
-              <p className="text-[11px] text-slate-400 ">Use this link in your ad so Buykori can show where sales came from.</p>
-            </div>
-
-            <div className="my-4 bg-white border border-slate-200 rounded-lg p-3 text-xs font-mono text-slate-700 break-all select-all    relative group min-h-24 flex items-center">
-              {generatedCampaignUrl ? (
-                <>
-                  {generatedCampaignUrl}
-                  <button
-                    type="button"
-                    onClick={() => handleCopy(generatedCampaignUrl, 'generated_campaign_url')}
-                    className="absolute top-2 right-2 p-1.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-600 cursor-pointer   "
-                    title="Copy URL"
-                  >
-                    {copiedStates['generated_campaign_url'] ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
-                  </button>
-                </>
-              ) : (
-                <span className="text-slate-400 italic">Your sales link will appear here...</span>
-              )}
-            </div>
-
-            <div className="text-[10px] text-slate-400 leading-normal flex items-start gap-1.5 ">
-              <Info className="w-3.5 h-3.5 shrink-0 text-slate-350 mt-0.5" />
-              <span>Use this link in Facebook, TikTok, Google, or any campaign post.</span>
-            </div>
-          </div>
-
-        </div>
-      </div>}
 
     </div>
   );
