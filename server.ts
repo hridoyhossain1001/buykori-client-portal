@@ -35,6 +35,14 @@ interface MockPendingOrder {
 
 interface MockIncompleteCheckout {
   id: number;
+  phone: string;
+  customerName: string;
+  email: string;
+  address: string;
+  products: Array<Record<string, unknown>>;
+  pageUrl: string;
+  campaignData: Record<string, string>;
+  lastActivityAt: string;
   customer_name: string;
   customer_phone: string;
   customer_email: string;
@@ -69,6 +77,18 @@ async function startServer() {
       orderId: "WC-9283",
       amount: 2490,
       customer: "+8801712345678",
+      recipientName: "Rafi Ahmed",
+      recipientPhone: "+8801711112222",
+      recipientAddress: "Mirpur, Dhaka",
+      products: [
+        {
+          id: "hoodie-black-36",
+          name: "Premium Hoodie",
+          quantity: 1,
+          price: 2490,
+          attributes: { Color: "Black", Size: "36" },
+        },
+      ],
       fraudScore: 12,
       fraudDetails: {},
       ageHours: 5.2,
@@ -78,6 +98,18 @@ async function startServer() {
       orderId: "WC-9284",
       amount: 4500,
       customer: "customer@domain.com",
+      recipientName: "Nusrat Jahan",
+      recipientPhone: "+8801812349999",
+      recipientAddress: "Dhanmondi, Dhaka",
+      products: [
+        {
+          id: "serum-bundle",
+          name: "Serum Bundle",
+          quantity: 1,
+          price: 4500,
+          attributes: { Variant: "Glow, Repair", Note: "COD: Fragile" },
+        },
+      ],
       fraudScore: 78,
       fraudDetails: { ip_mismatch: true, gibberish_name: true },
       ageHours: 12.8,
@@ -119,6 +151,31 @@ async function startServer() {
   let incompleteCheckouts: MockIncompleteCheckout[] = [
     {
       id: 301,
+      phone: "+8801711112222",
+      customerName: "Rafi Ahmed",
+      email: "rafi@example.com",
+      address: "Mirpur, Dhaka",
+      products: [
+        {
+          id: "hoodie-black-36",
+          name: "Premium Hoodie",
+          category: "Apparel",
+          attributes: { Color: "Black", Size: "36" },
+          quantity: 1,
+          price: 2490,
+        },
+        {
+          id: "cod-delivery",
+          name: "COD Delivery",
+          category: "Shipping",
+          attributes: { Zone: "Inside Dhaka" },
+          quantity: 1,
+          price: 300,
+        },
+      ],
+      pageUrl: "https://buykori-demo.com/cart",
+      campaignData: { utm_source: "facebook", utm_campaign: "eid_offer" },
+      lastActivityAt: new Date(Date.now() - 1.1 * 3600000).toISOString(),
       customer_name: "Rafi Ahmed",
       customer_phone: "+8801711112222",
       customer_email: "rafi@example.com",
@@ -133,6 +190,23 @@ async function startServer() {
     },
     {
       id: 302,
+      phone: "+8801812349999",
+      customerName: "Nusrat Jahan",
+      email: "nusrat@example.com",
+      address: "Dhanmondi, Dhaka",
+      products: [
+        {
+          id: "serum-bundle",
+          name: "Serum Bundle",
+          category: "Beauty",
+          attributes: { Variant: "Glow, Repair", Offer: "Buy 1, Get 1" },
+          quantity: 1,
+          price: 4250,
+        },
+      ],
+      pageUrl: "https://growth-lab.shop/cart",
+      campaignData: { utm_source: "tiktok", utm_campaign: "beauty_bundle" },
+      lastActivityAt: new Date(Date.now() - 6 * 3600000).toISOString(),
       customer_name: "Nusrat Jahan",
       customer_phone: "+8801812349999",
       customer_email: "nusrat@example.com",
@@ -635,19 +709,27 @@ async function startServer() {
   // COD Protection (Deferred Purchase Tracking) Mock Endpoints
   app.get("/api/deferred", (req, res) => {
     const pendingValue = pendingOrders.reduce((acc, o) => acc + o.amount, 0);
+    const operationsPendingList = pendingOrders.map(order => ({
+      ...order,
+      operationsOnly: false,
+    }));
     const oldestPending = pendingOrders.length > 0 ? `${Math.max(...pendingOrders.map(o => o.ageHours))}h` : "—";
     res.json({
       deferredEnabled,
       autoConfirmDays,
       autoConfirmStatus,
       pendingCount: pendingOrders.length,
+      deferredPendingCount: pendingOrders.length,
+      operationsPendingCount: operationsPendingList.length,
       pendingValue: `৳${pendingValue.toLocaleString()}`,
       confirmedTotal,
       cancelledTotal,
       expiredTotal: 0,
       confirmedToday,
       oldestPending,
-      pendingList: pendingOrders
+      pendingList: pendingOrders,
+      deferredPendingList: pendingOrders,
+      operationsPendingList
     });
   });
 
@@ -658,8 +740,8 @@ async function startServer() {
     res.json({
       orderVerificationTotal: pendingOrders.length,
       orderVerificationNew,
-      ordersDeliveryTotal: 0,
-      ordersDeliveryNew: 0,
+      ordersDeliveryTotal: pendingOrders.length,
+      ordersDeliveryNew: orderVerificationNew,
       seenState: {
         orderVerificationSeenAt: sidebarSeenState.order_verification_seen_at,
         ordersDeliverySeenAt: sidebarSeenState.orders_delivery_seen_at,
