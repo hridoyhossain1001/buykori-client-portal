@@ -62,6 +62,7 @@ export function AnalyticsView({
     : null;
 
   const [adPerformance, setAdPerformance] = React.useState<any[]>([]);
+  const [adPerformanceMeta, setAdPerformanceMeta] = React.useState<any | null>(null);
   const [loadingAdPerformance, setLoadingAdPerformance] = React.useState<boolean>(false);
   const [adPerformanceError, setAdPerformanceError] = React.useState<string | null>(null);
   const [adSearch, setAdSearch] = React.useState('');
@@ -84,9 +85,16 @@ export function AnalyticsView({
       }
       const json = await res.json();
       setAdPerformance(Array.isArray(json.data) ? json.data : []);
+      setAdPerformanceMeta({
+        sync_enabled: Boolean(json.sync_enabled),
+        connected_accounts: Number(json.connected_accounts || 0),
+        last_synced_at: json.last_synced_at || null,
+        missing_attribution_purchases: Number(json.missing_attribution_purchases || 0),
+      });
     } catch (err) {
       console.error("Failed to fetch ad performance analytics", err);
       setAdPerformance([]);
+      setAdPerformanceMeta(null);
       setAdPerformanceError("Ad results could not load. Please try again.");
     } finally {
       setLoadingAdPerformance(false);
@@ -855,6 +863,11 @@ export function AnalyticsView({
           <div>
             <h3 className="text-lg font-bold text-slate-900">Ad Results</h3>
             <p className="text-xs text-slate-500">See ad cost, new orders, confirmed sales, and return in one place.</p>
+            {adPerformanceMeta?.last_synced_at && (
+              <p className="mt-1 text-[10px] font-semibold text-slate-400">
+                Last synced: {new Date(adPerformanceMeta.last_synced_at).toLocaleString()}
+              </p>
+            )}
           </div>
           {loadingAdPerformance && (
             <div className="flex items-center gap-1.5 text-xs text-slate-400">
@@ -863,6 +876,21 @@ export function AnalyticsView({
             </div>
           )}
         </div>
+
+        {adPerformanceMeta && (!adPerformanceMeta.sync_enabled || adPerformanceMeta.connected_accounts === 0 || adPerformanceMeta.missing_attribution_purchases > 0) && (
+          <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-xs leading-relaxed text-amber-800">
+            {!adPerformanceMeta.sync_enabled ? (
+              <p><strong>Ad sync is off.</strong> Enable ENABLE_AD_SYNC on the server to refresh Meta/TikTok spend automatically.</p>
+            ) : adPerformanceMeta.connected_accounts === 0 ? (
+              <p><strong>No ad account connected.</strong> Connect a Meta ad account in Settings to populate campaign spend.</p>
+            ) : (
+              <p>
+                <strong>{numberText(adPerformanceMeta.missing_attribution_purchases)} purchase event(s) are not linked to a campaign.</strong>
+                {' '}Use Campaign Tools and choose a synced campaign so new ad links include bk_campaign_id.
+              </p>
+            )}
+          </div>
+        )}
 
         <div className="grid grid-cols-1 gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3 md:grid-cols-[minmax(0,1fr)_220px_auto] md:items-end">
           <div>
@@ -974,6 +1002,9 @@ export function AnalyticsView({
                 <div>
                   <span className="block text-[8px] uppercase tracking-wider text-slate-400 font-bold">New Orders</span>
                   <span className="text-indigo-600 font-black">{row.placed_roas}x return</span> | {formatMoney(row.placed_cpa, row.spend_currency)} per order
+                  <span className="mt-0.5 block text-[9px] text-slate-400">
+                    {numberText(row.pending_purchases)} pending, {numberText(row.cancelled_purchases)} cancelled/expired
+                  </span>
                 </div>
                 <div>
                   <span className="block text-[8px] uppercase tracking-wider text-slate-400 font-bold">Confirmed Sales</span>
@@ -1073,6 +1104,7 @@ export function AnalyticsView({
                       <div className="flex flex-col">
                         <span className="font-black text-indigo-600">{row.placed_roas}x return</span>
                         <span className="text-slate-600 text-[10px]">{row.placed_purchases} Orders ({formatMoney(row.placed_revenue, row.revenue_currency)})</span>
+                        <span className="text-slate-400 text-[9px]">{numberText(row.pending_purchases)} pending, {numberText(row.cancelled_purchases)} cancelled/expired</span>
                         <span className="text-slate-400 text-[9px]">Cost/order: {formatMoney(row.placed_cpa, row.spend_currency)}</span>
                       </div>
                     </td>

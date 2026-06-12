@@ -37,6 +37,12 @@ interface CampaignBuilderViewProps {
   setUrlBuilderContent: (content: string) => void;
   urlBuilderTerm: string;
   setUrlBuilderTerm: (term: string) => void;
+  urlBuilderAdPlatform: 'meta' | 'tiktok';
+  setUrlBuilderAdPlatform: (platform: 'meta' | 'tiktok') => void;
+  urlBuilderCampaignId: string;
+  setUrlBuilderCampaignId: (campaignId: string) => void;
+  syncedAdCampaigns: any[];
+  loadingSyncedAdCampaigns: boolean;
   generatedCampaignUrl: string;
   handleGenerateCampaignUrl: () => void;
   copiedStates: Record<string, boolean>;
@@ -77,11 +83,22 @@ export function CampaignBuilderView({
   setUrlBuilderContent,
   urlBuilderTerm,
   setUrlBuilderTerm,
+  urlBuilderAdPlatform,
+  setUrlBuilderAdPlatform,
+  urlBuilderCampaignId,
+  setUrlBuilderCampaignId,
+  syncedAdCampaigns,
+  loadingSyncedAdCampaigns,
   generatedCampaignUrl,
   handleGenerateCampaignUrl,
   copiedStates,
   handleCopy
 }: CampaignBuilderViewProps) {
+  const campaignOptions = React.useMemo(
+    () => (Array.isArray(syncedAdCampaigns) ? syncedAdCampaigns : [])
+      .filter((campaign) => campaign.platform === urlBuilderAdPlatform),
+    [syncedAdCampaigns, urlBuilderAdPlatform]
+  );
 
   // Custom live campaign payload sandbox generator helper
   const renderCampaignPayloadJson = () => {
@@ -204,6 +221,57 @@ export function CampaignBuilderView({
                 onChange={(e) => setUrlBuilderCampaign(e.target.value)}
                 className="w-full p-2.5 text-xs text-slate-800 placeholder-slate-400 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all duration-200   "
               />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-[150px_minmax(0,1fr)] gap-4">
+              <div>
+                <label htmlFor="campaign-url-ad-platform" className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1.5 ">Ad Platform</label>
+                <select
+                  id="campaign-url-ad-platform"
+                  aria-label="Ad platform for exact attribution"
+                  value={urlBuilderAdPlatform}
+                  onChange={(e) => {
+                    const nextPlatform = e.target.value as 'meta' | 'tiktok';
+                    setUrlBuilderAdPlatform(nextPlatform);
+                    setUrlBuilderCampaignId('');
+                    setUrlBuilderSource(nextPlatform === 'meta' ? 'facebook' : 'tiktok');
+                    setUrlBuilderMedium('paid_social');
+                  }}
+                  className="w-full p-2.5 text-xs text-slate-800 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all duration-200 cursor-pointer"
+                >
+                  <option value="meta">Meta</option>
+                  <option value="tiktok">TikTok</option>
+                </select>
+              </div>
+              <div>
+                <label htmlFor="campaign-url-exact-campaign" className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1.5 ">Synced Campaign ID</label>
+                <select
+                  id="campaign-url-exact-campaign"
+                  aria-label="Synced campaign for exact attribution"
+                  value={urlBuilderCampaignId}
+                  onChange={(e) => {
+                    const campaignId = e.target.value;
+                    setUrlBuilderCampaignId(campaignId);
+                    const selected = campaignOptions.find((campaign) => campaign.external_campaign_id === campaignId);
+                    if (selected?.name && !urlBuilderCampaign.trim()) {
+                      setUrlBuilderCampaign(String(selected.name));
+                    }
+                  }}
+                  className="w-full p-2.5 text-xs text-slate-800 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all duration-200 cursor-pointer"
+                >
+                  <option value="">
+                    {loadingSyncedAdCampaigns ? 'Loading synced campaigns...' : 'Optional: choose exact campaign'}
+                  </option>
+                  {campaignOptions.map((campaign) => (
+                    <option key={`${campaign.platform}-${campaign.external_campaign_id}`} value={campaign.external_campaign_id}>
+                      {campaign.name} ({campaign.external_campaign_id})
+                    </option>
+                  ))}
+                </select>
+                <p className="mt-1 text-[10px] leading-normal text-slate-400">
+                  Adds bk_platform and bk_campaign_id so Ad Results can match spend with orders exactly.
+                </p>
+              </div>
             </div>
 
             {/* Optional parameters Content & Term */}

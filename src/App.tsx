@@ -201,12 +201,35 @@ export default function App() {
   const [urlBuilderCampaign, setUrlBuilderCampaign] = useState<string>('');
   const [urlBuilderContent, setUrlBuilderContent] = useState<string>('');
   const [urlBuilderTerm, setUrlBuilderTerm] = useState<string>('');
+  const [urlBuilderAdPlatform, setUrlBuilderAdPlatform] = useState<'meta' | 'tiktok'>('meta');
+  const [urlBuilderCampaignId, setUrlBuilderCampaignId] = useState<string>('');
+  const [syncedAdCampaigns, setSyncedAdCampaigns] = useState<any[]>([]);
+  const [loadingSyncedAdCampaigns, setLoadingSyncedAdCampaigns] = useState<boolean>(false);
   const [generatedCampaignUrl, setGeneratedCampaignUrl] = useState<string>('');
 
   useEffect(() => {
     if (profile && !urlBuilderBaseUrl) {
       setUrlBuilderBaseUrl(profile.email ? `https://${profile.name.toLowerCase().replace(/\s+/g, '')}.com` : 'https://your-site.com');
     }
+  }, [profile]);
+
+  useEffect(() => {
+    if (!profile) return;
+    const fetchSyncedAdCampaigns = async () => {
+      setLoadingSyncedAdCampaigns(true);
+      try {
+        const res = await fetch('/api/v1/ad-campaigns');
+        if (res.ok) {
+          const data = await res.json();
+          setSyncedAdCampaigns(Array.isArray(data) ? data : []);
+        }
+      } catch (err) {
+        console.error('Failed to load synced ad campaigns', err);
+      } finally {
+        setLoadingSyncedAdCampaigns(false);
+      }
+    };
+    fetchSyncedAdCampaigns();
   }, [profile]);
 
   const compileCampaignUrl = () => {
@@ -220,6 +243,10 @@ export default function App() {
       url.searchParams.set('utm_source', urlBuilderSource.trim());
       url.searchParams.set('utm_medium', urlBuilderMedium.trim());
       url.searchParams.set('utm_campaign', urlBuilderCampaign.trim().toLowerCase().replace(/\s+/g, '_'));
+      if (urlBuilderCampaignId.trim()) {
+        url.searchParams.set('bk_platform', urlBuilderAdPlatform);
+        url.searchParams.set('bk_campaign_id', urlBuilderCampaignId.trim());
+      }
       if (urlBuilderContent.trim()) {
         url.searchParams.set('utm_content', urlBuilderContent.trim());
       }
@@ -234,7 +261,7 @@ export default function App() {
 
   useEffect(() => {
     setGeneratedCampaignUrl(compileCampaignUrl());
-  }, [urlBuilderBaseUrl, urlBuilderSource, urlBuilderMedium, urlBuilderCampaign, urlBuilderContent, urlBuilderTerm]);
+  }, [urlBuilderBaseUrl, urlBuilderSource, urlBuilderMedium, urlBuilderCampaign, urlBuilderContent, urlBuilderTerm, urlBuilderAdPlatform, urlBuilderCampaignId]);
 
   const handleGenerateCampaignUrl = () => {
     if (!urlBuilderBaseUrl.trim()) {
@@ -1753,6 +1780,12 @@ export default function App() {
                 setUrlBuilderContent={setUrlBuilderContent}
                 urlBuilderTerm={urlBuilderTerm}
                 setUrlBuilderTerm={setUrlBuilderTerm}
+                urlBuilderAdPlatform={urlBuilderAdPlatform}
+                setUrlBuilderAdPlatform={setUrlBuilderAdPlatform}
+                urlBuilderCampaignId={urlBuilderCampaignId}
+                setUrlBuilderCampaignId={setUrlBuilderCampaignId}
+                syncedAdCampaigns={syncedAdCampaigns}
+                loadingSyncedAdCampaigns={loadingSyncedAdCampaigns}
                 generatedCampaignUrl={generatedCampaignUrl}
                 handleGenerateCampaignUrl={handleGenerateCampaignUrl}
                 copiedStates={copiedStates}
