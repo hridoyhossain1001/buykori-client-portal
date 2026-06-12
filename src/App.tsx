@@ -503,6 +503,29 @@ export default function App() {
     await fetchIncompleteCheckouts();
   };
 
+  const handleCreateRecoveryOrder = async (id: number, payload: any) => {
+    const res = await fetch(`/api/incomplete-checkouts/${id}/create-order`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      showToast(body.detail || 'Failed to create recovery order.', true);
+      return false;
+    }
+    const body = await res.json().catch(() => ({}));
+    showToast('Recovery order created.', false, {
+      label: 'Open Orders',
+      onClick: () => setActivePage('orders'),
+    });
+    await Promise.all([
+      fetchIncompleteCheckouts(),
+      fetchDeferred(),
+    ]);
+    return Boolean(body.success ?? true);
+  };
+
   const handleSaveOrderManagement = async () => {
     setSavingOrderMgmt(true);
     try {
@@ -1595,6 +1618,7 @@ export default function App() {
               <IncompleteCheckoutsView
                 data={incompleteCheckoutData}
                 onStatusChange={handleIncompleteCheckoutStatus}
+                onCreateOrder={handleCreateRecoveryOrder}
                 onRefresh={fetchIncompleteCheckouts}
                 showToast={showToast}
               />

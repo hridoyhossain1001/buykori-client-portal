@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { CheckCircle2, Clock3, Copy, ExternalLink, MessageCircle, Phone, Search, UserRoundX } from 'lucide-react';
+import { CheckCircle2, Clock3, Copy, ExternalLink, MessageCircle, Phone, Plus, Search, ShoppingCart, Trash2, UserRoundX, X } from 'lucide-react';
 import { Tooltip } from './common/Tooltip';
 
 interface IncompleteCheckoutItem {
@@ -8,7 +8,7 @@ interface IncompleteCheckoutItem {
   customerName: string;
   email: string;
   address: string;
-  products: Array<{ name?: string; content_name?: string; category?: string; content_category?: string; attributes?: Record<string, string>; quantity?: number }>;
+  products: Array<{ id?: string; content_id?: string; name?: string; content_name?: string; category?: string; content_category?: string; attributes?: Record<string, string>; quantity?: number; price?: number; item_price?: number }>;
   amount: number;
   currency: string;
   pageUrl: string;
@@ -21,8 +21,28 @@ interface IncompleteCheckoutItem {
 interface Props {
   data: { items: IncompleteCheckoutItem[]; counts: Record<string, number>; restricted?: boolean };
   onStatusChange: (id: number, status: string) => Promise<void>;
+  onCreateOrder: (id: number, payload: RecoveryOrderPayload) => Promise<boolean>;
   onRefresh: () => Promise<void>;
   showToast: (message: string, isError?: boolean) => void;
+}
+
+interface RecoveryOrderItem {
+  name: string;
+  content_id: string;
+  quantity: number;
+  price: number;
+  attributes: Record<string, string>;
+  category: string;
+}
+
+interface RecoveryOrderPayload {
+  customer_name: string;
+  phone: string;
+  address: string;
+  items: RecoveryOrderItem[];
+  delivery_charge: number;
+  discount: number;
+  note: string;
 }
 
 const STATUS_STYLES: Record<string, string> = {
@@ -50,10 +70,13 @@ const getWhatsAppLink = (phone: string, name: string, amount: number, currency: 
   return `https://wa.me/${cleanPhone}?text=${encodeURIComponent(text)}`;
 };
 
-export function IncompleteCheckoutsView({ data, onStatusChange, onRefresh, showToast }: Props) {
+export function IncompleteCheckoutsView({ data, onStatusChange, onCreateOrder, onRefresh, showToast }: Props) {
   const [filter, setFilter] = useState('all');
   const [query, setQuery] = useState('');
   const [updatingId, setUpdatingId] = useState<number | null>(null);
+  const [orderLead, setOrderLead] = useState<IncompleteCheckoutItem | null>(null);
+  const [orderDraft, setOrderDraft] = useState<RecoveryOrderPayload | null>(null);
+  const [creatingOrder, setCreatingOrder] = useState(false);
   const items = data.items || [];
   const filtered = useMemo(() => items.filter(item => {
     if (filter !== 'all' && item.status !== filter) return false;
@@ -78,6 +101,75 @@ export function IncompleteCheckoutsView({ data, onStatusChange, onRefresh, showT
       : '';
     return [category, attributes].filter(Boolean).join(' - ');
   };
+
+  const openCreateOrder = (item: IncompleteCheckoutItem) => {
+    const products = item.products?.length ? item.products : [{}];
+    setOrderLead(item);
+    setOrderDraft({
+      customer_name: item.customerName && item.customerName !== '—' ? item.customerName : '',
+      phone: item.phone || '',
+      address: item.address && item.address !== '—' ? item.address : '',
+      items: products.map((product, index) => ({
+        name: product.content_name || product.name || '',
+        content_id: product.content_id || product.id || `manual-${item.id}-${index + 1}`,
+        quantity: Number(product.quantity || 1),
+        price: Number(product.item_price || product.price || (products.length === 1 ? item.amount : 0) || 0),
+        attributes: product.attributes || {},
+        category: product.content_category || product.category || '',
+      })),
+      delivery_charge: 0,
+      discount: 0,
+      note: '',
+    });
+  };
+
+  const updateOrderDraft = (patch: Partial<RecoveryOrderPayload>) => {
+    setOrderDraft(prev => prev ? { ...prev, ...patch } : prev);
+  };
+
+  const updateOrderItem = (index: number, patch: Partial<RecoveryOrderItem>) => {
+    setOrderDraft(prev => {
+      if (!prev) return prev;
+      const nextItems = prev.items.map((item, itemIndex) => itemIndex === index ? { ...item, ...patch } : item);
+      return { ...prev, items: nextItems };
+    });
+  };
+
+  const addOrderItem = () => {
+    setOrderDraft(prev => prev ? {
+      ...prev,
+      items: [...prev.items, { name: '', content_id: `manual-${orderLead?.id || 'item'}-${prev.items.length + 1}`, quantity: 1, price: 0, attributes: {}, category: '' }],
+    } : prev);
+  };
+
+  const removeOrderItem = (index: number) => {
+    setOrderDraft(prev => prev ? { ...prev, items: prev.items.filter((_, itemIndex) => itemIndex !== index) } : prev);
+  };
+
+  const submitCreateOrder = async () => {
+    if (!orderLead || !orderDraft) return;
+    if (!orderDraft.customer_name.trim() || !orderDraft.phone.trim() || !orderDraft.address.trim()) {
+      showToast('Customer name, phone, and address are required.', true);
+      return;
+    }
+    if (!orderDraft.items.length || orderDraft.items.some(item => !item.name.trim() || item.quantity < 1)) {
+      showToast('At least one valid product item is required.', true);
+      return;
+    }
+    setCreatingOrder(true);
+    try {
+      const ok = await onCreateOrder(orderLead.id, orderDraft);
+      if (ok) {
+        setOrderLead(null);
+        setOrderDraft(null);
+      }
+    } finally {
+      setCreatingOrder(false);
+    }
+  };
+
+  const draftSubtotal = orderDraft?.items.reduce((sum, item) => sum + Number(item.price || 0) * Number(item.quantity || 1), 0) || 0;
+  const draftTotal = Math.max(0, draftSubtotal + Number(orderDraft?.delivery_charge || 0) - Number(orderDraft?.discount || 0));
 
   if (data.restricted) {
     return (
@@ -187,6 +279,7 @@ export function IncompleteCheckoutsView({ data, onStatusChange, onRefresh, showT
                   )}
                   <button title="Copy phone" onClick={() => { navigator.clipboard.writeText(item.phone); showToast('Phone number copied.'); }} className="rounded-lg border border-slate-200 p-2 hover:bg-slate-50  "><Copy className="h-3.5 w-3.5" /></button>
                   {item.pageUrl && <a href={item.pageUrl} target="_blank" rel="noreferrer" title="Open landing page" className="rounded-lg border border-slate-200 p-2 hover:bg-slate-50  "><ExternalLink className="h-3.5 w-3.5" /></a>}
+                  {['incomplete', 'contacted'].includes(item.status) && <button disabled={updatingId === item.id} title="Create order" onClick={() => openCreateOrder(item)} className="rounded-lg border border-indigo-200 bg-indigo-50 p-2 text-indigo-700 hover:bg-indigo-100 disabled:opacity-50"><ShoppingCart className="h-3.5 w-3.5" /></button>}
                   {!['recovered', 'contacted'].includes(item.status) && <button disabled={updatingId === item.id} title="Mark contacted" onClick={() => updateStatus(item.id, 'contacted')} className="rounded-lg border border-emerald-200 p-2 text-emerald-600 hover:bg-emerald-50 disabled:opacity-50  "><CheckCircle2 className="h-3.5 w-3.5" /></button>}
                   {item.status !== 'recovered' && <button disabled={updatingId === item.id} title="Mark recovered" onClick={() => updateStatus(item.id, 'recovered')} className="rounded-lg border border-indigo-200 p-2 text-indigo-600 hover:bg-indigo-50 disabled:opacity-50  "><CheckCircle2 className="h-3.5 w-3.5" /></button>}
                   {!['recovered', 'ignored'].includes(item.status) && <button disabled={updatingId === item.id} title="Ignore draft" onClick={() => updateStatus(item.id, 'ignored')} className="rounded-lg border border-rose-200 p-2 text-rose-600 hover:bg-rose-50 disabled:opacity-50  "><UserRoundX className="h-3.5 w-3.5" /></button>}
@@ -257,6 +350,7 @@ export function IncompleteCheckoutsView({ data, onStatusChange, onRefresh, showT
                         )}
                         <button title="Copy phone" onClick={() => { navigator.clipboard.writeText(item.phone); showToast('Phone number copied.'); }} className="rounded-lg border border-slate-200 p-2 hover:bg-slate-50  "><Copy className="h-3.5 w-3.5" /></button>
                         {item.pageUrl && <a href={item.pageUrl} target="_blank" rel="noreferrer" title="Open landing page" className="rounded-lg border border-slate-200 p-2 hover:bg-slate-50  "><ExternalLink className="h-3.5 w-3.5" /></a>}
+                        {['incomplete', 'contacted'].includes(item.status) && <button disabled={updatingId === item.id} title="Create order" onClick={() => openCreateOrder(item)} className="rounded-lg border border-indigo-200 bg-indigo-50 p-2 text-indigo-700 hover:bg-indigo-100 disabled:opacity-50"><ShoppingCart className="h-3.5 w-3.5" /></button>}
                         {!['recovered', 'contacted'].includes(item.status) && <button disabled={updatingId === item.id} title="Mark contacted" onClick={() => updateStatus(item.id, 'contacted')} className="rounded-lg border border-emerald-200 p-2 text-emerald-600 hover:bg-emerald-50 disabled:opacity-50  "><CheckCircle2 className="h-3.5 w-3.5" /></button>}
                         {item.status !== 'recovered' && <button disabled={updatingId === item.id} title="Mark recovered" onClick={() => updateStatus(item.id, 'recovered')} className="rounded-lg border border-indigo-200 p-2 text-indigo-600 hover:bg-indigo-50 disabled:opacity-50  "><CheckCircle2 className="h-3.5 w-3.5" /></button>}
                         {!['recovered', 'ignored'].includes(item.status) && <button disabled={updatingId === item.id} title="Ignore draft" onClick={() => updateStatus(item.id, 'ignored')} className="rounded-lg border border-rose-200 p-2 text-rose-600 hover:bg-rose-50 disabled:opacity-50  "><UserRoundX className="h-3.5 w-3.5" /></button>}
@@ -270,6 +364,88 @@ export function IncompleteCheckoutsView({ data, onStatusChange, onRefresh, showT
         </div>
       </div>
       <p className="flex items-center gap-1 text-[11px] text-slate-400"><Clock3 className="h-3.5 w-3.5" /> Recovery data expires after 30 days.</p>
+      {orderLead && orderDraft && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 px-4 py-6 backdrop-blur-sm">
+          <div className="flex max-h-[92vh] w-full max-w-3xl flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
+              <div>
+                <h3 className="text-sm font-bold text-slate-900">Create recovery order</h3>
+                <p className="mt-0.5 text-[11px] text-slate-500">Confirm details before sending this lead to the COD order queue.</p>
+              </div>
+              <button type="button" onClick={() => { setOrderLead(null); setOrderDraft(null); }} className="rounded-lg border border-slate-200 p-2 text-slate-500 hover:bg-slate-50" title="Close">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="space-y-4 overflow-y-auto px-5 py-4">
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                  Customer name
+                  <input value={orderDraft.customer_name} onChange={event => updateOrderDraft({ customer_name: event.target.value })} className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold normal-case tracking-normal text-slate-800 outline-none focus:border-indigo-400" />
+                </label>
+                <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                  Phone
+                  <input value={orderDraft.phone} onChange={event => updateOrderDraft({ phone: event.target.value })} className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 font-mono text-xs normal-case tracking-normal text-slate-800 outline-none focus:border-indigo-400" />
+                </label>
+                <label className="md:col-span-2 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                  Shipping address
+                  <textarea value={orderDraft.address} onChange={event => updateOrderDraft({ address: event.target.value })} rows={2} className="mt-1 w-full resize-none rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold normal-case tracking-normal text-slate-800 outline-none focus:border-indigo-400" />
+                </label>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Order items</p>
+                  <button type="button" onClick={addOrderItem} className="inline-flex items-center gap-1 rounded-lg border border-indigo-200 px-2.5 py-1.5 text-[11px] font-bold text-indigo-700 hover:bg-indigo-50">
+                    <Plus className="h-3.5 w-3.5" /> Add item
+                  </button>
+                </div>
+                <div className="divide-y divide-slate-100 rounded-lg border border-slate-200">
+                  {orderDraft.items.map((item, index) => (
+                    <div key={index} className="grid grid-cols-1 gap-2 p-3 md:grid-cols-[minmax(0,1.4fr)_0.55fr_0.7fr_auto]">
+                      <input value={item.name} onChange={event => updateOrderItem(index, { name: event.target.value })} placeholder="Product name" className="rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold outline-none focus:border-indigo-400" />
+                      <input type="number" min={1} value={item.quantity} onChange={event => updateOrderItem(index, { quantity: Number(event.target.value || 1) })} aria-label="Quantity" className="rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold outline-none focus:border-indigo-400" />
+                      <input type="number" min={0} value={item.price} onChange={event => updateOrderItem(index, { price: Number(event.target.value || 0) })} aria-label="Price" className="rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold outline-none focus:border-indigo-400" />
+                      <button type="button" onClick={() => removeOrderItem(index)} disabled={orderDraft.items.length <= 1} className="rounded-lg border border-rose-200 p-2 text-rose-600 hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-40" title="Remove item">
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                      <input value={item.category} onChange={event => updateOrderItem(index, { category: event.target.value })} placeholder="Category" className="md:col-span-2 rounded-lg border border-slate-200 px-3 py-2 text-xs outline-none focus:border-indigo-400" />
+                      <input value={Object.entries(item.attributes || {}).map(([key, value]) => `${key}: ${value}`).join(', ')} onChange={event => {
+                        const attrs = Object.fromEntries(event.target.value.split(',').map(part => part.split(':').map(value => value.trim())).filter(parts => parts[0] && parts[1]) as [string, string][]);
+                        updateOrderItem(index, { attributes: attrs });
+                      }} placeholder="Attributes, e.g. Color: Black, Size: 36" className="md:col-span-2 rounded-lg border border-slate-200 px-3 py-2 text-xs outline-none focus:border-indigo-400" />
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+                <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                  Delivery charge
+                  <input type="number" min={0} value={orderDraft.delivery_charge} onChange={event => updateOrderDraft({ delivery_charge: Number(event.target.value || 0) })} className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold normal-case tracking-normal outline-none focus:border-indigo-400" />
+                </label>
+                <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                  Discount
+                  <input type="number" min={0} value={orderDraft.discount} onChange={event => updateOrderDraft({ discount: Number(event.target.value || 0) })} className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold normal-case tracking-normal outline-none focus:border-indigo-400" />
+                </label>
+                <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">COD total</p>
+                  <p className="mt-1 text-lg font-bold text-slate-900">{orderLead.currency || 'BDT'} {draftTotal.toLocaleString()}</p>
+                </div>
+                <label className="md:col-span-3 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                  Note
+                  <textarea value={orderDraft.note} onChange={event => updateOrderDraft({ note: event.target.value })} rows={2} className="mt-1 w-full resize-none rounded-lg border border-slate-200 px-3 py-2 text-xs normal-case tracking-normal outline-none focus:border-indigo-400" />
+                </label>
+              </div>
+            </div>
+            <div className="flex items-center justify-end gap-2 border-t border-slate-100 px-5 py-4">
+              <button type="button" onClick={() => { setOrderLead(null); setOrderDraft(null); }} className="rounded-lg border border-slate-200 px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-50">Cancel</button>
+              <button type="button" onClick={submitCreateOrder} disabled={creatingOrder} className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-xs font-bold text-white hover:bg-indigo-700 disabled:opacity-50">
+                <ShoppingCart className="h-4 w-4" /> {creatingOrder ? 'Creating...' : 'Create Order'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

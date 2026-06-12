@@ -659,6 +659,48 @@ async function startServer() {
     res.json({ success: true, item: target });
   });
 
+  app.post("/api/incomplete-checkouts/:id/create-order", (req, res) => {
+    const id = Number(req.params.id);
+    const target = incompleteCheckouts.find(item => item.id === id);
+    if (!target) {
+      return res.status(404).json({ detail: "Incomplete checkout not found." });
+    }
+    if (!["incomplete", "contacted", "open"].includes(String(target.status))) {
+      return res.status(400).json({ detail: "Only incomplete or contacted leads can be converted to an order." });
+    }
+    const body = req.body || {};
+    const orderId = `manual-${id}-${Date.now()}`;
+    const items = Array.isArray(body.items) ? body.items : [];
+    const subtotal = items.reduce((sum: number, item: any) => sum + Number(item.price || 0) * Number(item.quantity || 1), 0);
+    const amount = Math.max(0, subtotal + Number(body.delivery_charge || 0) - Number(body.discount || 0));
+    pendingOrders.unshift({
+      orderId,
+      amount,
+      customer: body.phone || target.customer_phone || "",
+      recipientName: body.customer_name || target.customer_name || "",
+      recipientPhone: body.phone || target.customer_phone || "",
+      recipientAddress: body.address || "",
+      customerName: body.customer_name || target.customer_name || "",
+      phone: body.phone || target.customer_phone || "",
+      address: body.address || "",
+      products: items.map((item: any) => ({
+        name: item.name,
+        quantity: item.quantity || 1,
+        price: item.price || 0,
+        attributes: item.attributes || {},
+        category: item.category || "",
+      })),
+      fraudScore: 0,
+      fraudDetails: {},
+      ageHours: 0,
+      timestamp: new Date().toISOString(),
+    });
+    target.status = "recovered";
+    target.orderId = orderId;
+    target.updated_at = new Date().toISOString();
+    res.json({ success: true, orderId, checkoutId: id });
+  });
+
   app.get("/api/courier/settings", (req, res) => {
     res.json(courierSettings);
   });
