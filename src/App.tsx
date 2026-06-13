@@ -334,6 +334,23 @@ export default function App() {
     }, 4000);
   };
 
+  const getCookieValue = (name: string) => {
+    return document.cookie
+      .split('; ')
+      .find(row => row.startsWith(`${name}=`))
+      ?.split('=')
+      .slice(1)
+      .join('=') || '';
+  };
+
+  const clientMutationHeaders = (extra: HeadersInit = {}) => {
+    const csrfToken = decodeURIComponent(getCookieValue('buykori_client_csrf'));
+    return {
+      ...extra,
+      ...(csrfToken ? { 'X-Client-CSRF-Token': csrfToken } : {}),
+    };
+  };
+
   useEffect(() => {
     if (loading || !profile || isPluginConnectRoute) return;
     if (profile.guideDismissed || localStorage.getItem(getGuideStorageKey(profile)) === '1') return;
@@ -998,8 +1015,15 @@ export default function App() {
 
   // Core heartbeat trigger from header or settings
   const refreshWPHeartbeat = async () => {
-    const res = await fetch('/api/connection/test', { method: 'POST' });
-    if (!res.ok) throw new Error();
+    const res = await fetch('/api/connection/test', {
+      method: 'POST',
+      credentials: 'include',
+      headers: clientMutationHeaders(),
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      throw new Error(body.detail || `Connection refresh failed (${res.status}).`);
+    }
     const data = await res.json();
     setConnection(data.connection);
     await loadSystemData(false);

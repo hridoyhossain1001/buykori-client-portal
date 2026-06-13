@@ -107,10 +107,12 @@ export function Header({
         msg: "WordPress connected! Everything looks good.",
         err: false
       });
-    } catch {
+    } catch (error) {
       setToast({
         show: true,
-        msg: "Couldn't reach your WordPress site. Please check your plugin.",
+        msg: error instanceof Error && error.message
+          ? error.message
+          : "Couldn't refresh the connection. Please try again.",
         err: true
       });
     } finally {
