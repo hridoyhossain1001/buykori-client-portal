@@ -61,6 +61,20 @@ function formatHeldAge(ageHours: unknown): string {
   return remainingHours > 0 ? `${days}d ${remainingHours}h ago` : `${days}d ago`;
 }
 
+function productMeta(product: any): Array<{ label: string; value: string; category?: boolean }> {
+  const meta: Array<{ label: string; value: string; category?: boolean }> = [];
+  const category = String(product?.category || product?.content_category || '').trim();
+  if (category) meta.push({ label: 'Category', value: category, category: true });
+
+  if (product?.attributes && typeof product.attributes === 'object' && !Array.isArray(product.attributes)) {
+    Object.entries(product.attributes).forEach(([key, value]) => {
+      const text = String(value || '').trim();
+      if (text) meta.push({ label: key, value: text });
+    });
+  }
+  return meta;
+}
+
 interface OrdersViewProps {
   deferredData: any;
   deferredLoadError?: string | null;
@@ -836,17 +850,15 @@ export function OrdersView({
                       {products.length > 0 && (
                         <div className="rounded-lg border border-slate-200 ">
                           {products.slice(0, 4).map((p: any, i: number) => {
-                            const attributes = p.attributes && typeof p.attributes === 'object'
-                              ? Object.entries(p.attributes).filter(([, value]) => String(value || '').trim())
-                              : [];
+                            const meta = productMeta(p);
                             return (
                               <div key={i} className="border-b border-slate-100 px-3 py-2 text-xs last:border-b-0 ">
                                 <p className="font-semibold text-slate-700 ">{p.name || p.content_name || 'Product'}</p>
-                                {attributes.length > 0 && (
+                                {meta.length > 0 && (
                                   <div className="mt-1 flex flex-wrap gap-1">
-                                    {attributes.map(([key, value]) => (
-                                      <span key={key} className="rounded bg-indigo-50 px-1.5 py-0.5 text-[10px] font-semibold text-indigo-700">
-                                        {key}: {String(value)}
+                                    {meta.map((item) => (
+                                      <span key={`${item.label}-${item.value}`} className={`rounded px-1.5 py-0.5 text-[10px] font-semibold ${item.category ? 'bg-slate-100 text-slate-600' : 'bg-indigo-50 text-indigo-700'}`}>
+                                        {item.label}: {item.value}
                                       </span>
                                     ))}
                                   </div>
@@ -946,65 +958,62 @@ export function OrdersView({
                         {/* Expanded Detail Row */}
                         {isExpanded && (
                           <tr className="bg-slate-50/80 ">
-                            <td colSpan={6} className="px-6 py-4">
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <td colSpan={6} className="px-6 py-3">
+                              <div className="grid grid-cols-1 gap-3 lg:grid-cols-[minmax(260px,0.8fr)_minmax(0,1.4fr)]">
                                 {/* Customer Info Card */}
-                                <div className="space-y-2.5">
-                                  <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 ">Customer Details</p>
-                                  <div className="bg-white  rounded-xl border border-slate-200  p-3 space-y-2">
+                                <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+                                  <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50/70 px-3 py-2">
+                                    <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Customer Details</p>
+                                    <span className="font-mono text-[10px] font-bold text-slate-400">#{order.orderId}</span>
+                                  </div>
+                                  <div className="space-y-2 p-3">
                                     <div className="flex items-start gap-2.5">
-                                      <div className="w-7 h-7 rounded-lg bg-indigo-50  flex items-center justify-center shrink-0">
+                                      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-indigo-50">
                                         <User className="w-3.5 h-3.5 text-indigo-500" />
                                       </div>
-                                      <div>
+                                      <div className="min-w-0">
                                         <p className="text-[9px] text-slate-400 uppercase font-bold">Name</p>
-                                        <p className="text-xs font-semibold text-slate-800 ">{order.recipientName || '-'}</p>
+                                        <p className="truncate text-xs font-semibold text-slate-800">{order.recipientName || '-'}</p>
                                       </div>
                                     </div>
                                     <div className="flex items-start gap-2.5">
-                                      <div className="w-7 h-7 rounded-lg bg-emerald-50  flex items-center justify-center shrink-0">
+                                      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-emerald-50">
                                         <Phone className="w-3.5 h-3.5 text-emerald-500" />
                                       </div>
-                                      <div>
+                                      <div className="min-w-0">
                                         <p className="text-[9px] text-slate-400 uppercase font-bold">Phone</p>
-                                        <p className="text-xs font-semibold text-slate-800  font-mono">{usablePhone(order.recipientPhone) || '-'}</p>
+                                        <p className="font-mono text-xs font-semibold text-slate-800">{usablePhone(order.recipientPhone) || '-'}</p>
                                       </div>
                                     </div>
                                     <div className="flex items-start gap-2.5">
-                                      <div className="w-7 h-7 rounded-lg bg-amber-50  flex items-center justify-center shrink-0">
+                                      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-amber-50">
                                         <MapPin className="w-3.5 h-3.5 text-amber-500" />
                                       </div>
-                                      <div>
+                                      <div className="min-w-0">
                                         <p className="text-[9px] text-slate-400 uppercase font-bold">Address</p>
-                                        <p className="text-xs font-semibold text-slate-800 ">{order.recipientAddress || '-'}</p>
+                                        <p className="text-xs font-semibold leading-relaxed text-slate-800">{order.recipientAddress || '-'}</p>
                                       </div>
                                     </div>
                                   </div>
-                                  <div className="mt-4 flex flex-wrap items-center justify-end gap-2 border-t border-slate-200 pt-4 ">
-                                    {usablePhone(order.recipientPhone) && (
-                                      <a
-                                        href={`tel:${usablePhone(order.recipientPhone)}`}
-                                        className="btn-touch-expand inline-flex items-center gap-1.5 rounded bg-emerald-800 px-3 py-1.5 text-[10px] font-bold text-white shadow-sm transition-colors hover:bg-emerald-900"
-                                      >
-                                        <Phone className="w-3 h-3" /> Call Customer
-                                      </a>
-                                    )}
-                                    <button
-                                      type="button"
-                                      onClick={() => openPendingCourierModal(order)}
-                                      className="btn-touch-expand inline-flex items-center gap-1.5 rounded bg-indigo-600 px-3 py-1.5 text-[10px] font-bold text-white shadow-sm transition-colors hover:bg-indigo-700 cursor-pointer"
-                                    >
-                                      <Send className="w-3 h-3" /> Book Courier
-                                    </button>
+                                  <div className="grid grid-cols-2 border-t border-slate-100 bg-slate-50/50 text-[10px]">
+                                    <div className="px-3 py-2">
+                                      <p className="font-bold uppercase text-slate-400">Order Value</p>
+                                      <p className="mt-0.5 font-bold text-slate-800">BDT {Number(order.amount || 0).toLocaleString()}</p>
+                                    </div>
+                                    <div className="border-l border-slate-100 px-3 py-2">
+                                      <p className="font-bold uppercase text-slate-400">Held</p>
+                                      <p className="mt-0.5 font-mono font-bold text-slate-800">{formatHeldAge(order.ageHours)}</p>
+                                    </div>
                                   </div>
                                 </div>
 
                                 {/* Products Card */}
-                                <div className="space-y-2.5">
-                                  <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 ">
-                                    Order Items {products.length > 0 && <span className="ml-1 text-indigo-500">({products.length})</span>}
-                                  </p>
-                                  <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+                                <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+                                  <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50/70 px-3 py-2">
+                                    <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Order Items</p>
+                                    <span className="rounded-full bg-indigo-50 px-2 py-0.5 text-[10px] font-bold text-indigo-600">{products.length} item{products.length === 1 ? '' : 's'}</span>
+                                  </div>
+                                  <div>
                                     {products.length === 0 ? (
                                       <div className="px-4 py-5 text-center">
                                         <Package className="w-5 h-5 mx-auto text-slate-300  mb-1" />
@@ -1013,24 +1022,24 @@ export function OrdersView({
                                     ) : (
                                       <div className="divide-y divide-slate-100">
                                         {products.map((p: any, i: number) => {
-                                          const attributes = p.attributes && typeof p.attributes === 'object'
-                                            ? Object.entries(p.attributes).filter(([, value]) => String(value || '').trim())
-                                            : [];
+                                          const meta = productMeta(p);
                                           return (
-                                            <div key={i} className="px-3 py-2.5 hover:bg-slate-50/50">
-                                              <p className="text-xs font-semibold leading-snug text-slate-800">{p.name || p.content_name || 'Product'}</p>
-                                              {attributes.length > 0 && (
-                                                <div className="mt-1.5 flex flex-wrap gap-1">
-                                                  {attributes.map(([key, value]) => (
-                                                    <span key={key} className="rounded-md border border-indigo-100 bg-indigo-50 px-1.5 py-0.5 text-[9px] font-bold text-indigo-700">
-                                                      {key}: {String(value)}
+                                            <div key={i} className="px-3 py-3 hover:bg-slate-50/50">
+                                              <div className="flex items-start justify-between gap-4">
+                                                <p className="text-xs font-semibold leading-snug text-slate-800">{p.name || p.content_name || 'Product'}</p>
+                                                <p className="shrink-0 text-xs font-bold text-slate-800">{Number(p.price || 0) > 0 ? `BDT ${Number(p.price || 0).toLocaleString()}` : 'No price'}</p>
+                                              </div>
+                                              {meta.length > 0 && (
+                                                <div className="mt-2 flex flex-wrap gap-1.5">
+                                                  {meta.map((item) => (
+                                                    <span key={`${item.label}-${item.value}`} className={`rounded-md border px-2 py-1 text-[9px] font-bold ${item.category ? 'border-slate-200 bg-slate-50 text-slate-600' : 'border-indigo-100 bg-indigo-50 text-indigo-700'}`}>
+                                                      {item.label}: {item.value}
                                                     </span>
                                                   ))}
                                                 </div>
                                               )}
-                                              <div className="mt-1.5 flex items-center gap-3 text-[10px] text-slate-500">
-                                                <span>Qty <strong className="text-slate-700">{p.quantity || 1}</strong></span>
-                                                <span>{Number(p.price || 0) > 0 ? `BDT ${Number(p.price || 0).toLocaleString()}` : 'Price unavailable'}</span>
+                                              <div className="mt-2 flex items-center gap-3 text-[10px] text-slate-500">
+                                                <span className="rounded bg-slate-100 px-1.5 py-0.5">Qty <strong className="text-slate-700">{p.quantity || 1}</strong></span>
                                               </div>
                                             </div>
                                           );
@@ -1435,13 +1444,27 @@ export function OrdersView({
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100 ">
-                        {selectedOrder.products.map((p: any, i: number) => (
-                          <tr key={i} className="hover:bg-slate-50/50 ">
-                            <td className="px-3 py-1.5 font-medium text-slate-700  max-w-[160px] truncate" title={p.name}>{p.name}</td>
-                            <td className="px-3 py-1.5 text-center font-bold text-slate-600 ">{p.quantity}</td>
+                        {selectedOrder.products.map((p: any, i: number) => {
+                          const meta = productMeta(p);
+                          return (
+                            <tr key={i} className="hover:bg-slate-50/50 ">
+                              <td className="max-w-[260px] px-3 py-2">
+                                <p className="font-medium leading-snug text-slate-700" title={p.name}>{p.name}</p>
+                                {meta.length > 0 && (
+                                  <div className="mt-1 flex flex-wrap gap-1">
+                                    {meta.map((item) => (
+                                      <span key={`${item.label}-${item.value}`} className={`rounded px-1.5 py-0.5 text-[8px] font-bold ${item.category ? 'bg-slate-100 text-slate-600' : 'bg-indigo-50 text-indigo-700'}`}>
+                                        {item.label}: {item.value}
+                                      </span>
+                                    ))}
+                                  </div>
+                                )}
+                              </td>
+                              <td className="px-3 py-1.5 text-center font-bold text-slate-600 ">{p.quantity}</td>
                               <td className="px-3 py-1.5 text-right font-semibold text-slate-700 ">{Number(p.price || 0) > 0 ? `BDT ${Number(p.price || 0).toLocaleString()}` : '-'}</td>
-                          </tr>
-                        ))}
+                            </tr>
+                          );
+                        })}
                       </tbody>
                     </table>
                   )}
