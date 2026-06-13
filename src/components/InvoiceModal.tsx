@@ -9,6 +9,7 @@ import {
   MapPin, 
   FileText
 } from 'lucide-react';
+import { clonePrintMarkup } from '../lib/print';
 
 interface ProductItem {
   name: string;
@@ -183,10 +184,9 @@ function InvoiceContent({ onClose, ordersList, storeName = "Buykori AdSync Shop"
   };
 
   const handlePrint = () => {
-    const printArea = document.querySelector('.print-invoice-area');
-    if (!printArea) return;
+    const printContent = clonePrintMarkup('.print-invoice-area');
+    if (!printContent) return;
 
-    const printContent = printArea.innerHTML;
     const printWindow = window.open('', '_blank', 'width=800,height=900');
     if (!printWindow) {
       // Popup blocked fallback

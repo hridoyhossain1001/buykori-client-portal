@@ -16,6 +16,21 @@ import {
 } from "./src/lib/mock-data.js";
 import { CAPIEvent, APILog, Suggestion, Platform, EventRule, PlatformConfig, OutboxItem } from "./src/types.js";
 
+const isProductionRuntime = process.env.NODE_ENV === "production";
+const allowProductionMockServer = process.env.BUYKORI_ALLOW_MOCK_SERVER_PRODUCTION === "1";
+const HOST = process.env.BUYKORI_MOCK_SERVER_HOST || (isProductionRuntime ? "127.0.0.1" : "0.0.0.0");
+const PORT = Number(process.env.PORT || 3000);
+
+function assertMockServerMayStart() {
+  if (isProductionRuntime && !allowProductionMockServer) {
+    throw new Error(
+      "client-portal/server.ts is a local mock API server and must not run in production. " +
+      "Deploy the Vite static app against the authenticated backend/BFF instead. " +
+      "For an intentional local smoke test only, set BUYKORI_ALLOW_MOCK_SERVER_PRODUCTION=1."
+    );
+  }
+}
+
 interface MockPendingOrder {
   orderId: string;
   amount: number;
@@ -58,9 +73,10 @@ interface MockIncompleteCheckout {
 }
 
 async function startServer() {
+  assertMockServerMayStart();
+
   const app = express();
   app.use(express.json());
-  const PORT = 3000;
 
   // In-memory backend database state
   let profile = { ...initialProfile };
@@ -135,6 +151,17 @@ async function startServer() {
       domain: "growth-lab.shop",
       is_current: false,
       role: "Admin",
+    },
+  ];
+  let adAccounts = [
+    {
+      id: 1,
+      platform: "meta",
+      external_account_id: "act_mock_1001",
+      account_name: "Mock Meta Account",
+      account_currency: "BDT",
+      account_timezone: "Asia/Dhaka",
+      last_synced_at: new Date().toISOString(),
     },
   ];
   let courierSettings: Record<string, any> = {
@@ -240,9 +267,9 @@ async function startServer() {
   
   // Platform Credentials state
   let credentials: Record<Platform, PlatformConfig> = {
-    'Meta CAPI': { enabled: true, pixelIdOrMeasurementId: "982049182390231", accessToken: "EAADf9a88cdba8382d...", status: "Valid" },
-    'TikTok Events API': { enabled: true, pixelIdOrMeasurementId: "C12903JS902KA", accessToken: "tt_ac_tkn_81a7b...", status: "Valid" },
-    'GA4': { enabled: true, pixelIdOrMeasurementId: "G-9K38A2JS09", accessToken: "secret_mp_token_...", status: "Valid" }
+    'Meta CAPI': { enabled: true, pixelIdOrMeasurementId: "mock-meta-pixel-id", accessToken: "mock_meta_access_token", status: "Valid" },
+    'TikTok Events API': { enabled: true, pixelIdOrMeasurementId: "mock-tiktok-pixel-id", accessToken: "mock_tiktok_access_token", status: "Valid" },
+    'GA4': { enabled: true, pixelIdOrMeasurementId: "mock-ga4-measurement-id", accessToken: "mock_ga4_api_secret", status: "Valid" }
   };
 
   // Generate initial database of events & raw API logs
@@ -342,6 +369,15 @@ async function startServer() {
   // User Profile Endpoints
   app.get("/api/profile", (req, res) => {
     res.json(profile);
+  });
+
+  app.post("/api/guide/dismiss", (req, res) => {
+    profile.guideDismissed = true;
+    res.json({ success: true });
+  });
+
+  app.post("/api/v1/auth/client/logout", (req, res) => {
+    res.json({ success: true });
   });
 
   app.post("/api/profile", (req, res) => {
@@ -493,6 +529,18 @@ async function startServer() {
       };
     });
     res.json({ trend });
+  });
+
+  app.get("/api/events/recovery-summary", (req, res) => {
+    const browserEvents = events.filter(event => event.payload?.action_source === "website").length;
+    const serverEvents = events.length;
+    const recoveredEvents = Math.max(0, serverEvents - browserEvents);
+    res.json({
+      browser_events: browserEvents,
+      server_events: serverEvents,
+      recovered_events: recoveredEvents,
+      recovery_rate: serverEvents ? Math.round((recoveredEvents / serverEvents) * 1000) / 10 : 0,
+    });
   });
 
   // Outbound API Logs
@@ -762,6 +810,10 @@ async function startServer() {
     });
   });
 
+  app.post("/api/incomplete-checkouts/refresh", (req, res) => {
+    res.json({ success: true });
+  });
+
   app.post("/api/incomplete-checkouts/:id/status", (req, res) => {
     const id = Number(req.params.id);
     const target = incompleteCheckouts.find(item => item.id === id);
@@ -932,6 +984,64 @@ async function startServer() {
     res.json({ success: true, store });
   });
 
+  app.get("/api/v1/ad-campaigns", (req, res) => {
+    res.json([
+      { id: "mock-meta-prospecting", name: "Meta Prospecting", platform: "meta", status: "active" },
+      { id: "mock-tiktok-retargeting", name: "TikTok Retargeting", platform: "tiktok", status: "active" },
+    ]);
+  });
+
+  app.get("/api/v1/ad-accounts", (req, res) => {
+    res.json(adAccounts);
+  });
+
+  app.post("/api/v1/ad-accounts", (req, res) => {
+    const account = {
+      id: Math.max(0, ...adAccounts.map(item => item.id)) + 1,
+      platform: String(req.body?.platform || "meta"),
+      external_account_id: String(req.body?.external_account_id || ""),
+      account_name: String(req.body?.account_name || "Mock Ad Account"),
+      account_currency: String(req.body?.account_currency || "USD"),
+      account_timezone: String(req.body?.account_timezone || "Asia/Dhaka"),
+      last_synced_at: null,
+    };
+    adAccounts.push(account);
+    res.json(account);
+  });
+
+  app.delete("/api/v1/ad-accounts/:id", (req, res) => {
+    const id = Number(req.params.id);
+    adAccounts = adAccounts.filter(account => account.id !== id);
+    res.json({ success: true });
+  });
+
+  app.get("/api/v1/analytics/ad-performance", (req, res) => {
+    res.json({
+      sync_enabled: true,
+      connected_accounts: adAccounts.length,
+      last_synced_at: adAccounts[0]?.last_synced_at || null,
+      missing_attribution_purchases: 2,
+      data: [
+        {
+          platform: "meta",
+          campaign_id: "mock-meta-prospecting",
+          campaign_name: "Meta Prospecting",
+          spend: 18000,
+          spend_currency: "BDT",
+          clicks: 920,
+          impressions: 28400,
+          placed_purchases: 42,
+          placed_revenue: 105000,
+          confirmed_purchases: 35,
+          confirmed_revenue: 87500,
+          confirmed_roas: 4.86,
+          confirmed_cpa: 514.29,
+          revenue_currency: "BDT",
+        },
+      ],
+    });
+  });
+
   app.get("/api/v1/analytics/overview", (req, res) => {
     const total = events.length;
     const success = events.filter(event => event.status === "Success").length;
@@ -1068,8 +1178,8 @@ async function startServer() {
     });
   }
 
-  app.listen(PORT, "0.0.0.0", () => {
-    console.log(`CAPI Full-Stack Portal serving on port ${PORT}`);
+  app.listen(PORT, HOST, () => {
+    console.log(`CAPI mock portal serving on http://${HOST}:${PORT}`);
   });
 }
 

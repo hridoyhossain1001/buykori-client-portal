@@ -391,8 +391,19 @@ export default function App() {
     }
   };
 
-  const fetchIncompleteCheckouts = async () => {
+  const refreshIncompleteCheckoutStates = async () => {
+    const res = await fetch('/api/incomplete-checkouts/refresh', { method: 'POST' });
+    if (!res.ok && res.status !== 403) {
+      const body = await res.json().catch(() => ({}));
+      throw new Error(body.detail || `Could not refresh incomplete checkouts (${res.status}).`);
+    }
+  };
+
+  const fetchIncompleteCheckouts = async (options: { refresh?: boolean } = {}) => {
     try {
+      if (options.refresh) {
+        await refreshIncompleteCheckoutStates();
+      }
       const res = await fetch('/api/incomplete-checkouts');
       if (res.ok) {
         setIncompleteCheckoutData(await res.json());
@@ -505,7 +516,7 @@ export default function App() {
     if (page === 'pending-purchases' || page === 'orders') {
       await fetchDeferred();
     } else if (page === 'incomplete-checkouts') {
-      await fetchIncompleteCheckouts();
+      await fetchIncompleteCheckouts({ refresh: true });
     } else if (page === 'event-logs') {
       await Promise.all([fetchEvents(), fetchOutbox()]);
     } else if (page === 'api-logs') {
@@ -838,7 +849,7 @@ export default function App() {
       if (document.hidden) return;
 
       if (activePage === 'incomplete-checkouts') {
-        fetchIncompleteCheckouts().catch(err => {
+        fetchIncompleteCheckouts({ refresh: true }).catch(err => {
           console.error('Failed to auto-refresh incomplete checkouts', err);
         });
       } else if (activePage === 'pending-purchases' || activePage === 'orders') {
@@ -1638,7 +1649,7 @@ export default function App() {
                 data={incompleteCheckoutData}
                 onStatusChange={handleIncompleteCheckoutStatus}
                 onCreateOrder={handleCreateRecoveryOrder}
-                onRefresh={fetchIncompleteCheckouts}
+                onRefresh={() => fetchIncompleteCheckouts({ refresh: true })}
                 showToast={showToast}
               />
             )}

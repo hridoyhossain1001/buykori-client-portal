@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import JsBarcode from 'jsbarcode';
 import QRCode from 'qrcode';
 import { Package, Printer, Ruler, X } from 'lucide-react';
+import { clonePrintMarkup } from '../lib/print';
 
 interface CourierLabelOrder {
   id?: number;
@@ -129,8 +130,8 @@ export function CourierLabelModal({
   const dimensions = LABEL_DIMENSIONS[labelSize];
 
   const handlePrint = () => {
-    const printArea = document.querySelector('.print-courier-label-area');
-    if (!printArea) return;
+    const printMarkup = clonePrintMarkup('.print-courier-label-area');
+    if (!printMarkup) return;
 
     const printWindow = window.open('', '_blank', 'width=720,height=900');
     if (!printWindow) {
@@ -176,7 +177,7 @@ export function CourierLabelModal({
     .courier-label-footer { display: flex; justify-content: space-between; gap: 4px; font-size: ${labelSize === '3x3' ? '7px' : '6px'}; color: #64748b; }
   </style>
 </head>
-<body>${printArea.innerHTML}</body>
+<body>${printMarkup}</body>
 </html>`);
     printWindow.document.close();
 

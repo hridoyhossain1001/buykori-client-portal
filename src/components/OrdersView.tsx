@@ -556,6 +556,10 @@ export function OrdersView({
         fetchDeferred();
       } else {
         showToast(data.detail || data.message || `Failed to cancel order on ${providerName}.`, true);
+        if (data.needs_manual_cancel || data.state === 'cancel_failed_provider_active') {
+          fetchCourierOrders();
+          fetchDeferred();
+        }
       }
     } catch (err) {
       console.error('Cancel error:', err);

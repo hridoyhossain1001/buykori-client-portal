@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { CheckCircle2, Clock3, Copy, ExternalLink, MessageCircle, Phone, Plus, Search, ShoppingCart, Trash2, UserRoundX, X } from 'lucide-react';
+import { CheckCircle2, Clock3, Copy, MessageCircle, Phone, Plus, Search, ShoppingCart, Trash2, UserRoundX, X } from 'lucide-react';
 import { Tooltip } from './common/Tooltip';
 
 interface IncompleteCheckoutItem {
@@ -322,7 +322,6 @@ export function IncompleteCheckoutsView({ data, onStatusChange, onCreateOrder, o
                     </a>
                   )}
                   <button title="Copy phone" onClick={() => { navigator.clipboard.writeText(item.phone); showToast('Phone number copied.'); }} className="rounded-lg border border-slate-200 p-2 hover:bg-slate-50  "><Copy className="h-3.5 w-3.5" /></button>
-                  {item.pageUrl && <a href={item.pageUrl} target="_blank" rel="noreferrer" title="Open landing page" className="rounded-lg border border-slate-200 p-2 hover:bg-slate-50  "><ExternalLink className="h-3.5 w-3.5" /></a>}
                   {['incomplete', 'contacted'].includes(item.status) && <button disabled={updatingId === item.id} title="Create order" onClick={() => openCreateOrder(item)} className="rounded-lg border border-indigo-200 bg-indigo-50 p-2 text-indigo-700 hover:bg-indigo-100 disabled:opacity-50"><ShoppingCart className="h-3.5 w-3.5" /></button>}
                   {!['recovered', 'contacted'].includes(item.status) && <button disabled={updatingId === item.id} title="Mark contacted" onClick={() => updateStatus(item.id, 'contacted')} className="rounded-lg border border-emerald-200 p-2 text-emerald-600 hover:bg-emerald-50 disabled:opacity-50  "><CheckCircle2 className="h-3.5 w-3.5" /></button>}
                   {!['recovered', 'ignored'].includes(item.status) && <button disabled={updatingId === item.id} title="Ignore draft" onClick={() => updateStatus(item.id, 'ignored')} className="rounded-lg border border-rose-200 p-2 text-rose-600 hover:bg-rose-50 disabled:opacity-50  "><UserRoundX className="h-3.5 w-3.5" /></button>}
@@ -392,7 +391,6 @@ export function IncompleteCheckoutsView({ data, onStatusChange, onCreateOrder, o
                           </a>
                         )}
                         <button title="Copy phone" onClick={() => { navigator.clipboard.writeText(item.phone); showToast('Phone number copied.'); }} className="rounded-lg border border-slate-200 p-2 hover:bg-slate-50  "><Copy className="h-3.5 w-3.5" /></button>
-                        {item.pageUrl && <a href={item.pageUrl} target="_blank" rel="noreferrer" title="Open landing page" className="rounded-lg border border-slate-200 p-2 hover:bg-slate-50  "><ExternalLink className="h-3.5 w-3.5" /></a>}
                         {['incomplete', 'contacted'].includes(item.status) && <button disabled={updatingId === item.id} title="Create order" onClick={() => openCreateOrder(item)} className="rounded-lg border border-indigo-200 bg-indigo-50 p-2 text-indigo-700 hover:bg-indigo-100 disabled:opacity-50"><ShoppingCart className="h-3.5 w-3.5" /></button>}
                         {!['recovered', 'contacted'].includes(item.status) && <button disabled={updatingId === item.id} title="Mark contacted" onClick={() => updateStatus(item.id, 'contacted')} className="rounded-lg border border-emerald-200 p-2 text-emerald-600 hover:bg-emerald-50 disabled:opacity-50  "><CheckCircle2 className="h-3.5 w-3.5" /></button>}
                         {!['recovered', 'ignored'].includes(item.status) && <button disabled={updatingId === item.id} title="Ignore draft" onClick={() => updateStatus(item.id, 'ignored')} className="rounded-lg border border-rose-200 p-2 text-rose-600 hover:bg-rose-50 disabled:opacity-50  "><UserRoundX className="h-3.5 w-3.5" /></button>}
