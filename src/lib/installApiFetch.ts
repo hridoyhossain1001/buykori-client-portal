@@ -17,6 +17,33 @@ const readCookie = (name: string) => {
 
 const isMutation = (method: string) => !['GET', 'HEAD', 'OPTIONS'].includes(method.toUpperCase());
 
+const isSameOriginApiRequest = (input: RequestInfo | URL) => {
+  try {
+    const rawUrl = input instanceof Request ? input.url : String(input);
+    const url = new URL(rawUrl, window.location.origin);
+    return url.origin === window.location.origin && url.pathname.startsWith('/api/');
+  } catch {
+    return false;
+  }
+};
+
+const isCsrfRejectedResponse = async (response: Response) => {
+  const text = await response.clone().text().catch(() => '');
+  try {
+    const payload = JSON.parse(text);
+    const detail = payload?.detail;
+    if (detail?.code === 'client_csrf_invalid') {
+      return true;
+    }
+    if (payload?.code === 'client_csrf_invalid') {
+      return true;
+    }
+  } catch {
+    // Fall through to legacy string matching for older servers.
+  }
+  return text.toLowerCase().includes('csrf');
+};
+
 export const installApiFetch = () => {
   const current = window.fetch;
   if ((current as typeof current & { __buykoriWrapped?: boolean }).__buykoriWrapped) {
@@ -41,6 +68,10 @@ export const installApiFetch = () => {
   };
 
   const wrappedFetch: typeof window.fetch = async (input, init = {}) => {
+    if (!isSameOriginApiRequest(input)) {
+      return current(input, init);
+    }
+
     const request = input instanceof Request ? input : null;
     const method = String(init.method || request?.method || 'GET');
     const mutation = isMutation(method);
@@ -69,8 +100,7 @@ export const installApiFetch = () => {
     const response = await current(input, await withClientDefaults());
     if (mutation && response.status === 403) {
       let csrf = readCookie(CSRF_COOKIE);
-      const text = await response.clone().text().catch(() => '');
-      const csrfRejected = text.toLowerCase().includes('csrf');
+      const csrfRejected = await isCsrfRejectedResponse(response);
       if (csrfRejected && (!request || !request.bodyUsed)) {
         await refreshCsrfCookie();
         const refreshedCsrf = readCookie(CSRF_COOKIE);
