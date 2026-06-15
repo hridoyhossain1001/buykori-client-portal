@@ -31,6 +31,10 @@ interface DashboardViewProps {
   recoverySummary: {
     browser_events: number;
     server_events: number;
+    server_attempt_events?: number;
+    server_failed_events?: number;
+    server_filtered_events?: number;
+    server_missing_event_id_events?: number;
     matched_events: number;
     recovered_events: number;
     recovery_rate: number;
@@ -104,21 +108,41 @@ export function DashboardView({
   ];
   const browserEventCount = Number(recoverySummary?.browser_events || 0);
   const serverEventCount = Number(recoverySummary?.server_events || 0);
+  const serverAttemptCount = Number(recoverySummary?.server_attempt_events ?? serverEventCount);
+  const serverFailedCount = Number(recoverySummary?.server_failed_events || 0);
+  const serverFilteredCount = Number(recoverySummary?.server_filtered_events || 0);
+  const serverMissingEventIdCount = Number(recoverySummary?.server_missing_event_id_events || 0);
   const matchedEventCount = Number(recoverySummary?.matched_events || 0);
   const recoveredEventCount = Number(recoverySummary?.recovered_events || 0);
   const serverRecoveryRate = Number(recoverySummary?.recovery_rate || 0);
   const hasServerCoverage = serverEventCount > 0;
-  const hasBrowserOnlyActivity = browserEventCount > 0 && !hasServerCoverage;
+  const hasServerAttempts = serverAttemptCount > 0 || serverFailedCount > 0 || serverFilteredCount > 0;
+  const hasServerIssueOnly = !hasServerCoverage && hasServerAttempts;
+  const hasBrowserOnlyActivity = browserEventCount > 0 && !hasServerCoverage && !hasServerAttempts;
   const coverageLabel = hasServerCoverage
     ? `${serverRecoveryRate}%`
+    : hasServerIssueOnly
+      ? 'Server failing'
     : hasBrowserOnlyActivity
       ? 'Needs server'
       : 'No data';
   const coverageDescription = hasServerCoverage
     ? 'Server-side events without a matching browser event ID. This helps recover blocked browser tracking, but very high values can also indicate event ID mismatch.'
+    : hasServerIssueOnly
+      ? 'Server-side tracking is receiving events, but no successful delivery was found in this timeframe. Check platform credentials and failed event logs.'
     : hasBrowserOnlyActivity
       ? 'Browser events are visible, but no successful server event with matching IDs was found in this timeframe.'
       : 'No browser or server tracking events found in this timeframe yet.';
+  const coverageWarningTone = hasBrowserOnlyActivity || hasServerIssueOnly;
+  const serverDetailLabel = hasServerIssueOnly ? 'Attempted / failed' : 'Server matched / only';
+  const serverDetailValue = hasServerIssueOnly
+    ? `${serverAttemptCount.toLocaleString()} / ${serverFailedCount.toLocaleString()}`
+    : `${matchedEventCount.toLocaleString()} / ${recoveredEventCount.toLocaleString()}`;
+  const serverDetailHint = serverMissingEventIdCount > 0
+    ? `${serverMissingEventIdCount.toLocaleString()} missing event ID`
+    : serverFilteredCount > 0
+      ? `${serverFilteredCount.toLocaleString()} filtered`
+      : '';
 
   useEffect(() => {
     lastScrollYRef.current = window.scrollY;
@@ -420,22 +444,23 @@ export function DashboardView({
             </span>
           </button>
 
-          <div className={`mt-3 rounded-lg border p-3 ${hasBrowserOnlyActivity ? 'border-amber-100 bg-amber-50/70' : 'border-emerald-100 bg-emerald-50/60'}`}>
+          <div className={`mt-3 rounded-lg border p-3 ${coverageWarningTone ? 'border-amber-100 bg-amber-50/70' : 'border-emerald-100 bg-emerald-50/60'}`}>
             <div className="flex items-start justify-between gap-3">
               <div>
-                <p className={`text-[10px] font-black uppercase tracking-wide ${hasBrowserOnlyActivity ? 'text-amber-700' : 'text-emerald-700'}`}>Browser / Server Coverage</p>
-                <p className={hasBrowserOnlyActivity ? 'mt-1 text-xs text-amber-900' : 'mt-1 text-xs text-emerald-900'}>{coverageDescription}</p>
+                <p className={`text-[10px] font-black uppercase tracking-wide ${coverageWarningTone ? 'text-amber-700' : 'text-emerald-700'}`}>Browser / Server Coverage</p>
+                <p className={coverageWarningTone ? 'mt-1 text-xs text-amber-900' : 'mt-1 text-xs text-emerald-900'}>{coverageDescription}</p>
               </div>
-              <span className={`font-mono text-lg font-black ${hasBrowserOnlyActivity ? 'text-amber-700' : 'text-emerald-700'}`}>{coverageLabel}</span>
+              <span className={`font-mono text-lg font-black ${coverageWarningTone ? 'text-amber-700' : 'text-emerald-700'}`}>{coverageLabel}</span>
             </div>
             <div className="mt-3 grid grid-cols-2 gap-2 text-[10px] font-bold text-slate-600">
-              <div className={`rounded-md bg-white px-2 py-1.5 ring-1 ${hasBrowserOnlyActivity ? 'ring-amber-100' : 'ring-emerald-100'}`}>
+              <div className={`rounded-md bg-white px-2 py-1.5 ring-1 ${coverageWarningTone ? 'ring-amber-100' : 'ring-emerald-100'}`}>
                 <span className="block text-slate-400">Browser seen</span>
                 <span className="font-mono text-slate-800">{browserEventCount.toLocaleString()}</span>
               </div>
-              <div className={`rounded-md bg-white px-2 py-1.5 ring-1 ${hasBrowserOnlyActivity ? 'ring-amber-100' : 'ring-emerald-100'}`}>
-                <span className="block text-slate-400">Server matched / only</span>
-                <span className="font-mono text-slate-800">{matchedEventCount.toLocaleString()} / {recoveredEventCount.toLocaleString()}</span>
+              <div className={`rounded-md bg-white px-2 py-1.5 ring-1 ${coverageWarningTone ? 'ring-amber-100' : 'ring-emerald-100'}`}>
+                <span className="block text-slate-400">{serverDetailLabel}</span>
+                <span className="font-mono text-slate-800">{serverDetailValue}</span>
+                {serverDetailHint ? <span className="mt-0.5 block truncate text-[9px] text-slate-400">{serverDetailHint}</span> : null}
               </div>
             </div>
           </div>
