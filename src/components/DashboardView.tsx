@@ -104,8 +104,21 @@ export function DashboardView({
   ];
   const browserEventCount = Number(recoverySummary?.browser_events || 0);
   const serverEventCount = Number(recoverySummary?.server_events || 0);
+  const matchedEventCount = Number(recoverySummary?.matched_events || 0);
   const recoveredEventCount = Number(recoverySummary?.recovered_events || 0);
   const serverRecoveryRate = Number(recoverySummary?.recovery_rate || 0);
+  const hasServerCoverage = serverEventCount > 0;
+  const hasBrowserOnlyActivity = browserEventCount > 0 && !hasServerCoverage;
+  const coverageLabel = hasServerCoverage
+    ? `${serverRecoveryRate}%`
+    : hasBrowserOnlyActivity
+      ? 'Needs server'
+      : 'No data';
+  const coverageDescription = hasServerCoverage
+    ? 'Server-side events without a matching browser event ID. This helps recover blocked browser tracking, but very high values can also indicate event ID mismatch.'
+    : hasBrowserOnlyActivity
+      ? 'Browser events are visible, but no successful server event with matching IDs was found in this timeframe.'
+      : 'No browser or server tracking events found in this timeframe yet.';
 
   useEffect(() => {
     lastScrollYRef.current = window.scrollY;
@@ -178,10 +191,12 @@ export function DashboardView({
                         <span className={`h-1.5 w-1.5 rounded-full ${card.dotClass}`} />
                         {card.label}
                       </p>
-                      <p className="mt-0.5 truncate font-mono text-[10px] text-slate-400">Last: {card.lastTime}</p>
+                      <p className="mt-0.5 truncate font-mono text-[10px] text-slate-400">
+                        {card.total > 0 ? `Last: ${card.lastTime}` : 'No events in this view'}
+                      </p>
                     </div>
                     <div className="text-right">
-                      <p className="text-sm font-bold text-slate-950">{card.rate}%</p>
+                      <p className="text-sm font-bold text-slate-950">{card.total > 0 ? `${card.rate}%` : 'No data'}</p>
                       <p className="text-[10px] font-bold uppercase text-slate-400">{card.total} events</p>
                     </div>
                   </div>
@@ -260,8 +275,8 @@ export function DashboardView({
         <div className="col-span-2 rounded-lg border border-slate-200 bg-white p-4 shadow-sm lg:col-span-1">
           <div className="flex items-center justify-between gap-2">
             <p className="flex items-center text-xs font-bold text-slate-700">
-              Monthly Quota
-              <Tooltip content="আপনার কারেন্ট সাবস্ক্রিপশন প্ল্যানের আওতায় এই মাসে মোট কতগুলো ট্র্যাকিং ইভেন্ট প্রসেস করা হয়েছে তার হিসাব। বিলিং ডেটে এটি আবার ০ থেকে শুরু হয়।" />
+              Monthly Usage
+              <Tooltip content="Quota-counted events processed this billing month. Recent logs can include browser, debug, or failed attempts that do not increase monthly usage." />
             </p>
             <span className="inline-flex items-center gap-1 rounded-full bg-green-50 px-2 py-0.5 text-[11px] font-bold text-green-700">
               <TrendingUp className="h-3 w-3" />
@@ -271,7 +286,7 @@ export function DashboardView({
           <div className="mt-4 flex items-end justify-between gap-3">
             <div>
               <p className="text-2xl font-bold tracking-tight text-slate-950">{profile.eventsUsed.toLocaleString()}</p>
-              <p className="mt-0.5 text-[11px] font-semibold text-slate-400">of {profile.eventsQuota.toLocaleString()}</p>
+              <p className="mt-0.5 text-[11px] font-semibold text-slate-400">of {profile.eventsQuota.toLocaleString()} quota-counted</p>
             </div>
             <div className="h-1.5 w-24 overflow-hidden rounded-full bg-slate-100">
               <div
@@ -291,8 +306,10 @@ export function DashboardView({
               </span>
               <span className="text-[10px] font-bold uppercase text-slate-400">{card.total} events</span>
             </div>
-            <p className="mt-4 text-2xl font-bold tracking-tight text-slate-950">{card.rate}%</p>
-            <p className="mt-1 truncate font-mono text-[10px] text-slate-400">Last: {card.lastTime}</p>
+            <p className="mt-4 text-2xl font-bold tracking-tight text-slate-950">{card.total > 0 ? `${card.rate}%` : 'No data'}</p>
+            <p className="mt-1 truncate font-mono text-[10px] text-slate-400">
+              {card.total > 0 ? `Last: ${card.lastTime}` : 'No events in this view'}
+            </p>
           </div>
         ))}
       </div>
@@ -305,7 +322,7 @@ export function DashboardView({
           <div className="mb-3 flex items-center justify-between md:mb-5">
             <div>
               <h2 className="text-xs font-bold uppercase tracking-wide text-slate-800 md:text-sm">Event Activity</h2>
-              <p className="text-xs text-slate-400 ">Events sent to ad platforms over time</p>
+              <p className="text-xs text-slate-400 ">Successful server events over time</p>
             </div>
             <div className="flex items-center gap-2 rounded border border-slate-200 bg-slate-50 px-2 py-1 font-mono text-[11px] text-slate-400">
               <span className="w-1.5 h-1.5 bg-indigo-500 rounded-full" />
@@ -403,22 +420,22 @@ export function DashboardView({
             </span>
           </button>
 
-          <div className="mt-3 rounded-lg border border-emerald-100 bg-emerald-50/60 p-3">
+          <div className={`mt-3 rounded-lg border p-3 ${hasBrowserOnlyActivity ? 'border-amber-100 bg-amber-50/70' : 'border-emerald-100 bg-emerald-50/60'}`}>
             <div className="flex items-start justify-between gap-3">
               <div>
-                <p className="text-[10px] font-black uppercase tracking-wide text-emerald-700">Browser / Server Coverage Gap</p>
-                <p className="mt-1 text-xs text-emerald-900">Server events that did not have a matching browser event ID.</p>
+                <p className={`text-[10px] font-black uppercase tracking-wide ${hasBrowserOnlyActivity ? 'text-amber-700' : 'text-emerald-700'}`}>Browser / Server Coverage</p>
+                <p className={hasBrowserOnlyActivity ? 'mt-1 text-xs text-amber-900' : 'mt-1 text-xs text-emerald-900'}>{coverageDescription}</p>
               </div>
-              <span className="font-mono text-lg font-black text-emerald-700">{serverRecoveryRate}%</span>
+              <span className={`font-mono text-lg font-black ${hasBrowserOnlyActivity ? 'text-amber-700' : 'text-emerald-700'}`}>{coverageLabel}</span>
             </div>
             <div className="mt-3 grid grid-cols-2 gap-2 text-[10px] font-bold text-slate-600">
-              <div className="rounded-md bg-white px-2 py-1.5 ring-1 ring-emerald-100">
+              <div className={`rounded-md bg-white px-2 py-1.5 ring-1 ${hasBrowserOnlyActivity ? 'ring-amber-100' : 'ring-emerald-100'}`}>
                 <span className="block text-slate-400">Browser seen</span>
                 <span className="font-mono text-slate-800">{browserEventCount.toLocaleString()}</span>
               </div>
-              <div className="rounded-md bg-white px-2 py-1.5 ring-1 ring-emerald-100">
-                <span className="block text-slate-400">Server-only</span>
-                <span className="font-mono text-slate-800">{recoveredEventCount.toLocaleString()} / {serverEventCount.toLocaleString()}</span>
+              <div className={`rounded-md bg-white px-2 py-1.5 ring-1 ${hasBrowserOnlyActivity ? 'ring-amber-100' : 'ring-emerald-100'}`}>
+                <span className="block text-slate-400">Server matched / only</span>
+                <span className="font-mono text-slate-800">{matchedEventCount.toLocaleString()} / {recoveredEventCount.toLocaleString()}</span>
               </div>
             </div>
           </div>
