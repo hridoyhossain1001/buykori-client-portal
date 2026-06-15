@@ -35,6 +35,11 @@ interface DashboardViewProps {
     server_failed_events?: number;
     server_filtered_events?: number;
     server_missing_event_id_events?: number;
+    diagnostic_reasons?: Array<{
+      status: string;
+      reason: string;
+      count: number;
+    }>;
     matched_events: number;
     recovered_events: number;
     recovery_rate: number;
@@ -112,6 +117,9 @@ export function DashboardView({
   const serverFailedCount = Number(recoverySummary?.server_failed_events || 0);
   const serverFilteredCount = Number(recoverySummary?.server_filtered_events || 0);
   const serverMissingEventIdCount = Number(recoverySummary?.server_missing_event_id_events || 0);
+  const diagnosticReasons = Array.isArray(recoverySummary?.diagnostic_reasons)
+    ? recoverySummary.diagnostic_reasons.slice(0, 3)
+    : [];
   const matchedEventCount = Number(recoverySummary?.matched_events || 0);
   const recoveredEventCount = Number(recoverySummary?.recovered_events || 0);
   const serverRecoveryRate = Number(recoverySummary?.recovery_rate || 0);
@@ -463,6 +471,18 @@ export function DashboardView({
                 {serverDetailHint ? <span className="mt-0.5 block truncate text-[9px] text-slate-400">{serverDetailHint}</span> : null}
               </div>
             </div>
+            {diagnosticReasons.length > 0 ? (
+              <div className="mt-2 space-y-1.5">
+                {diagnosticReasons.map((item) => (
+                  <div key={`${item.status}-${item.reason}`} className="flex items-start justify-between gap-2 rounded-md bg-white/80 px-2 py-1.5 text-[10px] ring-1 ring-amber-100">
+                    <span className="min-w-0 leading-snug text-amber-950">{item.reason}</span>
+                    <span className="shrink-0 rounded-full bg-amber-100 px-1.5 py-0.5 font-mono font-black text-amber-800">
+                      {Number(item.count || 0).toLocaleString()}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            ) : null}
           </div>
         </div>
       </div>
