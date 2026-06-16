@@ -53,6 +53,30 @@ export function CodProtectionView({
   const confirmedToday = deferredData?.confirmedToday ?? 0;
   const oldestPending = deferredData?.deferredOldestPending ?? deferredData?.oldestPending ?? 'None';
 
+  const formatHeldTime = (rawHours: any) => {
+    const parsed = typeof rawHours === 'number'
+      ? rawHours
+      : Number.parseFloat(String(rawHours || '').replace(/[^\d.]/g, ''));
+
+    if (!Number.isFinite(parsed) || parsed < 0) {
+      return 'N/A';
+    }
+
+    const totalMinutes = Math.max(0, Math.round(parsed * 60));
+    if (totalMinutes < 60) {
+      return `${Math.max(1, totalMinutes)} min ago`;
+    }
+
+    const totalHours = Math.floor(totalMinutes / 60);
+    if (totalHours < 24) {
+      const minutes = totalMinutes % 60;
+      return minutes > 0 ? `${totalHours}h ${minutes}m ago` : `${totalHours}h ago`;
+    }
+
+    const days = Math.floor(totalHours / 24);
+    return `${days} ${days === 1 ? 'day' : 'days'} ago`;
+  };
+
   const getCustomerSummary = (order: any) => {
     const rawCustomer = String(order.customer || '').trim();
     const isHash = (val: string) => /^[a-f0-9]{32,}$/i.test(val.trim());
@@ -84,7 +108,7 @@ export function CodProtectionView({
     { label: 'Pending', value: pendingCount, helper: 'COD orders', tone: 'text-amber-700', bg: 'bg-amber-50', border: 'border-amber-100' },
     { label: 'Held', value: pendingValue, helper: 'Revenue', tone: 'text-indigo-700', bg: 'bg-indigo-50', border: 'border-indigo-100' },
     { label: 'Verified', value: confirmedToday, helper: 'Today', tone: 'text-emerald-700', bg: 'bg-emerald-50', border: 'border-emerald-100' },
-    { label: 'Oldest', value: oldestPending, helper: 'Waiting', tone: 'text-rose-700', bg: 'bg-rose-50', border: 'border-rose-100' },
+    { label: 'Oldest', value: formatHeldTime(oldestPending), helper: 'Waiting', tone: 'text-rose-700', bg: 'bg-rose-50', border: 'border-rose-100' },
   ];
 
   const toggleOrderSelection = (orderId: string, checked: boolean) => {
@@ -413,7 +437,7 @@ export function CodProtectionView({
                     </div>
                     <div className="rounded-lg bg-slate-50 p-2">
                       <p className="font-bold uppercase text-slate-400">Held</p>
-                      <p className="mt-1 font-mono font-bold text-slate-700">{order.ageHours}h</p>
+                      <p className="mt-1 font-mono font-bold text-slate-700">{formatHeldTime(order.ageHours)}</p>
                     </div>
                   </div>
                   {order.products && order.products.length > 0 && (
@@ -537,7 +561,7 @@ export function CodProtectionView({
                       <td className="px-6 py-2.5">
                         {renderRiskGauge(order.fraudScore)}
                       </td>
-                      <td className="px-6 py-2.5 font-mono text-slate-500">{order.ageHours}h ago</td>
+                      <td className="px-6 py-2.5 font-mono text-slate-500">{formatHeldTime(order.ageHours)}</td>
                       <td className="space-x-2 whitespace-nowrap px-6 py-2.5 text-right">
                         <button type="button" onClick={() => handleConfirmOrder(order.orderId)} className="rounded bg-emerald-800 px-2.5 py-1 text-[10px] font-bold text-white hover:bg-emerald-900">Confirm</button>
                         <button type="button" onClick={() => handleCancelOrder(order.orderId)} className="rounded bg-rose-900 px-2.5 py-1 text-[10px] font-bold text-white hover:bg-rose-950">Skip Event</button>
