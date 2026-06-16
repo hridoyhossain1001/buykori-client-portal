@@ -377,71 +377,12 @@ export function OrdersView({
   }, [selectedPathaoZone]);
 
   const openSendModal = (order: any) => {
-    // Find the original pending event from deferredData or fallback to fields
-    // Find the event ID corresponding to orderId
-    const pendingEvent = codVerificationOrders.find((o: any) => o.orderId === order.orderId);
-    
-    // We need to fetch the full pending event metadata to get name, phone, address if available
-    // For now, let's prefill with what we have
     setSelectedOrder(order);
     setRecipientName(order.recipientName || (order.customer.includes('@') ? '' : order.customer));
     setRecipientPhone(order.recipientPhone || (order.customer.match(/^\+?[0-9\s-]{10,15}$/) ? order.customer : ''));
     setRecipientAddress(order.recipientAddress || '');
     setCodAmount(order.amount);
-    
-    // Try to find full address or details if stored locally in raw event payload (deferredData may have details)
-    // In our backend, user_data.ph contains phone, user_data.em contains email, 
-    // Let's call /api/events to search or use default inputs.
-    // Actually, we can fetch event details or let them type it.
-    // Let's call a fast endpoint to get raw event data for recipient info!
     setIsSendModalOpen(true);
-
-    // Fetch the pending event ID
-    fetchPendingEventDetails(order.orderId);
-  };
-
-  const fetchPendingEventDetails = async (orderId: string) => {
-    try {
-      const res = await fetch(`/api/events?limit=5&search=${orderId}`);
-      if (res.ok) {
-        const data = await res.json();
-        const found = data.events?.find((e: any) => e.deduplicationKey === orderId || e.payload?.order_id === orderId || e.payload?.custom_data?.order_id === orderId || e.id === orderId);
-        
-        // Find in local pending events instead
-        const peRes = await fetch(`/api/deferred`);
-        if (peRes.ok) {
-          const peData = await peRes.json();
-          // We need event ID
-          // Let's fetch details of the specific order
-        }
-      }
-    } catch (e) {
-      console.error(e);
-    }
-  };
-
-  // Helper to retrieve the pending event DB ID
-  const handleOpenSendToCourier = async (order: any) => {
-    try {
-      // Fetch matching pending event from server to get ID and customer details
-      const res = await fetch(`/api/deferred`);
-      if (res.ok) {
-        const data = await res.json();
-        // Since get_deferred_purchases returns pendingList with orderId, amount, customer, etc.
-        // We need the database primary key ID of the PendingEvent to make a POST to /api/courier/send
-        // Let's add a backend endpoint or search for the event
-        // Wait! Let's check how we retrieve it.
-        // We can expose the ID in `pendingList` in `client_api.py`!
-        // Oh! Let's check `client_api.py` line 1020:
-        // `pending_list.append({ "orderId": pe.order_id, "amount": ... })`
-        // It does not include `id: pe.id`!
-        // Let's modify `client_api.py` in our next step to include `"id": pe.id` in `pending_list`!
-        // For now, let's assume `id` is passed, or we can find it.
-        // Let's make sure we update client_api.py to include pe.id.
-      }
-    } catch (e) {
-      console.error(e);
-    }
   };
 
   const handleSendToCourierSubmit = async (e: React.FormEvent) => {
