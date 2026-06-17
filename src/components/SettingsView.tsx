@@ -425,7 +425,34 @@ export function SettingsView({
     }
   };
 
-
+  const platformOrder: Platform[] = ['Meta CAPI', 'TikTok Events API', 'GA4'];
+  const platformStatusRows = platformOrder.map((platform) => {
+    const config = credentials[platform];
+    const hasDestinationId = Boolean(String(config?.pixelIdOrMeasurementId || '').trim());
+    const hasAccessSecret = Boolean(String(config?.accessToken || '').trim());
+    const configured = hasDestinationId && hasAccessSecret;
+    return {
+      platform,
+      enabled: Boolean(config?.enabled),
+      configured
+    };
+  });
+  const configuredPlatformCount = platformStatusRows.filter(row => row.configured).length;
+  const enabledPlatformCount = platformStatusRows.filter(row => row.enabled).length;
+  const enabledRouteCount = rules.filter(rule => rule.metaEnabled || rule.tiktokEnabled || rule.ga4Enabled).length;
+  const selectedCourierProvider = String(courierSettings.default_courier || 'steadfast').toLowerCase();
+  const courierProviderConfigured =
+    selectedCourierProvider === 'pathao'
+      ? Boolean(courierSettings.pathao_client_id && courierSettings.pathao_client_secret && courierSettings.pathao_password && courierSettings.pathao_store_id)
+      : selectedCourierProvider === 'redx'
+        ? Boolean(courierSettings.redx_access_token)
+        : Boolean(courierSettings.steadfast_api_key && courierSettings.steadfast_secret_key);
+  const whatsappStatus = profNotifyWhatsapp
+    ? profWhatsappNumber.trim()
+      ? 'Ready'
+      : 'Needs number'
+    : 'Off';
+  const wordpressConnectionStatus = connection.api_key || connection.token ? 'Connected' : 'Needs key';
 
   return (
     <div className="space-y-4">
@@ -445,6 +472,58 @@ export function SettingsView({
               {tab.label}
             </button>
           ))}
+        </div>
+      </section>
+      <section className="rounded-xl border border-indigo-100 bg-indigo-50/40 p-4 shadow-sm">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+          <div>
+            <h2 className="text-sm font-bold uppercase tracking-wide text-slate-800">Portal-managed setup</h2>
+            <p className="mt-1 max-w-3xl text-xs leading-relaxed text-slate-500">
+              These settings are the source of truth for the WordPress plugin. The plugin sends store events, while delivery rules, platform keys, courier credentials, and alert preferences are managed here.
+            </p>
+          </div>
+          <span className="inline-flex w-fit rounded-full border border-indigo-200 bg-white px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-indigo-700">
+            Plugin UI stays lightweight
+          </span>
+        </div>
+
+        <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
+          <button
+            type="button"
+            onClick={() => setActiveSettingsTab('conversions')}
+            className="rounded-lg border border-white bg-white/90 p-3 text-left shadow-sm transition-colors hover:border-indigo-200 hover:bg-white"
+          >
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Tracking destinations</span>
+            <p className="mt-1 text-lg font-black text-slate-900">{configuredPlatformCount}/{platformStatusRows.length} ready</p>
+            <p className="mt-0.5 text-[11px] font-semibold text-slate-500">{enabledPlatformCount} enabled, {enabledRouteCount} routed events</p>
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveSettingsTab('courier')}
+            className="rounded-lg border border-white bg-white/90 p-3 text-left shadow-sm transition-colors hover:border-indigo-200 hover:bg-white"
+          >
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Courier workflow</span>
+            <p className="mt-1 text-lg font-black text-slate-900">{courierProviderConfigured ? 'Ready' : 'Needs keys'}</p>
+            <p className="mt-0.5 text-[11px] font-semibold capitalize text-slate-500">{selectedCourierProvider} default, auto-book {courierSettings.courier_auto_send ? 'on' : 'off'}</p>
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveSettingsTab('alerts')}
+            className="rounded-lg border border-white bg-white/90 p-3 text-left shadow-sm transition-colors hover:border-indigo-200 hover:bg-white"
+          >
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">WhatsApp alerts</span>
+            <p className="mt-1 text-lg font-black text-slate-900">{whatsappStatus}</p>
+            <p className="mt-0.5 text-[11px] font-semibold text-slate-500">Admin sender, client receiver number</p>
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveSettingsTab('store')}
+            className="rounded-lg border border-white bg-white/90 p-3 text-left shadow-sm transition-colors hover:border-indigo-200 hover:bg-white"
+          >
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Plugin connection</span>
+            <p className="mt-1 text-lg font-black text-slate-900">{wordpressConnectionStatus}</p>
+            <p className="mt-0.5 text-[11px] font-semibold text-slate-500">{updateAvailable ? 'Plugin update available' : 'Sync API and heartbeat'}</p>
+          </button>
         </div>
       </section>
       <div
@@ -508,7 +587,7 @@ export function SettingsView({
         <section id="settings-platforms" aria-labelledby="settings-platforms-title" className="scroll-mt-28 rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-6  ">
           <div>
             <h2 id="settings-platforms-title" className="font-bold text-slate-800 text-sm uppercase tracking-wide ">Platform Credential Keys</h2>
-            <p className="text-xs text-slate-400 ">Manage API keys, pixel IDs, and tracking tokens for each platform.</p>
+            <p className="text-xs text-slate-400 ">Portal-managed API keys and destination IDs. The WordPress plugin reads these rules instead of storing business settings locally.</p>
           </div>
 
           {Object.keys(credentials).map(platKey => {
@@ -1084,7 +1163,7 @@ export function SettingsView({
           <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
             <div>
               <h2 id="settings-routing-title" className="font-bold text-slate-800 text-sm uppercase tracking-wide ">WordPress event routing rules</h2>
-              <p className="text-xs text-slate-400 ">Keep active routes short. Add WooCommerce presets or a custom event from the dropdown.</p>
+              <p className="text-xs text-slate-400 ">This is the source of truth for plugin event delivery. Keep active routes short, then choose which platforms receive each event.</p>
             </div>
             <div className="flex flex-col gap-2 rounded-lg border border-slate-200 bg-slate-50/70 p-3   xl:w-[520px]">
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
@@ -1242,7 +1321,7 @@ export function SettingsView({
         <section id="settings-wordpress" aria-labelledby="settings-wordpress-title" className="scroll-mt-28 rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-4  ">
           <div>
             <h2 id="settings-wordpress-title" className="font-bold text-slate-800 text-sm uppercase tracking-wide ">WordPress Plugin Connection</h2>
-            <p className="text-xs text-slate-400 ">Your WooCommerce plugin uses this connection to send tracking data.</p>
+            <p className="text-xs text-slate-400 ">Your WooCommerce plugin sends tracking data through this connection. Platform credentials and delivery rules stay managed in the portal.</p>
           </div>
 
           <div className="p-4 rounded-lg bg-slate-50 border border-slate-200   space-y-3 font-mono text-xs text-slate-700 ">
@@ -1314,7 +1393,7 @@ export function SettingsView({
         <section id="settings-whatsapp" aria-labelledby="settings-whatsapp-title" className="scroll-mt-28 rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-4  ">
           <div>
             <h2 id="settings-whatsapp-title" className="font-bold text-slate-800 text-sm uppercase tracking-wide ">WhatsApp Notifications</h2>
-            <p className="text-xs text-slate-400  leading-normal">Receive purchase alerts and incomplete checkout recovery details on WhatsApp.</p>
+            <p className="text-xs text-slate-400  leading-normal">Receive purchase alerts and incomplete checkout recovery details on your WhatsApp number. Sender accounts are managed by Buykori admin.</p>
           </div>
 
           <div className="space-y-4">

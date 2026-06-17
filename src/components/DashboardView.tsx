@@ -111,6 +111,16 @@ export function DashboardView({
       badgeClass: 'border-green-200 bg-green-50 text-green-700',
     },
   ];
+  const platformEmptyCopy: Record<string, string> = {
+    Meta: 'No Meta events yet',
+    TikTok: 'No TikTok events yet',
+    GA4: 'No GA4 events yet',
+  };
+  const platformHintCopy: Record<string, string> = {
+    Meta: 'Check Meta credentials in Settings if this stays empty.',
+    TikTok: 'Connect TikTok in Settings when you are ready to send events.',
+    GA4: 'Connect GA4 in Settings when you are ready to measure analytics.',
+  };
   const browserEventCount = Number(recoverySummary?.browser_events || 0);
   const serverEventCount = Number(recoverySummary?.server_events || 0);
   const serverAttemptCount = Number(recoverySummary?.server_attempt_events ?? serverEventCount);
@@ -130,19 +140,19 @@ export function DashboardView({
   const coverageLabel = hasServerCoverage
     ? `${serverRecoveryRate}%`
     : hasServerIssueOnly
-      ? 'Server failing'
+      ? 'Delivery issue'
     : hasBrowserOnlyActivity
-      ? 'Needs server'
-      : 'No data';
+      ? 'Needs setup'
+      : 'Waiting';
   const coverageDescription = hasServerCoverage
     ? 'Server-side events without a matching browser event ID. This helps recover blocked browser tracking, but very high values can also indicate event ID mismatch.'
     : hasServerIssueOnly
-      ? 'Server-side tracking is receiving events, but no successful delivery was found in this timeframe. Check platform credentials and failed event logs.'
+      ? 'Server-side attempts were seen, but no successful delivery was found in this timeframe. Check Settings > Conversions API credentials and Event Logs.'
     : hasBrowserOnlyActivity
-      ? 'Browser events are visible, but no successful server event with matching IDs was found in this timeframe.'
-      : 'No browser or server tracking events found in this timeframe yet.';
+      ? 'Browser events are visible, but server delivery is not active for matching events yet. Check portal-managed credentials and routing.'
+      : 'Waiting for browser or server tracking events in this timeframe. Send a test event after setup.';
   const coverageWarningTone = hasBrowserOnlyActivity || hasServerIssueOnly;
-  const serverDetailLabel = hasServerIssueOnly ? 'Attempted / failed' : 'Server matched / only';
+  const serverDetailLabel = hasServerIssueOnly ? 'Attempted / failed delivery' : 'Server matched / only';
   const serverDetailValue = hasServerIssueOnly
     ? `${serverAttemptCount.toLocaleString()} / ${serverFailedCount.toLocaleString()}`
     : `${matchedEventCount.toLocaleString()} / ${recoveredEventCount.toLocaleString()}`;
@@ -224,11 +234,11 @@ export function DashboardView({
                         {card.label}
                       </p>
                       <p className="mt-0.5 truncate font-mono text-[10px] text-slate-400">
-                        {card.total > 0 ? `Last: ${card.lastTime}` : 'No events in this view'}
+                        {card.total > 0 ? `Last: ${card.lastTime}` : 'No events in selected timeframe'}
                       </p>
                     </div>
                     <div className="text-right">
-                      <p className="text-sm font-bold text-slate-950">{card.total > 0 ? `${card.rate}%` : 'No data'}</p>
+                      <p className="text-sm font-bold text-slate-950">{card.total > 0 ? `${card.rate}%` : 'No events'}</p>
                       <p className="text-[10px] font-bold uppercase text-slate-400">{card.total} events</p>
                     </div>
                   </div>
@@ -338,9 +348,9 @@ export function DashboardView({
               </span>
               <span className="text-[10px] font-bold uppercase text-slate-400">{card.total} events</span>
             </div>
-            <p className="mt-4 text-2xl font-bold tracking-tight text-slate-950">{card.total > 0 ? `${card.rate}%` : 'No data'}</p>
+            <p className="mt-4 text-2xl font-bold tracking-tight text-slate-950">{card.total > 0 ? `${card.rate}%` : platformEmptyCopy[card.label]}</p>
             <p className="mt-1 truncate font-mono text-[10px] text-slate-400">
-              {card.total > 0 ? `Last: ${card.lastTime}` : 'No events in this view'}
+              {card.total > 0 ? `Last: ${card.lastTime}` : platformHintCopy[card.label]}
             </p>
           </div>
         ))}
