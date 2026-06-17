@@ -483,58 +483,60 @@ export function SettingsView({
           ))}
         </div>
       </section>
-      <section className="rounded-xl border border-indigo-100 bg-indigo-50/40 p-4 shadow-sm">
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-          <div>
-            <h2 className="text-sm font-bold uppercase tracking-wide text-slate-800">Portal-managed setup</h2>
-            <p className="mt-1 max-w-3xl text-xs leading-relaxed text-slate-500">
-              These settings are the source of truth for the WordPress plugin. The plugin sends store events, while delivery rules, platform keys, courier credentials, and alert preferences are managed here.
-            </p>
+      {activeSettingsTab === 'store' && (
+        <section className="rounded-xl border border-indigo-100 bg-indigo-50/40 p-4 shadow-sm">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+            <div>
+              <h2 className="text-sm font-bold uppercase tracking-wide text-slate-800">Portal-managed setup</h2>
+              <p className="mt-1 max-w-3xl text-xs leading-relaxed text-slate-500">
+                These settings are the source of truth for the WordPress plugin. The plugin sends store events, while delivery rules, platform keys, courier credentials, and alert preferences are managed here.
+              </p>
+            </div>
+            <span className="inline-flex w-fit rounded-full border border-indigo-200 bg-white px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-indigo-700">
+              Plugin UI stays lightweight
+            </span>
           </div>
-          <span className="inline-flex w-fit rounded-full border border-indigo-200 bg-white px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-indigo-700">
-            Plugin UI stays lightweight
-          </span>
-        </div>
 
-        <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
-          <button
-            type="button"
-            onClick={() => setActiveSettingsTab('conversions')}
-            className="rounded-lg border border-white bg-white/90 p-3 text-left shadow-sm transition-colors hover:border-indigo-200 hover:bg-white"
-          >
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Tracking destinations</span>
-            <p className="mt-1 text-lg font-black text-slate-900">{configuredPlatformCount}/{platformStatusRows.length} ready</p>
-            <p className="mt-0.5 text-[11px] font-semibold text-slate-500">{enabledPlatformCount} enabled, {enabledRouteCount} routed events</p>
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveSettingsTab('courier')}
-            className="rounded-lg border border-white bg-white/90 p-3 text-left shadow-sm transition-colors hover:border-indigo-200 hover:bg-white"
-          >
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Courier workflow</span>
-            <p className="mt-1 text-lg font-black text-slate-900">{courierProviderConfigured ? 'Ready' : 'Needs keys'}</p>
-            <p className="mt-0.5 text-[11px] font-semibold capitalize text-slate-500">{selectedCourierProvider} default, auto-book {courierSettings.courier_auto_send ? 'on' : 'off'}</p>
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveSettingsTab('alerts')}
-            className="rounded-lg border border-white bg-white/90 p-3 text-left shadow-sm transition-colors hover:border-indigo-200 hover:bg-white"
-          >
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">WhatsApp alerts</span>
-            <p className="mt-1 text-lg font-black text-slate-900">{whatsappStatus}</p>
-            <p className="mt-0.5 text-[11px] font-semibold text-slate-500">Admin sender, client receiver number</p>
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveSettingsTab('store')}
-            className="rounded-lg border border-white bg-white/90 p-3 text-left shadow-sm transition-colors hover:border-indigo-200 hover:bg-white"
-          >
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Plugin connection</span>
-            <p className="mt-1 text-lg font-black text-slate-900">{wordpressConnectionStatus}</p>
-            <p className="mt-0.5 text-[11px] font-semibold text-slate-500">{updateAvailable ? 'Plugin update available' : pluginVersionHelp}</p>
-          </button>
-        </div>
-      </section>
+          <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
+            <button
+              type="button"
+              onClick={() => setActiveSettingsTab('conversions')}
+              className="rounded-lg border border-white bg-white/90 p-3 text-left shadow-sm transition-colors hover:border-indigo-200 hover:bg-white"
+            >
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Tracking destinations</span>
+              <p className="mt-1 text-lg font-black text-slate-900">{configuredPlatformCount}/{platformStatusRows.length} ready</p>
+              <p className="mt-0.5 text-[11px] font-semibold text-slate-500">{enabledPlatformCount} enabled, {enabledRouteCount} routed events</p>
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveSettingsTab('courier')}
+              className="rounded-lg border border-white bg-white/90 p-3 text-left shadow-sm transition-colors hover:border-indigo-200 hover:bg-white"
+            >
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Courier workflow</span>
+              <p className="mt-1 text-lg font-black text-slate-900">{courierProviderConfigured ? 'Ready' : 'Needs keys'}</p>
+              <p className="mt-0.5 text-[11px] font-semibold capitalize text-slate-500">{selectedCourierProvider} default, auto-book {courierSettings.courier_auto_send ? 'on' : 'off'}</p>
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveSettingsTab('alerts')}
+              className="rounded-lg border border-white bg-white/90 p-3 text-left shadow-sm transition-colors hover:border-indigo-200 hover:bg-white"
+            >
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">WhatsApp alerts</span>
+              <p className="mt-1 text-lg font-black text-slate-900">{whatsappStatus}</p>
+              <p className="mt-0.5 text-[11px] font-semibold text-slate-500">Admin sender, client receiver number</p>
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveSettingsTab('store')}
+              className="rounded-lg border border-white bg-white/90 p-3 text-left shadow-sm transition-colors hover:border-indigo-200 hover:bg-white"
+            >
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Plugin connection</span>
+              <p className="mt-1 text-lg font-black text-slate-900">{wordpressConnectionStatus}</p>
+              <p className="mt-0.5 text-[11px] font-semibold text-slate-500">{updateAvailable ? 'Plugin update available' : pluginVersionHelp}</p>
+            </button>
+          </div>
+        </section>
+      )}
       <div
         className="settings-tab-view grid grid-cols-1 gap-5 lg:gap-6"
         data-visible-sections={activeSectionIds.join(' ')}
