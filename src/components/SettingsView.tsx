@@ -129,7 +129,16 @@ export function SettingsView({
   const normalizeVersion = (version?: string) => (version || '').replace(/^v/i, '').trim();
   const installedVersion = normalizeVersion(connection.wpVersion);
   const latestVersion = normalizeVersion(pluginReleaseInfo?.version);
-  const updateAvailable = Boolean(installedVersion && latestVersion && installedVersion !== latestVersion);
+  const installedLooksLikePluginVersion = Boolean(installedVersion && latestVersion && installedVersion.split('.')[0] === latestVersion.split('.')[0]);
+  const updateAvailable = Boolean(installedLooksLikePluginVersion && latestVersion && installedVersion !== latestVersion);
+  const pluginVersionStatus = installedLooksLikePluginVersion
+    ? `v${installedVersion}`
+    : 'Version not reported';
+  const pluginVersionHelp = installedLooksLikePluginVersion
+    ? 'Plugin reported version'
+    : connection.wpVersion
+      ? `WordPress core v${connection.wpVersion} reported`
+      : 'Waiting for plugin heartbeat';
   const packageSizeKb = pluginReleaseInfo?.package_size ? Math.round(pluginReleaseInfo.package_size / 1024) : 0;
   const availablePresetRoutes = presetEventRoutes.filter(
     preset => !rules.some(rule => rule.eventName.toLowerCase() === preset.value.toLowerCase())
@@ -522,7 +531,7 @@ export function SettingsView({
           >
             <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Plugin connection</span>
             <p className="mt-1 text-lg font-black text-slate-900">{wordpressConnectionStatus}</p>
-            <p className="mt-0.5 text-[11px] font-semibold text-slate-500">{updateAvailable ? 'Plugin update available' : 'Sync API and heartbeat'}</p>
+            <p className="mt-0.5 text-[11px] font-semibold text-slate-500">{updateAvailable ? 'Plugin update available' : pluginVersionHelp}</p>
           </button>
         </div>
       </section>
@@ -1342,7 +1351,10 @@ export function SettingsView({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[10px]">
               <div>
                 <span className="block text-[9px] text-slate-400  uppercase mb-0.5">Plugin detected version</span>
-                <span className="font-semibold text-slate-800 ">v{connection.wpVersion}</span>
+                <span className="font-semibold text-slate-800 ">{pluginVersionStatus}</span>
+                {!installedLooksLikePluginVersion && connection.wpVersion ? (
+                  <span className="mt-0.5 block text-[9px] text-slate-400">{pluginVersionHelp}</span>
+                ) : null}
               </div>
               <div>
                 <span className="block text-[9px] text-slate-400  uppercase mb-0.5">Last query heartbeat</span>
