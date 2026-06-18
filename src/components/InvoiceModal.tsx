@@ -390,7 +390,7 @@ function InvoiceContent({ onClose, ordersList, storeName = "Buykori AdSync Shop"
       page-break-after: avoid;
       break-after: avoid;
     }
-    
+
     /* Additional Tailwind Utility classes for Print layout */
     .p-6 { padding: 24px; }
     .p-8 { padding: 32px; }
@@ -404,7 +404,7 @@ function InvoiceContent({ onClose, ordersList, storeName = "Buykori AdSync Shop"
     .p-1 { padding: 4px; }
     .gap-4 { gap: 16px; }
     .grid-cols-1 { grid-template-columns: repeat(1, minmax(0, 1fr)); }
-    
+
     @media print {
       .print\:border-0 { border: 0 !important; }
       .print\:p-0 { padding: 0 !important; }

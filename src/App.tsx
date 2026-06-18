@@ -334,23 +334,6 @@ export default function App() {
     }, 4000);
   };
 
-  const getCookieValue = (name: string) => {
-    return document.cookie
-      .split('; ')
-      .find(row => row.startsWith(`${name}=`))
-      ?.split('=')
-      .slice(1)
-      .join('=') || '';
-  };
-
-  const clientMutationHeaders = (extra: HeadersInit = {}) => {
-    const csrfToken = decodeURIComponent(getCookieValue('buykori_client_csrf'));
-    return {
-      ...extra,
-      ...(csrfToken ? { 'X-Client-CSRF-Token': csrfToken } : {}),
-    };
-  };
-
   useEffect(() => {
     if (loading || !profile || isPluginConnectRoute) return;
     if (profile.guideDismissed || localStorage.getItem(getGuideStorageKey(profile)) === '1') return;
@@ -1017,8 +1000,6 @@ export default function App() {
   const refreshWPHeartbeat = async () => {
     const res = await fetch('/api/connection/test', {
       method: 'POST',
-      credentials: 'include',
-      headers: clientMutationHeaders(),
     });
     if (!res.ok) {
       const body = await res.json().catch(() => ({}));
