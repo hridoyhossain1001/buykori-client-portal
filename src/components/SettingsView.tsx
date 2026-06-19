@@ -133,7 +133,7 @@ export function SettingsView({
   const updateAvailable = Boolean(installedLooksLikePluginVersion && latestVersion && installedVersion !== latestVersion);
   const pluginVersionStatus = installedLooksLikePluginVersion
     ? `v${installedVersion}`
-    : 'Version not reported';
+    : 'Plugin version not reported yet';
   const pluginVersionHelp = installedLooksLikePluginVersion
     ? 'Plugin reported version'
     : connection.wpVersion
@@ -652,7 +652,7 @@ export function SettingsView({
                     <input 
                       type="password"
                       value={localTokens[plat]}
-                      placeholder="************************"
+                      placeholder="Paste access token"
                       onChange={(e) => setLocalTokens(prev => ({ ...prev, [plat]: e.target.value }))}
                       onBlur={() => handleUpdatePlatform(plat, { accessToken: localTokens[plat] })}
                       onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); }}
@@ -957,7 +957,7 @@ export function SettingsView({
                       autoComplete="new-password"
                       value={courierSettings.steadfast_secret_key || ''}
                       onChange={(e) => setCourierSettings((prev: any) => ({ ...prev, steadfast_secret_key: e.target.value }))}
-                      placeholder="************************"
+                      placeholder="Paste SteadFast Secret Key"
                       className="w-full p-2 text-xs bg-white border border-slate-200 rounded font-mono text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500   "
                     />
                   </div>
@@ -1019,7 +1019,7 @@ export function SettingsView({
                         autoComplete="new-password"
                         value={courierSettings.pathao_client_secret || ''}
                         onChange={(e) => setCourierSettings((prev: any) => ({ ...prev, pathao_client_secret: e.target.value }))}
-                        placeholder="************************"
+                        placeholder="Paste Pathao Client Secret"
                         className="w-full p-2 text-xs bg-white border border-slate-200 rounded font-mono text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500   "
                       />
                     </div>
@@ -1033,7 +1033,7 @@ export function SettingsView({
                         autoComplete="new-password"
                         value={courierSettings.pathao_password || ''}
                         onChange={(e) => setCourierSettings((prev: any) => ({ ...prev, pathao_password: e.target.value }))}
-                        placeholder="************************"
+                        placeholder="Paste Pathao Store Password"
                         className="w-full p-2 text-xs bg-white border border-slate-200 rounded font-mono text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500   "
                       />
                     </div>
