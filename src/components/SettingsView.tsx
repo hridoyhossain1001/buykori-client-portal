@@ -692,7 +692,7 @@ export function SettingsView({
             </div>
           </div>
 
-          <form onSubmit={handleConnectAdAccount} className="space-y-4 p-4 rounded-lg border border-slate-200 bg-slate-50/50">
+          <form onSubmit={handleConnectAdAccount} autoComplete="off" className="space-y-4 p-4 rounded-lg border border-slate-200 bg-slate-50/50">
             <h4 className="font-bold text-xs text-indigo-600 uppercase tracking-wider pb-2 border-b border-slate-100">
               Connect Ad Account
             </h4>
@@ -716,6 +716,8 @@ export function SettingsView({
                 </label>
                 <input
                   type="text"
+                  name="buykori-ad-account-id"
+                  autoComplete="off"
                   required
                   placeholder={adPlatform === 'meta' ? 'act_123456789' : '71234567890123'}
                   value={adAccountId}
@@ -728,6 +730,8 @@ export function SettingsView({
                 <label className="block text-[10px] font-semibold text-slate-500 uppercase mb-1">Account Display Name</label>
                 <input
                   type="text"
+                  name="buykori-ad-account-display-name"
+                  autoComplete="off"
                   placeholder="e.g. Main Ad Account"
                   value={adAccountName}
                   onChange={(e) => setAdAccountName(e.target.value)}
@@ -741,6 +745,8 @@ export function SettingsView({
                 <label className="block text-[10px] font-semibold text-slate-500 uppercase mb-1">Access Token</label>
                 <input
                   type="password"
+                  name="buykori-ad-api-access-token"
+                  autoComplete="new-password"
                   required
                   placeholder="Paste ad API access token"
                   value={adAccessToken}
@@ -921,7 +927,7 @@ export function SettingsView({
               <span>Loading configurations...</span>
             </div>
           ) : (
-            <form onSubmit={handleSaveCourierSettings} className="space-y-6">
+            <form onSubmit={handleSaveCourierSettings} autoComplete="off" className="space-y-6">
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* SteadFast section */}
@@ -934,6 +940,8 @@ export function SettingsView({
                     <label className="block text-[10px] font-semibold text-slate-500  uppercase mb-1">SteadFast API Key</label>
                     <input 
                       type="text"
+                      name="buykori-steadfast-api-key"
+                      autoComplete="off"
                       value={courierSettings.steadfast_api_key || ''}
                       onChange={(e) => setCourierSettings((prev: any) => ({ ...prev, steadfast_api_key: e.target.value }))}
                       placeholder="Enter SteadFast Api-Key"
@@ -945,6 +953,8 @@ export function SettingsView({
                     <label className="block text-[10px] font-semibold text-slate-500  uppercase mb-1">SteadFast Secret Key</label>
                     <input 
                       type="password"
+                      name="buykori-steadfast-secret-key"
+                      autoComplete="new-password"
                       value={courierSettings.steadfast_secret_key || ''}
                       onChange={(e) => setCourierSettings((prev: any) => ({ ...prev, steadfast_secret_key: e.target.value }))}
                       placeholder="************************"
@@ -974,6 +984,8 @@ export function SettingsView({
                       </label>
                       <input
                         type="text"
+                        name="buykori-pathao-client-id"
+                        autoComplete="off"
                         value={courierSettings.pathao_client_id || ''}
                         onChange={(e) => setCourierSettings((prev: any) => ({ ...prev, pathao_client_id: e.target.value }))}
                         placeholder="Client ID"
@@ -986,6 +998,8 @@ export function SettingsView({
                       </label>
                       <input
                         type="email"
+                        name="buykori-pathao-owner-email"
+                        autoComplete="off"
                         value={courierSettings.pathao_email || ''}
                         onChange={(e) => setCourierSettings((prev: any) => ({ ...prev, pathao_email: e.target.value }))}
                         placeholder="owner@example.com"
@@ -1001,6 +1015,8 @@ export function SettingsView({
                       </label>
                       <input
                         type="password"
+                        name="buykori-pathao-client-secret"
+                        autoComplete="new-password"
                         value={courierSettings.pathao_client_secret || ''}
                         onChange={(e) => setCourierSettings((prev: any) => ({ ...prev, pathao_client_secret: e.target.value }))}
                         placeholder="************************"
@@ -1013,6 +1029,8 @@ export function SettingsView({
                       </label>
                       <input
                         type="password"
+                        name="buykori-pathao-store-password"
+                        autoComplete="new-password"
                         value={courierSettings.pathao_password || ''}
                         onChange={(e) => setCourierSettings((prev: any) => ({ ...prev, pathao_password: e.target.value }))}
                         placeholder="************************"
@@ -1090,6 +1108,8 @@ export function SettingsView({
                       <label className="block text-[10px] font-semibold text-slate-500  uppercase mb-1">RedX Access Token</label>
                       <input
                         type="password"
+                        name="buykori-redx-access-token"
+                        autoComplete="new-password"
                         value={courierSettings.redx_access_token || ''}
                         onChange={(e) => setCourierSettings((prev: any) => ({ ...prev, redx_access_token: e.target.value }))}
                         placeholder="Paste RedX OpenAPI token"
