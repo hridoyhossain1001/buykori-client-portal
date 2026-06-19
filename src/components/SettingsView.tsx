@@ -139,6 +139,10 @@ export function SettingsView({
     : connection.wpVersion
       ? `WordPress core v${connection.wpVersion} reported`
       : 'Waiting for plugin heartbeat';
+  const apiAccessKey = connection.api_key || connection.token || '';
+  const maskedApiAccessKey = apiAccessKey
+    ? `${'*'.repeat(Math.min(Math.max(apiAccessKey.length - 6, 8), 24))}${apiAccessKey.slice(-6)}`
+    : 'Not available';
   const packageSizeKb = pluginReleaseInfo?.package_size ? Math.round(pluginReleaseInfo.package_size / 1024) : 0;
   const availablePresetRoutes = presetEventRoutes.filter(
     preset => !rules.some(rule => rule.eventName.toLowerCase() === preset.value.toLowerCase())
@@ -651,6 +655,8 @@ export function SettingsView({
                     <label className="block text-[10px] font-semibold text-slate-400 uppercase mb-1">Access Token</label>
                     <input 
                       type="password"
+                      name={`platform-${plat.toLowerCase().replace(/\s+/g, '-')}-access-token`}
+                      autoComplete="new-password"
                       value={localTokens[plat]}
                       placeholder="Paste access token"
                       onChange={(e) => setLocalTokens(prev => ({ ...prev, [plat]: e.target.value }))}
@@ -1359,11 +1365,13 @@ export function SettingsView({
             <div>
               <span className="block text-[9px] font-semibold text-slate-400  uppercase tracking-wider mb-0.5">API Access Key</span>
               <div className="flex items-center gap-2 bg-white  px-2 py-1.5 rounded border border-slate-200 ">
-                <span className="truncate select-all">{connection.api_key || connection.token}</span>
+                <span className="truncate" aria-label="Masked API access key">{maskedApiAccessKey}</span>
                 <button 
-                  onClick={() => handleCopy(connection.api_key || connection.token, 'sett_wp_tok')}
+                  type="button"
+                  onClick={() => handleCopy(apiAccessKey, 'sett_wp_tok')}
+                  disabled={!apiAccessKey}
                   className="text-slate-400 hover:text-slate-600 ml-auto shrink-0 cursor-pointer"
-                  title="Copy Access token"
+                  title="Copy API access key"
                 >
                   {copiedStates['sett_wp_tok'] ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
                 </button>
@@ -1399,13 +1407,21 @@ export function SettingsView({
                 )}
               </div>
               <span className={
-                updateAvailable
+                !installedLooksLikePluginVersion
+                  ? 'shrink-0 rounded-md border border-slate-200 bg-slate-50 px-2 py-1 text-[10px] font-semibold text-slate-500   '
+                  : updateAvailable
                   ? 'shrink-0 rounded-md border border-amber-200 bg-amber-50 px-2 py-1 text-[10px] font-semibold text-amber-700   '
                   : pluginReleaseInfo?.package_available
                     ? 'shrink-0 rounded-md border border-emerald-200 bg-emerald-50 px-2 py-1 text-[10px] font-semibold text-emerald-700   '
                     : 'shrink-0 rounded-md border border-slate-200 bg-slate-50 px-2 py-1 text-[10px] font-semibold text-slate-500   '
               }>
-                {updateAvailable ? 'Update available' : pluginReleaseInfo?.package_available ? 'Up to date' : 'Unavailable'}
+                {!installedLooksLikePluginVersion
+                  ? 'Version unknown'
+                  : updateAvailable
+                    ? 'Update available'
+                    : pluginReleaseInfo?.package_available
+                      ? 'Up to date'
+                      : 'Unavailable'}
               </span>
             </div>
           </div>
