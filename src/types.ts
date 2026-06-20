@@ -5,7 +5,7 @@
 
 export type Platform = 'Meta CAPI' | 'TikTok Events API' | 'GA4';
 
-export type EventStatus = 'Success' | 'Failed' | 'Retry' | 'Fired';
+export type EventStatus = 'Success' | 'Failed' | 'Filtered' | 'Retry' | 'Fired';
 
 export interface CAPIEvent {
   id: string;

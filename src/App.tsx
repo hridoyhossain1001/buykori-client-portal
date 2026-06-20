@@ -1413,6 +1413,16 @@ export default function App() {
 
   // Calculate platform statistics
   const getPlatformStats = (p: Platform) => {
+    const serverStats = recoverySummary?.platform_stats?.[p];
+    if (serverStats) {
+      const total = Number(serverStats.attempts || 0);
+      const successful = Number(serverStats.successful || 0);
+      const rate = total > 0 ? Math.round((successful / total) * 100) : 0;
+      const lastTime = serverStats.last_event_at
+        ? new Date(serverStats.last_event_at).toLocaleTimeString()
+        : 'N/A';
+      return { total, rate, lastTime };
+    }
     const pEvs = events.filter(e => e.platform === p);
     const total = pEvs.length;
     const succs = pEvs.filter(e => e.status === 'Success').length;

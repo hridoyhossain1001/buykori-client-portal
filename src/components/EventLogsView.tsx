@@ -238,7 +238,7 @@ export function EventLogsView({
           <span className="h-4 w-px bg-slate-200  mx-2 self-center" />
 
           {/* Status lists */}
-          {['Success', 'Fired', 'Failed', 'Retry'].map(s => {
+          {['Success', 'Fired', 'Filtered', 'Failed', 'Retry'].map(s => {
             const active = statusFilters.includes(s);
             return (
               <button
@@ -312,6 +312,7 @@ export function EventLogsView({
                       <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase ${
                         e.status === 'Success' ? 'border-slate-200 bg-green-50 text-green-700' :
                         e.status === 'Fired' ? 'border-violet-200 bg-violet-50 text-violet-700' :
+                        e.status === 'Filtered' ? 'border-sky-200 bg-sky-50 text-sky-700' :
                         e.status === 'Retry' ? 'border-slate-200 bg-amber-50 text-amber-700' :
                         'border-slate-200 bg-rose-50 text-rose-700'
                       }`}>
@@ -327,7 +328,7 @@ export function EventLogsView({
                         }`} />
                         {highlightText(e.platform, searchFilter)}
                       </span>
-                      <span className="text-right font-mono">Code {e.httpCode}</span>
+                      <span className="text-right font-mono">Code {e.status === 'Filtered' ? '—' : e.httpCode}</span>
                       <span className="font-mono">{new Date(e.timestamp).toLocaleTimeString()}</span>
                       <span className="text-right font-mono">{new Date(e.timestamp).toLocaleDateString()}</span>
                     </div>
@@ -399,6 +400,7 @@ export function EventLogsView({
                           <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
                             e.status === 'Success' ? 'bg-green-50 text-green-700 border border-slate-200   ' :
                             e.status === 'Fired' ? 'bg-violet-50 text-violet-700 border border-violet-200   ' :
+                            e.status === 'Filtered' ? 'bg-sky-50 text-sky-700 border border-sky-200   ' :
                             e.status === 'Retry' ? 'bg-amber-50 text-amber-700 border border-slate-200   ' : 
                             'bg-rose-50 text-rose-700 border border-slate-200   '
                           }`}>
@@ -406,7 +408,7 @@ export function EventLogsView({
                           </span>
                         </td>
                         <td className="px-6 py-4 font-mono text-slate-500 ">
-                          {highlightText(String(e.httpCode), searchFilter)}
+                          {e.status === 'Filtered' ? '—' : highlightText(String(e.httpCode), searchFilter)}
                         </td>
                         <td className="px-6 py-4 font-mono text-right text-slate-400 ">
                           {highlightText(e.deduplicationKey, searchFilter)}

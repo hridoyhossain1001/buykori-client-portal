@@ -34,6 +34,14 @@ interface DashboardViewProps {
     server_attempt_events?: number;
     server_failed_events?: number;
     server_filtered_events?: number;
+    server_processed_events?: number;
+    platform_stats?: Record<string, {
+      attempts: number;
+      successful: number;
+      failed: number;
+      filtered: number;
+      last_event_at: string | null;
+    }>;
     server_missing_event_id_events?: number;
     diagnostic_reasons?: Array<{
       status: string;
