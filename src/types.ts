@@ -67,6 +67,7 @@ export interface EventRule {
 export interface ClientConnection {
   token: string;
   wpVersion: string;
+  pluginVersion?: string;
   lastHeartbeat: string;
   status: 'Active' | 'Degraded' | 'Disconnected';
   api_key?: string;

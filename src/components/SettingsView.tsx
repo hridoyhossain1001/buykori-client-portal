@@ -127,14 +127,27 @@ export function SettingsView({
   ];
   const [activeSettingsTab, setActiveSettingsTab] = useState<string>('store');
   const normalizeVersion = (version?: string) => (version || '').replace(/^v/i, '').trim();
-  const installedVersion = normalizeVersion(connection.wpVersion);
+  const compareVersions = (left: string, right: string) => {
+    const leftParts = left.split('.').map(part => Number.parseInt(part, 10) || 0);
+    const rightParts = right.split('.').map(part => Number.parseInt(part, 10) || 0);
+    const length = Math.max(leftParts.length, rightParts.length);
+    for (let index = 0; index < length; index += 1) {
+      const difference = (leftParts[index] || 0) - (rightParts[index] || 0);
+      if (difference !== 0) return difference;
+    }
+    return 0;
+  };
+  const installedVersion = normalizeVersion(connection.pluginVersion);
   const latestVersion = normalizeVersion(pluginReleaseInfo?.version);
-  const installedLooksLikePluginVersion = Boolean(installedVersion && latestVersion && installedVersion.split('.')[0] === latestVersion.split('.')[0]);
-  const updateAvailable = Boolean(installedLooksLikePluginVersion && latestVersion && installedVersion !== latestVersion);
-  const pluginVersionStatus = installedLooksLikePluginVersion
+  const installedVersionReported = Boolean(installedVersion);
+  const versionComparison = installedVersionReported && latestVersion
+    ? compareVersions(installedVersion, latestVersion)
+    : null;
+  const updateAvailable = versionComparison !== null && versionComparison < 0;
+  const pluginVersionStatus = installedVersionReported
     ? `v${installedVersion}`
     : 'Plugin version not reported yet';
-  const pluginVersionHelp = installedLooksLikePluginVersion
+  const pluginVersionHelp = installedVersionReported
     ? 'Plugin reported version'
     : connection.wpVersion
       ? `WordPress core v${connection.wpVersion} reported`
@@ -1382,7 +1395,7 @@ export function SettingsView({
               <div>
                 <span className="block text-[9px] text-slate-400  uppercase mb-0.5">Plugin detected version</span>
                 <span className="font-semibold text-slate-800 ">{pluginVersionStatus}</span>
-                {!installedLooksLikePluginVersion && connection.wpVersion ? (
+                {!installedVersionReported && connection.wpVersion ? (
                   <span className="mt-0.5 block text-[9px] text-slate-400">{pluginVersionHelp}</span>
                 ) : null}
               </div>
@@ -1407,7 +1420,7 @@ export function SettingsView({
                 )}
               </div>
               <span className={
-                !installedLooksLikePluginVersion
+                !installedVersionReported
                   ? 'shrink-0 rounded-md border border-slate-200 bg-slate-50 px-2 py-1 text-[10px] font-semibold text-slate-500   '
                   : updateAvailable
                   ? 'shrink-0 rounded-md border border-amber-200 bg-amber-50 px-2 py-1 text-[10px] font-semibold text-amber-700   '
@@ -1415,11 +1428,13 @@ export function SettingsView({
                     ? 'shrink-0 rounded-md border border-emerald-200 bg-emerald-50 px-2 py-1 text-[10px] font-semibold text-emerald-700   '
                     : 'shrink-0 rounded-md border border-slate-200 bg-slate-50 px-2 py-1 text-[10px] font-semibold text-slate-500   '
               }>
-                {!installedLooksLikePluginVersion
+                {!installedVersionReported
                   ? 'Version unknown'
                   : updateAvailable
                     ? 'Update available'
-                    : pluginReleaseInfo?.package_available
+                    : versionComparison !== null && versionComparison > 0
+                      ? 'Newer version installed'
+                      : pluginReleaseInfo?.package_available
                       ? 'Up to date'
                       : 'Unavailable'}
               </span>
