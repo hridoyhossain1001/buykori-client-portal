@@ -1622,10 +1622,10 @@ export default function App() {
               />
             )}
 
-            {/* PAGE 11: ORDERS & COURIER — only when Order Management is enabled */}
+            {/* PAGE 11: ORDERS & COURIER - only when Order Management is enabled */}
             {activePage === 'pending-purchases' && (
               <CodProtectionView
-                deferredData={deferredData ?? { pendingList: [], pendingCount: 0, pendingValue: '৳0', confirmedToday: 0, oldestPending: 'N/A' }}
+                deferredData={deferredData ?? { pendingList: [], pendingCount: 0, pendingValue: 'BDT 0', confirmedToday: 0, oldestPending: 'N/A' }}
                 selectedOrderIds={selectedOrderIds}
                 setSelectedOrderIds={setSelectedOrderIds}
                 handleBulkConfirm={handleBulkConfirm}

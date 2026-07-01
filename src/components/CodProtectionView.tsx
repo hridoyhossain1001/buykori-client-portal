@@ -181,7 +181,7 @@ export function CodProtectionView({
             <div>
               <h2 className="text-xs font-black uppercase tracking-wide text-slate-800">COD controls</h2>
               <p className="mt-0.5 text-[11px] text-slate-500">
-                Courier {orderManagementDraftEnabled ? 'on' : 'off'} · Protection {deferredEnabled ? 'on' : 'off'}
+                Courier {orderManagementDraftEnabled ? 'on' : 'off'} - Protection {deferredEnabled ? 'on' : 'off'}
               </p>
             </div>
             <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[10px] font-bold text-slate-600">
