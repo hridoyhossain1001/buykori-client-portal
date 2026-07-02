@@ -467,6 +467,28 @@ export function SettingsView({
   const enabledPlatformCount = platformStatusRows.filter(row => row.enabled).length;
   const enabledRouteCount = rules.filter(rule => rule.metaEnabled || rule.tiktokEnabled || rule.ga4Enabled).length;
   const selectedCourierProvider = String(courierSettings.default_courier || 'steadfast').toLowerCase();
+  const courierProviderLabel =
+    selectedCourierProvider === 'pathao'
+      ? 'Pathao'
+      : selectedCourierProvider === 'redx'
+        ? 'RedX'
+        : 'SteadFast';
+  const courierMissingCredentials =
+    selectedCourierProvider === 'pathao'
+      ? [
+          !courierSettings.pathao_client_id ? 'Client ID' : '',
+          !courierSettings.pathao_client_secret ? 'Client secret' : '',
+          !courierSettings.pathao_password ? 'Store password' : '',
+          !courierSettings.pathao_store_id ? 'Store ID' : ''
+        ].filter(Boolean)
+      : selectedCourierProvider === 'redx'
+        ? [
+            !courierSettings.redx_access_token ? 'Access token' : ''
+          ].filter(Boolean)
+        : [
+            !courierSettings.steadfast_api_key ? 'API key' : '',
+            !courierSettings.steadfast_secret_key ? 'Secret key' : ''
+          ].filter(Boolean);
   const courierProviderConfigured =
     selectedCourierProvider === 'pathao'
       ? Boolean(courierSettings.pathao_client_id && courierSettings.pathao_client_secret && courierSettings.pathao_password && courierSettings.pathao_store_id)
@@ -938,6 +960,15 @@ export function SettingsView({
             <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] text-amber-700   ">
               Free plan includes manual courier booking. Auto-booking and automatic delivery Purchase sync require an active Growth trial or paid plan.
             </p>
+          )}
+          {courierSettings.courier_auto_send && courierMissingCredentials.length > 0 && (
+            <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-3 text-xs text-amber-800">
+              <p className="font-bold">{courierProviderLabel} credentials missing</p>
+              <p className="mt-1 leading-relaxed">
+                {courierProviderLabel} is selected, but {courierMissingCredentials.join(', ')} {courierMissingCredentials.length === 1 ? 'is' : 'are'} missing.
+                {' '}Auto-booking will be skipped until the missing keys are added.
+              </p>
+            </div>
           )}
 
           {loadingCourier ? (
