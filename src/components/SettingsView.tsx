@@ -17,9 +17,13 @@ interface SettingsViewProps {
   showToast: (msg: string, isErr?: boolean) => void;
   orderManagementEnabled: boolean;
   growthFeaturesEnabled?: boolean;
+  deferredEnabled?: boolean;
+  autoConfirmDays?: number;
+  autoConfirmStatus?: string;
   pluginReleaseInfo?: PluginReleaseInfo | null;
   storeDomain?: string;
   onSaveStoreDomain?: (domain: string) => Promise<void>;
+  onOpenPage?: (pageId: string) => void;
   profNotifyWhatsapp: boolean;
   setProfNotifyWhatsapp: (v: boolean) => void;
   profWhatsappNumber: string;
@@ -42,9 +46,13 @@ export function SettingsView({
   showToast,
   orderManagementEnabled,
   growthFeaturesEnabled = false,
+  deferredEnabled = false,
+  autoConfirmDays = 0,
+  autoConfirmStatus = 'completed',
   pluginReleaseInfo,
   storeDomain = '',
   onSaveStoreDomain,
+  onOpenPage,
   profNotifyWhatsapp,
   setProfNotifyWhatsapp,
   profWhatsappNumber,
@@ -100,6 +108,7 @@ export function SettingsView({
       label: 'Conversions API',
       sections: [
         { id: 'settings-platforms', label: 'Tracking destinations' },
+        { id: 'settings-cod', label: 'COD timing' },
         { id: 'settings-routing', label: 'Event routing' },
       ],
     },
@@ -501,6 +510,12 @@ export function SettingsView({
       : 'Needs number'
     : 'Off';
   const wordpressConnectionStatus = connection.api_key || connection.token ? 'Connected' : 'Needs key';
+  const autoConfirmLabel = autoConfirmDays > 0
+    ? `${autoConfirmDays} day${autoConfirmDays === 1 ? '' : 's'} after order hold`
+    : 'Manual confirmation only';
+  const formattedConfirmStatus = autoConfirmStatus
+    ? autoConfirmStatus.replace(/[-_]/g, ' ').replace(/\b\w/g, char => char.toUpperCase())
+    : 'Completed';
 
   return (
     <div className="space-y-4">
@@ -1240,6 +1255,53 @@ export function SettingsView({
         </section>
 
         {/* WordPress Custom tracking rules */}
+        <section id="settings-cod" aria-labelledby="settings-cod-title" className="scroll-mt-28 rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-4  ">
+          <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+            <div>
+              <h2 id="settings-cod-title" className="font-bold text-slate-800 text-sm uppercase tracking-wide ">COD Purchase Timing</h2>
+              <p className="text-xs text-slate-400 ">
+                Portal-managed source of truth for deferred Purchase events. The WordPress plugin sends the order signal, then this portal decides whether COD orders wait for verification.
+              </p>
+            </div>
+            <span className={`inline-flex w-fit rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide ${
+              deferredEnabled
+                ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                : 'border-slate-200 bg-slate-50 text-slate-500'
+            }`}>
+              {deferredEnabled ? 'Protection on' : 'Protection off'}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <div className="rounded-lg border border-slate-200 bg-slate-50/70 p-3">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Purchase timing</p>
+              <p className="mt-1 text-sm font-black text-slate-900">{deferredEnabled ? 'Hold for verification' : 'Immediate send'}</p>
+            </div>
+            <div className="rounded-lg border border-slate-200 bg-slate-50/70 p-3">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Auto-confirm</p>
+              <p className="mt-1 text-sm font-black text-slate-900">{autoConfirmLabel}</p>
+            </div>
+            <div className="rounded-lg border border-slate-200 bg-slate-50/70 p-3">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Confirm status</p>
+              <p className="mt-1 text-sm font-black text-slate-900">{formattedConfirmStatus}</p>
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-2 rounded-lg border border-indigo-100 bg-indigo-50/60 p-3 text-xs text-indigo-950 sm:flex-row sm:items-center sm:justify-between">
+            <p className="leading-relaxed">
+              Need to change COD verification, auto-confirm timing, or manually confirm held orders? Use the dedicated COD Protection workflow.
+            </p>
+            <button
+              type="button"
+              onClick={() => onOpenPage?.('pending-purchases')}
+              className="inline-flex shrink-0 items-center justify-center rounded-lg bg-indigo-600 px-3 py-2 text-xs font-bold text-white shadow-sm hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
+              disabled={!onOpenPage}
+            >
+              Open COD Protection
+            </button>
+          </div>
+        </section>
+
         <section id="settings-routing" aria-labelledby="settings-routing-title" className="scroll-mt-28 rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-4  ">
           <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
             <div>

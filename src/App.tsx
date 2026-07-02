@@ -1732,9 +1732,13 @@ export default function App() {
                 showToast={showToast}
                 orderManagementEnabled={orderManagementEnabled}
                 growthFeaturesEnabled={profile?.growthFeaturesEnabled}
+                deferredEnabled={deferredEnabled}
+                autoConfirmDays={autoConfirmDays}
+                autoConfirmStatus={autoConfirmStatus}
                 pluginReleaseInfo={pluginReleaseInfo}
                 storeDomain={currentStore?.domain || ''}
                 onSaveStoreDomain={handleSaveStoreDomain}
+                onOpenPage={setActivePage}
                 profNotifyWhatsapp={profNotifyWhatsapp}
                 setProfNotifyWhatsapp={setProfNotifyWhatsapp}
                 profWhatsappNumber={profWhatsappNumber}
