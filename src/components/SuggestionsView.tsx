@@ -110,7 +110,7 @@ export function SuggestionsView({
                 </div>
               ))}
             </div>
-            <p className="text-[11px] text-slate-400">Last scan reflects the latest loaded workspace data. Run Check My Setup again after changing credentials or plugin settings.</p>
+            <p className="text-[11px] text-slate-400">Last scan reflects the latest loaded workspace data. Run Check My Setup again after changing portal settings, credentials, or the WordPress plugin version.</p>
           </div>
         )}
 
@@ -167,7 +167,7 @@ export function SuggestionsView({
               <p className="text-xs text-slate-500  leading-relaxed max-w-4xl">{s.explanation}</p>
 
               <div className="p-3 bg-slate-50  border border-slate-200  rounded text-xs text-slate-600 ">
-                <span className="font-bold text-[10px] text-indigo-700  uppercase tracking-wider block mb-1">How to fix in WordPress plugin config</span>
+                <span className="font-bold text-[10px] text-indigo-700  uppercase tracking-wider block mb-1">How to fix</span>
                 <p className="whitespace-pre-line leading-relaxed">{s.fixAction}</p>
               </div>
             </div>

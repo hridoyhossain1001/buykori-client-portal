@@ -56,7 +56,7 @@ export const initialSuggestions: Suggestion[] = [
     title: "Purchase value is missing",
     severity: "Critical",
     explanation: "Some purchase events are missing the order value or currency. Without this, Meta cannot measure sales value accurately.",
-    fixAction: "Open the Buykori plugin settings in WordPress and enable WooCommerce order value and currency sync.",
+    fixAction: "Check Event Logs for the affected Purchase events. If value or currency is still missing, verify WooCommerce order totals and contact Buykori support with one failed event key.",
     resolved: false,
     platform: "Meta CAPI"
   },
@@ -74,7 +74,7 @@ export const initialSuggestions: Suggestion[] = [
     title: "Add to Cart events may be counted twice",
     severity: "Critical",
     explanation: "Some Add to Cart events do not have a matching event ID. This can make Meta count the same cart action twice.",
-    fixAction: "Open the Buykori plugin settings and turn on event ID matching for browser and server events.",
+    fixAction: "Open Event Logs and compare the browser/server event keys for AddToCart. If duplicate keys are missing, run Test WordPress Connection and keep the plugin updated.",
     resolved: false,
     platform: "Meta CAPI"
   },
@@ -83,7 +83,7 @@ export const initialSuggestions: Suggestion[] = [
     title: "TikTok match quality can improve",
     severity: "Tip",
     explanation: "TikTok is receiving events, but some customer match details are missing. Adding more customer signals can improve reporting.",
-    fixAction: "Turn on advanced customer matching in the Buykori plugin settings.",
+    fixAction: "Make sure checkout forms collect phone or email, then check Settings > Conversions API to confirm TikTok credentials and routing are enabled.",
     resolved: false,
     platform: "TikTok Events API"
   }
