@@ -238,7 +238,7 @@ export function EventLogsView({
           <span className="h-4 w-px bg-slate-200  mx-2 self-center" />
 
           {/* Status lists */}
-          {['Success', 'Fired', 'Filtered', 'Failed', 'Retry'].map(s => {
+          {['Success', 'Fired', 'Failed', 'Retry'].map(s => {
             const active = statusFilters.includes(s);
             return (
               <button

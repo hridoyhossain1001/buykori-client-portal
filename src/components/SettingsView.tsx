@@ -1,16 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { Check, Copy, Globe2, Plus, Save, Trash2 } from 'lucide-react';
 import { Tooltip } from './common/Tooltip';
-import { Platform, PlatformConfig, EventRule, ClientConnection, PluginReleaseInfo } from '../types';
+import { Platform, PlatformConfig, EventRule, ClientConnection, PluginReleaseInfo, CustomEventAutomation, CustomEventTrigger } from '../types';
 
 interface SettingsViewProps {
   credentials: Record<Platform, PlatformConfig>;
   connection: ClientConnection;
   rules: EventRule[];
+  customEventAutomations: CustomEventAutomation[];
   handleUpdatePlatform: (platform: Platform, fields: Partial<PlatformConfig>) => Promise<void>;
   handleToggleRule: (index: number, channel: 'metaEnabled' | 'tiktokEnabled' | 'ga4Enabled') => Promise<void>;
   handleAddRule: (eventName: string) => Promise<void>;
   handleRemoveRule: (index: number) => Promise<void>;
+  handleSaveCustomEventAutomations: (automations: CustomEventAutomation[]) => Promise<boolean>;
   refreshWPHeartbeat: () => Promise<void>;
   copiedStates: Record<string, boolean>;
   handleCopy: (text: string, labelId: string) => void;
@@ -36,10 +38,12 @@ export function SettingsView({
   credentials,
   connection,
   rules,
+  customEventAutomations,
   handleUpdatePlatform,
   handleToggleRule,
   handleAddRule,
   handleRemoveRule,
+  handleSaveCustomEventAutomations,
   refreshWPHeartbeat,
   copiedStates,
   handleCopy,
@@ -80,6 +84,8 @@ export function SettingsView({
   const [customEventRoute, setCustomEventRoute] = useState<string>('');
   const [localStoreDomain, setLocalStoreDomain] = useState<string>(storeDomain || '');
   const [savingStoreDomain, setSavingStoreDomain] = useState<boolean>(false);
+  const [automationDrafts, setAutomationDrafts] = useState<CustomEventAutomation[]>(customEventAutomations || []);
+  const [savingAutomations, setSavingAutomations] = useState<boolean>(false);
 
   const presetEventRoutes = [
     { value: 'ViewContent', label: 'ViewContent - product/details viewed' },
@@ -110,6 +116,7 @@ export function SettingsView({
         { id: 'settings-platforms', label: 'Tracking destinations' },
         { id: 'settings-cod', label: 'COD timing' },
         { id: 'settings-routing', label: 'Event routing' },
+        { id: 'settings-custom-automations', label: 'Custom automations' },
       ],
     },
     {
@@ -200,6 +207,10 @@ export function SettingsView({
   useEffect(() => {
     setLocalStoreDomain(storeDomain || '');
   }, [storeDomain]);
+
+  useEffect(() => {
+    setAutomationDrafts(customEventAutomations || []);
+  }, [customEventAutomations]);
 
   const saveStoreDomain = async () => {
     if (!onSaveStoreDomain) return;
@@ -461,9 +472,60 @@ export function SettingsView({
   };
 
   const platformOrder: Platform[] = ['Meta CAPI', 'TikTok Events API', 'GA4'];
+  const platformDestinationLabel = (platform: Platform) => (
+    platform === 'GA4' ? 'Measurement ID' : platform === 'TikTok Events API' ? 'TikTok Pixel ID' : 'Meta Pixel ID'
+  );
+  const platformTokenLabel = (platform: Platform) => (
+    platform === 'GA4' ? 'API Secret' : 'Access Token'
+  );
+  const platformMissingCredentials = (platform: Platform, config?: PlatformConfig) => {
+    const destination = String(config?.pixelIdOrMeasurementId || '').trim();
+    const token = String(config?.accessToken || '').trim();
+    const missing = [];
+    if (!destination || destination === '0') missing.push(platformDestinationLabel(platform));
+    if (!token) missing.push(platformTokenLabel(platform));
+    return missing;
+  };
+
+  const updateAutomationDraft = (index: number, fields: Partial<CustomEventAutomation>) => {
+    setAutomationDrafts(prev => prev.map((item, itemIndex) => itemIndex === index ? { ...item, ...fields } : item));
+  };
+
+  const addAutomationDraft = () => {
+    setAutomationDrafts(prev => [
+      ...prev,
+      {
+        id: `draft_${Date.now()}`,
+        name: '',
+        trigger: 'timer',
+        selector: '15',
+        url_pattern: '',
+        seconds: 15,
+        value: 0,
+        currency: 'BDT',
+        custom_param: '',
+        customData: {},
+        enabled: true,
+      }
+    ]);
+  };
+
+  const removeAutomationDraft = (index: number) => {
+    setAutomationDrafts(prev => prev.filter((_, itemIndex) => itemIndex !== index));
+  };
+
+  const saveAutomationDrafts = async () => {
+    setSavingAutomations(true);
+    try {
+      await handleSaveCustomEventAutomations(automationDrafts);
+    } finally {
+      setSavingAutomations(false);
+    }
+  };
   const platformStatusRows = platformOrder.map((platform) => {
     const config = credentials[platform];
-    const hasDestinationId = Boolean(String(config?.pixelIdOrMeasurementId || '').trim());
+    const destination = String(config?.pixelIdOrMeasurementId || '').trim();
+    const hasDestinationId = Boolean(destination) && destination !== '0';
     const hasAccessSecret = Boolean(String(config?.accessToken || '').trim());
     const configured = hasDestinationId && hasAccessSecret;
     return {
@@ -658,6 +720,8 @@ export function SettingsView({
           {Object.keys(credentials).map(platKey => {
             const plat = platKey as Platform;
             const config = credentials[plat];
+            const missingCredentials = platformMissingCredentials(plat, config);
+            const enabledButMissingCredentials = Boolean(config.enabled && missingCredentials.length);
             return (
               <div key={plat} className="p-4 rounded-lg border border-slate-200  bg-slate-50/50  space-y-3">
                 <div className="flex items-center justify-between">
@@ -686,6 +750,15 @@ export function SettingsView({
                     </span>
                   </label>
                 </div>
+
+                {enabledButMissingCredentials && (
+                  <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-relaxed text-amber-800">
+                    <p className="font-bold">{plat} is on, but credentials are missing.</p>
+                    <p className="mt-0.5">
+                      Events will not be sent until you add {missingCredentials.join(' and ')}.
+                    </p>
+                  </div>
+                )}
 
                 <div className={`grid grid-cols-1 ${plat === 'GA4' ? 'md:grid-cols-2' : 'md:grid-cols-3'} gap-4`}>
                   <div>
@@ -1454,6 +1527,146 @@ export function SettingsView({
               </tbody>
             </table>
           </div>
+        </section>
+
+        <section id="settings-custom-automations" aria-labelledby="settings-custom-automations-title" className="scroll-mt-28 rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+            <div>
+              <h2 id="settings-custom-automations-title" className="font-bold text-slate-800 text-sm uppercase tracking-wide">Custom event automations</h2>
+              <p className="text-xs text-slate-400">Create no-code browser triggers from the portal. WordPress will sync these rules and fire matching event routes.</p>
+            </div>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={addAutomationDraft}
+                className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-bold text-indigo-700 hover:bg-indigo-100"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                Add automation
+              </button>
+              <button
+                type="button"
+                onClick={saveAutomationDrafts}
+                disabled={savingAutomations}
+                className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-indigo-600 px-3 py-2 text-xs font-bold text-white shadow-sm hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <Save className="h-3.5 w-3.5" />
+                {savingAutomations ? 'Saving...' : 'Save automations'}
+              </button>
+            </div>
+          </div>
+
+          <div className="rounded-lg border border-blue-100 bg-blue-50 px-4 py-3 text-xs text-blue-800">
+            Example: <b>Stay15Seconds</b> + Timer 15 sec, or <b>WhatsAppClick</b> + Click selector <code className="font-mono">.whatsapp-btn</code>. Saving also adds the event route if it is missing.
+          </div>
+
+          {automationDrafts.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 p-6 text-center text-xs text-slate-500">
+              No custom automations yet. Add one when you need timer, click, URL, or form-based custom events.
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {automationDrafts.map((automation, index) => (
+                <div key={automation.id || index} className="rounded-xl border border-slate-200 bg-slate-50/60 p-4">
+                  <div className="grid grid-cols-1 gap-3 lg:grid-cols-[1fr_150px_1fr_auto]">
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                      Event name
+                      <input
+                        type="text"
+                        value={automation.name}
+                        onChange={(e) => updateAutomationDraft(index, { name: e.target.value.replace(/[^A-Za-z0-9_]/g, '') })}
+                        placeholder="Stay15Seconds"
+                        className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 font-mono text-xs text-slate-800 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
+                      />
+                    </label>
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                      Trigger
+                      <select
+                        value={automation.trigger}
+                        onChange={(e) => updateAutomationDraft(index, { trigger: e.target.value as CustomEventTrigger })}
+                        className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
+                      >
+                        <option value="timer">Timer</option>
+                        <option value="click">Click</option>
+                        <option value="url">URL match</option>
+                        <option value="form">Form submit</option>
+                      </select>
+                    </label>
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                      {automation.trigger === 'timer' ? 'Seconds' : automation.trigger === 'url' ? 'URL contains' : 'CSS selector'}
+                      <input
+                        type={automation.trigger === 'timer' ? 'number' : 'text'}
+                        min={1}
+                        max={3600}
+                        value={automation.trigger === 'url' ? automation.url_pattern : automation.trigger === 'timer' ? (automation.seconds || automation.selector || 15) : automation.selector}
+                        onChange={(e) => {
+                          if (automation.trigger === 'url') {
+                            updateAutomationDraft(index, { url_pattern: e.target.value });
+                          } else if (automation.trigger === 'timer') {
+                            const seconds = Number.parseInt(e.target.value, 10) || 15;
+                            updateAutomationDraft(index, { seconds, selector: String(seconds) });
+                          } else {
+                            updateAutomationDraft(index, { selector: e.target.value });
+                          }
+                        }}
+                        placeholder={automation.trigger === 'url' ? '/thank-you' : automation.trigger === 'timer' ? '15' : '.button-class'}
+                        className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 font-mono text-xs text-slate-800 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
+                      />
+                    </label>
+                    <div className="flex items-end justify-end gap-2">
+                      <label className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700">
+                        <input
+                          type="checkbox"
+                          checked={automation.enabled}
+                          onChange={(e) => updateAutomationDraft(index, { enabled: e.target.checked })}
+                          className="h-4 w-4 rounded accent-indigo-600"
+                        />
+                        Active
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => removeAutomationDraft(index)}
+                        className="rounded-lg border border-rose-100 bg-white p-2 text-rose-500 hover:bg-rose-50"
+                        title="Remove automation"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                  <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-3">
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                      Value
+                      <input
+                        type="number"
+                        value={automation.value || 0}
+                        onChange={(e) => updateAutomationDraft(index, { value: Number.parseFloat(e.target.value) || 0 })}
+                        className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-800 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
+                      />
+                    </label>
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                      Currency
+                      <input
+                        type="text"
+                        value={automation.currency || 'BDT'}
+                        onChange={(e) => updateAutomationDraft(index, { currency: e.target.value.toUpperCase() })}
+                        className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 font-mono text-xs text-slate-800 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
+                      />
+                    </label>
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                      Custom parameter label
+                      <input
+                        type="text"
+                        value={automation.custom_param || ''}
+                        onChange={(e) => updateAutomationDraft(index, { custom_param: e.target.value })}
+                        placeholder="e.g. landing_timer"
+                        className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 font-mono text-xs text-slate-800 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
+                      />
+                    </label>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </section>
       </div>
 

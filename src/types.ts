@@ -64,6 +64,22 @@ export interface EventRule {
   ga4Enabled: boolean;
 }
 
+export type CustomEventTrigger = 'timer' | 'click' | 'url' | 'form';
+
+export interface CustomEventAutomation {
+  id: string;
+  name: string;
+  trigger: CustomEventTrigger;
+  selector: string;
+  url_pattern: string;
+  seconds?: number | null;
+  value: number;
+  currency: string;
+  custom_param: string;
+  customData?: Record<string, string>;
+  enabled: boolean;
+}
+
 export interface ClientConnection {
   token: string;
   wpVersion: string;

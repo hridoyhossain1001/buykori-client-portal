@@ -15,7 +15,7 @@ import { CreateStoreModal } from './components/CreateStoreModal';
 import { Header } from './components/Header';
 import { PluginConnectAuthorizeView } from './components/PluginConnectAuthorizeView';
 import { ProductGuide } from './components/ProductGuide';
-import { CAPIEvent, APILog, Suggestion, Platform, EventRule, PlatformConfig, UserProfile, ClientConnection, OutboxItem, PluginReleaseInfo } from './types';
+import { CAPIEvent, APILog, Suggestion, Platform, EventRule, PlatformConfig, UserProfile, ClientConnection, OutboxItem, PluginReleaseInfo, CustomEventAutomation } from './types';
 
 const lazyWithReload = <T extends React.ComponentType<any>>(
   loader: () => Promise<{ default: T }>
@@ -120,6 +120,7 @@ export default function App() {
   const [connection, setConnection] = useState<ClientConnection | null>(null);
   const [credentials, setCredentials] = useState<Record<Platform, PlatformConfig> | null>(null);
   const [rules, setRules] = useState<EventRule[]>([]);
+  const [customEventAutomations, setCustomEventAutomations] = useState<CustomEventAutomation[]>([]);
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [events, setEvents] = useState<CAPIEvent[]>([]);
   const [apiLogs, setApiLogs] = useState<APILog[]>([]);
@@ -497,19 +498,22 @@ export default function App() {
   };
 
   const fetchSettingsData = async () => {
-    const [resCreds, resRules] = await Promise.all([
+    const [resCreds, resRules, resAutomations] = await Promise.all([
       fetch('/api/credentials'),
       fetch('/api/rules'),
+      fetch('/api/custom-event-automations'),
     ]);
-    if (isAuthFailure([resCreds, resRules])) {
+    if (isAuthFailure([resCreds, resRules, resAutomations])) {
       redirectToClientLogin();
       return;
     }
-    if (!resCreds.ok || !resRules.ok) {
+    if (!resCreds.ok || !resRules.ok || !resAutomations.ok) {
       throw new Error('Failed to load tracking settings.');
     }
     setCredentials(await resCreds.json());
     setRules(await resRules.json());
+    const automationData = await resAutomations.json();
+    setCustomEventAutomations(automationData.automations || []);
   };
 
   const loadActivePageData = async (page: string) => {
@@ -1008,6 +1012,25 @@ export default function App() {
     const data = await res.json();
     setConnection(data.connection);
     await loadSystemData(false);
+  };
+
+  const handleSaveCustomEventAutomations = async (automations: CustomEventAutomation[]) => {
+    const res = await fetch('/api/custom-event-automations', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ automations })
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      showToast(data.detail || 'Could not save custom event automations.', true);
+      return false;
+    }
+    setCustomEventAutomations(data.automations || automations);
+    if (Array.isArray(data.rules)) {
+      setRules(data.rules);
+    }
+    showToast('Custom event automations saved.', false);
+    return true;
   };
 
   const handleRetryOutbox = async (id: number) => {
@@ -1722,10 +1745,12 @@ export default function App() {
                 credentials={credentials}
                 connection={connection}
                 rules={rules}
+                customEventAutomations={customEventAutomations}
                 handleUpdatePlatform={handleUpdatePlatform}
                 handleToggleRule={handleToggleRule}
                 handleAddRule={handleAddRule}
                 handleRemoveRule={handleRemoveRule}
+                handleSaveCustomEventAutomations={handleSaveCustomEventAutomations}
                 refreshWPHeartbeat={refreshWPHeartbeat}
                 copiedStates={copiedStates}
                 handleCopy={handleCopy}
