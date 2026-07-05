@@ -1404,7 +1404,9 @@ export default function App() {
   };
 
   // --- Calculations for metrics ---
-  const filteredEventsForTable = events.filter(e => {
+  const merchantVisibleEvents = events.filter(e => e.status !== 'Filtered');
+
+  const filteredEventsForTable = merchantVisibleEvents.filter(e => {
     // Search filter
     const matchesSearch = searchVal 
       ? (e.name.toLowerCase().includes(searchVal.toLowerCase()) || 
