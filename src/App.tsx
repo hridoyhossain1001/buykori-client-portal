@@ -141,11 +141,6 @@ export default function App() {
   const [stores, setStores] = useState<any[]>([]);
   const [createStoreModalOpen, setCreateStoreModalOpen] = useState<boolean>(false);
 
-  // Order Management (courier integration toggle)
-  const [orderManagementEnabled, setOrderManagementEnabled] = useState<boolean>(false);
-  const [orderManagementDraftEnabled, setOrderManagementDraftEnabled] = useState<boolean>(false);
-  const [savingOrderMgmt, setSavingOrderMgmt] = useState<boolean>(false);
-
   // Advanced Analytics States
   const [analyticsOverview, setAnalyticsOverview] = useState<any>(null);
   const [analyticsCampaigns, setAnalyticsCampaigns] = useState<any>(null);
@@ -568,43 +563,6 @@ export default function App() {
     return Boolean(body.success ?? true);
   };
 
-  const handleSaveOrderManagement = async () => {
-    setSavingOrderMgmt(true);
-    try {
-      const getRes = await fetch('/api/courier/settings');
-      const current = getRes.ok ? await getRes.json() : {};
-      const currentDefaultCourier = typeof current.default_courier === 'string'
-        ? current.default_courier.trim()
-        : current.default_courier;
-      const nextSettings = {
-        ...current,
-        courier_auto_send: orderManagementDraftEnabled,
-        default_courier: orderManagementDraftEnabled
-          ? (currentDefaultCourier || 'steadfast')
-          : current.default_courier,
-      };
-      const res = await fetch('/api/courier/settings', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(nextSettings),
-      });
-      if (res.ok) {
-        setOrderManagementEnabled(orderManagementDraftEnabled);
-        showToast(
-          orderManagementDraftEnabled
-            ? 'Order Management enabled.'
-            : 'Order Management disabled. Confirm → Purchase direct flow active.',
-          false
-        );
-      } else {
-        showToast('Failed to save Order Management setting.', true);
-      }
-    } catch {
-      showToast('Network error saving Order Management.', true);
-    } finally {
-      setSavingOrderMgmt(false);
-    }
-  };
 
   // --- Fetch API Handlers ---
   const loadSystemData = async (showShimmer = true) => {
@@ -612,13 +570,12 @@ export default function App() {
     try {
       // Route-specific payloads load when their workspace opens.
       const [
-        resProf, resConn, resSugg, resLogs, resCourier, resSidebar, resPlugin, resTrend
+        resProf, resConn, resSugg, resLogs, resSidebar, resPlugin, resTrend
       ] = await Promise.all([
         fetch('/api/profile'),
         fetch('/api/connection'),
         fetch('/api/suggestions'),
         fetch(`/api/events?limit=100`),
-        fetch('/api/courier/settings'),
         fetch('/api/sidebar/status'),
         fetch('/api/v1/plugin/info'),
         fetch(`/api/events/trend?days=${analyticsDays}`)
@@ -637,7 +594,6 @@ export default function App() {
       const dConn = await resConn.json();
       const dSugg = resSugg.ok ? await resSugg.json() : [];
       const dLogs = resLogs.ok ? await resLogs.json() : { events: [] };
-      const dCourier = resCourier.ok ? await resCourier.json() : {};
       const dSidebar = resSidebar.ok ? await resSidebar.json() : null;
       const dPlugin = resPlugin.ok ? await resPlugin.json() : null;
       const dTrend = resTrend.ok ? await resTrend.json() : { trend: [] };
@@ -648,8 +604,6 @@ export default function App() {
       setEvents(dLogs.events);
       setSidebarStatus(dSidebar);
       setPluginReleaseInfo(dPlugin);
-      setOrderManagementEnabled(dCourier.courier_auto_send ?? false);
-      setOrderManagementDraftEnabled(dCourier.courier_auto_send ?? false);
       setTrendData(dTrend.trend || []);
       
       // Initialize text fields
@@ -1513,7 +1467,7 @@ export default function App() {
           mobileOpen={mobileSidebarOpen}
           setMobileOpen={setMobileSidebarOpen}
           onLogout={handleClientLogout}
-          orderManagementEnabled={orderManagementEnabled}
+          orderManagementEnabled={true}
           suggestionsCount={suggestionsCount}
           orderVerificationCount={orderVerificationCount}
           deliveryBadgeCount={deliveryBadgeCount}
@@ -1647,7 +1601,7 @@ export default function App() {
               />
             )}
 
-            {/* PAGE 11: ORDERS & COURIER - only when Order Management is enabled */}
+            {/* PAGE 11: COD verification queue */}
             {activePage === 'pending-purchases' && (
               <CodProtectionView
                 deferredData={deferredData ?? { pendingList: [], pendingCount: 0, pendingValue: 'BDT 0', confirmedToday: 0, oldestPending: 'N/A' }}
@@ -1665,10 +1619,6 @@ export default function App() {
                 setAutoConfirmStatus={setAutoConfirmStatus}
                 savingDeferredSettings={savingDeferredSettings}
                 handleSaveDeferredSettings={handleSaveDeferredSettings}
-                orderManagementDraftEnabled={orderManagementDraftEnabled}
-                setOrderManagementDraftEnabled={setOrderManagementDraftEnabled}
-                savingOrderMgmt={savingOrderMgmt}
-                handleSaveOrderManagement={handleSaveOrderManagement}
                 growthFeaturesEnabled={profile?.growthFeaturesEnabled}
               />
             )}
@@ -1757,7 +1707,6 @@ export default function App() {
                 copiedStates={copiedStates}
                 handleCopy={handleCopy}
                 showToast={showToast}
-                orderManagementEnabled={orderManagementEnabled}
                 growthFeaturesEnabled={profile?.growthFeaturesEnabled}
                 deferredEnabled={deferredEnabled}
                 autoConfirmDays={autoConfirmDays}

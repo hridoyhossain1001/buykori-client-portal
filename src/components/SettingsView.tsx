@@ -17,7 +17,6 @@ interface SettingsViewProps {
   copiedStates: Record<string, boolean>;
   handleCopy: (text: string, labelId: string) => void;
   showToast: (msg: string, isErr?: boolean) => void;
-  orderManagementEnabled: boolean;
   growthFeaturesEnabled?: boolean;
   deferredEnabled?: boolean;
   autoConfirmDays?: number;
@@ -48,7 +47,6 @@ export function SettingsView({
   copiedStates,
   handleCopy,
   showToast,
-  orderManagementEnabled,
   growthFeaturesEnabled = false,
   deferredEnabled = false,
   autoConfirmDays = 0,

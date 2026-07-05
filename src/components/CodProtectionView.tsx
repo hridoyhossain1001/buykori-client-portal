@@ -1,5 +1,5 @@
 import React from 'react';
-import { CheckCircle2, XCircle, Truck, Zap, Package } from 'lucide-react';
+import { CheckCircle2, XCircle, Zap, Package } from 'lucide-react';
 
 interface CodProtectionViewProps {
   deferredData: any;
@@ -17,10 +17,6 @@ interface CodProtectionViewProps {
   setAutoConfirmStatus: (val: string) => void;
   savingDeferredSettings: boolean;
   handleSaveDeferredSettings: () => Promise<void>;
-  orderManagementDraftEnabled: boolean;
-  setOrderManagementDraftEnabled: (val: boolean) => void;
-  savingOrderMgmt: boolean;
-  handleSaveOrderManagement: () => Promise<void>;
   growthFeaturesEnabled?: boolean;
 }
 
@@ -40,10 +36,6 @@ export function CodProtectionView({
   setAutoConfirmStatus,
   savingDeferredSettings,
   handleSaveDeferredSettings,
-  orderManagementDraftEnabled,
-  setOrderManagementDraftEnabled,
-  savingOrderMgmt,
-  handleSaveOrderManagement,
   growthFeaturesEnabled = false,
 }: CodProtectionViewProps) {
   const pendingList = (deferredData?.deferredPendingList || deferredData?.pendingList || [])
@@ -181,7 +173,7 @@ export function CodProtectionView({
             <div>
               <h2 className="text-xs font-black uppercase tracking-wide text-slate-800">COD controls</h2>
               <p className="mt-0.5 text-[11px] text-slate-500">
-                Courier {orderManagementDraftEnabled ? 'on' : 'off'} - Protection {deferredEnabled ? 'on' : 'off'}
+                Protection {deferredEnabled ? 'on' : 'off'} - courier booking is manual
               </p>
             </div>
             <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[10px] font-bold text-slate-600">
@@ -189,36 +181,6 @@ export function CodProtectionView({
             </span>
           </summary>
           <div className="space-y-4 border-t border-slate-100 p-4">
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <span className={`flex h-8 w-8 items-center justify-center rounded-lg ${orderManagementDraftEnabled ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-500'}`}>
-                  <Truck className="h-4 w-4" />
-                </span>
-                <div>
-                  <p className="text-sm font-bold text-slate-900">Order Management</p>
-                  <p className="text-[11px] text-slate-500">Courier workflow</p>
-                </div>
-              </div>
-              <input
-                type="checkbox"
-                checked={orderManagementDraftEnabled}
-                disabled={!growthFeaturesEnabled}
-                onChange={(e) => setOrderManagementDraftEnabled(e.target.checked)}
-                aria-label="Toggle order management courier integration"
-                className="h-5 w-5 rounded accent-indigo-600"
-              />
-            </div>
-            <button
-              type="button"
-              disabled={savingOrderMgmt || !growthFeaturesEnabled}
-              onClick={handleSaveOrderManagement}
-              className="w-full rounded-lg bg-slate-900 px-3 py-2 text-xs font-bold text-white transition-colors hover:bg-slate-800 disabled:opacity-50"
-            >
-              {savingOrderMgmt ? 'Saving...' : 'Save order settings'}
-            </button>
-
-            <div className="h-px bg-slate-100" />
-
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-3">
                 <span className={`flex h-8 w-8 items-center justify-center rounded-lg ${deferredEnabled ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
@@ -281,32 +243,7 @@ export function CodProtectionView({
           </div>
         </details>
 
-        <div className="hidden items-end gap-3 p-3 md:grid md:grid-cols-[minmax(0,.8fr)_minmax(0,.8fr)_minmax(0,1.4fr)]">
-          <div className="flex items-stretch gap-1.5">
-            <label className="flex min-w-0 flex-1 items-center justify-between gap-2 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5">
-              <span className="min-w-0">
-                <span className="block truncate text-[11px] font-bold text-slate-900">Order Management</span>
-                <span className="block truncate text-[9px] text-slate-500">Courier workflow</span>
-              </span>
-              <input
-                type="checkbox"
-                checked={orderManagementDraftEnabled}
-                disabled={!growthFeaturesEnabled}
-                onChange={(e) => setOrderManagementDraftEnabled(e.target.checked)}
-                aria-label="Toggle order management courier integration"
-                className="h-4 w-4 rounded accent-indigo-600"
-              />
-            </label>
-            <button
-              type="button"
-              disabled={savingOrderMgmt || !growthFeaturesEnabled}
-              onClick={handleSaveOrderManagement}
-              className="rounded-lg border border-slate-200 bg-white px-2.5 text-[9px] font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
-            >
-              {savingOrderMgmt ? 'Saving' : 'Save'}
-            </button>
-          </div>
-
+        <div className="hidden items-end gap-3 p-3 md:grid md:grid-cols-[minmax(0,.8fr)_minmax(0,1.4fr)]">
           <div className="flex items-stretch gap-1.5">
             <label className="flex min-w-0 flex-1 items-center justify-between gap-2 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5">
               <span className="min-w-0">
