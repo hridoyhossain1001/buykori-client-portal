@@ -296,9 +296,9 @@ capi('track', 'Purchase', {
                 1
               </div>
               <div className="space-y-2 flex-1">
-                <h3 className="font-bold text-slate-800 text-sm ">Download and Install WordPress Helper Plugin</h3>
+                <h3 className="font-bold text-slate-800 text-sm ">Download and Install the Lightweight WordPress Plugin</h3>
                 <p className="text-xs text-slate-500  max-w-3xl leading-relaxed">
-                  Download the pre-configured plugin, then go to <b>WordPress Admin &gt; Plugins &gt; Add New &gt; Upload Plugin</b>. Upload the ZIP and activate it.
+                  Download the Buykori AdSync plugin, then go to <b>WordPress Admin &gt; Plugins &gt; Add New &gt; Upload Plugin</b>. Upload the ZIP and activate it. The plugin only connects the store and collects signals; business rules stay in this portal.
                 </p>
                 <a
                   href={pluginDownloadUrl}
@@ -326,33 +326,52 @@ capi('track', 'Purchase', {
               <div className="space-y-2 flex-1">
                 <h3 className="font-bold text-slate-800 text-sm ">Connect Buykori Account</h3>
                 <p className="text-xs text-slate-500  max-w-3xl leading-relaxed">
-                  Open <b>Buykori AdSync</b> settings inside WordPress and click <b>Connect Buykori Account</b>. Login, approve the site, and the plugin will save its server configuration automatically.
+                  Open <b>Buykori AdSync</b> settings inside WordPress and click <b>Connect Buykori Account</b>. Login, approve the site, and the plugin will save its server connection automatically.
                 </p>
               </div>
             </div>
 
-            {/* Step 3: Confirm connection */}
+            {/* Step 3: Manage portal settings */}
             <div className="flex gap-4 relative">
               <div className="w-8 h-8 rounded-full bg-indigo-100  border-2 border-white  flex items-center justify-center text-xs font-bold text-indigo-700  shadow-sm shrink-0">
                 3
               </div>
               <div className="space-y-2 flex-1">
-                <h3 className="font-bold text-slate-800 text-sm ">Run WordPress Connection Test</h3>
+                <h3 className="font-bold text-slate-800 text-sm ">Choose Tracking and Delivery Rules in the Portal</h3>
                 <p className="text-xs text-slate-500  max-w-3xl leading-relaxed">
-                  After authorization, use the plugin's <b>Test Connection</b> button to confirm everything is connected.
+                  Go to <b>Settings &gt; Conversions API</b> to enable destinations, add credentials, and choose event routing. Courier booking, WhatsApp alerts, and COD purchase timing are also managed from portal settings.
                 </p>
+                <button
+                  onClick={() => setActivePage('settings-conversions')}
+                  className="px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200/50 rounded text-xs font-semibold shrink-0 cursor-pointer"
+                >
+                  Open Conversions API Settings
+                </button>
               </div>
             </div>
 
-            {/* Step 4: Verify test trigger */}
+            {/* Step 4: Confirm connection */}
             <div className="flex gap-4 relative">
               <div className="w-8 h-8 rounded-full bg-indigo-100  border-2 border-white  flex items-center justify-center text-xs font-bold text-indigo-700  shadow-sm shrink-0">
                 4
               </div>
               <div className="space-y-2 flex-1">
+                <h3 className="font-bold text-slate-800 text-sm ">Run WordPress Connection Test</h3>
+                <p className="text-xs text-slate-500  max-w-3xl leading-relaxed">
+                  After authorization, use the plugin's <b>Test Connection</b> button to confirm the site can reach Buykori.
+                </p>
+              </div>
+            </div>
+
+            {/* Step 5: Verify test trigger */}
+            <div className="flex gap-4 relative">
+              <div className="w-8 h-8 rounded-full bg-indigo-100  border-2 border-white  flex items-center justify-center text-xs font-bold text-indigo-700  shadow-sm shrink-0">
+                5
+              </div>
+              <div className="space-y-2 flex-1">
                 <h3 className="font-bold text-slate-800 text-sm ">Send a Test Event</h3>
                 <p className="text-xs text-slate-500  max-w-3xl leading-relaxed">
-                  Send a test event to make sure everything is working.
+                  Send a test event, then check <b>Event Logs</b> to confirm delivery status. Filtered or disabled routes should not appear as merchant-facing failures.
                 </p>
                 <button 
                   onClick={() => setActivePage('campaign-builder')}
