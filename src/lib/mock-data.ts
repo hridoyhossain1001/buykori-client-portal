@@ -12,6 +12,23 @@ export const initialProfile: UserProfile = {
   plan: "Growth Plan",
   eventsUsed: 12450,
   eventsQuota: 50000,
+  growthFeaturesEnabled: true,
+  planFeatures: [
+    {
+      key: "whatsapp_alerts",
+      label: "WhatsApp order alerts",
+      description: "Purchase and recovery notifications can be sent to the store owner by WhatsApp.",
+      included: true,
+      minimumPlan: "Growth",
+    },
+    {
+      key: "incomplete_checkout_recovery",
+      label: "Incomplete checkout recovery",
+      description: "Abandoned checkout leads can be reviewed, contacted, and recovered from the portal.",
+      included: true,
+      minimumPlan: "Growth",
+    },
+  ],
   renewalDate: "2026-06-24",
 };
 

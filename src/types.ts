@@ -106,10 +106,22 @@ export interface UserProfile {
   email: string;
   notificationEmail: string;
   plan: string;
+  planTier?: string;
+  isTrial?: boolean;
+  trialEndsAt?: string | null;
+  trialDaysRemaining?: number;
   eventsUsed: number;
   eventsQuota: number;
+  ordersQuota?: number;
   renewalDate: string;
   growthFeaturesEnabled?: boolean;
+  planFeatures?: Array<{
+    key: string;
+    label: string;
+    description: string;
+    included: boolean;
+    minimumPlan: string;
+  }>;
   ownerNotifyWhatsapp?: boolean;
   ownerWhatsappNumber?: string;
   guideDismissed?: boolean;

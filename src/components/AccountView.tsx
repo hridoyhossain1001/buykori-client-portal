@@ -60,6 +60,22 @@ export function AccountView({
   const isGrowth = currentPlanLower.includes('growth');
   const isScale = currentPlanLower.includes('scale');
   const isAgency = currentPlanLower.includes('agency');
+  const planFeatures = profile.planFeatures?.length ? profile.planFeatures : [
+    {
+      key: 'whatsapp_alerts',
+      label: 'WhatsApp order alerts',
+      description: 'Purchase and recovery notifications can be sent to the store owner by WhatsApp.',
+      included: !!profile.growthFeaturesEnabled,
+      minimumPlan: 'Growth',
+    },
+    {
+      key: 'incomplete_checkout_recovery',
+      label: 'Incomplete checkout recovery',
+      description: 'Abandoned checkout leads can be reviewed, contacted, and recovered from the portal.',
+      included: !!profile.growthFeaturesEnabled,
+      minimumPlan: 'Growth',
+    },
+  ];
   
   const isDemo = window.location.hostname.includes('localhost') || 
                  window.location.hostname.includes('127.0.0.1');
@@ -260,6 +276,32 @@ export function AccountView({
             <div className="flex justify-between pb-2">
               <span className="text-slate-400 ">Ad Blocker Bypass:</span>
               <span className="font-semibold text-indigo-700 ">Fully Enabled ✓</span>
+            </div>
+          </div>
+
+          <div className="h-px bg-slate-100 " />
+
+          <div className="rounded-lg border border-emerald-100 bg-emerald-50/50 p-3">
+            <div className="mb-2 flex items-center justify-between gap-2">
+              <span className="text-[10px] font-bold uppercase tracking-wide text-emerald-700">Growth features</span>
+              {profile.growthFeaturesEnabled ? (
+                <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-700">Included</span>
+              ) : (
+                <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-700">Upgrade required</span>
+              )}
+            </div>
+            <div className="space-y-2">
+              {planFeatures.map((feature) => (
+                <div key={feature.key} className="flex items-start gap-2 text-xs">
+                  <span className={`mt-0.5 flex h-4 min-w-7 shrink-0 items-center justify-center rounded-full px-1 text-[9px] font-black ${feature.included ? 'bg-emerald-500 text-white' : 'bg-slate-200 text-slate-500'}`}>
+                    {feature.included ? 'Yes' : 'No'}
+                  </span>
+                  <div>
+                    <div className="font-bold text-slate-800 ">{feature.label}</div>
+                    <p className="text-[11px] leading-snug text-slate-500 ">{feature.description}</p>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
 
