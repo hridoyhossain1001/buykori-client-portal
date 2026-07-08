@@ -536,6 +536,7 @@ export function SettingsView({
   const configuredPlatformCount = platformStatusRows.filter(row => row.configured).length;
   const enabledPlatformCount = platformStatusRows.filter(row => row.enabled).length;
   const enabledRouteCount = rules.filter(rule => rule.metaEnabled || rule.tiktokEnabled || rule.ga4Enabled).length;
+  const disabledRouteCount = Math.max(0, rules.length - enabledRouteCount);
   const selectedCourierProvider = String(courierSettings.default_courier || 'steadfast').toLowerCase();
   const courierProviderConfigured =
     selectedCourierProvider === 'pathao'
@@ -1333,6 +1334,13 @@ export function SettingsView({
             <div>
               <h2 id="settings-routing-title" className="font-bold text-slate-800 text-sm uppercase tracking-wide ">WordPress event routing rules</h2>
               <p className="text-xs text-slate-400 ">This is the source of truth for plugin event delivery. Keep active routes short, then choose which platforms receive each event.</p>
+            </div>
+            <div className="rounded-lg border border-emerald-100 bg-emerald-50 px-3 py-2 text-xs text-emerald-800 xl:max-w-[360px]">
+              <p className="font-bold uppercase tracking-wide text-[10px] text-emerald-700">WordPress sync enabled</p>
+              <p className="mt-1 leading-relaxed">
+                The plugin pulls these routes every 5 minutes and drops disabled events before browser or WordPress submission.
+              </p>
+              <p className="mt-1 font-semibold">{enabledRouteCount} active routes, {disabledRouteCount} disabled locally.</p>
             </div>
             <div className="flex flex-col gap-2 rounded-lg border border-slate-200 bg-slate-50/70 p-3   xl:w-[520px]">
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
