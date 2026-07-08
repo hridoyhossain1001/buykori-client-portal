@@ -58,6 +58,23 @@ const uniqueSuggestions = (items: Suggestion[] = []) => {
   return Array.from(byContent.values());
 };
 
+const readCookie = (name: string) => {
+  const prefix = `${name}=`;
+  return document.cookie
+    .split(';')
+    .map(part => part.trim())
+    .find(part => part.startsWith(prefix))
+    ?.slice(prefix.length) || '';
+};
+
+const jsonHeadersWithClientCsrf = () => {
+  const csrf = readCookie('buykori_client_csrf');
+  return {
+    'Content-Type': 'application/json',
+    ...(csrf ? { 'X-Client-CSRF-Token': csrf } : {}),
+  };
+};
+
 class PageErrorBoundary extends React.Component<
   { pageKey: string; children: React.ReactNode },
   { error: Error | null }
@@ -1171,7 +1188,7 @@ export default function App() {
     try {
       const res = await fetch('/api/profile', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: jsonHeadersWithClientCsrf(),
         body: JSON.stringify({
           name: profName,
           email: profEmail,
@@ -1314,7 +1331,7 @@ export default function App() {
     try {
       const res = await fetch('/api/account/password', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: jsonHeadersWithClientCsrf(),
         body: JSON.stringify({ currentPassword: passCurrent, newPassword: passNew })
       });
       if (!res.ok) {
@@ -1337,9 +1354,9 @@ export default function App() {
       return;
     }
     try {
-      const res = await fetch('/auth/client/password/forgot', {
+      const res = await fetch('/api/v1/auth/client/password/forgot', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: jsonHeadersWithClientCsrf(),
         body: JSON.stringify({ email })
       });
       if (!res.ok) {
