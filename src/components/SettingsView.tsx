@@ -537,6 +537,29 @@ export function SettingsView({
   const enabledPlatformCount = platformStatusRows.filter(row => row.enabled).length;
   const enabledRouteCount = rules.filter(rule => rule.metaEnabled || rule.tiktokEnabled || rule.ga4Enabled).length;
   const disabledRouteCount = Math.max(0, rules.length - enabledRouteCount);
+  const routeStateByName = new Map(
+    rules.map(rule => [
+      rule.eventName.toLowerCase(),
+      {
+        exists: true,
+        enabled: Boolean(rule.metaEnabled || rule.tiktokEnabled || rule.ga4Enabled),
+      }
+    ])
+  );
+  const automationRouteState = (automation: CustomEventAutomation) => {
+    const eventName = String(automation.name || '').trim().toLowerCase();
+    if (!eventName) return { label: 'Needs event name', className: 'border-amber-200 bg-amber-50 text-amber-700' };
+    const state = routeStateByName.get(eventName);
+    if (!state) return { label: 'Route will be created on save', className: 'border-blue-200 bg-blue-50 text-blue-700' };
+    if (!state.enabled) return { label: 'Route is off - will not fire', className: 'border-rose-200 bg-rose-50 text-rose-700' };
+    return { label: 'Route enabled', className: 'border-emerald-200 bg-emerald-50 text-emerald-700' };
+  };
+  const automationTriggerHelp = (automation: CustomEventAutomation) => {
+    if (automation.trigger === 'timer') return 'Fires once after the visitor stays for the selected seconds.';
+    if (automation.trigger === 'click') return 'Fires when a visitor clicks an element matching this CSS selector.';
+    if (automation.trigger === 'form') return 'Fires when a form matching this CSS selector is submitted.';
+    return 'Fires once when the current URL contains this text.';
+  };
   const selectedCourierProvider = String(courierSettings.default_courier || 'steadfast').toLowerCase();
   const courierProviderConfigured =
     selectedCourierProvider === 'pathao'
@@ -1529,6 +1552,12 @@ export function SettingsView({
             <div className="space-y-3">
               {automationDrafts.map((automation, index) => (
                 <div key={automation.id || index} className="rounded-xl border border-slate-200 bg-slate-50/60 p-4">
+                  <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                    <p className="text-[11px] text-slate-500">{automationTriggerHelp(automation)}</p>
+                    <span className={`inline-flex w-fit items-center rounded-full border px-2 py-1 text-[10px] font-bold uppercase tracking-wide ${automationRouteState(automation).className}`}>
+                      {automationRouteState(automation).label}
+                    </span>
+                  </div>
                   <div className="grid grid-cols-1 gap-3 lg:grid-cols-[1fr_150px_1fr_auto]">
                     <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
                       Event name
