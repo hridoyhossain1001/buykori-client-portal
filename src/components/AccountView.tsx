@@ -19,6 +19,7 @@ interface AccountViewProps {
   passConfirm: string;
   setPassConfirm: (v: string) => void;
   submitPasswordUpdate: () => Promise<void>;
+  submitPasswordResetEmail: () => Promise<void>;
   confirmRevokeText: string;
   setConfirmRevokeText: (v: string) => void;
   confirmDeleteText: string;
@@ -46,6 +47,7 @@ export function AccountView({
   passConfirm,
   setPassConfirm,
   submitPasswordUpdate,
+  submitPasswordResetEmail,
   confirmRevokeText,
   setConfirmRevokeText,
   confirmDeleteText,
@@ -176,8 +178,16 @@ export function AccountView({
               </div>
             </div>
 
-            <div className="pt-2 text-right">
+            <div className="flex flex-col gap-3 pt-2 sm:flex-row sm:items-center sm:justify-between">
+              <button
+                type="button"
+                onClick={submitPasswordResetEmail}
+                className="text-left text-xs font-bold text-indigo-600 hover:text-indigo-700 underline-offset-4 hover:underline"
+              >
+                Forgot current password? Send reset link
+              </button>
               <button 
+                type="button"
                 onClick={submitPasswordUpdate}
                 className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-lg transition-colors shadow-sm cursor-pointer"
               >

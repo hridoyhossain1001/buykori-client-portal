@@ -1327,6 +1327,28 @@ export default function App() {
     }
   };
 
+  const submitPasswordResetEmail = async () => {
+    const email = (profEmail || profile?.email || '').trim();
+    if (!email) {
+      showToast("Profile email is missing. Save your profile email first.", true);
+      return;
+    }
+    try {
+      const res = await fetch('/auth/client/password/forgot', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.detail || 'Could not send reset email.');
+      }
+      showToast("Password reset link sent to your profile email.", false);
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : "Could not send reset email.", true);
+    }
+  };
+
   // Export utility for logs
   const handleExportData = (format: 'csv' | 'json', dataToExport: 'events' | 'apilogs') => {
     let payload = "";
@@ -1822,6 +1844,7 @@ export default function App() {
                 passConfirm={passConfirm}
                 setPassConfirm={setPassConfirm}
                 submitPasswordUpdate={submitPasswordUpdate}
+                submitPasswordResetEmail={submitPasswordResetEmail}
                 confirmRevokeText={confirmRevokeText}
                 setConfirmRevokeText={setConfirmRevokeText}
                 confirmDeleteText={confirmDeleteText}
