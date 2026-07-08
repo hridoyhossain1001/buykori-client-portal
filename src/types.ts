@@ -64,7 +64,7 @@ export interface EventRule {
   ga4Enabled: boolean;
 }
 
-export type CustomEventTrigger = 'timer' | 'click' | 'url' | 'form';
+export type CustomEventTrigger = 'timer' | 'click' | 'url' | 'form' | 'scroll' | 'visible';
 
 export interface CustomEventAutomation {
   id: string;
@@ -73,6 +73,7 @@ export interface CustomEventAutomation {
   selector: string;
   url_pattern: string;
   seconds?: number | null;
+  scroll_depth?: number | null;
   value: number;
   currency: string;
   custom_param: string;

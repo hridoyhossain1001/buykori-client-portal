@@ -558,6 +558,8 @@ export function SettingsView({
     if (automation.trigger === 'timer') return 'Fires once after the visitor stays for the selected seconds.';
     if (automation.trigger === 'click') return 'Fires when a visitor clicks an element matching this CSS selector.';
     if (automation.trigger === 'form') return 'Fires when a form matching this CSS selector is submitted.';
+    if (automation.trigger === 'scroll') return 'Fires once when the visitor reaches this page scroll depth.';
+    if (automation.trigger === 'visible') return 'Fires once when an element matching this CSS selector becomes visible.';
     return 'Fires once when the current URL contains this text.';
   };
   const selectedCourierProvider = String(courierSettings.default_courier || 'steadfast').toLowerCase();
@@ -1546,7 +1548,7 @@ export function SettingsView({
 
           {automationDrafts.length === 0 ? (
             <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 p-6 text-center text-xs text-slate-500">
-              No custom automations yet. Add one when you need timer, click, URL, or form-based custom events.
+              No custom automations yet. Add one when you need timer, click, URL, form, scroll, or element visibility events.
             </div>
           ) : (
             <div className="space-y-3">
@@ -1580,26 +1582,31 @@ export function SettingsView({
                         <option value="click">Click</option>
                         <option value="url">URL match</option>
                         <option value="form">Form submit</option>
+                        <option value="scroll">Scroll depth</option>
+                        <option value="visible">Element visible</option>
                       </select>
                     </label>
                     <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                      {automation.trigger === 'timer' ? 'Seconds' : automation.trigger === 'url' ? 'URL contains' : 'CSS selector'}
+                      {automation.trigger === 'timer' ? 'Seconds' : automation.trigger === 'scroll' ? 'Scroll percent' : automation.trigger === 'url' ? 'URL contains' : 'CSS selector'}
                       <input
-                        type={automation.trigger === 'timer' ? 'number' : 'text'}
+                        type={automation.trigger === 'timer' || automation.trigger === 'scroll' ? 'number' : 'text'}
                         min={1}
-                        max={3600}
-                        value={automation.trigger === 'url' ? automation.url_pattern : automation.trigger === 'timer' ? (automation.seconds || automation.selector || 15) : automation.selector}
+                        max={automation.trigger === 'scroll' ? 100 : 3600}
+                        value={automation.trigger === 'url' ? automation.url_pattern : automation.trigger === 'timer' ? (automation.seconds || automation.selector || 15) : automation.trigger === 'scroll' ? (automation.scroll_depth || automation.selector || 50) : automation.selector}
                         onChange={(e) => {
                           if (automation.trigger === 'url') {
                             updateAutomationDraft(index, { url_pattern: e.target.value });
                           } else if (automation.trigger === 'timer') {
                             const seconds = Number.parseInt(e.target.value, 10) || 15;
                             updateAutomationDraft(index, { seconds, selector: String(seconds) });
+                          } else if (automation.trigger === 'scroll') {
+                            const scrollDepth = Number.parseInt(e.target.value, 10) || 50;
+                            updateAutomationDraft(index, { scroll_depth: scrollDepth, selector: String(scrollDepth) });
                           } else {
                             updateAutomationDraft(index, { selector: e.target.value });
                           }
                         }}
-                        placeholder={automation.trigger === 'url' ? '/thank-you' : automation.trigger === 'timer' ? '15' : '.button-class'}
+                        placeholder={automation.trigger === 'url' ? '/thank-you' : automation.trigger === 'timer' ? '15' : automation.trigger === 'scroll' ? '50' : '.button-class'}
                         className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 font-mono text-xs text-slate-800 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
                       />
                     </label>
