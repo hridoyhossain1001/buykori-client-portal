@@ -1189,9 +1189,12 @@ export default function App() {
         setProfNotifyWhatsapp(data.profile.ownerNotifyWhatsapp || false);
         setProfWhatsappNumber(data.profile.ownerWhatsappNumber || '');
         showToast("Profile saved!", false);
+      } else {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.detail || 'Profile save failed.');
       }
-    } catch {
-      showToast("Failed to save profile.", true);
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : "Failed to save profile.", true);
     } finally {
       setProfUpdating(false);
     }
