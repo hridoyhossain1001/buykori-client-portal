@@ -235,7 +235,7 @@ export function AccountView({
             <div className="pt-5 space-y-3">
               <h4 className="font-bold text-xs text-rose-800  uppercase tracking-widest">Delete account request</h4>
               <p className="text-xs text-rose-700  leading-relaxed max-w-2xl">
-                Account deletion is not self-service in this portal yet. Contact support to request permanent removal of trace logs, analytical reports, billing data and routing keys.
+                Account deletion is not instant. Submit a request and Buykori support will review trace logs, analytical reports, billing data and routing keys before removal.
               </p>
 
               <div className="flex flex-col sm:flex-row gap-3">
@@ -251,7 +251,7 @@ export function AccountView({
                   onClick={handleDeleteAccountRequest}
                   className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-lg transition-colors shadow cursor-pointer whitespace-nowrap"
                 >
-                  Contact support for deletion
+                  Submit deletion request
                 </button>
               </div>
             </div>

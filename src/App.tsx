@@ -1294,25 +1294,43 @@ export default function App() {
       return;
     }
     try {
-      const res = await fetch('/api/connection/revoke', { method: 'POST' });
+      const res = await fetch('/api/connection/revoke', {
+        method: 'POST',
+        headers: jsonHeadersWithClientCsrf(),
+      });
       if (res.ok) {
         const data = await res.json();
         setConnection(data.connection);
         setConfirmRevokeText('');
         showToast("API key has been reset.", false);
+      } else {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.detail || 'API key reset failed.');
       }
-    } catch {
-      showToast("Reset failed. Please try again or contact support.", true);
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : "Reset failed. Please try again or contact support.", true);
     }
   };
 
-  const handleDeleteAccountRequest = () => {
+  const handleDeleteAccountRequest = async () => {
     if (confirmDeleteText.toUpperCase() !== 'DELETE') {
       showToast("Verification word mismatch. Enter 'DELETE' exactly.", true);
       return;
     }
-    showToast("Account deletion is not connected in this portal. Contact support@buykori.app.", true);
-    setConfirmDeleteText('');
+    try {
+      const res = await fetch('/api/account/delete-request', {
+        method: 'POST',
+        headers: jsonHeadersWithClientCsrf(),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.detail || 'Could not submit deletion request.');
+      }
+      showToast(data.message || "Deletion request received. Support will review it.", false);
+      setConfirmDeleteText('');
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : "Could not submit deletion request.", true);
+    }
   };
 
   const submitPasswordUpdate = async () => {
