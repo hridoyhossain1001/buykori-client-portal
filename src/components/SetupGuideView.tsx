@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ChevronDown, Copy, Check, CheckCircle2, Circle, Globe, ShoppingBag, Code, Download, RefreshCw } from 'lucide-react';
+import { ChevronDown, Copy, Check, CheckCircle2, Circle, Globe, ShoppingBag, Code, Download, RefreshCw, Clock3, KeyRound, PackageCheck, ArrowRight } from 'lucide-react';
 import { staticFAQs } from '../lib/mock-data';
 import { PluginReleaseInfo } from '../types';
 
@@ -75,6 +75,16 @@ export function SetupGuideView({
     window.addEventListener('buykori:page-section', handleSectionJump);
     return () => window.removeEventListener('buykori:page-section', handleSectionJump);
   }, []);
+
+  const openPortalSection = (pageId: string, sectionId?: string) => {
+    setActivePage(pageId);
+    if (!sectionId) return;
+    window.setTimeout(() => {
+      window.dispatchEvent(new CustomEvent('buykori:page-section', {
+        detail: { pageId, sectionId }
+      }));
+    }, 50);
+  };
   
   const apiToken = api_key?.trim() || '';
   const publicToken = public_key?.trim() || '';
@@ -124,8 +134,7 @@ analytics.subscribe("page_viewed", (event) => {
         event_source_url: event.context.document.location.href,
         action_source: "website",
         user_data: {
-          client_user_agent: event.context.navigator.userAgent,
-          client_ip_address: "8.8.8.8" // Server will enrich with real client IP
+          client_user_agent: event.context.navigator.userAgent
         }
       }]
     })
@@ -309,6 +318,28 @@ capi('track', 'Purchase', {
           </div>
         )}
       </section>
+
+      <section className="rounded-xl border border-indigo-100 bg-indigo-50/60 p-5 shadow-sm">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div className="max-w-xl">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-indigo-600">Before you start</p>
+            <h2 className="mt-1 text-base font-bold text-slate-900">Keep these four things ready</h2>
+            <p className="mt-1 text-xs leading-relaxed text-slate-600">Most stores finish the initial connection in 5-10 minutes. Platform approval and provider credentials may take longer.</p>
+          </div>
+          <div className="grid flex-1 gap-2 sm:grid-cols-2">
+            {[
+              { icon: Globe, text: 'Admin access to your store' },
+              { icon: KeyRound, text: 'Credentials for at least one ad platform' },
+              { icon: PackageCheck, text: 'A product or test checkout to verify events' },
+              { icon: Clock3, text: '5-10 minutes for the connection test' }
+            ].map(({ icon: Icon, text }) => (
+              <div key={text} className="flex items-center gap-2 rounded-lg border border-indigo-100 bg-white px-3 py-2 text-[11px] font-semibold text-slate-700">
+                <Icon className="h-4 w-4 shrink-0 text-indigo-500" /> {text}
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
       
       {/* Tab Selector */}
       <div className="flex border-b border-slate-200  bg-white  rounded-xl p-1.5 shadow-sm">
@@ -401,15 +432,15 @@ capi('track', 'Purchase', {
               </div>
             </div>
 
-            {/* Step 3: Manage portal settings */}
+            {/* Step 3: Configure a destination */}
             <div className="flex gap-4 relative">
               <div className="w-8 h-8 rounded-full bg-indigo-100  border-2 border-white  flex items-center justify-center text-xs font-bold text-indigo-700  shadow-sm shrink-0">
                 3
               </div>
               <div className="space-y-2 flex-1">
-                <h3 className="font-bold text-slate-800 text-sm ">Choose Tracking and Delivery Rules in the Portal</h3>
+                <h3 className="font-bold text-slate-800 text-sm ">Connect One Tracking Destination</h3>
                 <p className="text-xs text-slate-500  max-w-3xl leading-relaxed">
-                  Go to <b>Settings &gt; Conversions API</b> to enable destinations, add credentials, and choose event routing. Courier booking, WhatsApp alerts, and COD purchase timing are also managed from portal settings.
+                  Go to <b>Settings &gt; Conversions API</b> and add valid credentials for Meta, TikTok, or GA4. Start with one platform. Do not enable a destination until its credentials are saved.
                 </p>
                 <button
                   onClick={() => setActivePage('settings-conversions')}
@@ -420,38 +451,65 @@ capi('track', 'Purchase', {
               </div>
             </div>
 
-            {/* Step 4: Confirm connection */}
+            {/* Step 4: Choose event routes */}
             <div className="flex gap-4 relative">
               <div className="w-8 h-8 rounded-full bg-indigo-100  border-2 border-white  flex items-center justify-center text-xs font-bold text-indigo-700  shadow-sm shrink-0">
                 4
               </div>
               <div className="space-y-2 flex-1">
-                <h3 className="font-bold text-slate-800 text-sm ">Run WordPress Connection Test</h3>
+                <h3 className="font-bold text-slate-800 text-sm ">Choose Which Events to Send</h3>
                 <p className="text-xs text-slate-500  max-w-3xl leading-relaxed">
-                  After authorization, use the plugin's <b>Test Connection</b> button to confirm the site can reach Buykori.
+                  In <b>Event routing</b>, enable only the events your campaign needs. A sensible launch set is PageView, ViewContent, AddToCart, InitiateCheckout, and Purchase. Optional and custom events can be added later.
                 </p>
               </div>
             </div>
 
-            {/* Step 5: Verify test trigger */}
+            {/* Step 5: Confirm connection */}
             <div className="flex gap-4 relative">
               <div className="w-8 h-8 rounded-full bg-indigo-100  border-2 border-white  flex items-center justify-center text-xs font-bold text-indigo-700  shadow-sm shrink-0">
                 5
               </div>
               <div className="space-y-2 flex-1">
-                <h3 className="font-bold text-slate-800 text-sm ">Send a Test Event</h3>
+                <h3 className="font-bold text-slate-800 text-sm ">Run the WordPress Connection Test</h3>
                 <p className="text-xs text-slate-500  max-w-3xl leading-relaxed">
-                  Send a test event, then check <b>Event Logs</b> to confirm delivery status. Filtered or disabled routes should not appear as merchant-facing failures.
+                  Open Buykori AdSync in WordPress and click <b>Run Health Check</b>. A successful result confirms that the plugin, store account, and Buykori API can communicate.
                 </p>
-                <button 
-                  onClick={() => setActivePage('campaign-builder')}
-                  className="px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200/50 rounded text-xs font-semibold shrink-0 cursor-pointer    "
-                >
-                  Go to UTM & Sandbox Link Builder
-                </button>
               </div>
             </div>
 
+            {/* Step 6: Verify test delivery */}
+            <div className="flex gap-4 relative">
+              <div className="w-8 h-8 rounded-full bg-indigo-100 border-2 border-white flex items-center justify-center text-xs font-bold text-indigo-700 shadow-sm shrink-0">
+                6
+              </div>
+              <div className="space-y-2 flex-1">
+                <h3 className="font-bold text-slate-800 text-sm ">Send and Verify a Test Event</h3>
+                <p className="text-xs text-slate-500 max-w-3xl leading-relaxed">
+                  Open the Event Tester, send one test event to a configured destination, then confirm its result in <b>Event Logs</b>. A provider error usually means the platform credential needs attention.
+                </p>
+                <div className="flex flex-wrap gap-2">
+                <button 
+                  onClick={() => openPortalSection('campaign-builder', 'campaign-event-tester')}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white border border-indigo-700 rounded text-xs font-semibold shrink-0 cursor-pointer"
+                >
+                  Open Event Tester <ArrowRight className="h-3 w-3" />
+                </button>
+                <button onClick={() => setActivePage('event-logs')} className="px-3 py-1.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded text-xs font-semibold shrink-0 cursor-pointer">
+                  Open Event Logs
+                </button>
+                </div>
+              </div>
+            </div>
+
+          </div>
+          <div className="mt-8 rounded-lg border border-emerald-200 bg-emerald-50 p-4">
+            <div className="flex items-start gap-3">
+              <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" />
+              <div>
+                <h3 className="text-sm font-bold text-emerald-900">Your store is ready when</h3>
+                <p className="mt-1 text-xs leading-relaxed text-emerald-800">The plugin health check passes, at least one destination has valid credentials, the required event routes are enabled, and a test event appears successfully in Event Logs. Courier, WhatsApp, COD Protection, and custom events are optional workflows you can configure afterward.</p>
+              </div>
+            </div>
           </div>
         </div>
       )}
