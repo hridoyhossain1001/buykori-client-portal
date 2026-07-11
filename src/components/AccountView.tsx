@@ -8,6 +8,11 @@ interface AccountViewProps {
   setProfName: (v: string) => void;
   profEmail: string;
   setProfEmail: (v: string) => void;
+  profEmailCodeRequested: boolean;
+  profEmailCode: string;
+  setProfEmailCode: (v: string) => void;
+  profEmailCurrentPassword: string;
+  setProfEmailCurrentPassword: (v: string) => void;
   profNotifEmail: string;
   setProfNotifEmail: (v: string) => void;
   profUpdating: boolean;
@@ -36,6 +41,11 @@ export function AccountView({
   setProfName,
   profEmail,
   setProfEmail,
+  profEmailCodeRequested,
+  profEmailCode,
+  setProfEmailCode,
+  profEmailCurrentPassword,
+  setProfEmailCurrentPassword,
   profNotifEmail,
   setProfNotifEmail,
   profUpdating,
@@ -62,6 +72,7 @@ export function AccountView({
   const isGrowth = currentPlanLower.includes('growth');
   const isScale = currentPlanLower.includes('scale');
   const isAgency = currentPlanLower.includes('agency');
+  const emailChanged = profEmail.trim().toLowerCase() !== profile.email.trim().toLowerCase();
   const planFeatures = profile.planFeatures?.length ? profile.planFeatures : [
     {
       key: 'whatsapp_alerts',
@@ -112,8 +123,39 @@ export function AccountView({
                   onChange={(e) => setProfEmail(e.target.value)}
                   className="w-full p-2 text-xs bg-slate-50 border border-slate-200    rounded"
                 />
+                {emailChanged && !profEmailCodeRequested && (
+                  <p className="mt-1 text-[10px] leading-relaxed text-amber-600">Save once to send a verification code to this new email.</p>
+                )}
               </div>
             </div>
+
+            {emailChanged && profEmailCodeRequested && (
+              <div className="grid grid-cols-1 gap-4 rounded-lg border border-indigo-200 bg-indigo-50 p-4 md:grid-cols-2">
+                <div>
+                  <label className="mb-1 block text-[10px] font-semibold uppercase text-indigo-500">Verification Code</label>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
+                    value={profEmailCode}
+                    onChange={(e) => setProfEmailCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                    placeholder="6-digit code"
+                    className="w-full rounded border border-indigo-200 bg-white p-2 font-mono text-xs"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-[10px] font-semibold uppercase text-indigo-500">Current Password</label>
+                  <input
+                    type="password"
+                    autoComplete="current-password"
+                    value={profEmailCurrentPassword}
+                    onChange={(e) => setProfEmailCurrentPassword(e.target.value)}
+                    placeholder="Confirm account ownership"
+                    className="w-full rounded border border-indigo-200 bg-white p-2 text-xs"
+                  />
+                </div>
+              </div>
+            )}
 
             <div>
               <label className="block text-[10px] font-semibold text-slate-400  uppercase mb-1">Notification Email</label>
@@ -132,7 +174,13 @@ export function AccountView({
                 disabled={profUpdating}
                 className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white text-xs font-bold rounded-lg transition-colors shadow-sm cursor-pointer"
               >
-                {profUpdating ? 'Saving...' : 'Save Profile Changes'}
+                {profUpdating
+                  ? 'Saving...'
+                  : emailChanged && !profEmailCodeRequested
+                    ? 'Send Email Verification Code'
+                    : emailChanged
+                      ? 'Verify Email & Save'
+                      : 'Save Profile Changes'}
               </button>
             </div>
           </form>

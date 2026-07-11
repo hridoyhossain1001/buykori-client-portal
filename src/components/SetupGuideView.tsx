@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ChevronDown, Copy, Check, Globe, ShoppingBag, Code, Download } from 'lucide-react';
+import { ChevronDown, Copy, Check, CheckCircle2, Circle, Globe, ShoppingBag, Code, Download, RefreshCw } from 'lucide-react';
 import { staticFAQs } from '../lib/mock-data';
 import { PluginReleaseInfo } from '../types';
 
@@ -15,6 +15,22 @@ interface SetupGuideViewProps {
 }
 
 type TabType = 'wordpress' | 'shopify' | 'custom';
+type ReadinessStep = {
+  key: string;
+  label: string;
+  ready: boolean;
+  required: boolean;
+  actionPage: string;
+  actionLabel: string;
+  detail?: string;
+};
+type SetupReadiness = {
+  ready: boolean;
+  score: number;
+  completedRequired: number;
+  requiredCount: number;
+  steps: ReadinessStep[];
+};
 
 export function SetupGuideView({
   faqExpanded,
@@ -27,6 +43,24 @@ export function SetupGuideView({
   pluginReleaseInfo
 }: SetupGuideViewProps) {
   const [activeTab, setActiveTab] = useState<TabType>('wordpress');
+  const [readiness, setReadiness] = useState<SetupReadiness | null>(null);
+  const [readinessLoading, setReadinessLoading] = useState(true);
+
+  const loadReadiness = React.useCallback(async () => {
+    setReadinessLoading(true);
+    try {
+      const response = await fetch('/api/setup/readiness');
+      if (response.ok) {
+        setReadiness(await response.json());
+      }
+    } finally {
+      setReadinessLoading(false);
+    }
+  }, []);
+
+  React.useEffect(() => {
+    loadReadiness();
+  }, [loadReadiness]);
 
   React.useEffect(() => {
     const handleSectionJump = (event: Event) => {
@@ -239,6 +273,42 @@ capi('track', 'Purchase', {
 
   return (
     <div className="space-y-6">
+      <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-indigo-500">Launch readiness</p>
+            <h2 className="mt-1 text-lg font-bold text-slate-900">
+              {readinessLoading ? 'Checking your setup...' : readiness?.ready ? 'Ready to receive live traffic' : 'Finish the required setup steps'}
+            </h2>
+            {readiness && (
+              <p className="mt-1 text-xs text-slate-500">{readiness.completedRequired} of {readiness.requiredCount} required checks complete · {readiness.score}%</p>
+            )}
+          </div>
+          <button type="button" onClick={loadReadiness} disabled={readinessLoading} className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-xs font-bold text-slate-600 hover:bg-slate-50 disabled:opacity-60">
+            <RefreshCw className={`h-3.5 w-3.5 ${readinessLoading ? 'animate-spin' : ''}`} /> Refresh
+          </button>
+        </div>
+        {readiness && (
+          <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+            {readiness.steps.map((step) => (
+              <div key={step.key} className={`rounded-lg border p-3 ${step.ready ? 'border-emerald-200 bg-emerald-50' : step.required ? 'border-amber-200 bg-amber-50' : 'border-slate-200 bg-slate-50'}`}>
+                <div className="flex items-start gap-2">
+                  {step.ready ? <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" /> : <Circle className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />}
+                  <div className="min-w-0">
+                    <p className="text-xs font-bold text-slate-800">{step.label}</p>
+                    <p className="mt-1 text-[10px] leading-relaxed text-slate-500">{step.detail || (step.ready ? 'Configured' : 'Action required')}</p>
+                  </div>
+                </div>
+                {!step.ready && (
+                  <button type="button" onClick={() => setActivePage(step.actionPage)} className="mt-3 text-[10px] font-bold text-indigo-600 hover:underline">
+                    {step.actionLabel}
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
       
       {/* Tab Selector */}
       <div className="flex border-b border-slate-200  bg-white  rounded-xl p-1.5 shadow-sm">

@@ -15,6 +15,7 @@ import { CreateStoreModal } from './components/CreateStoreModal';
 import { Header } from './components/Header';
 import { PluginConnectAuthorizeView } from './components/PluginConnectAuthorizeView';
 import { ProductGuide } from './components/ProductGuide';
+import { SupportWidget } from './components/SupportWidget';
 import { CAPIEvent, APILog, Suggestion, Platform, EventRule, PlatformConfig, UserProfile, ClientConnection, OutboxItem, PluginReleaseInfo, CustomEventAutomation } from './types';
 
 const lazyWithReload = <T extends React.ComponentType<any>>(
@@ -30,6 +31,7 @@ const lazyWithReload = <T extends React.ComponentType<any>>(
 
 // Lazy-loaded modular views (code-splitting for smaller initial bundle)
 const DashboardView = lazyWithReload(() => import('./components/DashboardView').then(m => ({ default: m.DashboardView })));
+const WeeklyReportCard = lazyWithReload(() => import('./components/WeeklyReportCard').then(m => ({ default: m.WeeklyReportCard })));
 
 const suggestionDedupeKey = (item: Suggestion) => [
   item.platform || 'global',
@@ -301,6 +303,9 @@ export default function App() {
   const [profNotifyWhatsapp, setProfNotifyWhatsapp] = useState<boolean>(false);
   const [profWhatsappNumber, setProfWhatsappNumber] = useState<string>('');
   const [profUpdating, setProfUpdating] = useState<boolean>(false);
+  const [profEmailCodeRequested, setProfEmailCodeRequested] = useState<boolean>(false);
+  const [profEmailCode, setProfEmailCode] = useState<string>('');
+  const [profEmailCurrentPassword, setProfEmailCurrentPassword] = useState<string>('');
   const [passCurrent, setPassCurrent] = useState<string>('');
   const [passNew, setPassNew] = useState<string>('');
   const [passConfirm, setPassConfirm] = useState<string>('');
@@ -626,6 +631,9 @@ export default function App() {
       // Initialize text fields
       setProfName(dProf.name);
       setProfEmail(dProf.email);
+      setProfEmailCodeRequested(false);
+      setProfEmailCode('');
+      setProfEmailCurrentPassword('');
       setProfNotifEmail(dProf.notificationEmail || dProf.email);
       setProfNotifyWhatsapp(dProf.ownerNotifyWhatsapp || false);
       setProfWhatsappNumber(dProf.ownerWhatsappNumber || '');
@@ -1186,6 +1194,25 @@ export default function App() {
     e.preventDefault();
     setProfUpdating(true);
     try {
+      const emailChanged = !!profile && profEmail.trim().toLowerCase() !== profile.email.trim().toLowerCase();
+      if (emailChanged && !profEmailCodeRequested) {
+        const codeRes = await fetch('/api/profile/email-code', {
+          method: 'POST',
+          headers: jsonHeadersWithClientCsrf(),
+          body: JSON.stringify({ email: profEmail.trim() }),
+        });
+        const codeData = await codeRes.json().catch(() => ({}));
+        if (!codeRes.ok) {
+          throw new Error(codeData.detail || 'Could not send email verification code.');
+        }
+        setProfEmailCodeRequested(true);
+        showToast('Verification code sent to your new email.', false);
+        return;
+      }
+      if (emailChanged && (!profEmailCode.trim() || !profEmailCurrentPassword)) {
+        throw new Error('Enter the verification code and your current password.');
+      }
+
       const res = await fetch('/api/profile', {
         method: 'POST',
         headers: jsonHeadersWithClientCsrf(),
@@ -1194,7 +1221,9 @@ export default function App() {
           email: profEmail,
           notificationEmail: profNotifEmail,
           ownerNotifyWhatsapp: profNotifyWhatsapp,
-          ownerWhatsappNumber: profWhatsappNumber
+          ownerWhatsappNumber: profWhatsappNumber,
+          emailCode: emailChanged ? profEmailCode.trim() : null,
+          currentPassword: emailChanged ? profEmailCurrentPassword : null,
         })
       });
       if (res.ok) {
@@ -1205,6 +1234,9 @@ export default function App() {
         setProfNotifEmail(data.profile.notificationEmail || data.profile.email);
         setProfNotifyWhatsapp(data.profile.ownerNotifyWhatsapp || false);
         setProfWhatsappNumber(data.profile.ownerWhatsappNumber || '');
+        setProfEmailCodeRequested(false);
+        setProfEmailCode('');
+        setProfEmailCurrentPassword('');
         showToast("Profile saved!", false);
       } else {
         const data = await res.json().catch(() => ({}));
@@ -1215,6 +1247,22 @@ export default function App() {
     } finally {
       setProfUpdating(false);
     }
+  };
+
+  const handleApplyEventPreset = async (preset: string) => {
+    const res = await fetch('/api/event-presets/apply', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ preset })
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      showToast(data.detail || 'Could not apply event preset.', true);
+      return false;
+    }
+    setRules(data.rules || []);
+    showToast(`${data.preset?.name || 'Event'} preset applied.`, false);
+    return true;
   };
 
   // Dispatch campaign event builder test
@@ -1640,6 +1688,8 @@ export default function App() {
 
             {/* PAGE 1: DASHBOARD */}
             {activePage === 'dashboard' && profile && (
+              <>
+              <WeeklyReportCard />
               <DashboardView 
                 profile={profile}
                 events={events}
@@ -1659,6 +1709,7 @@ export default function App() {
                 analyticsDays={analyticsDays}
                 setAnalyticsDays={setAnalyticsDays}
               />
+              </>
             )}
 
             {/* PAGE 11: COD verification queue */}
@@ -1762,6 +1813,7 @@ export default function App() {
                 handleToggleRule={handleToggleRule}
                 handleAddRule={handleAddRule}
                 handleRemoveRule={handleRemoveRule}
+                handleApplyEventPreset={handleApplyEventPreset}
                 handleSaveCustomEventAutomations={handleSaveCustomEventAutomations}
                 refreshWPHeartbeat={refreshWPHeartbeat}
                 copiedStates={copiedStates}
@@ -1866,7 +1918,17 @@ export default function App() {
                 profName={profName}
                 setProfName={setProfName}
                 profEmail={profEmail}
-                setProfEmail={setProfEmail}
+                setProfEmail={(value) => {
+                  setProfEmail(value);
+                  setProfEmailCodeRequested(false);
+                  setProfEmailCode('');
+                  setProfEmailCurrentPassword('');
+                }}
+                profEmailCodeRequested={profEmailCodeRequested}
+                profEmailCode={profEmailCode}
+                setProfEmailCode={setProfEmailCode}
+                profEmailCurrentPassword={profEmailCurrentPassword}
+                setProfEmailCurrentPassword={setProfEmailCurrentPassword}
                 profNotifEmail={profNotifEmail}
                 setProfNotifEmail={setProfNotifEmail}
                 profNotifyWhatsapp={profNotifyWhatsapp}
@@ -1948,6 +2010,7 @@ export default function App() {
         setActivePage={setActivePage}
         setMobileSidebarOpen={setMobileSidebarOpen}
       />
+      <SupportWidget showToast={showToast} />
     </div>
   );
 }

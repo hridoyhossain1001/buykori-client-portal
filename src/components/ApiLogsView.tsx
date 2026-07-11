@@ -1,5 +1,5 @@
 ﻿import React from 'react';
-import { Download, AlertTriangle, Activity } from 'lucide-react';
+import { Download, AlertTriangle, Activity, CheckCircle2, Clock3 } from 'lucide-react';
 import { APILog } from '../types';
 
 interface ApiLogsViewProps {
@@ -9,14 +9,63 @@ interface ApiLogsViewProps {
   handleExportData: (format: 'csv' | 'json', type: 'events' | 'apilogs') => void;
 }
 
+type PlatformHealth = {
+  platform: string;
+  configured: boolean;
+  successful: number;
+  failed: number;
+  queued: number;
+  dead: number;
+  successRate: number | null;
+  state: 'healthy' | 'retrying' | 'action_required' | 'no_data';
+};
+
 export function ApiLogsView({
   filteredApiLogsForTable,
   expandedApiLogId,
   setExpandedApiLogId,
   handleExportData
 }: ApiLogsViewProps) {
+  const [platformHealth, setPlatformHealth] = React.useState<PlatformHealth[]>([]);
+
+  React.useEffect(() => {
+    let active = true;
+    fetch('/api/delivery/health')
+      .then((response) => response.ok ? response.json() : null)
+      .then((data) => {
+        if (active && data?.platforms) setPlatformHealth(data.platforms);
+      })
+      .catch(() => {});
+    return () => { active = false; };
+  }, []);
+
   return (
     <div className="space-y-6">
+
+      {platformHealth.length > 0 && (
+        <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4" aria-label="Platform delivery health">
+          {platformHealth.map((item) => {
+            const needsAction = item.state === 'action_required';
+            const retrying = item.state === 'retrying';
+            return (
+              <div key={item.platform} className={`rounded-xl border p-4 shadow-sm ${needsAction ? 'border-rose-200 bg-rose-50' : retrying ? 'border-amber-200 bg-amber-50' : 'border-slate-200 bg-white'}`}>
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-bold text-slate-900">{item.platform}</p>
+                    <p className="mt-1 text-[10px] text-slate-500">{item.configured ? 'Configured' : 'Not configured'}</p>
+                  </div>
+                  {needsAction ? <AlertTriangle className="h-4 w-4 text-rose-600" /> : retrying ? <Clock3 className="h-4 w-4 text-amber-600" /> : <CheckCircle2 className="h-4 w-4 text-emerald-600" />}
+                </div>
+                <p className="mt-4 text-2xl font-bold text-slate-900">{item.successRate === null ? 'No data' : `${item.successRate}%`}</p>
+                <p className="mt-1 text-[10px] text-slate-500">{item.successful} successful · {item.failed} failed</p>
+                {(item.queued > 0 || item.dead > 0) && (
+                  <p className={`mt-2 text-[10px] font-bold ${item.dead ? 'text-rose-700' : 'text-amber-700'}`}>{item.queued} retrying · {item.dead} needs manual retry</p>
+                )}
+              </div>
+            );
+          })}
+        </section>
+      )}
 
       {/* Sub controls & export bar */}
       <div className="flex justify-between items-center">
