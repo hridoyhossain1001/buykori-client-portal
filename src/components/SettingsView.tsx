@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Check, Copy, Globe2, Plus, Save, Trash2 } from 'lucide-react';
+import { Check, Copy, Globe2, Plus, RefreshCw, Save, Trash2 } from 'lucide-react';
 import { Tooltip } from './common/Tooltip';
 import { Platform, PlatformConfig, EventRule, ClientConnection, PluginReleaseInfo, CustomEventAutomation, CustomEventTrigger } from '../types';
 
@@ -298,13 +298,13 @@ export function SettingsView({
   const [loadingAdAccounts, setLoadingAdAccounts] = useState<boolean>(false);
   const [savingAdAccount, setSavingAdAccount] = useState<boolean>(false);
   const [deletingAdAccountId, setDeletingAdAccountId] = useState<number | null>(null);
+  const [syncingAdAccountId, setSyncingAdAccountId] = useState<number | null>(null);
 
   // Form states for ad accounts
   const [adPlatform, setAdPlatform] = useState<'meta' | 'tiktok'>('meta');
   const [adAccountId, setAdAccountId] = useState<string>('');
   const [adAccountName, setAdAccountName] = useState<string>('');
   const [adAccessToken, setAdAccessToken] = useState<string>('');
-  const [adRefreshToken, setAdRefreshToken] = useState<string>('');
   const [adCurrency, setAdCurrency] = useState<string>('USD');
   const [adTimezone, setAdTimezone] = useState<string>('Asia/Dhaka');
 
@@ -343,17 +343,15 @@ export function SettingsView({
           external_account_id: adAccountId.trim(),
           account_name: adAccountName.trim() || null,
           access_token: adAccessToken.trim(),
-          refresh_token: adRefreshToken.trim() || null,
           account_currency: adCurrency,
           account_timezone: adTimezone
         })
       });
       if (res.ok) {
-        showToast("Ad account connected successfully.", false);
+        showToast("Ad account verified and connected successfully.", false);
         setAdAccountId('');
         setAdAccountName('');
         setAdAccessToken('');
-        setAdRefreshToken('');
         fetchAdAccounts();
       } else {
         const errData = await res.json();
@@ -542,6 +540,30 @@ export function SettingsView({
       await handleSaveCustomEventAutomations(automationDrafts);
     } finally {
       setSavingAutomations(false);
+    }
+  };
+
+  const handleSyncAdAccount = async (id: number) => {
+    setSyncingAdAccountId(id);
+    try {
+      const res = await fetch(`/api/v1/ad-accounts/${id}/sync`, { method: 'POST' });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        showToast(typeof data.detail === 'string' ? data.detail : "Ad account sync failed.", true);
+        return;
+      }
+      const count = Number(data.synced_rows || 0);
+      showToast(
+        count > 0
+          ? `Synced ${count} campaign insight rows.`
+          : "Sync completed. No campaign data was available for the last 7 days.",
+        false,
+      );
+      await fetchAdAccounts();
+    } catch (err) {
+      showToast("Could not reach the ad account sync service.", true);
+    } finally {
+      setSyncingAdAccountId(null);
     }
   };
   const platformStatusRows = platformOrder.map((platform) => {
@@ -911,15 +933,8 @@ export function SettingsView({
               </div>
 
               {adPlatform === 'tiktok' ? (
-                <div>
-                  <label className="block text-[10px] font-semibold text-slate-500 uppercase mb-1">Refresh Token (Optional)</label>
-                  <input
-                    type="password"
-                    placeholder="TikTok OAuth Refresh Token"
-                    value={adRefreshToken}
-                    onChange={(e) => setAdRefreshToken(e.target.value)}
-                    className="w-full p-2 text-xs bg-white border border-slate-200 rounded font-mono text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                  />
+                <div className="rounded border border-cyan-200 bg-cyan-50 px-3 py-2 text-[10px] leading-4 text-cyan-900">
+                  Use a <strong>TikTok Marketing API</strong> access token with reporting permission. A TikTok Events API token cannot read ad spend or campaign performance.
                 </div>
               ) : (
                 <div className="flex items-end text-[10px] text-slate-400 pb-2">
@@ -966,7 +981,7 @@ export function SettingsView({
                   disabled={savingAdAccount}
                   className="w-full py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded shadow-md transition-colors cursor-pointer text-center"
                 >
-                  {savingAdAccount ? 'Connecting...' : 'Connect Account'}
+                  {savingAdAccount ? 'Verifying...' : 'Connect & Verify'}
                 </button>
               </div>
             </div>
@@ -1026,6 +1041,15 @@ export function SettingsView({
                           </span>
                         </td>
                         <td className="px-4 py-3 align-middle text-right">
+                          <button
+                            type="button"
+                            disabled={syncingAdAccountId === account.id}
+                            onClick={() => handleSyncAdAccount(account.id)}
+                            className="mr-1 inline-flex items-center justify-center rounded p-1 text-slate-400 transition-colors hover:bg-indigo-50 hover:text-indigo-600 disabled:opacity-50"
+                            title="Sync campaign insights now"
+                          >
+                            <RefreshCw className={`h-3.5 w-3.5 ${syncingAdAccountId === account.id ? 'animate-spin' : ''}`} />
+                          </button>
                           <button
                             type="button"
                             disabled={deletingAdAccountId === account.id}

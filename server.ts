@@ -1009,6 +1009,16 @@ async function startServer() {
     res.json(account);
   });
 
+  app.post("/api/v1/ad-accounts/:id/sync", (req, res) => {
+    const id = Number(req.params.id);
+    const account = adAccounts.find(item => item.id === id);
+    if (!account) {
+      return res.status(404).json({ detail: "Ad account not found." });
+    }
+    account.last_synced_at = new Date().toISOString();
+    res.json({ status: "success", synced_rows: 2, last_synced_at: account.last_synced_at });
+  });
+
   app.delete("/api/v1/ad-accounts/:id", (req, res) => {
     const id = Number(req.params.id);
     adAccounts = adAccounts.filter(account => account.id !== id);
