@@ -865,7 +865,7 @@ export function SettingsView({
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
               <h2 id="settings-ad-accounts-title" className="font-bold text-slate-800 text-sm uppercase tracking-wide">Marketing Ad Account Insights</h2>
-              <p className="text-xs text-slate-400">Connect your Facebook (Meta) and TikTok Advertiser ad accounts to sync daily campaign spend, clicks, and impressions.</p>
+              <p className="text-xs text-slate-400">Connect a Meta or TikTok Advertiser account, then sync campaign spend, clicks, impressions, and ROAS data on demand.</p>
             </div>
           </div>
 
@@ -1045,10 +1045,11 @@ export function SettingsView({
                             type="button"
                             disabled={syncingAdAccountId === account.id}
                             onClick={() => handleSyncAdAccount(account.id)}
-                            className="mr-1 inline-flex items-center justify-center rounded p-1 text-slate-400 transition-colors hover:bg-indigo-50 hover:text-indigo-600 disabled:opacity-50"
+                            className="mr-1 inline-flex items-center justify-center gap-1 rounded border border-slate-200 px-2 py-1 text-[10px] font-semibold text-slate-500 transition-colors hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-600 disabled:opacity-50"
                             title="Sync campaign insights now"
                           >
                             <RefreshCw className={`h-3.5 w-3.5 ${syncingAdAccountId === account.id ? 'animate-spin' : ''}`} />
+                            {syncingAdAccountId === account.id ? 'Syncing' : 'Sync now'}
                           </button>
                           <button
                             type="button"
