@@ -26,6 +26,14 @@
       "destination": "/index.html"
     },
     {
+      "source": "/app",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/app/:path*",
+      "destination": "/index.html"
+    },
+    {
       "source": "/client",
       "destination": "https://api.buykori.app/client"
     },

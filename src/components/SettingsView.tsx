@@ -188,6 +188,15 @@ export function SettingsView({
   };
   const activeSectionIds = settingsTabs.find(tab => tab.id === activeSettingsTab)?.sections.map(section => section.id) || [];
 
+  const openSettingsTab = (tabId: string) => {
+    setActiveSettingsTab(tabId);
+    const sectionId = settingsTabs.find(tab => tab.id === tabId)?.sections[0]?.id;
+    if (!sectionId) return;
+    window.dispatchEvent(new CustomEvent('buykori:page-section', {
+      detail: { pageId: 'settings', sectionId }
+    }));
+  };
+
   useEffect(() => {
     const handleSectionJump = (event: Event) => {
       const detail = (event as CustomEvent<{ pageId: string; sectionId: string }>).detail;
@@ -635,7 +644,7 @@ export function SettingsView({
             <button
               key={tab.id}
               type="button"
-              onClick={() => setActiveSettingsTab(tab.id)}
+              onClick={() => openSettingsTab(tab.id)}
               className={`min-w-fit rounded-lg px-3 py-2 text-xs font-bold transition-colors ${
                 activeSettingsTab === tab.id
                   ? 'bg-indigo-600 text-white shadow-sm'
@@ -664,7 +673,7 @@ export function SettingsView({
           <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
             <button
               type="button"
-              onClick={() => setActiveSettingsTab('conversions')}
+              onClick={() => openSettingsTab('conversions')}
               className="rounded-lg border border-white bg-white/90 p-3 text-left shadow-sm transition-colors hover:border-indigo-200 hover:bg-white"
             >
               <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Tracking destinations</span>
@@ -673,7 +682,7 @@ export function SettingsView({
             </button>
             <button
               type="button"
-              onClick={() => setActiveSettingsTab('courier')}
+              onClick={() => openSettingsTab('courier')}
               className="rounded-lg border border-white bg-white/90 p-3 text-left shadow-sm transition-colors hover:border-indigo-200 hover:bg-white"
             >
               <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Courier workflow</span>
@@ -682,7 +691,7 @@ export function SettingsView({
             </button>
             <button
               type="button"
-              onClick={() => setActiveSettingsTab('alerts')}
+              onClick={() => openSettingsTab('alerts')}
               className="rounded-lg border border-white bg-white/90 p-3 text-left shadow-sm transition-colors hover:border-indigo-200 hover:bg-white"
             >
               <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">WhatsApp alerts</span>
@@ -691,7 +700,7 @@ export function SettingsView({
             </button>
             <button
               type="button"
-              onClick={() => setActiveSettingsTab('store')}
+              onClick={() => openSettingsTab('store')}
               className="rounded-lg border border-white bg-white/90 p-3 text-left shadow-sm transition-colors hover:border-indigo-200 hover:bg-white"
             >
               <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Plugin connection</span>

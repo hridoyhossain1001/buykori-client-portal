@@ -443,7 +443,7 @@ capi('track', 'Purchase', {
                   Go to <b>Settings &gt; Conversions API</b> and add valid credentials for Meta, TikTok, or GA4. Start with one platform. Do not enable a destination until its credentials are saved.
                 </p>
                 <button
-                  onClick={() => setActivePage('settings-conversions')}
+                  onClick={() => openPortalSection('settings', 'settings-platforms')}
                   className="px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200/50 rounded text-xs font-semibold shrink-0 cursor-pointer"
                 >
                   Open Conversions API Settings

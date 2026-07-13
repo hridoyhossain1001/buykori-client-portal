@@ -57,11 +57,11 @@ const guideSteps: GuideStep[] = [
     page: 'dashboard',
     text: {
       bn: {
-        title: 'Store Home',
+        title: 'Dashboard',
         body: 'এখানে আপনার tracking summary, events, আর quick health status দেখা যাবে।',
       },
       en: {
-        title: 'Store Home',
+        title: 'Dashboard',
         body: 'See your tracking summary, recent events, and quick health status here.',
       },
     },

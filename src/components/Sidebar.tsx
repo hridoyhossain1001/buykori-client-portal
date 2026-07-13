@@ -171,7 +171,7 @@ export function Sidebar({
     {
       label: 'YOUR STORE',
       items: [
-        { id: 'dashboard', name: 'Store Home', icon: LayoutDashboard },
+        { id: 'dashboard', name: 'Dashboard', icon: LayoutDashboard },
         { id: 'analytics', name: 'Ad Insights', icon: TrendingUp },
       ],
     },

@@ -29,7 +29,7 @@ interface HeaderProps {
 }
 
 const pageSuggestions = [
-  { id: 'dashboard', name: 'Dashboard / Overview', keywords: ['dashboard', 'home', 'overview', 'main', 'quota'] },
+  { id: 'dashboard', name: 'Dashboard', keywords: ['dashboard', 'home', 'overview', 'main', 'quota'] },
   { id: 'analytics', name: 'Insights & Analytics', keywords: ['insights', 'analytics', 'chart', 'trend', 'volume', 'quality'] },
   { id: 'pending-purchases', name: 'COD Protection', keywords: ['order verification', 'cod protection', 'verify', 'pending', 'skip', 'hold'] },
   { id: 'orders', name: 'Courier Shipping', keywords: ['orders', 'delivery', 'courier', 'pathao', 'steadfast', 'redx'] },
@@ -181,7 +181,7 @@ export function Header({
           <div className="bk-console-search relative z-10 flex h-9 w-full items-center px-4">
             <input
               type="text"
-              placeholder="Search pages..."
+              placeholder="Go to a page..."
               value={searchVal}
               onChange={(e) => setSearchVal(e.target.value)}
               onFocus={() => setIsSearchFocused(true)}
@@ -226,7 +226,7 @@ export function Header({
             onClick={() => setIsSearchOpen(true)}
             data-guide="top-search-mobile"
             className="block rounded-full p-2 text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900 focus:outline-none focus:ring-1 focus:ring-blue-500 lg:hidden"
-            title="Search pages"
+            title="Go to a page"
             aria-label="Open quick navigation search"
           >
             <Search className="w-4 h-4 text-slate-500" />

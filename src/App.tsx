@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect, useRef, Suspense, lazy } from 'react';
+import React, { useState, useEffect, useRef, useCallback, Suspense, lazy } from 'react';
 import { 
   ShieldAlert, 
   CheckCircle2, 
@@ -17,6 +17,7 @@ import { PluginConnectAuthorizeView } from './components/PluginConnectAuthorizeV
 import { ProductGuide } from './components/ProductGuide';
 import { SupportWidget } from './components/SupportWidget';
 import { CAPIEvent, APILog, Suggestion, Platform, EventRule, PlatformConfig, UserProfile, ClientConnection, OutboxItem, PluginReleaseInfo, CustomEventAutomation } from './types';
+import { clientPathForPage, clientPathForSection, isClientPageId, resolveClientRoute } from './lib/clientRoutes';
 
 const lazyWithReload = <T extends React.ComponentType<any>>(
   loader: () => Promise<{ default: T }>
@@ -129,7 +130,9 @@ const IncompleteCheckoutsView = lazyWithReload(() => import('./components/Incomp
 
 export default function App() {
   const isPluginConnectRoute = window.location.pathname === '/plugin/connect';
-  const [activePage, setActivePage] = useState<string>('dashboard');
+  const initialRoute = resolveClientRoute(window.location.pathname);
+  const [activePage, setActivePageState] = useState<string>(initialRoute?.pageId || 'dashboard');
+  const [activeRouteSection, setActiveRouteSection] = useState<string | null>(initialRoute?.sectionId || null);
   const [searchVal, setSearchVal] = useState<string>('');
   const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState<boolean>(false);
@@ -170,6 +173,16 @@ export default function App() {
   const [analyticsError, setAnalyticsError] = useState<string | null>(null);
   const [trendData, setTrendData] = useState<any[]>([]);
   const [recoverySummary, setRecoverySummary] = useState<any>(null);
+
+  const setActivePage = useCallback((pageId: string) => {
+    const nextPage = isClientPageId(pageId) ? pageId : 'dashboard';
+    const nextPath = clientPathForPage(nextPage) || '/app/dashboard';
+    setActivePageState(nextPage);
+    setActiveRouteSection(null);
+    if (window.location.pathname !== nextPath) {
+      window.history.pushState({ buykoriPage: nextPage }, '', nextPath);
+    }
+  }, []);
 
   // Async Lifecycle States
   const [loading, setLoading] = useState<boolean>(true);
@@ -221,6 +234,55 @@ export default function App() {
   const [syncedAdCampaigns, setSyncedAdCampaigns] = useState<any[]>([]);
   const [loadingSyncedAdCampaigns, setLoadingSyncedAdCampaigns] = useState<boolean>(false);
   const [generatedCampaignUrl, setGeneratedCampaignUrl] = useState<string>('');
+
+  useEffect(() => {
+    if (isPluginConnectRoute) return;
+
+    const currentRoute = resolveClientRoute(window.location.pathname);
+    if (currentRoute && window.location.pathname !== currentRoute.canonicalPath) {
+      window.history.replaceState({ buykoriPage: currentRoute.pageId }, '', currentRoute.canonicalPath);
+    }
+
+    const handlePopState = () => {
+      const route = resolveClientRoute(window.location.pathname);
+      if (!route) return;
+      setActivePageState(route.pageId);
+      setActiveRouteSection(route.sectionId);
+      setMobileSidebarOpen(false);
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [isPluginConnectRoute]);
+
+  useEffect(() => {
+    const handleSectionNavigation = (event: Event) => {
+      const detail = (event as CustomEvent<{ pageId?: string; sectionId?: string }>).detail;
+      if (detail?.pageId !== 'settings' || !detail.sectionId) return;
+      const nextPath = clientPathForSection('settings', detail.sectionId);
+      setActiveRouteSection(detail.sectionId);
+      if (nextPath && window.location.pathname !== nextPath) {
+        window.history.replaceState(
+          { buykoriPage: 'settings', buykoriSection: detail.sectionId },
+          '',
+          nextPath
+        );
+      }
+    };
+
+    window.addEventListener('buykori:page-section', handleSectionNavigation);
+    return () => window.removeEventListener('buykori:page-section', handleSectionNavigation);
+  }, []);
+
+  useEffect(() => {
+    if (activePage !== 'settings' || !activeRouteSection || !credentials || !connection) return;
+    const timer = window.setTimeout(() => {
+      window.dispatchEvent(new CustomEvent('buykori:page-section', {
+        detail: { pageId: 'settings', sectionId: activeRouteSection }
+      }));
+    }, 80);
+    return () => window.clearTimeout(timer);
+  }, [activePage, activeRouteSection, credentials, connection]);
 
   useEffect(() => {
     if (profile && !urlBuilderBaseUrl) {

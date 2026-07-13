@@ -9,6 +9,28 @@ const html = fs.readFileSync(sourcePath, "utf8").replaceAll("./assets/", "/asset
 const routes = [
   ["client", "dashboard"],
   ["plugin", "connect"],
+  ["app"],
+  ["app", "dashboard"],
+  ["app", "ad-insights"],
+  ["app", "cod-protection"],
+  ["app", "courier-shipping"],
+  ["app", "incomplete-orders"],
+  ["app", "campaign-tools"],
+  ["app", "setup-health"],
+  ["app", "event-logs"],
+  ["app", "api-logs"],
+  ["app", "settings"],
+  ["app", "settings", "store-connection"],
+  ["app", "settings", "plugin-connection"],
+  ["app", "settings", "conversions-api"],
+  ["app", "settings", "cod-timing"],
+  ["app", "settings", "event-routing"],
+  ["app", "settings", "custom-automations"],
+  ["app", "settings", "ad-accounts"],
+  ["app", "settings", "courier-logistics"],
+  ["app", "settings", "alerts-notifications"],
+  ["app", "setup-guide"],
+  ["app", "account"],
 ];
 
 for (const routeParts of routes) {

@@ -20,7 +20,8 @@ import {
   ListChecks,
   BookOpen,
   Send,
-  Settings2
+  Settings2,
+  AlertTriangle
 } from 'lucide-react';
 import { CAPIEvent, UserProfile, Platform } from '../types';
 
@@ -170,6 +171,15 @@ export function DashboardView({
       ? `${serverFilteredCount.toLocaleString()} filtered`
       : '';
 
+  const openConversionSettings = () => {
+    setActivePage('settings');
+    window.setTimeout(() => {
+      window.dispatchEvent(new CustomEvent('buykori:page-section', {
+        detail: { pageId: 'settings', sectionId: 'settings-platforms' }
+      }));
+    }, 80);
+  };
+
   useEffect(() => {
     lastScrollYRef.current = window.scrollY;
 
@@ -257,10 +267,10 @@ export function DashboardView({
         </div>
       </div>
 
-      {/* Page Heading & Timeframe Selector */}
+      {/* Dashboard summary and timeframe selector */}
       <div className="flex flex-row items-start justify-between gap-3">
         <div>
-          <h2 className="text-lg font-bold text-slate-900 md:text-xl">Dashboard</h2>
+          <h2 className="text-lg font-bold text-slate-900 md:text-xl">Tracking overview</h2>
           <p className="text-xs text-slate-400 ">Your store's tracking summary</p>
         </div>
         <div className="flex shrink-0 items-center gap-2">
@@ -278,6 +288,38 @@ export function DashboardView({
           </select>
         </div>
       </div>
+
+      {hasServerIssueOnly && (
+        <section className="flex flex-col gap-4 rounded-xl border border-amber-200 bg-amber-50 p-4 sm:flex-row sm:items-center sm:justify-between" role="alert">
+          <div className="flex min-w-0 items-start gap-3">
+            <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-700">
+              <AlertTriangle className="h-4 w-4" />
+            </span>
+            <div>
+              <h3 className="text-sm font-bold text-amber-950">Tracking delivery needs attention</h3>
+              <p className="mt-1 max-w-2xl text-xs leading-relaxed text-amber-800">
+                {serverAttemptCount.toLocaleString()} server event attempts were detected, but successful delivery was not confirmed in this timeframe. Check platform credentials first, then review the failed event details.
+              </p>
+            </div>
+          </div>
+          <div className="flex shrink-0 flex-wrap gap-2 sm:justify-end">
+            <button
+              type="button"
+              onClick={openConversionSettings}
+              className="rounded-lg bg-amber-700 px-3 py-2 text-xs font-bold text-white transition-colors hover:bg-amber-800 focus:outline-none focus:ring-2 focus:ring-amber-600 focus:ring-offset-2"
+            >
+              Fix credentials
+            </button>
+            <button
+              type="button"
+              onClick={() => setActivePage('event-logs')}
+              className="rounded-lg border border-amber-300 bg-white px-3 py-2 text-xs font-bold text-amber-900 transition-colors hover:bg-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-600 focus:ring-offset-2"
+            >
+              View failed events
+            </button>
+          </div>
+        </section>
+      )}
 
       {showGettingStarted && (
         <section className="rounded-xl border border-indigo-100 bg-white p-5 shadow-sm  ">
