@@ -5,30 +5,30 @@ export interface ClientRouteMatch {
 }
 
 const PAGE_PATHS: Record<string, string> = {
-  dashboard: '/app/dashboard',
-  analytics: '/app/ad-insights',
-  'pending-purchases': '/app/cod-protection',
-  orders: '/app/courier-shipping',
-  'incomplete-checkouts': '/app/incomplete-orders',
-  'campaign-builder': '/app/campaign-tools',
-  suggestions: '/app/setup-health',
-  'event-logs': '/app/event-logs',
-  'api-logs': '/app/api-logs',
-  settings: '/app/settings/store-connection',
-  'setup-guide': '/app/setup-guide',
-  account: '/app/account',
+  dashboard: '/dashboard',
+  analytics: '/ad-insights',
+  'pending-purchases': '/cod-protection',
+  orders: '/courier-shipping',
+  'incomplete-checkouts': '/incomplete-orders',
+  'campaign-builder': '/campaign-tools',
+  suggestions: '/setup-health',
+  'event-logs': '/event-logs',
+  'api-logs': '/api-logs',
+  settings: '/settings/store-connection',
+  'setup-guide': '/setup-guide',
+  account: '/account',
 };
 
 const SETTINGS_SECTION_PATHS: Record<string, string> = {
-  'settings-domain': '/app/settings/store-connection',
-  'settings-wordpress': '/app/settings/plugin-connection',
-  'settings-platforms': '/app/settings/conversions-api',
-  'settings-cod': '/app/settings/cod-timing',
-  'settings-routing': '/app/settings/event-routing',
-  'settings-custom-automations': '/app/settings/custom-automations',
-  'settings-ad-accounts': '/app/settings/ad-accounts',
-  'settings-courier': '/app/settings/courier-logistics',
-  'settings-whatsapp': '/app/settings/alerts-notifications',
+  'settings-domain': '/settings/store-connection',
+  'settings-wordpress': '/settings/plugin-connection',
+  'settings-platforms': '/settings/conversions-api',
+  'settings-cod': '/settings/cod-timing',
+  'settings-routing': '/settings/event-routing',
+  'settings-custom-automations': '/settings/custom-automations',
+  'settings-ad-accounts': '/settings/ad-accounts',
+  'settings-courier': '/settings/courier-logistics',
+  'settings-whatsapp': '/settings/alerts-notifications',
 };
 
 const PAGE_BY_PATH = new Map(Object.entries(PAGE_PATHS).map(([pageId, path]) => [path, pageId]));
@@ -56,7 +56,9 @@ export const resolveClientRoute = (pathname: string): ClientRouteMatch | null =>
     return { pageId: 'dashboard', sectionId: null, canonicalPath: PAGE_PATHS.dashboard };
   }
 
-  if (path === '/app/settings') {
+  const routePath = path.startsWith('/app/') ? path.slice('/app'.length) : path;
+
+  if (routePath === '/settings') {
     return {
       pageId: 'settings',
       sectionId: 'settings-domain',
@@ -64,12 +66,12 @@ export const resolveClientRoute = (pathname: string): ClientRouteMatch | null =>
     };
   }
 
-  const sectionId = SETTINGS_SECTION_BY_PATH.get(path);
+  const sectionId = SETTINGS_SECTION_BY_PATH.get(routePath);
   if (sectionId) {
     return { pageId: 'settings', sectionId, canonicalPath: SETTINGS_SECTION_PATHS[sectionId] };
   }
 
-  const pageId = PAGE_BY_PATH.get(path);
+  const pageId = PAGE_BY_PATH.get(routePath);
   if (!pageId) return null;
   return { pageId, sectionId: null, canonicalPath: PAGE_PATHS[pageId] };
 };

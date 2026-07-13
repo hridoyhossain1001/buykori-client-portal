@@ -8,34 +8,37 @@ import {
 } from './clientRoutes';
 
 test('resolves canonical page routes', () => {
-  assert.deepEqual(resolveClientRoute('/app/event-logs'), {
+  assert.deepEqual(resolveClientRoute('/event-logs'), {
     pageId: 'event-logs',
     sectionId: null,
-    canonicalPath: '/app/event-logs',
+    canonicalPath: '/event-logs',
   });
-  assert.equal(clientPathForPage('orders'), '/app/courier-shipping');
+  assert.equal(clientPathForPage('orders'), '/courier-shipping');
   assert.equal(isClientPageId('orders'), true);
   assert.equal(isClientPageId('unknown'), false);
 });
 
 test('keeps legacy dashboard entry points compatible', () => {
   for (const path of ['/', '/app', '/client/dashboard', '/client/dashboard/']) {
-    assert.equal(resolveClientRoute(path)?.canonicalPath, '/app/dashboard');
+    assert.equal(resolveClientRoute(path)?.canonicalPath, '/dashboard');
   }
+  assert.equal(resolveClientRoute('/app/incomplete-orders')?.canonicalPath, '/incomplete-orders');
+  assert.equal(resolveClientRoute('/app/event-logs')?.canonicalPath, '/event-logs');
 });
 
 test('resolves settings section deep links', () => {
-  assert.deepEqual(resolveClientRoute('/app/settings/conversions-api'), {
+  assert.deepEqual(resolveClientRoute('/settings/conversions-api'), {
     pageId: 'settings',
     sectionId: 'settings-platforms',
-    canonicalPath: '/app/settings/conversions-api',
+    canonicalPath: '/settings/conversions-api',
   });
   assert.equal(
     clientPathForSection('settings', 'settings-whatsapp'),
-    '/app/settings/alerts-notifications'
+    '/settings/alerts-notifications'
   );
-  assert.equal(resolveClientRoute('/app/settings')?.canonicalPath, '/app/settings/store-connection');
-  assert.equal(clientPathForPage('settings'), '/app/settings/store-connection');
+  assert.equal(resolveClientRoute('/settings')?.canonicalPath, '/settings/store-connection');
+  assert.equal(resolveClientRoute('/app/settings/conversions-api')?.canonicalPath, '/settings/conversions-api');
+  assert.equal(clientPathForPage('settings'), '/settings/store-connection');
 });
 
 test('rejects unrelated application paths', () => {

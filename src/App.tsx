@@ -176,7 +176,7 @@ export default function App() {
 
   const setActivePage = useCallback((pageId: string) => {
     const nextPage = isClientPageId(pageId) ? pageId : 'dashboard';
-    const nextPath = clientPathForPage(nextPage) || '/app/dashboard';
+    const nextPath = clientPathForPage(nextPage) || '/dashboard';
     setActivePageState(nextPage);
     setActiveRouteSection(null);
     if (window.location.pathname !== nextPath) {
