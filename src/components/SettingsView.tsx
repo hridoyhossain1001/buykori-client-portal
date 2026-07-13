@@ -4,6 +4,7 @@ import { Tooltip } from './common/Tooltip';
 import { Platform, PlatformConfig, EventRule, ClientConnection, PluginReleaseInfo, CustomEventAutomation, CustomEventTrigger } from '../types';
 
 interface SettingsViewProps {
+  initialSectionId?: string | null;
   credentials: Record<Platform, PlatformConfig>;
   connection: ClientConnection;
   rules: EventRule[];
@@ -35,6 +36,7 @@ interface SettingsViewProps {
 }
 
 export function SettingsView({
+  initialSectionId,
   credentials,
   connection,
   rules,
@@ -144,7 +146,10 @@ export function SettingsView({
       ],
     },
   ];
-  const [activeSettingsTab, setActiveSettingsTab] = useState<string>('store');
+  const tabIdForSection = (sectionId?: string | null) => (
+    settingsTabs.find(tab => tab.sections.some(section => section.id === sectionId))?.id || 'store'
+  );
+  const [activeSettingsTab, setActiveSettingsTab] = useState<string>(() => tabIdForSection(initialSectionId));
   const normalizeVersion = (version?: string) => (version || '').replace(/^v/i, '').trim();
   const compareVersions = (left: string, right: string) => {
     const leftParts = left.split('.').map(part => Number.parseInt(part, 10) || 0);
@@ -230,6 +235,16 @@ export function SettingsView({
       .then(data => setEventPresets(Array.isArray(data.presets) ? data.presets : []))
       .catch(() => setEventPresets([]));
   }, []);
+
+  useEffect(() => {
+    if (!initialSectionId) return;
+    setActiveSettingsTab(tabIdForSection(initialSectionId));
+    window.requestAnimationFrame(() => {
+      window.setTimeout(() => {
+        document.getElementById(initialSectionId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 0);
+    });
+  }, [initialSectionId]);
 
   const applySelectedPreset = async () => {
     if (!selectedPreset) return;

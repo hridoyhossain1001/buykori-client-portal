@@ -275,16 +275,6 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    if (activePage !== 'settings' || !activeRouteSection || !credentials || !connection) return;
-    const timer = window.setTimeout(() => {
-      window.dispatchEvent(new CustomEvent('buykori:page-section', {
-        detail: { pageId: 'settings', sectionId: activeRouteSection }
-      }));
-    }, 80);
-    return () => window.clearTimeout(timer);
-  }, [activePage, activeRouteSection, credentials, connection]);
-
-  useEffect(() => {
     if (profile && !urlBuilderBaseUrl) {
       setUrlBuilderBaseUrl(profile.email ? `https://${profile.name.toLowerCase().replace(/\s+/g, '')}.com` : 'https://your-site.com');
     }
@@ -1867,6 +1857,7 @@ export default function App() {
             {/* PAGE 6: SETTINGS */}
             {activePage === 'settings' && credentials && connection && (
               <SettingsView 
+                initialSectionId={activeRouteSection}
                 credentials={credentials}
                 connection={connection}
                 rules={rules}
