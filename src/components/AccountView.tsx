@@ -2,6 +2,11 @@ import React from 'react';
 import { RotateCcw } from 'lucide-react';
 import { UserProfile } from '../types';
 
+const PLAN_PRICING = Object.freeze({
+  growth: { label: 'Growth Plan', events: '500k Events / mo', price: 'BDT 899 / mo' },
+  scale: { label: 'Scale Plan', events: '1M Events / mo', price: 'BDT 2,499 / mo' }
+});
+
 interface AccountViewProps {
   profile: UserProfile;
   profName: string;
@@ -395,9 +400,9 @@ export function AccountView({
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-center text-xs">
                 {isFreeOrTrial && (
                   <div className="p-3 border border-indigo-200  rounded bg-indigo-50/50  flex flex-col justify-between">
-                    <span className="font-bold text-slate-800  leading-none">Growth Plan</span>
-                    <span className="text-[10px] text-indigo-600  mt-1 leading-none">500k Events / mo</span>
-                    <span className="text-xs font-mono font-extrabold mt-3 text-indigo-700 ">$49 / mo</span>
+                    <span className="font-bold text-slate-800  leading-none">{PLAN_PRICING.growth.label}</span>
+                    <span className="text-[10px] text-indigo-600  mt-1 leading-none">{PLAN_PRICING.growth.events}</span>
+                    <span className="text-xs font-mono font-extrabold mt-3 text-indigo-700 ">{PLAN_PRICING.growth.price}</span>
                     <button 
                       onClick={() => showToast("Billing checkout is not connected yet. Contact support@buykori.app to upgrade.", true)}
                       className="mt-3 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded font-semibold text-[10px] cursor-pointer"
@@ -409,9 +414,9 @@ export function AccountView({
                 )}
                 
                 <div className="p-3 border border-slate-200  rounded hover:bg-slate-50  flex flex-col justify-between">
-                  <span className="font-bold text-slate-800  leading-none">Scale Plan</span>
-                  <span className="text-[10px] text-slate-400  mt-1 leading-none font-medium">1M Events / mo</span>
-                  <span className="text-xs font-mono font-extrabold mt-3 text-slate-700 ">$99 / mo</span>
+                  <span className="font-bold text-slate-800  leading-none">{PLAN_PRICING.scale.label}</span>
+                  <span className="text-[10px] text-slate-400  mt-1 leading-none font-medium">{PLAN_PRICING.scale.events}</span>
+                  <span className="text-xs font-mono font-extrabold mt-3 text-slate-700 ">{PLAN_PRICING.scale.price}</span>
                   <button 
                     onClick={() => showToast("Billing checkout is not connected yet. Contact support@buykori.app to upgrade.", true)}
                     className="mt-3 py-1 bg-slate-800 hover:bg-slate-900   text-white rounded font-semibold text-[10px] cursor-pointer"
