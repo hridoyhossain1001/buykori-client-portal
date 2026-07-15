@@ -1042,6 +1042,9 @@ export default function App() {
     }
     const data = await res.json();
     setConnection(data.connection);
+    if (data.connection?.status !== 'Active' || data.connection?.bindingVerified === false) {
+      throw new Error(data.connection?.connectionIssue || 'WordPress site binding is not active. Reconnect the plugin.');
+    }
     await loadSystemData(false);
   };
 

@@ -643,7 +643,11 @@ export function SettingsView({
       ? 'Ready'
       : 'Needs number'
     : 'Off';
-  const wordpressConnectionStatus = connection.api_key || connection.token ? 'Connected' : 'Needs key';
+  const wordpressConnectionStatus = connection.status === 'Active' && connection.bindingVerified
+    ? 'Connected'
+    : connection.reconnectRequired
+      ? 'Reconnect required'
+      : connection.status;
   const autoConfirmLabel = autoConfirmDays > 0
     ? `${autoConfirmDays} day${autoConfirmDays === 1 ? '' : 's'} after order hold`
     : 'Manual confirmation only';
@@ -1788,6 +1792,25 @@ export function SettingsView({
             <p className="text-xs text-slate-400 ">Your WooCommerce plugin sends tracking data through this connection. Platform credentials and delivery rules stay managed in the portal.</p>
           </div>
 
+          {(connection.reconnectRequired || connection.status !== 'Active') && (
+            <div className="rounded-lg border border-rose-200 bg-rose-50 p-3 text-xs text-rose-800">
+              <p className="font-bold">WordPress reconnection required</p>
+              <p className="mt-1">
+                {connection.connectionIssue || 'Open Buykori AdSync in WordPress and reconnect this site to restore event delivery.'}
+              </p>
+              {connection.siteHost && (
+                <a
+                  className="mt-2 inline-flex font-semibold text-rose-700 underline"
+                  href={`https://${connection.siteHost}/wp-admin/admin.php?page=buykori-adsync`}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Open WordPress connection settings
+                </a>
+              )}
+            </div>
+          )}
+
           <div className="p-4 rounded-lg bg-slate-50 border border-slate-200   space-y-3 font-mono text-xs text-slate-700 ">
             <div>
               <span className="block text-[9px] font-semibold text-slate-400  uppercase tracking-wider mb-0.5">API Access Key</span>
@@ -1815,7 +1838,7 @@ export function SettingsView({
               </div>
               <div>
                 <span className="block text-[9px] text-slate-400  uppercase mb-0.5">Last query heartbeat</span>
-                <span className="font-semibold text-slate-800 ">{new Date(connection.lastHeartbeat).toLocaleTimeString()}</span>
+                <span className="font-semibold text-slate-800 ">{connection.lastHeartbeat ? new Date(connection.lastHeartbeat).toLocaleString() : 'Not reported yet'}</span>
               </div>
             </div>
           </div>
@@ -1857,10 +1880,10 @@ export function SettingsView({
 
           <button 
             onClick={() => {
-              showToast("Pinging WordPress plugin...", false);
+              showToast("Verifying WordPress site binding...", false);
               refreshWPHeartbeat()
-                .then(() => showToast("WordPress connection is active.", false))
-                .catch(() => showToast("Failed to ping WordPress plugin.", true));
+                .then(() => showToast("WordPress site binding is active.", false))
+                .catch((error) => showToast(error?.message || "WordPress reconnection is required.", true));
             }}
             className="w-full py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-lg transition-colors border border-indigo-700/20 cursor-pointer  "
           >

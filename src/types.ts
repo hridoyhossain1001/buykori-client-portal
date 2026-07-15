@@ -88,6 +88,10 @@ export interface ClientConnection {
   lastHeartbeat: string;
   status: 'Active' | 'Degraded' | 'Disconnected';
   api_key?: string;
+  bindingVerified?: boolean;
+  reconnectRequired?: boolean;
+  siteHost?: string;
+  connectionIssue?: string;
 }
 
 export interface PluginReleaseInfo {
