@@ -963,13 +963,62 @@ export function SettingsView({
             </div>
           </div>
 
-          <div className="rounded-lg border border-indigo-200 bg-indigo-50 px-4 py-3 text-xs leading-relaxed text-indigo-950">
-            <p className="font-bold">Before you connect an ad account</p>
-            <ol className="mt-1 list-decimal space-y-0.5 pl-4">
-              <li>Use the <strong>advertising reporting token</strong>, not a Pixel or Conversions API event token.</li>
-              <li>For Meta: Business Settings -&gt; Users -&gt; System users -&gt; select/create a system user -&gt; assign the ad account with <strong>View performance</strong> -&gt; Generate token with <strong>ads_read</strong>.</li>
-              <li>Paste the token, then choose the account from the list. You normally do not need to type an <code>act_...</code> ID manually.</li>
-            </ol>
+          <div className="overflow-hidden rounded-xl border border-indigo-200 bg-indigo-50/70">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-indigo-100 px-4 py-3">
+              <div>
+                <p className="text-xs font-bold text-slate-900">Connect your {adPlatform === 'meta' ? 'Meta' : 'TikTok'} ad account in 4 easy steps</p>
+                <p className="mt-0.5 text-[10px] text-slate-600">Complete these steps once. Buykori will use the connection only to read advertising performance.</p>
+              </div>
+              <span className="rounded-full bg-white px-2.5 py-1 text-[9px] font-bold uppercase tracking-wide text-indigo-700 shadow-sm">
+                {adPlatform === 'meta' ? 'Meta setup' : 'TikTok setup'}
+              </span>
+            </div>
+
+            {adPlatform === 'meta' ? (
+              <div className="grid grid-cols-1 gap-px bg-indigo-100 sm:grid-cols-2 lg:grid-cols-4">
+                {[
+                  ['Open Meta', 'Go to Business Settings, then Users, then System users.'],
+                  ['Give access', 'Select your system user and assign the ad account with View performance access.'],
+                  ['Create token', 'Click Generate token and include the ads_read permission. Copy that token.'],
+                  ['Connect here', 'Paste the token below, find the account, select it, then click Connect & Verify.']
+                ].map(([title, description], index) => (
+                  <div key={title} className="bg-white/80 px-4 py-3">
+                    <div className="flex items-start gap-2.5">
+                      <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-indigo-600 text-[10px] font-bold text-white">{index + 1}</span>
+                      <div>
+                        <p className="text-[11px] font-bold text-slate-800">{title}</p>
+                        <p className="mt-1 text-[10px] leading-4 text-slate-600">{description}</p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 gap-px bg-indigo-100 sm:grid-cols-2 lg:grid-cols-4">
+                {[
+                  ['Open TikTok', 'Go to TikTok Business Center, then Assets, then Advertiser accounts.'],
+                  ['Choose account', 'Select the advertiser account whose campaign reports you want in Buykori.'],
+                  ['Create token', 'Create a Marketing API reporting token with permission to read ad performance.'],
+                  ['Connect here', 'Paste the Advertiser ID and token below, then click Connect & Verify.']
+                ].map(([title, description], index) => (
+                  <div key={title} className="bg-white/80 px-4 py-3">
+                    <div className="flex items-start gap-2.5">
+                      <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-cyan-600 text-[10px] font-bold text-white">{index + 1}</span>
+                      <div>
+                        <p className="text-[11px] font-bold text-slate-800">{title}</p>
+                        <p className="mt-1 text-[10px] leading-4 text-slate-600">{description}</p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="border-t border-amber-200 bg-amber-50 px-4 py-2 text-[10px] leading-4 text-amber-800">
+              <strong>Important:</strong> {adPlatform === 'meta'
+                ? 'Use a System User advertising token with ads_read. Do not use a Pixel or Conversions API event token.'
+                : 'Use a TikTok Marketing API reporting token. Do not use a TikTok Events API token.'}
+            </div>
           </div>
 
           <form onSubmit={handleConnectAdAccount} autoComplete="off" className="space-y-4 p-4 rounded-lg border border-slate-200 bg-slate-50/50">
@@ -992,7 +1041,8 @@ export function SettingsView({
 
               <div>
                 <label className="block text-[10px] font-semibold text-slate-500 uppercase mb-1">
-                  {adPlatform === 'meta' ? 'Meta Ad Account ID (auto-filled after selection)' : 'TikTok Advertiser ID'}
+                  {adPlatform === 'meta' ? 'Meta Ad Account ID' : 'TikTok Advertiser ID'}
+                  {adPlatform === 'meta' && <span className="ml-1 normal-case text-indigo-500">(auto-filled)</span>}
                 </label>
                 <input
                   type="text"
@@ -1004,11 +1054,6 @@ export function SettingsView({
                   onChange={(e) => setAdAccountId(e.target.value)}
                   className="w-full p-2 text-xs bg-white border border-slate-200 rounded font-mono text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                 />
-                <p className="mt-1 text-[10px] leading-4 text-slate-500">
-                  {adPlatform === 'meta'
-                    ? 'Recommended: paste the reporting token below and choose the account from the list. Manual entry is only a fallback; Meta API IDs use the act_ prefix.'
-                    : 'Find this in TikTok Ads Manager under Assets -> Advertiser accounts. It is not your TikTok Pixel ID.'}
-                </p>
               </div>
 
               <div>
@@ -1025,9 +1070,11 @@ export function SettingsView({
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className={`grid grid-cols-1 gap-3 ${adPlatform === 'meta' ? 'md:grid-cols-[minmax(0,1fr)_auto]' : ''}`}>
               <div>
-                <label className="block text-[10px] font-semibold text-slate-500 uppercase mb-1">Access Token</label>
+                <label className="block text-[10px] font-semibold text-slate-500 uppercase mb-1">
+                  {adPlatform === 'meta' ? 'Meta System User Access Token' : 'TikTok Marketing API Access Token'}
+                </label>
                 <input
                   type="password"
                   name="buykori-ad-api-access-token"
@@ -1038,31 +1085,17 @@ export function SettingsView({
                   onChange={(e) => setAdAccessToken(e.target.value)}
                   className="w-full p-2 text-xs bg-white border border-slate-200 rounded font-mono text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                 />
-                {adPlatform === 'meta' && (
-                  <button
-                    type="button"
-                    onClick={handleDiscoverMetaAccounts}
-                    disabled={discoveringMetaAccounts || !adAccessToken.trim()}
-                    className="mt-2 text-[11px] font-semibold text-indigo-600 hover:text-indigo-700 disabled:cursor-not-allowed disabled:text-slate-400"
-                  >
-                    {discoveringMetaAccounts ? 'Finding accessible ad accounts...' : 'Find accessible Meta ad accounts'}
-                  </button>
-                )}
-                <p className="mt-1 text-[10px] leading-4 text-slate-500">
-                  {adPlatform === 'meta'
-                    ? 'Meta location: Business Settings -> Users -> System users -> select the system user -> Generate token. The token needs ads_read and access to the selected ad account.'
-                    : 'TikTok location: Business Center -> Assets -> Advertiser accounts / Marketing API. Use a reporting token, not an Events API token.'}
-                </p>
               </div>
 
-              {adPlatform === 'tiktok' ? (
-                <div className="rounded border border-cyan-200 bg-cyan-50 px-3 py-2 text-[10px] leading-4 text-cyan-900">
-                  Use a <strong>TikTok Marketing API</strong> access token with reporting permission. A TikTok Events API token cannot read ad spend or campaign performance.
-                </div>
-              ) : (
-                <div className="flex items-end text-[10px] text-slate-400 pb-2">
-                  Meta Graph API uses a permanent system user access token.
-                </div>
+              {adPlatform === 'meta' && (
+                <button
+                  type="button"
+                  onClick={handleDiscoverMetaAccounts}
+                  disabled={discoveringMetaAccounts || !adAccessToken.trim()}
+                  className="self-end rounded-lg bg-indigo-600 px-4 py-2 text-[11px] font-bold text-white shadow-sm transition-colors hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-slate-300 md:whitespace-nowrap"
+                >
+                  {discoveringMetaAccounts ? 'Finding accounts...' : 'Find my Meta accounts'}
+                </button>
               )}
             </div>
 
