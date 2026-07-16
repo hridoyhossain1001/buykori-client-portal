@@ -530,6 +530,24 @@ export function SettingsView({
   const platformTokenLabel = (platform: Platform) => (
     platform === 'GA4' ? 'API Secret' : 'Access Token'
   );
+  const platformCredentialHelp = (platform: Platform) => {
+    if (platform === 'Meta CAPI') {
+      return {
+        destination: 'Meta Events Manager -> Data Sources -> select your Pixel -> copy the numeric Pixel ID.',
+        token: 'In the same Pixel -> Settings -> Conversions API, generate an access token. This is the event-delivery token, not the advertising-report token.'
+      };
+    }
+    if (platform === 'TikTok Events API') {
+      return {
+        destination: 'TikTok Events Manager -> Web Events -> select your Pixel -> copy the Pixel ID.',
+        token: 'Open that Pixel\'s Events API settings and create/copy its Events API access token. This is different from a TikTok Ads reporting token.'
+      };
+    }
+    return {
+      destination: 'Google Analytics -> Admin -> Data streams -> select your web stream -> copy the Measurement ID (starts with G-).',
+      token: 'Google Analytics -> Admin -> Data streams -> select the same stream -> Measurement Protocol API secrets -> Create. Paste the API secret here.'
+    };
+  };
   const platformMissingCredentials = (platform: Platform, config?: PlatformConfig) => {
     const destination = String(config?.pixelIdOrMeasurementId || '').trim();
     const token = String(config?.accessToken || '').trim();
@@ -841,6 +859,7 @@ export function SettingsView({
           {Object.keys(credentials).map(platKey => {
             const plat = platKey as Platform;
             const config = credentials[plat];
+            const credentialHelp = platformCredentialHelp(plat);
             const missingCredentials = platformMissingCredentials(plat, config);
             const enabledButMissingCredentials = Boolean(config.enabled && missingCredentials.length);
             return (
@@ -883,7 +902,7 @@ export function SettingsView({
 
                 <div className={`grid grid-cols-1 ${plat === 'GA4' ? 'md:grid-cols-2' : 'md:grid-cols-3'} gap-4`}>
                   <div>
-                    <label className="block text-[10px] font-semibold text-slate-400 uppercase mb-1">Pixel ID / Measurement ID</label>
+                    <label className="block text-[10px] font-semibold text-slate-400 uppercase mb-1">{platformDestinationLabel(plat)}</label>
                     <input 
                       type="text"
                       value={localPixelIds[plat]}
@@ -893,10 +912,11 @@ export function SettingsView({
                       onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); }}
                       className="w-full p-2 text-xs bg-white border border-slate-200 rounded font-mono text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500   "
                     />
+                    <p className="mt-1 text-[10px] leading-4 text-slate-500">{credentialHelp.destination}</p>
                   </div>
                   
                   <div>
-                    <label className="block text-[10px] font-semibold text-slate-400 uppercase mb-1">Access Token</label>
+                    <label className="block text-[10px] font-semibold text-slate-400 uppercase mb-1">{platformTokenLabel(plat)}</label>
                     <input 
                       type="password"
                       name={`platform-${plat.toLowerCase().replace(/\s+/g, '-')}-access-token`}
@@ -908,6 +928,7 @@ export function SettingsView({
                       onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); }}
                       className="w-full p-2 text-xs bg-white border border-slate-200 rounded font-mono text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500   "
                     />
+                    <p className="mt-1 text-[10px] leading-4 text-slate-500">{credentialHelp.token}</p>
                   </div>
 
                   {plat !== 'GA4' && (
@@ -942,6 +963,15 @@ export function SettingsView({
             </div>
           </div>
 
+          <div className="rounded-lg border border-indigo-200 bg-indigo-50 px-4 py-3 text-xs leading-relaxed text-indigo-950">
+            <p className="font-bold">Before you connect an ad account</p>
+            <ol className="mt-1 list-decimal space-y-0.5 pl-4">
+              <li>Use the <strong>advertising reporting token</strong>, not a Pixel or Conversions API event token.</li>
+              <li>For Meta: Business Settings -&gt; Users -&gt; System users -&gt; select/create a system user -&gt; assign the ad account with <strong>View performance</strong> -&gt; Generate token with <strong>ads_read</strong>.</li>
+              <li>Paste the token, then choose the account from the list. You normally do not need to type an <code>act_...</code> ID manually.</li>
+            </ol>
+          </div>
+
           <form onSubmit={handleConnectAdAccount} autoComplete="off" className="space-y-4 p-4 rounded-lg border border-slate-200 bg-slate-50/50">
             <h4 className="font-bold text-xs text-indigo-600 uppercase tracking-wider pb-2 border-b border-slate-100">
               Connect Ad Account
@@ -962,7 +992,7 @@ export function SettingsView({
 
               <div>
                 <label className="block text-[10px] font-semibold text-slate-500 uppercase mb-1">
-                  {adPlatform === 'meta' ? 'Meta Act ID (e.g. act_123456)' : 'TikTok Advertiser ID'}
+                  {adPlatform === 'meta' ? 'Meta Ad Account ID (auto-filled after selection)' : 'TikTok Advertiser ID'}
                 </label>
                 <input
                   type="text"
@@ -974,6 +1004,11 @@ export function SettingsView({
                   onChange={(e) => setAdAccountId(e.target.value)}
                   className="w-full p-2 text-xs bg-white border border-slate-200 rounded font-mono text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                 />
+                <p className="mt-1 text-[10px] leading-4 text-slate-500">
+                  {adPlatform === 'meta'
+                    ? 'Recommended: paste the reporting token below and choose the account from the list. Manual entry is only a fallback; Meta API IDs use the act_ prefix.'
+                    : 'Find this in TikTok Ads Manager under Assets -> Advertiser accounts. It is not your TikTok Pixel ID.'}
+                </p>
               </div>
 
               <div>
@@ -1013,6 +1048,11 @@ export function SettingsView({
                     {discoveringMetaAccounts ? 'Finding accessible ad accounts...' : 'Find accessible Meta ad accounts'}
                   </button>
                 )}
+                <p className="mt-1 text-[10px] leading-4 text-slate-500">
+                  {adPlatform === 'meta'
+                    ? 'Meta location: Business Settings -> Users -> System users -> select the system user -> Generate token. The token needs ads_read and access to the selected ad account.'
+                    : 'TikTok location: Business Center -> Assets -> Advertiser accounts / Marketing API. Use a reporting token, not an Events API token.'}
+                </p>
               </div>
 
               {adPlatform === 'tiktok' ? (
@@ -1187,6 +1227,9 @@ export function SettingsView({
           <p className="rounded-lg border border-indigo-100 bg-indigo-50 px-3 py-2 text-[11px] leading-relaxed text-indigo-700">
             Courier booking is manual for launch. Verify the order first, then use Courier Shipping to book the courier when you are ready.
           </p>
+          <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-[11px] leading-relaxed text-slate-600">
+            <strong>Where to get these values:</strong> use the API/developer credentials from the courier account owner\'s merchant panel. Do not paste a portal password or another courier\'s key. Each provider below states the exact values it needs.
+          </div>
 
           {loadingCourier ? (
             <div className="flex items-center justify-center py-6 text-slate-400 gap-2">
@@ -1202,6 +1245,7 @@ export function SettingsView({
                   <h4 className="font-bold text-xs text-indigo-600  uppercase tracking-wider pb-2 border-b border-slate-100 ">
                     SteadFast Courier API
                   </h4>
+                  <p className="text-[10px] leading-4 text-slate-500">In the SteadFast merchant panel, open API credentials and copy the matching API Key and Secret Key for this store.</p>
                   
                   <div>
                     <label className="block text-[10px] font-semibold text-slate-500  uppercase mb-1">SteadFast API Key</label>
@@ -1243,6 +1287,7 @@ export function SettingsView({
                   <h4 className="font-bold text-xs text-indigo-600  uppercase tracking-wider pb-2 border-b border-slate-100 ">
                     Pathao Courier API
                   </h4>
+                  <p className="text-[10px] leading-4 text-slate-500">In the Pathao merchant/developer panel, copy the Client ID, Client Secret, and Store ID. The owner email and password must belong to that same Pathao merchant account.</p>
                   
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
@@ -1370,6 +1415,7 @@ export function SettingsView({
                   <h4 className="font-bold text-xs text-indigo-600  uppercase tracking-wider pb-2 border-b border-slate-100 ">
                     RedX Courier API
                   </h4>
+                  <p className="text-[10px] leading-4 text-slate-500">In the RedX merchant panel, open developer/API settings and copy the OpenAPI token. Store and delivery-area defaults are optional routing defaults for this store.</p>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                       <label className="block text-[10px] font-semibold text-slate-500  uppercase mb-1">RedX Access Token</label>
