@@ -1245,7 +1245,7 @@ export default function App() {
   };
 
   // Submit profile edit
-  const submitProfileSave = async (e: React.FormEvent) => {
+  const submitProfileSave = async (e: React.FormEvent): Promise<boolean> => {
     e.preventDefault();
     setProfUpdating(true);
     try {
@@ -1262,7 +1262,7 @@ export default function App() {
         }
         setProfEmailCodeRequested(true);
         showToast('Verification code sent to your new email.', false);
-        return;
+        return false;
       }
       if (emailChanged && (!profEmailCode.trim() || !profEmailCurrentPassword)) {
         throw new Error('Enter the verification code and your current password.');
@@ -1293,12 +1293,14 @@ export default function App() {
         setProfEmailCode('');
         setProfEmailCurrentPassword('');
         showToast("Profile saved!", false);
+        return true;
       } else {
         const data = await res.json().catch(() => ({}));
         throw new Error(data.detail || 'Profile save failed.');
       }
     } catch (err) {
       showToast(err instanceof Error ? err.message : "Failed to save profile.", true);
+      return false;
     } finally {
       setProfUpdating(false);
     }

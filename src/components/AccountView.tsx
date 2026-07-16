@@ -21,7 +21,7 @@ interface AccountViewProps {
   profNotifEmail: string;
   setProfNotifEmail: (v: string) => void;
   profUpdating: boolean;
-  submitProfileSave: (e: React.FormEvent) => Promise<void>;
+  submitProfileSave: (e: React.FormEvent) => Promise<boolean>;
   passCurrent: string;
   setPassCurrent: (v: string) => void;
   passNew: string;
