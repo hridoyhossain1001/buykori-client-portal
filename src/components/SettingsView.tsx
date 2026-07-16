@@ -331,6 +331,14 @@ export function SettingsView({
   const [adAccessToken, setAdAccessToken] = useState<string>('');
   const [adCurrency, setAdCurrency] = useState<string>('USD');
   const [adTimezone, setAdTimezone] = useState<string>('Asia/Dhaka');
+  const [discoveredMetaAccounts, setDiscoveredMetaAccounts] = useState<Array<{
+    external_account_id: string;
+    account_name: string;
+    account_status: number | null;
+    account_currency: string;
+    account_timezone: string;
+  }>>([]);
+  const [discoveringMetaAccounts, setDiscoveringMetaAccounts] = useState<boolean>(false);
 
   const fetchAdAccounts = async () => {
     setLoadingAdAccounts(true);
@@ -529,6 +537,43 @@ export function SettingsView({
     if (!destination || destination === '0') missing.push(platformDestinationLabel(platform));
     if (!token) missing.push(platformTokenLabel(platform));
     return missing;
+  };
+
+  const handleDiscoverMetaAccounts = async () => {
+    if (!adAccessToken.trim()) {
+      showToast("Paste your Meta reporting token first, then choose the ad account from the list.", true);
+      return;
+    }
+    setDiscoveringMetaAccounts(true);
+    try {
+      const res = await fetch('/api/v1/ad-accounts/discover/meta', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ access_token: adAccessToken.trim() })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        showToast(typeof data.detail === 'string' ? data.detail : "Could not list Meta ad accounts.", true);
+        return;
+      }
+      setDiscoveredMetaAccounts(Array.isArray(data) ? data : []);
+      if (!data.length) {
+        showToast("This token cannot access any Meta ad accounts yet.", true);
+      }
+    } catch (err) {
+      showToast("Could not list Meta ad accounts. Please try again.", true);
+    } finally {
+      setDiscoveringMetaAccounts(false);
+    }
+  };
+
+  const handleSelectDiscoveredMetaAccount = (externalAccountId: string) => {
+    const selected = discoveredMetaAccounts.find((account) => account.external_account_id === externalAccountId);
+    if (!selected) return;
+    setAdAccountId(selected.external_account_id);
+    setAdAccountName(selected.account_name);
+    setAdCurrency(selected.account_currency || 'USD');
+    setAdTimezone(selected.account_timezone || 'UTC');
   };
 
   const updateAutomationDraft = (index: number, fields: Partial<CustomEventAutomation>) => {
@@ -958,6 +1003,16 @@ export function SettingsView({
                   onChange={(e) => setAdAccessToken(e.target.value)}
                   className="w-full p-2 text-xs bg-white border border-slate-200 rounded font-mono text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                 />
+                {adPlatform === 'meta' && (
+                  <button
+                    type="button"
+                    onClick={handleDiscoverMetaAccounts}
+                    disabled={discoveringMetaAccounts || !adAccessToken.trim()}
+                    className="mt-2 text-[11px] font-semibold text-indigo-600 hover:text-indigo-700 disabled:cursor-not-allowed disabled:text-slate-400"
+                  >
+                    {discoveringMetaAccounts ? 'Finding accessible ad accounts...' : 'Find accessible Meta ad accounts'}
+                  </button>
+                )}
               </div>
 
               {adPlatform === 'tiktok' ? (
@@ -970,6 +1025,25 @@ export function SettingsView({
                 </div>
               )}
             </div>
+
+            {adPlatform === 'meta' && discoveredMetaAccounts.length > 0 && (
+              <div>
+                <label className="block text-[10px] font-semibold text-slate-500 uppercase mb-1">Choose Meta Ad Account</label>
+                <select
+                  value={adAccountId}
+                  onChange={(e) => handleSelectDiscoveredMetaAccount(e.target.value)}
+                  className="w-full p-2 text-xs bg-white border border-slate-200 rounded text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500 cursor-pointer"
+                >
+                  <option value="">Select an account from your token</option>
+                  {discoveredMetaAccounts.map((account) => (
+                    <option key={account.external_account_id} value={account.external_account_id}>
+                      {account.account_name} ({account.external_account_id})
+                    </option>
+                  ))}
+                </select>
+                <p className="mt-1 text-[10px] text-emerald-700">Selecting an account fills its ID, name, currency, and timezone automatically.</p>
+              </div>
+            )}
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
