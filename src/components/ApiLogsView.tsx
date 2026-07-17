@@ -47,17 +47,19 @@ export function ApiLogsView({
           {platformHealth.map((item) => {
             const needsAction = item.state === 'action_required';
             const retrying = item.state === 'retrying';
+            const noData = item.state === 'no_data';
+            const noDataLabel = item.configured ? 'Waiting for first delivery' : 'Not enabled';
             return (
-              <div key={item.platform} className={`rounded-xl border p-4 shadow-sm ${needsAction ? 'border-rose-200 bg-rose-50' : retrying ? 'border-amber-200 bg-amber-50' : 'border-slate-200 bg-white'}`}>
+              <div key={item.platform} className={`rounded-xl border p-4 shadow-sm ${needsAction ? 'border-rose-200 bg-rose-50' : retrying ? 'border-amber-200 bg-amber-50' : noData && item.configured ? 'border-indigo-200 bg-indigo-50/50' : 'border-slate-200 bg-white'}`}>
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <p className="text-xs font-bold text-slate-900">{item.platform}</p>
                     <p className="mt-1 text-[10px] text-slate-500">{item.configured ? 'Configured' : 'Not configured'}</p>
                   </div>
-                  {needsAction ? <AlertTriangle className="h-4 w-4 text-rose-600" /> : retrying ? <Clock3 className="h-4 w-4 text-amber-600" /> : <CheckCircle2 className="h-4 w-4 text-emerald-600" />}
+                  {needsAction ? <AlertTriangle className="h-4 w-4 text-rose-600" /> : retrying ? <Clock3 className="h-4 w-4 text-amber-600" /> : noData ? <Activity className="h-4 w-4 text-slate-400" /> : <CheckCircle2 className="h-4 w-4 text-emerald-600" />}
                 </div>
-                <p className="mt-4 text-2xl font-bold text-slate-900">{item.successRate === null ? 'No data' : `${item.successRate}%`}</p>
-                <p className="mt-1 text-[10px] text-slate-500">{item.successful} successful · {item.failed} failed</p>
+                <p className={`mt-4 font-bold text-slate-900 ${noData ? 'text-base' : 'text-2xl'}`}>{noData ? noDataLabel : `${item.successRate}%`}</p>
+                <p className="mt-1 text-[10px] text-slate-500">{noData ? 'No delivery attempts in the last 7 days' : `${item.successful} successful · ${item.failed} failed`}</p>
                 {(item.queued > 0 || item.dead > 0) && (
                   <p className={`mt-2 text-[10px] font-bold ${item.dead ? 'text-rose-700' : 'text-amber-700'}`}>{item.queued} retrying · {item.dead} needs manual retry</p>
                 )}
@@ -69,7 +71,7 @@ export function ApiLogsView({
 
       {/* Sub controls & export bar */}
       <div className="flex justify-between items-center">
-        <h2 id="api-logs-title" className="font-bold text-slate-800 text-xs uppercase tracking-widest text-slate-500 ">API Logs</h2>
+        <h2 id="api-logs-title" className="font-bold text-slate-800 text-xs uppercase tracking-widest text-slate-500 ">Platform delivery history</h2>
         
         <div className="flex items-center gap-2">
           <button 
@@ -122,7 +124,7 @@ export function ApiLogsView({
                       <pre tabIndex={0} aria-label={`Request body for API log ${l.id}`} className="max-h-52 overflow-auto whitespace-pre-wrap break-all outline-none focus:ring-2 focus:ring-indigo-400">{l.requestBody}</pre>
                     </div>
                     <div className="rounded-lg bg-slate-900 p-3 font-mono text-[10px] text-slate-200">
-                      <p className="mb-2 font-bold uppercase tracking-wider text-emerald-400">Platform Response</p>
+                      <p className="mb-2 font-bold uppercase tracking-wider text-emerald-400">Reply From Platform</p>
                       <pre tabIndex={0} aria-label={`Response body for API log ${l.id}`} className="max-h-52 overflow-auto whitespace-pre-wrap break-all outline-none focus:ring-2 focus:ring-indigo-400">{l.responseBody}</pre>
                     </div>
                   </div>
@@ -138,7 +140,7 @@ export function ApiLogsView({
               <tr>
                 <th className="px-6 py-3">Timestamp</th>
                 <th className="px-6 py-3">Platform</th>
-                <th className="px-6 py-3">Endpoint URL</th>
+                <th className="px-6 py-3">Sent to</th>
                 <th className="px-6 py-3">Method</th>
                 <th className="px-6 py-3">Status code</th>
                 <th className="px-6 py-3 text-right">Retries</th>
@@ -213,7 +215,7 @@ export function ApiLogsView({
                               </div>
 
                               <div tabIndex={0} aria-label={`Expanded response body for API log ${l.id}`} className="bg-slate-900 text-slate-300 text-[11px] font-mono p-4 rounded-lg overflow-auto max-h-60 outline-none focus:ring-2 focus:ring-indigo-400">
-                                <p className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider mb-2">Platform Response</p>
+                                <p className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider mb-2">Reply from platform</p>
                                 <pre className="whitespace-pre-wrap break-all">{l.responseBody}</pre>
                               </div>
                             </div>

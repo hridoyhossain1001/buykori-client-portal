@@ -110,7 +110,7 @@ export function SuggestionsView({
                 </div>
               ))}
             </div>
-            <p className="text-[11px] text-slate-400">Last scan reflects the latest loaded workspace data. Run Check My Setup again after changing portal settings, credentials, or the WordPress plugin version.</p>
+            <p className="text-[11px] text-slate-400">This result uses the latest data on this page. Check again after changing Settings or updating the WordPress plugin.</p>
           </div>
         )}
 

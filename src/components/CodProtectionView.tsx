@@ -313,7 +313,7 @@ export function CodProtectionView({
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h2 className="text-sm font-bold uppercase tracking-wide text-slate-800">Pending COD Orders</h2>
-              <p className="text-xs text-slate-400">Verify orders before sending purchase data to your ad platforms.</p>
+              <p className="text-xs text-slate-400">Check each COD order before Buykori reports it as a sale.</p>
             </div>
             <div className="flex flex-col items-start gap-1 sm:items-end">
               {selectedOrderIds.length === 0 && (

@@ -45,6 +45,24 @@ interface WhatsAppSenderRecommendation {
   currentAssignment: boolean;
 }
 
+interface TelegramNotificationStatus {
+  available: boolean;
+  connected: boolean;
+  botUsername?: string | null;
+  telegramUsername?: string | null;
+  telegramFirstName?: string | null;
+  linkedAt?: string | null;
+}
+
+interface TelegramLinkCode {
+  code: string;
+  expiresAt: string;
+  expiresInMinutes: number;
+  botUsername?: string | null;
+  botUrl?: string | null;
+  deepLinkUrl?: string | null;
+}
+
 export function SettingsView({
   initialSectionId,
   credentials,
@@ -103,6 +121,64 @@ export function SettingsView({
   const [applyingPreset, setApplyingPreset] = useState(false);
   const [whatsappRecommendation, setWhatsappRecommendation] = useState<WhatsAppSenderRecommendation | null>(null);
   const [loadingWhatsappRecommendation, setLoadingWhatsappRecommendation] = useState(false);
+  const [telegramStatus, setTelegramStatus] = useState<TelegramNotificationStatus | null>(null);
+  const [telegramLinkCode, setTelegramLinkCode] = useState<TelegramLinkCode | null>(null);
+  const [telegramBusy, setTelegramBusy] = useState(false);
+
+  const loadTelegramStatus = async (quiet = false) => {
+    try {
+      const response = await fetch('/api/client/telegram-notifications');
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.detail || 'Could not load Telegram notification status.');
+      setTelegramStatus(data);
+      if (data.connected) setTelegramLinkCode(null);
+      return Boolean(data.connected);
+    } catch (error) {
+      if (!quiet) showToast(error instanceof Error ? error.message : 'Could not load Telegram status.', true);
+      return false;
+    }
+  };
+
+  const generateTelegramLinkCode = async () => {
+    setTelegramBusy(true);
+    try {
+      const response = await fetch('/api/client/telegram-notifications/link-code', { method: 'POST' });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.detail || 'Could not generate Telegram security code.');
+      setTelegramLinkCode(data);
+      showToast('Secure Telegram code generated.', false);
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'Could not generate Telegram code.', true);
+    } finally {
+      setTelegramBusy(false);
+    }
+  };
+
+  const disconnectTelegram = async () => {
+    if (!window.confirm('Disconnect Telegram alerts for this store?')) return;
+    setTelegramBusy(true);
+    try {
+      const response = await fetch('/api/client/telegram-notifications', { method: 'DELETE' });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.detail || 'Could not disconnect Telegram.');
+      await loadTelegramStatus(true);
+      showToast('Telegram notifications disconnected.', false);
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'Could not disconnect Telegram.', true);
+    } finally {
+      setTelegramBusy(false);
+    }
+  };
+
+  useEffect(() => {
+    loadTelegramStatus(true);
+  }, []);
+
+  useEffect(() => {
+    if (!telegramLinkCode || telegramStatus?.connected) return undefined;
+    const timer = window.setInterval(() => loadTelegramStatus(true), 3000);
+    return () => window.clearInterval(timer);
+  }, [telegramLinkCode, telegramStatus?.connected]);
 
   const presetEventRoutes = [
     { value: 'ViewContent', label: 'ViewContent - product/details viewed' },
@@ -180,39 +256,39 @@ export function SettingsView({
       id: 'store',
       label: 'Store Connection',
       sections: [
-        { id: 'settings-domain', label: 'Domain lock' },
-        { id: 'settings-wordpress', label: 'WooCommerce Sync API' },
+        { id: 'settings-domain', label: 'Website address' },
+        { id: 'settings-wordpress', label: 'WordPress connection' },
       ],
     },
     {
       id: 'conversions',
       label: 'Conversions API',
       sections: [
-        { id: 'settings-platforms', label: 'Tracking destinations' },
+        { id: 'settings-platforms', label: 'Ad platforms' },
         { id: 'settings-cod', label: 'COD timing' },
-        { id: 'settings-routing', label: 'Event routing' },
-        { id: 'settings-custom-automations', label: 'Custom automations' },
+        { id: 'settings-routing', label: 'Events to send' },
+        { id: 'settings-custom-automations', label: 'Custom events' },
       ],
     },
     {
       id: 'ads',
       label: 'Ad Accounts',
       sections: [
-        { id: 'settings-ad-accounts', label: 'Account sync' },
+        { id: 'settings-ad-accounts', label: 'Connected accounts' },
       ],
     },
     {
       id: 'courier',
       label: 'Courier Logistics',
       sections: [
-        { id: 'settings-courier', label: 'Fulfillment APIs' },
+        { id: 'settings-courier', label: 'Courier accounts' },
       ],
     },
     {
       id: 'alerts',
       label: 'Alerts & Notifications',
       sections: [
-        { id: 'settings-whatsapp', label: 'WhatsApp alerts' },
+        { id: 'settings-whatsapp', label: 'Telegram alerts' },
       ],
     },
   ];
@@ -245,7 +321,7 @@ export function SettingsView({
     ? 'Plugin reported version'
     : connection.wpVersion
       ? `WordPress core v${connection.wpVersion} reported`
-      : 'Waiting for plugin heartbeat';
+      : 'Waiting for WordPress to connect';
   const apiAccessKey = connection.api_key || connection.token || '';
   const maskedApiAccessKey = apiAccessKey
     ? `${'*'.repeat(Math.min(Math.max(apiAccessKey.length - 6, 8), 24))}${apiAccessKey.slice(-6)}`
@@ -750,19 +826,19 @@ export function SettingsView({
   );
   const automationRouteState = (automation: CustomEventAutomation) => {
     const eventName = String(automation.name || '').trim().toLowerCase();
-    if (!eventName) return { label: 'Needs event name', className: 'border-amber-200 bg-amber-50 text-amber-700' };
+    if (!eventName) return { label: 'Add an event name', className: 'border-amber-200 bg-amber-50 text-amber-700' };
     const state = routeStateByName.get(eventName);
-    if (!state) return { label: 'Route will be created on save', className: 'border-blue-200 bg-blue-50 text-blue-700' };
-    if (!state.enabled) return { label: 'Route is off - will not fire', className: 'border-rose-200 bg-rose-50 text-rose-700' };
-    return { label: 'Route enabled', className: 'border-emerald-200 bg-emerald-50 text-emerald-700' };
+    if (!state) return { label: 'Will be added when you save', className: 'border-blue-200 bg-blue-50 text-blue-700' };
+    if (!state.enabled) return { label: 'Off - this event will not run', className: 'border-rose-200 bg-rose-50 text-rose-700' };
+    return { label: 'On and ready', className: 'border-emerald-200 bg-emerald-50 text-emerald-700' };
   };
   const automationTriggerHelp = (automation: CustomEventAutomation) => {
-    if (automation.trigger === 'timer') return 'Fires once after the visitor stays for the selected seconds.';
-    if (automation.trigger === 'click') return 'Fires when a visitor clicks an element matching this CSS selector.';
-    if (automation.trigger === 'form') return 'Fires when a form matching this CSS selector is submitted.';
-    if (automation.trigger === 'scroll') return 'Fires once when the visitor reaches this page scroll depth.';
-    if (automation.trigger === 'visible') return 'Fires once when an element matching this CSS selector becomes visible.';
-    return 'Fires once when the current URL contains this text.';
+    if (automation.trigger === 'timer') return 'Runs once after a visitor stays for this many seconds.';
+    if (automation.trigger === 'click') return 'Runs when a visitor clicks the chosen button or link.';
+    if (automation.trigger === 'form') return 'Runs when a visitor sends the chosen form.';
+    if (automation.trigger === 'scroll') return 'Runs once when a visitor scrolls this far down the page.';
+    if (automation.trigger === 'visible') return 'Runs once when the chosen part of the page appears on screen.';
+    return 'Runs when the page address contains this text.';
   };
   const selectedCourierProvider = String(courierSettings.default_courier || 'steadfast').toLowerCase();
   const courierProviderConfigured =
@@ -771,11 +847,11 @@ export function SettingsView({
       : selectedCourierProvider === 'redx'
         ? Boolean(courierSettings.redx_access_token)
         : Boolean(courierSettings.steadfast_api_key && courierSettings.steadfast_secret_key);
-  const whatsappStatus = profNotifyWhatsapp
-    ? profWhatsappNumber.trim()
-      ? 'Ready'
-      : 'Needs number'
-    : 'Off';
+  const telegramStatusLabel = telegramStatus?.connected
+    ? 'Connected'
+    : telegramStatus?.available === false
+      ? 'Unavailable'
+      : 'Needs setup';
   const wordpressConnectionStatus = connection.status === 'Active' && connection.bindingVerified
     ? 'Connected'
     : connection.reconnectRequired
@@ -812,13 +888,13 @@ export function SettingsView({
         <section className="rounded-xl border border-indigo-100 bg-indigo-50/40 p-4 shadow-sm">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
             <div>
-              <h2 className="text-sm font-bold uppercase tracking-wide text-slate-800">Portal-managed setup</h2>
+              <h2 className="text-sm font-bold uppercase tracking-wide text-slate-800">Manage your store here</h2>
               <p className="mt-1 max-w-3xl text-xs leading-relaxed text-slate-500">
-                These settings are the source of truth for the WordPress plugin. The plugin sends store events, while delivery rules, platform keys, courier credentials, and alert preferences are managed here.
+                Change your tracking, courier, and alert settings here. The WordPress plugin will follow the choices you save on this page.
               </p>
             </div>
             <span className="inline-flex w-fit rounded-full border border-indigo-200 bg-white px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-indigo-700">
-              Plugin UI stays lightweight
+              WordPress stays simple
             </span>
           </div>
 
@@ -828,17 +904,17 @@ export function SettingsView({
               onClick={() => openSettingsTab('conversions')}
               className="rounded-lg border border-white bg-white/90 p-3 text-left shadow-sm transition-colors hover:border-indigo-200 hover:bg-white"
             >
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Tracking destinations</span>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Where events go</span>
               <p className="mt-1 text-lg font-black text-slate-900">{configuredPlatformCount}/{platformStatusRows.length} ready</p>
-              <p className="mt-0.5 text-[11px] font-semibold text-slate-500">{enabledPlatformCount} enabled, {enabledRouteCount} routed events</p>
+              <p className="mt-0.5 text-[11px] font-semibold text-slate-500">{enabledPlatformCount} platforms on, {enabledRouteCount} events ready</p>
             </button>
             <button
               type="button"
               onClick={() => openSettingsTab('courier')}
               className="rounded-lg border border-white bg-white/90 p-3 text-left shadow-sm transition-colors hover:border-indigo-200 hover:bg-white"
             >
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Courier workflow</span>
-              <p className="mt-1 text-lg font-black text-slate-900">{courierProviderConfigured ? 'Ready' : 'Needs keys'}</p>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Courier setup</span>
+              <p className="mt-1 text-lg font-black text-slate-900">{courierProviderConfigured ? 'Ready' : 'Setup needed'}</p>
               <p className="mt-0.5 text-[11px] font-semibold capitalize text-slate-500">{selectedCourierProvider} default, manual booking</p>
             </button>
             <button
@@ -846,9 +922,9 @@ export function SettingsView({
               onClick={() => openSettingsTab('alerts')}
               className="rounded-lg border border-white bg-white/90 p-3 text-left shadow-sm transition-colors hover:border-indigo-200 hover:bg-white"
             >
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">WhatsApp alerts</span>
-              <p className="mt-1 text-lg font-black text-slate-900">{whatsappStatus}</p>
-              <p className="mt-0.5 text-[11px] font-semibold text-slate-500">Admin sender, client receiver number</p>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Telegram alerts</span>
+              <p className="mt-1 text-lg font-black text-slate-900">{telegramStatusLabel}</p>
+              <p className="mt-0.5 text-[11px] font-semibold text-slate-500">Get order alerts in Telegram</p>
             </button>
             <button
               type="button"
@@ -882,7 +958,7 @@ export function SettingsView({
               </div>
               <div>
                 <h2 id="settings-domain-title" className="font-bold text-slate-800 text-sm uppercase tracking-wide ">Website Domain</h2>
-                <p className="text-xs text-slate-400 ">Used for custom website tracking, domain lock, and setup checks.</p>
+                <p className="text-xs text-slate-400 ">Enter the website address connected to this store.</p>
               </div>
             </div>
             <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide ${
@@ -890,7 +966,7 @@ export function SettingsView({
                 ? 'bg-emerald-50 text-emerald-700 border border-emerald-100   '
                 : 'bg-amber-50 text-amber-700 border border-amber-100   '
             }`}>
-              {storeDomain ? 'Configured' : 'Missing'}
+              {storeDomain ? 'Ready' : 'Not added'}
             </span>
           </div>
 
@@ -922,8 +998,8 @@ export function SettingsView({
         {/* Pipeline credentials card */}
         <section id="settings-platforms" aria-labelledby="settings-platforms-title" className="scroll-mt-28 rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-6  ">
           <div>
-            <h2 id="settings-platforms-title" className="font-bold text-slate-800 text-sm uppercase tracking-wide ">Platform Credential Keys</h2>
-            <p className="text-xs text-slate-400 ">Portal-managed API keys and destination IDs. The WordPress plugin reads these rules instead of storing business settings locally.</p>
+            <h2 id="settings-platforms-title" className="font-bold text-slate-800 text-sm uppercase tracking-wide ">Connect Meta, TikTok, and GA4</h2>
+            <p className="text-xs text-slate-400 ">Add the ID and secret key for each platform you want to use. Leave a platform off until both fields are ready.</p>
           </div>
 
           {Object.keys(credentials).map(platKey => {
@@ -936,7 +1012,7 @@ export function SettingsView({
               <div key={plat} className="p-4 rounded-lg border border-slate-200  bg-slate-50/50  space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <span className="font-semibold text-xs text-slate-800  uppercase tracking-wider">{plat} Route</span>
+                    <span className="font-semibold text-xs text-slate-800  uppercase tracking-wider">{plat}</span>
                     <span className={`inline-flex px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider ${
                       config.status === 'Valid' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200   ' : 
                       config.status === 'Invalid' ? 'bg-rose-50 text-rose-700 border border-rose-200   ' : 
@@ -963,9 +1039,9 @@ export function SettingsView({
 
                 {enabledButMissingCredentials && (
                   <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-relaxed text-amber-800">
-                    <p className="font-bold">{plat} is on, but credentials are missing.</p>
+                    <p className="font-bold">{plat} is on, but setup details are missing.</p>
                     <p className="mt-0.5">
-                      Events will not be sent until you add {missingCredentials.join(' and ')}.
+                      Add {missingCredentials.join(' and ')} before events can be sent.
                     </p>
                   </div>
                 )}
@@ -1319,8 +1395,8 @@ export function SettingsView({
         <section id="settings-courier" aria-labelledby="settings-courier-title" className="scroll-mt-28 rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-6  ">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
-              <h2 id="settings-courier-title" className="font-bold text-slate-800 text-sm uppercase tracking-wide ">Courier Integration Credentials</h2>
-              <p className="text-xs text-slate-400 ">Configure courier API settings for Pathao, SteadFast, and RedX.</p>
+              <h2 id="settings-courier-title" className="font-bold text-slate-800 text-sm uppercase tracking-wide ">Connect your couriers</h2>
+              <p className="text-xs text-slate-400 ">Add your Pathao, SteadFast, or RedX account details here.</p>
             </div>
             
             <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-slate-600">
@@ -1331,13 +1407,13 @@ export function SettingsView({
             Courier booking is manual for launch. Verify the order first, then use Courier Shipping to book the courier when you are ready.
           </p>
           <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-[11px] leading-relaxed text-slate-600">
-            <strong>Where to get these values:</strong> use the API/developer credentials from the courier account owner\'s merchant panel. Do not paste a portal password or another courier\'s key. Each provider below states the exact values it needs.
+            <strong>Where to find these details:</strong> open the courier merchant panel and find its API or Developer Settings page. Copy only the key made for this store. Never enter your login password here.
           </div>
 
           {loadingCourier ? (
             <div className="flex items-center justify-center py-6 text-slate-400 gap-2">
               <span className="animate-spin h-4 w-4 border-2 border-indigo-500 border-t-transparent rounded-full" />
-              <span>Loading configurations...</span>
+              <span>Loading courier settings...</span>
             </div>
           ) : (
             <form onSubmit={handleSaveCourierSettings} autoComplete="off" className="space-y-6">
@@ -1348,7 +1424,7 @@ export function SettingsView({
                   <h4 className="font-bold text-xs text-indigo-600  uppercase tracking-wider pb-2 border-b border-slate-100 ">
                     SteadFast Courier API
                   </h4>
-                  <p className="text-[10px] leading-4 text-slate-500">In the SteadFast merchant panel, open API credentials and copy the matching API Key and Secret Key for this store.</p>
+                  <p className="text-[10px] leading-4 text-slate-500">In your SteadFast merchant panel, open API Settings. Copy this store's API Key and Secret Key into the fields below.</p>
                   
                   <div>
                     <label className="block text-[10px] font-semibold text-slate-500  uppercase mb-1">SteadFast API Key</label>
@@ -1518,7 +1594,7 @@ export function SettingsView({
                   <h4 className="font-bold text-xs text-indigo-600  uppercase tracking-wider pb-2 border-b border-slate-100 ">
                     RedX Courier API
                   </h4>
-                  <p className="text-[10px] leading-4 text-slate-500">In the RedX merchant panel, open developer/API settings and copy the OpenAPI token. Store and delivery-area defaults are optional routing defaults for this store.</p>
+                  <p className="text-[10px] leading-4 text-slate-500">In your RedX merchant panel, open API Settings and copy the OpenAPI token. The pickup store and delivery area below are optional.</p>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                       <label className="block text-[10px] font-semibold text-slate-500  uppercase mb-1">RedX Access Token</label>
@@ -1577,7 +1653,7 @@ export function SettingsView({
               {/* General courier choices */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label htmlFor="default-courier-provider" className="block text-[10px] font-bold text-slate-500  uppercase tracking-wider mb-1.5">Default Courier Provider</label>
+                  <label htmlFor="default-courier-provider" className="block text-[10px] font-bold text-slate-500  uppercase tracking-wider mb-1.5">Courier Used First</label>
                   <select 
                     id="default-courier-provider"
                     value={courierSettings.default_courier || 'steadfast'}
@@ -1611,7 +1687,7 @@ export function SettingsView({
             <div>
               <h2 id="settings-cod-title" className="font-bold text-slate-800 text-sm uppercase tracking-wide ">COD Purchase Timing</h2>
               <p className="text-xs text-slate-400 ">
-                Portal-managed source of truth for deferred Purchase events. The WordPress plugin sends the order signal, then this portal decides whether COD orders wait for verification.
+                Choose when a COD Purchase event is sent. You can send it at once, or wait until you confirm the order.
               </p>
             </div>
             <span className={`inline-flex w-fit rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide ${
@@ -1626,7 +1702,7 @@ export function SettingsView({
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             <div className="rounded-lg border border-slate-200 bg-slate-50/70 p-3">
               <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Purchase timing</p>
-              <p className="mt-1 text-sm font-black text-slate-900">{deferredEnabled ? 'Hold for verification' : 'Immediate send'}</p>
+              <p className="mt-1 text-sm font-black text-slate-900">{deferredEnabled ? 'Wait for your confirmation' : 'Send right away'}</p>
             </div>
             <div className="rounded-lg border border-slate-200 bg-slate-50/70 p-3">
               <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Auto-confirm</p>
@@ -1640,7 +1716,7 @@ export function SettingsView({
 
           <div className="flex flex-col gap-2 rounded-lg border border-indigo-100 bg-indigo-50/60 p-3 text-xs text-indigo-950 sm:flex-row sm:items-center sm:justify-between">
             <p className="leading-relaxed">
-              Need to change COD verification, auto-confirm timing, or manually confirm held orders? Use the dedicated COD Protection workflow.
+              To confirm a COD order or change its waiting time, open COD Protection.
             </p>
             <button
               type="button"
@@ -1656,15 +1732,15 @@ export function SettingsView({
         <section id="settings-routing" aria-labelledby="settings-routing-title" className="scroll-mt-28 rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-4  ">
           <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
             <div>
-              <h2 id="settings-routing-title" className="font-bold text-slate-800 text-sm uppercase tracking-wide ">WordPress event routing rules</h2>
-              <p className="text-xs text-slate-400 ">This is the source of truth for plugin event delivery. Keep active routes short, then choose which platforms receive each event.</p>
+              <h2 id="settings-routing-title" className="font-bold text-slate-800 text-sm uppercase tracking-wide ">Choose which events to send</h2>
+              <p className="text-xs text-slate-400 ">Turn an event on, then choose Meta, TikTok, or GA4. Turn it off if you do not want the plugin to collect or send it.</p>
             </div>
             <div className="rounded-lg border border-emerald-100 bg-emerald-50 px-3 py-2 text-xs text-emerald-800 xl:max-w-[360px]">
-              <p className="font-bold uppercase tracking-wide text-[10px] text-emerald-700">WordPress sync enabled</p>
+              <p className="font-bold uppercase tracking-wide text-[10px] text-emerald-700">WordPress is connected</p>
               <p className="mt-1 leading-relaxed">
-                The plugin pulls these routes every 5 minutes and drops disabled events before browser or WordPress submission.
+                The plugin checks these choices every 5 minutes. Events that are off are stopped before they leave the website.
               </p>
-              <p className="mt-1 font-semibold">{enabledRouteCount} active routes, {disabledRouteCount} disabled locally.</p>
+              <p className="mt-1 font-semibold">{enabledRouteCount} events on, {disabledRouteCount} events off.</p>
             </div>
             <div className="flex flex-col gap-2 rounded-lg border border-slate-200 bg-slate-50/70 p-3   xl:w-[520px]">
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
@@ -1711,7 +1787,7 @@ export function SettingsView({
                 <div>
                   <p className="text-xs font-bold uppercase tracking-wide text-indigo-800">Store-type quick start</p>
                   <p className="mt-1 text-xs text-indigo-700/80">
-                    Apply a recommended routing baseline. Your custom routes and automations stay untouched.
+                    Choose a ready-made event list for your type of store. Your custom events will not be changed.
                   </p>
                 </div>
                 <div className="flex w-full flex-col gap-2 sm:flex-row lg:w-auto">
@@ -1720,7 +1796,7 @@ export function SettingsView({
                     onChange={(event) => setSelectedPreset(event.target.value)}
                     className="min-w-[240px] rounded-lg border border-indigo-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500/20"
                   >
-                    <option value="">Choose a store preset...</option>
+                    <option value="">Choose your store type...</option>
                     {eventPresets.map(preset => (
                       <option key={preset.id} value={preset.id}>{preset.name}</option>
                     ))}
@@ -1731,7 +1807,7 @@ export function SettingsView({
                     disabled={!selectedPreset || applyingPreset}
                     className="rounded-lg bg-indigo-600 px-4 py-2 text-xs font-bold text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
                   >
-                    {applyingPreset ? 'Applying...' : 'Apply preset'}
+                    {applyingPreset ? 'Applying...' : 'Use this event list'}
                   </button>
                 </div>
               </div>
@@ -1856,8 +1932,8 @@ export function SettingsView({
         <section id="settings-custom-automations" aria-labelledby="settings-custom-automations-title" className="scroll-mt-28 rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
             <div>
-              <h2 id="settings-custom-automations-title" className="font-bold text-slate-800 text-sm uppercase tracking-wide">Custom event automations</h2>
-              <p className="text-xs text-slate-400">Create no-code browser triggers from the portal. WordPress will sync these rules and fire matching event routes.</p>
+              <h2 id="settings-custom-automations-title" className="font-bold text-slate-800 text-sm uppercase tracking-wide">Create custom events</h2>
+              <p className="text-xs text-slate-400">Create an event for a timer, button click, form, page URL, scroll, or visible section. No coding is needed.</p>
             </div>
             <div className="flex gap-2">
               <button
@@ -1866,7 +1942,7 @@ export function SettingsView({
                 className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-bold text-indigo-700 hover:bg-indigo-100"
               >
                 <Plus className="h-3.5 w-3.5" />
-                Add automation
+                Add custom event
               </button>
               <button
                 type="button"
@@ -1875,7 +1951,7 @@ export function SettingsView({
                 className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-indigo-600 px-3 py-2 text-xs font-bold text-white shadow-sm hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <Save className="h-3.5 w-3.5" />
-                {savingAutomations ? 'Saving...' : 'Save automations'}
+                {savingAutomations ? 'Saving...' : 'Save custom events'}
               </button>
             </div>
           </div>
@@ -1886,7 +1962,7 @@ export function SettingsView({
 
           {automationDrafts.length === 0 ? (
             <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 p-6 text-center text-xs text-slate-500">
-              No custom automations yet. Add one when you need timer, click, URL, form, scroll, or element visibility events.
+              No custom events yet. Add one when you want to track a timer, click, form, page, scroll, or visible section.
             </div>
           ) : (
             <div className="space-y-3">
@@ -1962,7 +2038,7 @@ export function SettingsView({
                         type="button"
                         onClick={() => removeAutomationDraft(index)}
                         className="rounded-lg border border-rose-100 bg-white p-2 text-rose-500 hover:bg-rose-50"
-                        title="Remove automation"
+                        title="Remove custom event"
                       >
                         <Trash2 className="h-4 w-4" />
                       </button>
@@ -2012,7 +2088,7 @@ export function SettingsView({
         <section id="settings-wordpress" aria-labelledby="settings-wordpress-title" className="scroll-mt-28 rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-4  ">
           <div>
             <h2 id="settings-wordpress-title" className="font-bold text-slate-800 text-sm uppercase tracking-wide ">WordPress Plugin Connection</h2>
-            <p className="text-xs text-slate-400 ">Your WooCommerce plugin sends tracking data through this connection. Platform credentials and delivery rules stay managed in the portal.</p>
+            <p className="text-xs text-slate-400 ">This connects your WordPress store to Buykori. Manage all tracking choices from this portal.</p>
           </div>
 
           {(connection.reconnectRequired || connection.status !== 'Active') && (
@@ -2036,7 +2112,7 @@ export function SettingsView({
 
           <div className="p-4 rounded-lg bg-slate-50 border border-slate-200   space-y-3 font-mono text-xs text-slate-700 ">
             <div>
-              <span className="block text-[9px] font-semibold text-slate-400  uppercase tracking-wider mb-0.5">API Access Key</span>
+              <span className="block text-[9px] font-semibold text-slate-400  uppercase tracking-wider mb-0.5">Plugin connection key</span>
               <div className="flex items-center gap-2 bg-white  px-2 py-1.5 rounded border border-slate-200 ">
                 <span className="truncate" aria-label="Masked API access key">{maskedApiAccessKey}</span>
                 <button 
@@ -2060,7 +2136,7 @@ export function SettingsView({
                 ) : null}
               </div>
               <div>
-                <span className="block text-[9px] text-slate-400  uppercase mb-0.5">Last query heartbeat</span>
+                <span className="block text-[9px] text-slate-400  uppercase mb-0.5">Last plugin check-in</span>
                 <span className="font-semibold text-slate-800 ">{connection.lastHeartbeat ? new Date(connection.lastHeartbeat).toLocaleString() : 'Not reported yet'}</span>
               </div>
             </div>
@@ -2114,7 +2190,108 @@ export function SettingsView({
           </button>
         </section>
 
-        {/* WhatsApp Notification Settings Card */}
+        {/* Telegram Notification Settings Card */}
+        <section id="settings-whatsapp" aria-labelledby="settings-telegram-title" className="scroll-mt-28 space-y-4 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <h2 id="settings-telegram-title" className="text-sm font-bold uppercase tracking-wide text-slate-800">Telegram Notifications</h2>
+              <p className="mt-1 max-w-2xl text-xs leading-relaxed text-slate-500">Connect Telegram privately to receive purchase and incomplete checkout alerts for this store. No phone number or recurring QR pairing is required.</p>
+            </div>
+            <span className={`inline-flex w-fit rounded-full border px-3 py-1 text-[10px] font-bold uppercase tracking-wide ${telegramStatus?.connected ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-amber-200 bg-amber-50 text-amber-700'}`}>
+              {telegramStatus?.connected ? 'Connected' : 'Not connected'}
+            </span>
+          </div>
+
+          {telegramStatus?.botUsername ? (
+            <div className="flex flex-col gap-3 rounded-xl border border-sky-200 bg-sky-50 p-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-sky-700">Official Buykori order-alert bot</p>
+                <a
+                  href={`https://t.me/${telegramStatus.botUsername}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mt-1 inline-flex text-sm font-black text-sky-950 underline decoration-sky-300 underline-offset-2"
+                >
+                  Buykori Order Alert
+                </a>
+                <p className="mt-0.5 max-w-full truncate font-mono text-[10px] text-sky-700 sm:max-w-[360px]">@{telegramStatus.botUsername}</p>
+                <p className="mt-1 text-[11px] text-sky-800">Use only this bot for purchase and incomplete-checkout notifications.</p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleCopy(`@${telegramStatus.botUsername}`, 'telegram-bot-username')}
+                  className="inline-flex items-center justify-center gap-2 rounded-lg border border-sky-200 bg-white px-3 py-2 text-xs font-bold text-sky-800 hover:bg-sky-100"
+                >
+                  <Copy className="h-4 w-4" /> Copy bot name
+                </button>
+                <a
+                  href={`https://t.me/${telegramStatus.botUsername}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center justify-center gap-2 rounded-lg bg-sky-500 px-3 py-2 text-xs font-bold text-white hover:bg-sky-600"
+                >
+                  <MessageCircle className="h-4 w-4" /> Open Telegram bot
+                </a>
+              </div>
+            </div>
+          ) : telegramStatus?.available !== false ? (
+            <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
+              The official Telegram bot link is not configured yet. Please contact Buykori support.
+            </div>
+          ) : null}
+
+          {telegramStatus?.connected ? (
+            <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-xs font-black text-emerald-950">Telegram alerts are active</p>
+                  <p className="mt-1 text-[11px] text-emerald-800">Connected as {telegramStatus.telegramUsername ? `@${telegramStatus.telegramUsername}` : telegramStatus.telegramFirstName || 'Telegram user'}.</p>
+                  <p className="mt-1 text-[10px] text-emerald-700">Only notifications for this store will be sent to the verified chat.</p>
+                </div>
+                <button type="button" onClick={disconnectTelegram} disabled={telegramBusy} className="rounded-lg border border-rose-200 bg-white px-3 py-2 text-xs font-bold text-rose-600 hover:bg-rose-50 disabled:opacity-60">Disconnect</button>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="rounded-xl border border-indigo-100 bg-indigo-50/60 p-4">
+                <p className="text-xs font-black text-indigo-950">Connect in three simple steps</p>
+                <ol className="mt-3 grid gap-3 text-[11px] leading-relaxed text-indigo-900 md:grid-cols-3">
+                  <li className="rounded-lg bg-white p-3"><b className="block text-indigo-600">1. Generate code</b>Create a private, one-time security code here.</li>
+                  <li className="rounded-lg bg-white p-3"><b className="block text-indigo-600">2. Open the official bot</b>Use the blue button above, press Start, and send the security code.</li>
+                  <li className="rounded-lg bg-white p-3"><b className="block text-indigo-600">3. Verified</b>The bot confirms this store and alerts begin automatically.</li>
+                </ol>
+              </div>
+
+              {telegramStatus?.available === false ? (
+                <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">Telegram notifications are temporarily unavailable. Please contact Buykori support.</div>
+              ) : telegramLinkCode ? (
+                <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                  <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                    <div>
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">One-time security code</p>
+                      <p className="mt-1 font-mono text-3xl font-black tracking-[0.16em] text-slate-950">{telegramLinkCode.code}</p>
+                      <p className="mt-1 text-[10px] text-slate-500">Expires in {telegramLinkCode.expiresInMinutes} minutes and works once.</p>
+                    </div>
+                    <div className="grid gap-2 sm:grid-cols-3">
+                      <button type="button" onClick={() => handleCopy(telegramLinkCode.code, 'telegram-link-code')} className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100"><Copy className="h-4 w-4" /> Copy code</button>
+                      {(telegramLinkCode.deepLinkUrl || telegramLinkCode.botUrl) && <a href={telegramLinkCode.deepLinkUrl || telegramLinkCode.botUrl || '#'} target="_blank" rel="noreferrer" className="inline-flex items-center justify-center gap-2 rounded-lg bg-sky-500 px-3 py-2 text-xs font-bold text-white hover:bg-sky-600"><MessageCircle className="h-4 w-4" /> Open bot with code</a>}
+                      <button type="button" onClick={() => loadTelegramStatus()} className="inline-flex items-center justify-center gap-2 rounded-lg border border-indigo-200 bg-white px-3 py-2 text-xs font-bold text-indigo-700 hover:bg-indigo-50"><RefreshCw className="h-4 w-4" /> Check</button>
+                    </div>
+                  </div>
+                  <p className="mt-3 text-[11px] text-slate-600">Recommended: click <b>Open bot with code</b> and press <b>Start</b> in Telegram. If the code is not sent automatically, paste <b>{telegramLinkCode.code}</b>. This page checks the connection automatically.</p>
+                </div>
+              ) : (
+                <button type="button" onClick={generateTelegramLinkCode} disabled={telegramBusy} className="w-full rounded-xl bg-indigo-600 px-4 py-3 text-sm font-black text-white shadow-sm hover:bg-indigo-700 disabled:opacity-60">
+                  {telegramBusy ? 'Generating secure code...' : 'Connect Telegram'}
+                </button>
+              )}
+            </div>
+          )}
+        </section>
+
+        {/* Legacy WhatsApp settings are retained for a future official Cloud API migration. */}
+        {false && (
         <section id="settings-whatsapp" aria-labelledby="settings-whatsapp-title" className="scroll-mt-28 rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-4  ">
           <div>
             <h2 id="settings-whatsapp-title" className="font-bold text-slate-800 text-sm uppercase tracking-wide ">WhatsApp Notifications</h2>
@@ -2190,11 +2367,12 @@ export function SettingsView({
             </div>
           </div>
         </section>
+        )}
 
       </div>
       </div>
 
-      {whatsappRecommendation && (
+      {false && whatsappRecommendation && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/55 p-4 backdrop-blur-sm">
           <div
             role="dialog"

@@ -16,6 +16,7 @@ import { Header } from './components/Header';
 import { PluginConnectAuthorizeView } from './components/PluginConnectAuthorizeView';
 import { ProductGuide } from './components/ProductGuide';
 import { SupportWidget } from './components/SupportWidget';
+import { PluginUpdateModal } from './components/PluginUpdateModal';
 import { CAPIEvent, APILog, Suggestion, Platform, EventRule, PlatformConfig, UserProfile, ClientConnection, OutboxItem, PluginReleaseInfo, CustomEventAutomation } from './types';
 import { clientPathForPage, clientPathForSection, isClientPageId, resolveClientRoute } from './lib/clientRoutes';
 
@@ -59,6 +60,19 @@ const uniqueSuggestions = (items: Suggestion[] = []) => {
     });
   });
   return Array.from(byContent.values());
+};
+
+const normalizePluginVersion = (version?: string) => (version || '').replace(/^v/i, '').trim();
+
+const comparePluginVersions = (left: string, right: string) => {
+  const leftParts = left.split('.').map(part => Number.parseInt(part, 10) || 0);
+  const rightParts = right.split('.').map(part => Number.parseInt(part, 10) || 0);
+  const length = Math.max(leftParts.length, rightParts.length);
+  for (let index = 0; index < length; index += 1) {
+    const difference = (leftParts[index] || 0) - (rightParts[index] || 0);
+    if (difference !== 0) return difference;
+  }
+  return 0;
 };
 
 const readCookie = (name: string) => {
@@ -189,6 +203,8 @@ export default function App() {
   const [aiReviewing, setAiReviewing] = useState<boolean>(false);
   const [errState, setErrState] = useState<string | null>(null);
   const [showDemoResetConfirm, setShowDemoResetConfirm] = useState<boolean>(false);
+  const [pluginUpdateOpen, setPluginUpdateOpen] = useState<boolean>(false);
+  const shownPluginUpdateRef = useRef<string>('');
 
   // Live Mode Polling State
   const [liveMode, setLiveMode] = useState<boolean>(false);
@@ -405,11 +421,56 @@ export default function App() {
   };
 
   useEffect(() => {
-    if (loading || !profile || isPluginConnectRoute) return;
+    if (loading || !profile || isPluginConnectRoute || pluginUpdateOpen) return;
     if (profile.guideDismissed || localStorage.getItem(getGuideStorageKey(profile)) === '1') return;
     const timer = window.setTimeout(() => setProductGuideOpen(true), 650);
     return () => window.clearTimeout(timer);
-  }, [loading, profile, isPluginConnectRoute]);
+  }, [loading, profile, isPluginConnectRoute, pluginUpdateOpen]);
+
+  const installedPluginVersion = normalizePluginVersion(connection?.pluginVersion);
+  const latestPluginVersion = normalizePluginVersion(pluginReleaseInfo?.version);
+  const pluginUpdateAvailable = Boolean(
+    connection?.bindingVerified
+    && installedPluginVersion
+    && latestPluginVersion
+    && comparePluginVersions(installedPluginVersion, latestPluginVersion) < 0
+  );
+
+  useEffect(() => {
+    if (loading || !profile || isPluginConnectRoute || !pluginUpdateAvailable) return;
+    const promptKey = `${profile.email}:${connection?.siteHost || ''}:${installedPluginVersion}:${latestPluginVersion}`;
+    if (shownPluginUpdateRef.current === promptKey) return;
+    shownPluginUpdateRef.current = promptKey;
+    setProductGuideOpen(false);
+    setPluginUpdateOpen(true);
+  }, [
+    loading,
+    profile,
+    connection?.siteHost,
+    isPluginConnectRoute,
+    pluginUpdateAvailable,
+    installedPluginVersion,
+    latestPluginVersion,
+  ]);
+
+  const openWordPressPluginUpdates = () => {
+    const rawHost = String(connection?.siteHost || '').trim();
+    if (!rawHost) {
+      setPluginUpdateOpen(false);
+      setActivePage('settings');
+      showToast('Open WordPress > Plugins and update Buykori AdSync.', false);
+      return;
+    }
+    try {
+      const siteUrl = new URL(/^https?:\/\//i.test(rawHost) ? rawHost : `https://${rawHost}`);
+      window.open(`${siteUrl.origin}/wp-admin/plugins.php`, '_blank', 'noopener,noreferrer');
+      setPluginUpdateOpen(false);
+    } catch {
+      setPluginUpdateOpen(false);
+      setActivePage('settings');
+      showToast('Open WordPress > Plugins and update Buykori AdSync.', false);
+    }
+  };
 
   const redirectToClientLogin = () => {
     window.location.assign('/client');
@@ -1063,7 +1124,7 @@ export default function App() {
     if (Array.isArray(data.rules)) {
       setRules(data.rules);
     }
-    showToast('Custom event automations saved.', false);
+    showToast('Custom events saved.', false);
     return true;
   };
 
@@ -1677,6 +1738,15 @@ export default function App() {
           </div>
         </div>
       )}
+
+      <PluginUpdateModal
+        open={pluginUpdateOpen}
+        installedVersion={installedPluginVersion}
+        latestVersion={latestPluginVersion}
+        siteHost={connection?.siteHost}
+        onClose={() => setPluginUpdateOpen(false)}
+        onOpenWordPress={openWordPressPluginUpdates}
+      />
 
       {/* Main Container */}
       <div className={`flex-1 flex flex-col min-w-0 transition-all duration-200 ${sidebarCollapsed ? 'md:pl-[72px]' : 'md:pl-[288px]'}`}>

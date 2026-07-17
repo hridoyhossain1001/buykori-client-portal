@@ -885,7 +885,7 @@ export function AnalyticsView({
               <p><strong>No ad account connected.</strong> Connect a Meta ad account in Settings to populate campaign spend.</p>
             ) : (
               <p>
-                <strong>{numberText(adPerformanceMeta.missing_attribution_purchases)} purchase event(s) are not linked to a campaign.</strong>
+                <strong>{numberText(adPerformanceMeta.missing_attribution_purchases)} sale event(s) could not be matched to an ad campaign.</strong>
                 {' '}Use Campaign Tools and choose a synced campaign so new ad links include bk_campaign_id.
               </p>
             )}

@@ -126,7 +126,7 @@ export function DashboardView({
     GA4: 'No GA4 events yet',
   };
   const platformHintCopy: Record<string, string> = {
-    Meta: 'Check Meta credentials in Settings if this stays empty.',
+    Meta: 'If this stays empty, open Settings and check your Meta Pixel ID and token.',
     TikTok: 'Connect TikTok in Settings when you are ready to send events.',
     GA4: 'Connect GA4 in Settings when you are ready to measure analytics.',
   };
@@ -154,12 +154,12 @@ export function DashboardView({
       ? 'Needs setup'
       : 'Waiting';
   const coverageDescription = hasServerCoverage
-    ? 'Server-side events without a matching browser event ID. This helps recover blocked browser tracking, but very high values can also indicate event ID mismatch.'
+    ? 'These events reached the server even when the browser copy was missing. A very high number may mean the browser and server event IDs do not match.'
     : hasServerIssueOnly
-      ? 'Server-side attempts were seen, but no successful delivery was found in this timeframe. Check Settings > Conversions API credentials and Event Logs.'
+      ? 'Buykori tried to send events, but none were delivered. Check the platform ID and token in Settings, then open Event Logs.'
     : hasBrowserOnlyActivity
-      ? 'Browser events are visible, but server delivery is not active for matching events yet. Check portal-managed credentials and routing.'
-      : 'Waiting for browser or server tracking events in this timeframe. Send a test event after setup.';
+      ? 'Browser events are arriving, but the server is not sending them yet. Check the platform ID, token, and event choices in Settings.'
+      : 'No tracking events arrived during this time. Send a test event after setup.';
   const coverageWarningTone = hasBrowserOnlyActivity || hasServerIssueOnly;
   const serverDetailLabel = hasServerIssueOnly ? 'Attempted / failed delivery' : 'Server matched / only';
   const serverDetailValue = hasServerIssueOnly
@@ -296,9 +296,9 @@ export function DashboardView({
               <AlertTriangle className="h-4 w-4" />
             </span>
             <div>
-              <h3 className="text-sm font-bold text-amber-950">Tracking delivery needs attention</h3>
+              <h3 className="text-sm font-bold text-amber-950">Some events were not delivered</h3>
               <p className="mt-1 max-w-2xl text-xs leading-relaxed text-amber-800">
-                {serverAttemptCount.toLocaleString()} server event attempts were detected, but successful delivery was not confirmed in this timeframe. Check platform credentials first, then review the failed event details.
+                Buykori tried to send {serverAttemptCount.toLocaleString()} events, but none succeeded. First check the platform ID and token, then open the failed events.
               </p>
             </div>
           </div>
@@ -308,7 +308,7 @@ export function DashboardView({
               onClick={openConversionSettings}
               className="rounded-lg bg-amber-700 px-3 py-2 text-xs font-bold text-white transition-colors hover:bg-amber-800 focus:outline-none focus:ring-2 focus:ring-amber-600 focus:ring-offset-2"
             >
-              Fix credentials
+              Check platform setup
             </button>
             <button
               type="button"
@@ -465,9 +465,9 @@ export function DashboardView({
         {/* Deduplication & optimization indicator */}
         <div className="flex flex-col justify-between rounded-lg border border-slate-200 bg-white p-4 shadow-sm md:p-5">
           <div>
-            <h2 className="text-xs font-bold uppercase tracking-wide text-slate-800 md:text-sm">Setup Diagnostics</h2>
+            <h2 className="text-xs font-bold uppercase tracking-wide text-slate-800 md:text-sm">Setup check</h2>
             <p className="mt-1 text-xs leading-normal text-slate-400">
-              {totalSuggCount === 0 ? 'Tracking setup health' : 'How well your tracking is configured'}
+              {totalSuggCount === 0 ? 'Your tracking is ready' : 'See what still needs to be fixed'}
             </p>
           </div>
 
@@ -496,8 +496,8 @@ export function DashboardView({
             <div className="text-left lg:mt-4 lg:text-center">
               <p className="max-w-xs text-xs leading-normal text-slate-500">
                 {totalSuggCount === 0
-                  ? 'All core checks are passing across your configured platforms.'
-                  : `${resolvedCount} of ${totalSuggCount} suggestions resolved. ${totalSuggCount - resolvedCount} remaining.`}
+                  ? 'All important checks passed for the platforms you turned on.'
+                  : `${resolvedCount} of ${totalSuggCount} items fixed. ${totalSuggCount - resolvedCount} still need attention.`}
               </p>
             </div>
           </div>
@@ -508,7 +508,7 @@ export function DashboardView({
           >
             <span className="inline-flex items-center justify-center gap-1.5">
               {totalSuggCount === 0 ? <RefreshCw className="h-3.5 w-3.5" /> : null}
-              {totalSuggCount === 0 ? 'Run Health Check' : 'View Suggestions'}
+              {totalSuggCount === 0 ? 'Check setup again' : 'See what to fix'}
             </span>
           </button>
 
@@ -620,7 +620,7 @@ export function DashboardView({
                 <th className="px-6 py-3">Code</th>
                 <th className="px-6 py-3 text-right">
                   <div className="flex items-center justify-end">
-                    Event Key
+                    Unique Event ID
                     <Tooltip content="ডুপ্লিকেট ইভেন্ট ফিল্টারিং বা Deduplication Key। ব্রাউজার পিক্সেল এবং সার্ভার ইভেন্টকে ম্যাচ করার জন্য এটি ব্যবহৃত হয় যেন একই সেলস দুইবার কাউন্ট না হয়।" />
                   </div>
                 </th>
@@ -716,7 +716,7 @@ export function DashboardView({
                                     {copiedStates[`c_det_r_${e.id}`] ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
                                   </button>
                                 </div>
-                                <p className="text-[10px] font-semibold text-emerald-400 uppercase tracking-widest mb-1 select-none">Platform Response</p>
+                                <p className="text-[10px] font-semibold text-emerald-400 uppercase tracking-widest mb-1 select-none">Reply From Platform</p>
                                 <pre>{JSON.stringify(e.responseBody, null, 2)}</pre>
                               </div>
                             </div>

@@ -220,7 +220,7 @@ export function IncompleteCheckoutsView({ data, onStatusChange, onCreateOrder, o
       <div className="rounded-2xl border border-indigo-200 bg-white p-8 text-center  ">
         <Phone className="mx-auto h-8 w-8 text-indigo-500" />
         <h2 className="mt-3 text-lg font-bold">Incomplete Checkout Recovery</h2>
-        <p className="mt-2 text-sm text-slate-500">This recovery workspace is available with a Growth trial or paid plan.</p>
+        <p className="mt-2 text-sm text-slate-500">Upgrade to Growth to view and recover unfinished checkouts.</p>
       </div>
     );
   }
@@ -403,7 +403,7 @@ export function IncompleteCheckoutsView({ data, onStatusChange, onCreateOrder, o
           </table>
         </div>
       </div>
-      <p className="flex items-center gap-1 text-[11px] text-slate-400"><Clock3 className="h-3.5 w-3.5" /> Recovery data expires after 30 days.</p>
+      <p className="flex items-center gap-1 text-[11px] text-slate-400"><Clock3 className="h-3.5 w-3.5" /> Unfinished checkout details are kept for 30 days.</p>
       {orderLead && orderDraft && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 px-4 py-6 backdrop-blur-sm">
           <div className="flex max-h-[92vh] w-full max-w-3xl flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-2xl">

@@ -147,7 +147,7 @@ export function CampaignBuilderView({
           </div>
           <div>
             <h2 className="font-bold text-slate-800 text-sm uppercase tracking-wide ">Campaign URL Builder</h2>
-            <p className="text-xs text-slate-400 ">Generate clean campaign destination links embedded with standard tracking UTMs to maintain accurate marketing performance reporting.</p>
+            <p className="text-xs text-slate-400 ">Create a campaign link so Buykori can show which ads bring visits and orders.</p>
           </div>
         </div>
 
@@ -228,7 +228,7 @@ export function CampaignBuilderView({
                 <label htmlFor="campaign-url-ad-platform" className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1.5 ">Ad Platform</label>
                 <select
                   id="campaign-url-ad-platform"
-                  aria-label="Ad platform for exact attribution"
+                  aria-label="Ad platform"
                   value={urlBuilderAdPlatform}
                   onChange={(e) => {
                     const nextPlatform = e.target.value as 'meta' | 'tiktok';
@@ -244,10 +244,10 @@ export function CampaignBuilderView({
                 </select>
               </div>
               <div>
-                <label htmlFor="campaign-url-exact-campaign" className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1.5 ">Synced Campaign ID</label>
+                <label htmlFor="campaign-url-exact-campaign" className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1.5 ">Choose Ad Campaign</label>
                 <select
                   id="campaign-url-exact-campaign"
-                  aria-label="Synced campaign for exact attribution"
+                  aria-label="Choose an ad campaign"
                   value={urlBuilderCampaignId}
                   onChange={(e) => {
                     const campaignId = e.target.value;
@@ -260,7 +260,7 @@ export function CampaignBuilderView({
                   className="w-full p-2.5 text-xs text-slate-800 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all duration-200 cursor-pointer"
                 >
                   <option value="">
-                    {loadingSyncedAdCampaigns ? 'Loading synced campaigns...' : 'Optional: choose exact campaign'}
+                    {loadingSyncedAdCampaigns ? 'Loading campaigns...' : 'Optional: choose a campaign'}
                   </option>
                   {campaignOptions.map((campaign) => (
                     <option key={`${campaign.platform}-${campaign.external_campaign_id}`} value={campaign.external_campaign_id}>
@@ -269,7 +269,7 @@ export function CampaignBuilderView({
                   ))}
                 </select>
                 <p className="mt-1 text-[10px] leading-normal text-slate-400">
-                  Adds bk_platform and bk_campaign_id so Ad Results can match spend with orders exactly.
+                  This helps Buykori match your ad cost with the orders from this campaign.
                 </p>
               </div>
             </div>
@@ -307,7 +307,7 @@ export function CampaignBuilderView({
               onClick={handleGenerateCampaignUrl}
               className="px-5 py-2.5 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white text-xs font-bold rounded-lg transition-all duration-300 transform hover:-translate-y-0.5 shadow-md shadow-indigo-500/10 hover:shadow-indigo-500/20 cursor-pointer"
             >
-              Validate Campaign URL
+              Create Campaign Link
             </button>
 
           </div>
@@ -315,8 +315,8 @@ export function CampaignBuilderView({
           {/* Output generator result box */}
           <div className="rounded-xl bg-gradient-to-br from-indigo-50/40 to-slate-50/20 border border-indigo-100/50 p-5 flex flex-col justify-between   ">
             <div className="space-y-3">
-              <h3 className="text-xs font-bold text-slate-700 uppercase tracking-widest ">Attributed URL Result</h3>
-              <p className="text-[11px] text-slate-400 ">Copy the compiled destination URL below and paste it as the target landing page inside Facebook Ads Manager or TikTok Campaign Editor.</p>
+              <h3 className="text-xs font-bold text-slate-700 uppercase tracking-widest ">Your Campaign Link</h3>
+              <p className="text-[11px] text-slate-400 ">Copy this link and use it as the website link in Meta Ads Manager or TikTok Ads Manager.</p>
             </div>
 
             <div className="my-4 bg-white border border-slate-200 rounded-lg p-3 text-xs font-mono text-slate-700 break-all select-all    relative group min-h-24 flex items-center">

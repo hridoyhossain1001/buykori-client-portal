@@ -94,7 +94,7 @@ export function PluginConnectAuthorizeView() {
           </div>
           <div>
             <h1 className="text-lg font-bold">Connect WordPress Site</h1>
-            <p className="text-sm text-slate-500">Authorize Buykori AdSync for this store.</p>
+            <p className="text-sm text-slate-500">Allow this WordPress website to connect to Buykori.</p>
           </div>
         </div>
 
@@ -106,11 +106,11 @@ export function PluginConnectAuthorizeView() {
         <div className="mt-4 space-y-2 text-sm text-slate-600">
           <div className="flex gap-2">
             <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
-            <span>Save the workspace API configuration inside the WordPress plugin.</span>
+            <span>Save the Buykori connection inside the WordPress plugin.</span>
           </div>
           <div className="flex gap-2">
             <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
-            <span>Allow the plugin to send signed tracking events to Buykori.</span>
+            <span>Allow the plugin to send your store events to Buykori.</span>
           </div>
         </div>
 

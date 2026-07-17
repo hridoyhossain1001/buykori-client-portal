@@ -15,9 +15,9 @@ export const initialProfile: UserProfile = {
   growthFeaturesEnabled: true,
   planFeatures: [
     {
-      key: "whatsapp_alerts",
-      label: "WhatsApp order alerts",
-      description: "Purchase and recovery notifications can be sent to the store owner by WhatsApp.",
+      key: "client_alerts",
+      label: "Telegram order alerts",
+      description: "Purchase and recovery notifications can be sent securely to the store owner by Telegram.",
       included: true,
       minimumPlan: "Growth",
     },

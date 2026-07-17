@@ -285,12 +285,12 @@ capi('track', 'Purchase', {
       <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-indigo-500">Launch readiness</p>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-indigo-500">Is your store ready?</p>
             <h2 className="mt-1 text-lg font-bold text-slate-900">
-              {readinessLoading ? 'Checking your setup...' : readiness?.ready ? 'Ready to receive live traffic' : 'Finish the required setup steps'}
+              {readinessLoading ? 'Checking your store...' : readiness?.ready ? 'Your store is ready' : 'Complete the steps below'}
             </h2>
             {readiness && (
-              <p className="mt-1 text-xs text-slate-500">{readiness.completedRequired} of {readiness.requiredCount} required checks complete · {readiness.score}%</p>
+              <p className="mt-1 text-xs text-slate-500">{readiness.completedRequired} of {readiness.requiredCount} important steps done - {readiness.score}%</p>
             )}
           </div>
           <button type="button" onClick={loadReadiness} disabled={readinessLoading} className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-xs font-bold text-slate-600 hover:bg-slate-50 disabled:opacity-60">
@@ -305,7 +305,7 @@ capi('track', 'Purchase', {
                   {step.ready ? <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" /> : <Circle className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />}
                   <div className="min-w-0">
                     <p className="text-xs font-bold text-slate-800">{step.label}</p>
-                    <p className="mt-1 text-[10px] leading-relaxed text-slate-500">{step.detail || (step.ready ? 'Configured' : 'Action required')}</p>
+                    <p className="mt-1 text-[10px] leading-relaxed text-slate-500">{step.detail || (step.ready ? 'Ready' : 'Needs your attention')}</p>
                   </div>
                 </div>
                 {!step.ready && (
@@ -324,13 +324,13 @@ capi('track', 'Purchase', {
           <div className="max-w-xl">
             <p className="text-[10px] font-bold uppercase tracking-widest text-indigo-600">Before you start</p>
             <h2 className="mt-1 text-base font-bold text-slate-900">Keep these four things ready</h2>
-            <p className="mt-1 text-xs leading-relaxed text-slate-600">Most stores finish the initial connection in 5-10 minutes. Platform approval and provider credentials may take longer.</p>
+            <p className="mt-1 text-xs leading-relaxed text-slate-600">Most stores connect in 5-10 minutes. Meta, TikTok, GA4, or courier approval may take longer.</p>
           </div>
           <div className="grid flex-1 gap-2 sm:grid-cols-2">
             {[
               { icon: Globe, text: 'Admin access to your store' },
-              { icon: KeyRound, text: 'Credentials for at least one ad platform' },
-              { icon: PackageCheck, text: 'A product or test checkout to verify events' },
+              { icon: KeyRound, text: 'The ID and access token for one ad platform' },
+              { icon: PackageCheck, text: 'One product or test order' },
               { icon: Clock3, text: '5-10 minutes for the connection test' }
             ].map(({ icon: Icon, text }) => (
               <div key={text} className="flex items-center gap-2 rounded-lg border border-indigo-100 bg-white px-3 py-2 text-[11px] font-semibold text-slate-700">
@@ -397,9 +397,9 @@ capi('track', 'Purchase', {
                 1
               </div>
               <div className="space-y-2 flex-1">
-                <h3 className="font-bold text-slate-800 text-sm ">Download and Install the Lightweight WordPress Plugin</h3>
+                <h3 className="font-bold text-slate-800 text-sm ">Install the WordPress plugin</h3>
                 <p className="text-xs text-slate-500  max-w-3xl leading-relaxed">
-                  Download the Buykori AdSync plugin, then go to <b>WordPress Admin &gt; Plugins &gt; Add New &gt; Upload Plugin</b>. Upload the ZIP and activate it. The plugin only connects the store and collects signals; business rules stay in this portal.
+                  Download Buykori AdSync. In WordPress, open <b>Plugins &gt; Add New &gt; Upload Plugin</b>. Upload the ZIP file and activate it. You will manage the settings from this portal.
                 </p>
                 <a
                   href={pluginDownloadUrl}
@@ -427,7 +427,7 @@ capi('track', 'Purchase', {
               <div className="space-y-2 flex-1">
                 <h3 className="font-bold text-slate-800 text-sm ">Connect Buykori Account</h3>
                 <p className="text-xs text-slate-500  max-w-3xl leading-relaxed">
-                  Open <b>Buykori AdSync</b> settings inside WordPress and click <b>Connect Buykori Account</b>. Login, approve the site, and the plugin will save its server connection automatically.
+                  Open <b>Buykori AdSync</b> in WordPress and click <b>Connect Buykori Account</b>. Log in and approve the website. The plugin will connect automatically.
                 </p>
               </div>
             </div>
@@ -440,7 +440,7 @@ capi('track', 'Purchase', {
               <div className="space-y-2 flex-1">
                 <h3 className="font-bold text-slate-800 text-sm ">Connect One Tracking Destination</h3>
                 <p className="text-xs text-slate-500  max-w-3xl leading-relaxed">
-                  Go to <b>Settings &gt; Conversions API</b> and add valid credentials for Meta, TikTok, or GA4. Start with one platform. Do not enable a destination until its credentials are saved.
+                  Open <b>Settings &gt; Conversions API</b>. Add the ID and access token for Meta, TikTok, or GA4. Start with one platform and turn it on after the details are saved.
                 </p>
                 <button
                   onClick={() => openPortalSection('settings', 'settings-platforms')}
@@ -459,7 +459,7 @@ capi('track', 'Purchase', {
               <div className="space-y-2 flex-1">
                 <h3 className="font-bold text-slate-800 text-sm ">Choose Which Events to Send</h3>
                 <p className="text-xs text-slate-500  max-w-3xl leading-relaxed">
-                  In <b>Event routing</b>, enable only the events your campaign needs. A sensible launch set is PageView, ViewContent, AddToCart, InitiateCheckout, and Purchase. Optional and custom events can be added later.
+                  Turn on only the events you need. A good starting list is PageView, ViewContent, AddToCart, InitiateCheckout, and Purchase. You can add more events later.
                 </p>
               </div>
             </div>
@@ -472,7 +472,7 @@ capi('track', 'Purchase', {
               <div className="space-y-2 flex-1">
                 <h3 className="font-bold text-slate-800 text-sm ">Run the WordPress Connection Test</h3>
                 <p className="text-xs text-slate-500  max-w-3xl leading-relaxed">
-                  Open Buykori AdSync in WordPress and click <b>Run Health Check</b>. A successful result confirms that the plugin, store account, and Buykori API can communicate.
+                  Open Buykori AdSync in WordPress and click <b>Run Health Check</b>. If it passes, your website and Buykori are connected.
                 </p>
               </div>
             </div>
@@ -485,7 +485,7 @@ capi('track', 'Purchase', {
               <div className="space-y-2 flex-1">
                 <h3 className="font-bold text-slate-800 text-sm ">Send and Verify a Test Event</h3>
                 <p className="text-xs text-slate-500 max-w-3xl leading-relaxed">
-                  Open the Event Tester, send one test event to a configured destination, then confirm its result in <b>Event Logs</b>. A provider error usually means the platform credential needs attention.
+                  Open Event Tester and send one test event. Then check it in <b>Event Logs</b>. If it fails, check the platform ID and access token.
                 </p>
                 <div className="flex flex-wrap gap-2">
                 <button 
@@ -507,7 +507,7 @@ capi('track', 'Purchase', {
               <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" />
               <div>
                 <h3 className="text-sm font-bold text-emerald-900">Your store is ready when</h3>
-                <p className="mt-1 text-xs leading-relaxed text-emerald-800">The plugin health check passes, at least one destination has valid credentials, the required event routes are enabled, and a test event appears successfully in Event Logs. Courier, WhatsApp, COD Protection, and custom events are optional workflows you can configure afterward.</p>
+                <p className="mt-1 text-xs leading-relaxed text-emerald-800">The WordPress test passes, one ad platform is connected, your needed events are on, and a test event shows as successful in Event Logs. You can set up courier, COD Protection, Telegram alerts, and custom events later.</p>
               </div>
             </div>
           </div>

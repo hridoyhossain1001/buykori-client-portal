@@ -80,9 +80,9 @@ export function AccountView({
   const emailChanged = profEmail.trim().toLowerCase() !== profile.email.trim().toLowerCase();
   const planFeatures = profile.planFeatures?.length ? profile.planFeatures : [
     {
-      key: 'whatsapp_alerts',
-      label: 'WhatsApp order alerts',
-      description: 'Purchase and recovery notifications can be sent to the store owner by WhatsApp.',
+      key: 'client_alerts',
+      label: 'Telegram order alerts',
+      description: 'Purchase and recovery notifications can be sent securely to the store owner by Telegram.',
       included: !!profile.growthFeaturesEnabled,
       minimumPlan: 'Growth',
     },
@@ -129,7 +129,7 @@ export function AccountView({
                   className="w-full p-2 text-xs bg-slate-50 border border-slate-200    rounded"
                 />
                 {emailChanged && !profEmailCodeRequested && (
-                  <p className="mt-1 text-[10px] leading-relaxed text-amber-600">Save once to send a verification code to this new email.</p>
+                  <p className="mt-1 text-[10px] leading-relaxed text-amber-600">Click the button below. We will send a code to your new email.</p>
                 )}
               </div>
             </div>
@@ -155,7 +155,7 @@ export function AccountView({
                     autoComplete="current-password"
                     value={profEmailCurrentPassword}
                     onChange={(e) => setProfEmailCurrentPassword(e.target.value)}
-                    placeholder="Confirm account ownership"
+                    placeholder="Enter your current password"
                     className="w-full rounded border border-indigo-200 bg-white p-2 text-xs"
                   />
                 </div>
@@ -182,7 +182,7 @@ export function AccountView({
                 {profUpdating
                   ? 'Saving...'
                   : emailChanged && !profEmailCodeRequested
-                    ? 'Send Email Verification Code'
+                      ? 'Send Code to New Email'
                     : emailChanged
                       ? 'Verify Email & Save'
                       : 'Save Profile Changes'}
@@ -261,9 +261,9 @@ export function AccountView({
             
             {/* Webhook access key change */}
             <div className="space-y-3">
-              <h4 className="font-bold text-xs text-rose-800  uppercase tracking-widest mt-2">Reset API Key</h4>
+              <h4 className="font-bold text-xs text-rose-800  uppercase tracking-widest mt-2">Create a New Plugin Key</h4>
               <p className="text-xs text-rose-700  leading-relaxed max-w-2xl">
-                This will reset your API key. Tracking will pause until you update the new key in your WordPress plugin.
+                This creates a new connection key. Tracking will stop until you paste the new key into your WordPress plugin.
               </p>
 
               <div className="flex flex-col sm:flex-row gap-3">
@@ -279,7 +279,7 @@ export function AccountView({
                   onClick={handleTokenRevoke}
                   className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-lg transition-colors shadow cursor-pointer whitespace-nowrap"
                 >
-                  Reset API Key
+                  Create New Key
                 </button>
               </div>
             </div>
@@ -288,7 +288,7 @@ export function AccountView({
             <div className="pt-5 space-y-3">
               <h4 className="font-bold text-xs text-rose-800  uppercase tracking-widest">Delete account request</h4>
               <p className="text-xs text-rose-700  leading-relaxed max-w-2xl">
-                Account deletion is not instant. Submit a request and Buykori support will review trace logs, analytical reports, billing data and routing keys before removal.
+                This does not delete your account right away. Send a request and Buykori support will contact you before removing your account and data.
               </p>
 
               <div className="flex flex-col sm:flex-row gap-3">

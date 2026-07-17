@@ -95,8 +95,8 @@ export function EventLogsView({
             <div className="flex items-center gap-2 min-w-0">
               <AlertTriangle className="w-4 h-4 text-amber-600  shrink-0" />
               <div className="min-w-0">
-                <h3 className="text-xs font-bold uppercase tracking-widest text-amber-900 ">Failed Events</h3>
-                <p className="text-[11px] text-amber-800/70  truncate">{failedOutboxItems.length} delivery job{failedOutboxItems.length === 1 ? '' : 's'} need attention</p>
+                <h3 className="text-xs font-bold uppercase tracking-widest text-amber-900 ">Events That Need Help</h3>
+                <p className="text-[11px] text-amber-800/70  truncate">{failedOutboxItems.length} event{failedOutboxItems.length === 1 ? '' : 's'} could not be sent</p>
               </div>
             </div>
           </div>
@@ -338,11 +338,11 @@ export function EventLogsView({
                   {isExpanded && (
                     <div className="mt-4 space-y-3 border-t border-slate-100 pt-3 ">
                       <div className="rounded-lg bg-slate-900 p-3 font-mono text-[10px] text-slate-200">
-                        <p className="mb-2 font-bold uppercase tracking-wider text-indigo-400">Raw Event Data</p>
+                        <p className="mb-2 font-bold uppercase tracking-wider text-indigo-400">Event Details</p>
                         <JsonViewer value={e.payload} search={searchFilter} className="max-h-56" />
                       </div>
                       <div className="rounded-lg bg-slate-900 p-3 font-mono text-[10px] text-slate-200">
-                        <p className="mb-2 font-bold uppercase tracking-wider text-emerald-400">Platform Response</p>
+                        <p className="mb-2 font-bold uppercase tracking-wider text-emerald-400">Reply From Platform</p>
                         <JsonViewer value={e.responseBody} search={searchFilter} className="max-h-40" />
                       </div>
                     </div>
@@ -362,7 +362,7 @@ export function EventLogsView({
                   <th className="px-6 py-3">Platform</th>
                   <th className="px-6 py-3">Status</th>
                   <th className="px-6 py-3">Code</th>
-                  <th className="px-6 py-3 text-right">Event Key</th>
+                  <th className="px-6 py-3 text-right">Unique Event ID</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 ">
@@ -422,7 +422,7 @@ export function EventLogsView({
                             <div className="space-y-4">
                               <div className="flex justify-between items-center">
                                 <h5 className="font-bold text-xs text-slate-700  uppercase tracking-widest">Event Details</h5>
-                                <span className="text-[10px] text-slate-400  font-mono">Event Key: {highlightText(e.deduplicationKey, searchFilter)}</span>
+                                <span className="text-[10px] text-slate-400  font-mono">Unique Event ID: {highlightText(e.deduplicationKey, searchFilter)}</span>
                               </div>
 
                               <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
@@ -437,7 +437,7 @@ export function EventLogsView({
                                       {copiedStates[`evt_payload_${e.id}`] ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3" />}
                                     </button>
                                   </div>
-                                  <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-wider mb-2">Raw Event Data</p>
+                                  <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-wider mb-2">Event Details</p>
                                   <JsonViewer value={e.payload} search={searchFilter} className="max-h-80" />
                                 </div>
 
@@ -449,7 +449,7 @@ export function EventLogsView({
                                   </div>
 
                                   <div className="bg-slate-900 leading-relaxed text-slate-300 text-[11px] font-mono p-4 rounded-lg overflow-auto max-h-40 relative group">
-                                    <p className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider mb-2">Platform Response</p>
+                                    <p className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider mb-2">Reply From Platform</p>
                                     <JsonViewer value={e.responseBody} search={searchFilter} className="max-h-64" />
                                   </div>
                                 </div>

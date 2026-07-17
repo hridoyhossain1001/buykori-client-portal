@@ -666,7 +666,7 @@ export function OrdersView({
         <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs text-amber-800">
           <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0" />
           <div>
-            <p className="font-bold">Verification queue could not be loaded</p>
+            <p className="font-bold">COD orders could not be loaded</p>
             <p className="mt-0.5 text-[11px] text-amber-700">{deferredLoadError} Courier settings and shipped orders are still available.</p>
           </div>
         </div>
@@ -770,7 +770,7 @@ export function OrdersView({
             {codVerificationOrders.length === 0 ? (
               <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center text-slate-400  ">
                 <CheckCircle2 className="mx-auto mb-2 h-8 w-8 text-emerald-400" />
-                <p className="text-xs font-semibold">No pending orders waiting in the verification queue.</p>
+                <p className="text-xs font-semibold">No COD orders are waiting for your review.</p>
               </div>
             ) : codVerificationOrders.map((order: any) => {
               const isExpanded = expandedOrderId === order.orderId;
@@ -855,7 +855,7 @@ export function OrdersView({
                   <tr>
                     <td colSpan={6} className="px-6 py-12 text-center text-slate-400 font-medium ">
                       <CheckCircle2 className="w-8 h-8 mx-auto text-emerald-400 mb-2" />
-                      No pending orders waiting in the verification queue.
+                      No COD orders are waiting for your review.
                     </td>
                   </tr>
                 ) : (
@@ -1623,7 +1623,7 @@ export function OrdersView({
                       ) : (
                         <div className="py-2 px-3 bg-red-50  border border-red-200  rounded-lg text-xs text-red-600  font-semibold flex items-center gap-1.5">
                           <Truck className="w-3.5 h-3.5 shrink-0" />
-                          Pathao credentials missing. Set them up in settings.
+                          Pathao is not connected yet. Add its API details in Settings.
                         </div>
                       )}
                       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">

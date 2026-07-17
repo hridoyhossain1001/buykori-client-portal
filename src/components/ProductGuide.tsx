@@ -164,11 +164,11 @@ const guideSteps: GuideStep[] = [
     page: 'suggestions',
     text: {
       bn: {
-        title: 'Setup Diagnostics',
+        title: 'Setup Check',
         body: 'Tracking কোথায় ঠিক আছে আর কোথায় fix দরকার, এখানে সহজভাবে দেখাবে।',
       },
       en: {
-        title: 'Setup Diagnostics',
+        title: 'Setup Check',
         body: 'See what is working and what needs fixing in the tracking setup.',
       },
     },
@@ -199,7 +199,7 @@ const guideSteps: GuideStep[] = [
       },
       en: {
         title: 'Settings',
-        body: 'Pixel IDs, access tokens, courier keys, routing rules, and alerts live here.',
+        body: 'Connect ad platforms and couriers, choose your events, and manage alerts here.',
       },
     },
   },
