@@ -535,7 +535,7 @@ export function AnalyticsView({
           <div className="mb-5 flex items-start justify-between gap-3">
             <div>
             <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wide ">Customer Areas</h3>
-              <p className="text-xs text-slate-400 ">Approximate area from visitor IP and checkout information.</p>
+              <p className="text-xs text-slate-400 ">Unique visitors by approximate area from their IP address.</p>
             </div>
             <MapPin className="h-5 w-5 text-indigo-500" />
           </div>
@@ -544,7 +544,7 @@ export function AnalyticsView({
               <div key={row.label} className="space-y-1.5">
                 <div className="flex items-center justify-between text-xs">
                   <span className="font-bold text-slate-700 ">{row.label}</span>
-                  <span className="font-mono text-slate-500 ">{numberText(row.count)} - {Number(row.percentage || 0)}%</span>
+                  <span className="font-mono text-slate-500 ">{numberText(row.count)} visitors - {Number(row.percentage || 0)}%</span>
                 </div>
                 <div className="h-2 rounded-full bg-slate-100  overflow-hidden">
                   <div className="h-full rounded-full bg-indigo-500" style={{ width: `${Math.max(row.percentage, 3)}%` }} />
@@ -563,7 +563,7 @@ export function AnalyticsView({
           <div className="mb-5 flex items-start justify-between gap-3">
             <div>
               <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wide ">Customer Devices</h3>
-              <p className="text-xs text-slate-400 ">Mobile, desktop and tablet share from tracked visitors.</p>
+              <p className="text-xs text-slate-400 ">Unique visitors using mobile, desktop or tablet.</p>
             </div>
             <Smartphone className="h-5 w-5 text-emerald-500" />
           </div>
@@ -572,7 +572,7 @@ export function AnalyticsView({
               <div key={row.label} className="space-y-1.5">
                 <div className="flex items-center justify-between text-xs">
                   <span className="font-bold text-slate-700 ">{row.label}</span>
-                  <span className="font-mono text-slate-500 ">{numberText(row.count)} - {Number(row.percentage || 0)}%</span>
+                  <span className="font-mono text-slate-500 ">{numberText(row.count)} visitors - {Number(row.percentage || 0)}%</span>
                 </div>
                 <div className="h-2 rounded-full bg-slate-100  overflow-hidden">
                   <div className="h-full rounded-full bg-emerald-500" style={{ width: `${Math.max(row.percentage, 3)}%` }} />
@@ -587,13 +587,13 @@ export function AnalyticsView({
         <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm  ">
           <div className="mb-5">
             <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wide ">Customer Browsers</h3>
-            <p className="text-xs text-slate-400 ">Browsers your customers use.</p>
+            <p className="text-xs text-slate-400 ">Browsers used by unique visitors.</p>
           </div>
           <div className="space-y-3">
             {asArray(analyticsAudience?.browser_mix).length ? asArray(analyticsAudience?.browser_mix).map((row: any) => (
               <div key={row.label} className="flex items-center justify-between border-b border-slate-100 pb-2 text-xs last:border-0 ">
                 <span className="font-bold text-slate-700 ">{row.label}</span>
-                <span className="font-mono text-slate-500 ">{numberText(row.count)} - {Number(row.percentage || 0)}%</span>
+                <span className="font-mono text-slate-500 ">{numberText(row.count)} visitors - {Number(row.percentage || 0)}%</span>
               </div>
             )) : (
               <div className="py-10 text-center text-xs text-slate-400">Browser data will appear after visitors start browsing your store.</div>
