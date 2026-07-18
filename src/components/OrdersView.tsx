@@ -1387,7 +1387,7 @@ export function OrdersView({
       {/* Book to Courier Form Modal */}
       {isSendModalOpen && selectedOrder && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-3 backdrop-blur-sm animate-fade-in sm:p-4">
-          <div className="flex max-h-[calc(100vh-1.5rem)] w-full max-w-lg flex-col space-y-3 overflow-y-auto overscroll-contain rounded-2xl border border-slate-200 bg-white p-4 shadow-2xl animate-slide-in-up sm:max-h-[calc(100vh-2rem)]">
+          <div className="flex max-h-[calc(100vh-1.5rem)] w-full max-w-lg flex-col space-y-2 overflow-y-auto overscroll-contain rounded-2xl border border-slate-200 bg-white p-3 shadow-2xl animate-slide-in-up sm:max-h-[calc(100vh-2rem)]">
             
             {/* Modal Header */}
             <div className="flex items-center justify-between border-b border-slate-100 pb-2">
@@ -1404,15 +1404,15 @@ export function OrdersView({
             </div>
 
             {/* Modal Body Form */}
-            <form onSubmit={handleSendToCourierSubmit} className="space-y-3">
+            <form onSubmit={handleSendToCourierSubmit} className="space-y-2">
               
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                 {/* Order Meta details read-only */}
-                <div className="rounded-lg border border-slate-100 bg-slate-50 p-2.5">
+                <div className="rounded-lg border border-slate-100 bg-slate-50 p-2">
                   <span className="block text-[10px] text-slate-400 uppercase font-bold tracking-wider">Order Reference ID</span>
                   <span className="font-mono font-bold text-sm text-slate-800 ">{selectedOrder.orderId || selectedOrder.order_id}</span>
                 </div>
-                <div className="rounded-lg border border-slate-100 bg-slate-50 p-2.5">
+                <div className="rounded-lg border border-slate-100 bg-slate-50 p-2">
                   <span className="block text-[10px] text-slate-400 uppercase font-bold tracking-wider">Original Value</span>
                   <span className="font-bold text-sm text-slate-800 ">BDT {(selectedOrder.amount || selectedOrder.cod_amount || 0).toLocaleString()}</span>
                 </div>
@@ -1440,7 +1440,7 @@ export function OrdersView({
                           const meta = productMeta(p);
                           return (
                             <tr key={i} className="hover:bg-slate-50/50 ">
-                              <td className="max-w-[260px] px-3 py-2">
+                              <td className="max-w-[260px] px-3 py-1.5">
                                 <p className="font-medium leading-snug text-slate-700" title={p.name}>{p.name}</p>
                                 {meta.length > 0 && (
                                   <div className="mt-1 flex flex-wrap gap-1">
@@ -1467,7 +1467,7 @@ export function OrdersView({
               <div>
                 <label className="block text-[10px] font-bold text-slate-500  uppercase tracking-wider mb-1">Select Courier Partner</label>
                 <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                  <label className={`flex cursor-pointer items-center justify-between rounded-xl border p-2.5 transition-all duration-200 ${
+                  <label className={`flex cursor-pointer items-center justify-between rounded-xl border p-2 transition-all duration-200 ${
                     courierProvider === 'steadfast' 
                       ? 'border-indigo-600 bg-indigo-50/10 text-indigo-700   ' 
                       : 'border-slate-200 hover:bg-slate-50  '
@@ -1486,7 +1486,7 @@ export function OrdersView({
                     />
                   </label>
 
-                  <label className={`flex cursor-pointer items-center justify-between rounded-xl border p-2.5 transition-all duration-200 ${
+                  <label className={`flex cursor-pointer items-center justify-between rounded-xl border p-2 transition-all duration-200 ${
                     courierProvider === 'pathao' 
                       ? 'border-indigo-600 bg-indigo-50/10 text-indigo-700   ' 
                       : 'border-slate-200 hover:bg-slate-50  '
@@ -1505,7 +1505,7 @@ export function OrdersView({
                     />
                   </label>
 
-                  <label className={`flex cursor-pointer items-center justify-between rounded-xl border p-2.5 transition-all duration-200 ${
+                  <label className={`flex cursor-pointer items-center justify-between rounded-xl border p-2 transition-all duration-200 ${
                     courierProvider === 'redx'
                       ? 'border-indigo-600 bg-indigo-50/10 text-indigo-700   '
                       : 'border-slate-200 hover:bg-slate-50  '
@@ -1543,7 +1543,7 @@ export function OrdersView({
                         value={recipientName}
                         onChange={(e) => setRecipientName(e.target.value)}
                         placeholder="e.g. Hridoy Hossain"
-                        className="w-full pl-8 pr-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500   "
+                        className="w-full pl-8 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500   "
                       />
                     </div>
                   </div>
@@ -1563,7 +1563,7 @@ export function OrdersView({
                           setRecipientPhone(normalized);
                         }}
                         placeholder="e.g. 01712345678 or +8801712345678"
-                        className="w-full pl-8 pr-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500   "
+                        className="w-full pl-8 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500   "
                       />
                     </div>
                   </div>
@@ -1579,7 +1579,7 @@ export function OrdersView({
                       onChange={(e) => setRecipientAddress(e.target.value)}
                       placeholder="Enter complete shipping details (Street, District, Area)..."
                       rows={2}
-                      className="w-full pl-8 pr-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500   "
+                      className="w-full pl-8 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500   "
                     />
                   </div>
                 </div>
@@ -1594,7 +1594,7 @@ export function OrdersView({
                         required
                         value={codAmount}
                         onChange={(e) => setCodAmount(Number(e.target.value))}
-                        className="w-full pl-8 pr-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500    font-bold"
+                        className="w-full pl-8 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500    font-bold"
                       />
                     </div>
                   </div>
@@ -1709,7 +1709,7 @@ export function OrdersView({
                     <select
                       value={itemWeight}
                       onChange={(e) => setItemWeight(Number(e.target.value))}
-                      className="w-full p-2 text-xs bg-slate-50  border border-slate-200  rounded-lg text-slate-800  focus:outline-none focus:ring-1 focus:ring-indigo-500 cursor-pointer"
+                      className="w-full p-1.5 text-xs bg-slate-50  border border-slate-200  rounded-lg text-slate-800  focus:outline-none focus:ring-1 focus:ring-indigo-500 cursor-pointer"
                     >
                       <option value={0.5}>0.5 KG (Standard)</option>
                       <option value={1.0}>1.0 KG</option>
@@ -1728,7 +1728,7 @@ export function OrdersView({
                       min={1}
                       value={itemQuantity}
                       onChange={(e) => setItemQuantity(Math.max(1, Number(e.target.value)))}
-                      className="w-full p-2 text-xs bg-slate-50  border border-slate-200  rounded-lg text-slate-800  focus:outline-none focus:ring-1 focus:ring-indigo-500 font-bold"
+                      className="w-full p-1.5 text-xs bg-slate-50  border border-slate-200  rounded-lg text-slate-800  focus:outline-none focus:ring-1 focus:ring-indigo-500 font-bold"
                     />
                   </div>
                 </div>
@@ -1739,14 +1739,14 @@ export function OrdersView({
                 <button
                   type="button"
                   onClick={() => setIsSendModalOpen(false)}
-                  className="px-4 py-2 border border-slate-200  rounded-lg text-xs font-bold text-slate-500 hover:bg-slate-50 hover:text-slate-700   transition-colors cursor-pointer"
+                  className="px-4 py-1.5 border border-slate-200  rounded-lg text-xs font-bold text-slate-500 hover:bg-slate-50 hover:text-slate-700   transition-colors cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={submittingCourier}
-                  className="flex cursor-pointer items-center gap-1.5 rounded-lg bg-indigo-600 px-5 py-2 text-xs font-bold text-white shadow-md transition-colors hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="flex cursor-pointer items-center gap-1.5 rounded-lg bg-indigo-600 px-5 py-1.5 text-xs font-bold text-white shadow-md transition-colors hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {submittingCourier ? (
                     <>
