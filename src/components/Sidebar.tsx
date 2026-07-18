@@ -377,7 +377,7 @@ export function Sidebar({
       )}
 
       {/* Primary Navigation Links */}
-      <nav className="min-h-0 flex-1 overflow-y-auto py-4 pr-3">
+      <nav className="min-h-0 flex-1 overflow-y-auto py-2.5 pr-3">
         {menuGroups.map((group, groupIndex) => {
           const visibleItems = group.items.filter(
             (item) => !item.requireOrderMgmt || orderManagementEnabled
@@ -385,12 +385,12 @@ export function Sidebar({
           if (visibleItems.length === 0) return null;
 
           return (
-            <div key={group.label} className={groupIndex === 0 ? '' : collapsed ? 'mt-3' : 'mt-5'}>
+            <div key={group.label} className={groupIndex === 0 ? '' : 'mt-3'}>
               {!collapsed && (
                 <button
                   type="button"
                   onClick={() => setOpenGroups(prev => ({ ...prev, [group.label]: !prev[group.label] }))}
-                  className="mb-2 flex w-full items-center gap-2 rounded-full px-5 py-1.5 text-left transition-colors hover:bg-slate-100"
+                  className="mb-1 flex w-full items-center gap-2 rounded-full px-5 py-1 text-left transition-colors hover:bg-slate-100"
                 >
                   <span className="bk-console-group-label">
                     {group.label}
@@ -426,7 +426,7 @@ export function Sidebar({
                           isActive
                             ? 'is-active sidebar-active-glow'
                             : 'font-medium'
-                        } ${collapsed ? 'justify-center px-0 py-2.5' : 'items-center gap-3 py-2.5 pl-5 pr-3'}`}
+                        } ${collapsed ? 'justify-center px-0 py-2' : 'items-center gap-3 py-2 pl-5 pr-3'}`}
                       >
                         {isActive && (
                           <span className="sidebar-active-indicator absolute left-0 top-1/2 h-6 w-[3px] -translate-y-1/2 rounded-r-full" />
