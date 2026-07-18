@@ -67,8 +67,8 @@ export function WeeklyReportCard() {
   ] : [];
 
   return (
-    <section className="rounded-2xl border border-indigo-100 bg-gradient-to-r from-indigo-50 via-white to-cyan-50 p-5 shadow-sm">
-      <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+    <section className="rounded-2xl border border-indigo-100 bg-gradient-to-r from-indigo-50 via-white to-cyan-50 px-5 py-4 shadow-sm">
+      <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="text-xs font-bold uppercase tracking-[0.16em] text-indigo-600">Weekly performance</p>
           <h2 className="mt-1 text-lg font-bold text-slate-900">Your store's last 7 days</h2>
@@ -87,16 +87,16 @@ export function WeeklyReportCard() {
         <div className="h-20 animate-pulse rounded-xl bg-white/70" />
       ) : report && (
         <>
-          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <div className="grid grid-cols-2 gap-2.5 lg:grid-cols-4">
             {metrics.map(metric => (
-              <div key={metric.label} className="rounded-xl border border-white bg-white/85 p-3">
+              <div key={metric.label} className="rounded-xl border border-white bg-white/85 px-3 py-2.5">
                 <p className="text-xs font-medium text-slate-500">{metric.label}</p>
                 <p className="mt-1 text-lg font-bold text-slate-900">{metric.value}</p>
                 <Change value={metric.change} points={metric.points} />
               </div>
             ))}
           </div>
-          <p className="mt-3 text-xs text-slate-500">
+          <p className="mt-2.5 text-xs text-slate-500">
             Top purchase source: <strong className="text-slate-700">{report.current.topSource || 'No attributed purchases'}</strong>
             {report.current.topSource ? ` (${report.current.topSourcePurchases})` : ''}
           </p>

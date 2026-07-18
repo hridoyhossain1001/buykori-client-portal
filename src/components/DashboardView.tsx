@@ -398,8 +398,10 @@ export function DashboardView({
               </span>
               <span className="text-[10px] font-bold uppercase text-slate-400">{card.total} events</span>
             </div>
-            <p className="mt-4 text-2xl font-bold tracking-tight text-slate-950">{card.total > 0 ? `${card.rate}%` : platformEmptyCopy[card.label]}</p>
-            <p className="mt-1 truncate font-mono text-[10px] text-slate-400">
+            <p className={`mt-4 font-bold tracking-tight text-slate-950 ${card.total > 0 ? 'text-2xl' : 'text-lg leading-tight'}`}>
+              {card.total > 0 ? `${card.rate}%` : platformEmptyCopy[card.label]}
+            </p>
+            <p className={`mt-1 text-[10px] leading-4 text-slate-400 ${card.total > 0 ? 'truncate font-mono' : 'line-clamp-2'}`}>
               {card.total > 0 ? `Last: ${card.lastTime}` : platformHintCopy[card.label]}
             </p>
           </div>

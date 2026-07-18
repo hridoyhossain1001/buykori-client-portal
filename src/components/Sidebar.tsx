@@ -377,7 +377,7 @@ export function Sidebar({
       )}
 
       {/* Primary Navigation Links */}
-      <nav className="flex-1 overflow-y-auto py-4 pr-3">
+      <nav className="min-h-0 flex-1 overflow-y-auto py-4 pr-3">
         {menuGroups.map((group, groupIndex) => {
           const visibleItems = group.items.filter(
             (item) => !item.requireOrderMgmt || orderManagementEnabled
