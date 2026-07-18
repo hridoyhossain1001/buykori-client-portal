@@ -1,5 +1,5 @@
 import React from 'react';
-import { ExternalLink, RefreshCw, X } from 'lucide-react';
+import { ArrowRight, ExternalLink, RefreshCw, ShieldCheck, X } from 'lucide-react';
 
 interface PluginUpdateModalProps {
   open: boolean;
@@ -22,13 +22,13 @@ export function PluginUpdateModal({
 
   return (
     <div
-      className="fixed inset-0 z-[90] flex items-center justify-center bg-slate-950/55 px-4 py-6 backdrop-blur-sm"
+      className="bk-plugin-update-overlay fixed inset-0 z-[90] flex items-center justify-center px-4 py-6"
       role="dialog"
       aria-modal="true"
       aria-labelledby="plugin-update-title"
     >
-      <div className="w-full max-w-md overflow-hidden rounded-2xl border border-indigo-100 bg-white shadow-2xl">
-        <div className="relative bg-gradient-to-br from-indigo-600 to-violet-600 px-6 py-5 text-white">
+      <div className="bk-plugin-update-modal w-full max-w-md overflow-hidden bg-white">
+        <div className="bk-plugin-update-header relative px-5 py-4 text-white">
           <button
             type="button"
             onClick={onClose}
@@ -43,30 +43,34 @@ export function PluginUpdateModal({
             </span>
             <div>
               <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-indigo-100">WordPress plugin update</p>
-              <h2 id="plugin-update-title" className="mt-1 text-lg font-black">A new Buykori AdSync version is ready</h2>
+              <h2 id="plugin-update-title" className="mt-0.5 text-base font-black leading-snug">A new version is ready</h2>
             </div>
           </div>
         </div>
 
-        <div className="space-y-4 p-6">
-          <p className="text-sm leading-6 text-slate-600">
-            Please update the plugin from your WordPress dashboard to keep event tracking, connection checks, and new fixes working correctly.
+        <div className="space-y-3.5 p-5">
+          <p className="text-[13px] leading-5 text-slate-600">
+            Update Buykori AdSync to keep tracking and connection checks working correctly.
           </p>
 
-          <div className="grid grid-cols-2 gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
-            <div>
+          <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+            <div className="min-w-0">
               <span className="text-[10px] font-bold uppercase tracking-wide text-slate-400">Installed</span>
-              <strong className="mt-1 block text-sm text-slate-700">v{installedVersion}</strong>
+              <strong className="mt-0.5 block text-sm text-slate-700">v{installedVersion}</strong>
             </div>
-            <div>
+            <ArrowRight className="h-4 w-4 text-slate-300" />
+            <div className="min-w-0 text-right">
               <span className="text-[10px] font-bold uppercase tracking-wide text-indigo-500">Latest</span>
-              <strong className="mt-1 block text-sm text-indigo-700">v{latestVersion}</strong>
+              <strong className="mt-0.5 block text-sm text-indigo-700">v{latestVersion}</strong>
             </div>
           </div>
 
-          <div className="rounded-xl border border-amber-100 bg-amber-50 px-4 py-3 text-xs leading-5 text-amber-900">
-            Open WordPress, go to <strong>Plugins</strong>, then click <strong>Update now</strong> beside Buykori AdSync.
-            {siteHost ? <span className="mt-1 block text-amber-700">Website: {siteHost}</span> : null}
+          <div className="flex gap-3 rounded-xl border border-indigo-100 bg-indigo-50/70 px-4 py-3 text-xs leading-5 text-slate-700">
+            <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-indigo-600" />
+            <div>
+              Open WordPress <strong>Plugins</strong> and click <strong>Update now</strong> beside Buykori AdSync.
+              {siteHost ? <span className="mt-0.5 block text-[11px] font-semibold text-indigo-700">Store: {siteHost}</span> : null}
+            </div>
           </div>
 
           <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
@@ -80,7 +84,7 @@ export function PluginUpdateModal({
             <button
               type="button"
               onClick={onOpenWordPress}
-              className="inline-flex items-center justify-center gap-2 rounded-lg bg-indigo-600 px-4 py-2.5 text-xs font-bold text-white shadow-sm transition-colors hover:bg-indigo-700"
+              className="bk-plugin-update-primary inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-xs font-bold text-white transition-colors"
             >
               Open WordPress Plugins
               <ExternalLink className="h-3.5 w-3.5" />

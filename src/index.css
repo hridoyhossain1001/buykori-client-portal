@@ -179,6 +179,33 @@
   -webkit-backdrop-filter: none !important;
 }
 
+/* Plugin update reminder has its own visual system so console guardrails do not
+   erase the branded header or elevation. */
+.bk-plugin-update-overlay {
+  background: rgba(15, 23, 42, 0.58);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+.bk-plugin-update-modal {
+  border: 1px solid rgba(199, 210, 254, 0.9);
+  border-radius: 18px !important;
+  box-shadow: 0 24px 70px rgba(15, 23, 42, 0.28) !important;
+}
+
+.bk-plugin-update-header {
+  background: linear-gradient(135deg, #4338ca 0%, #6d28d9 100%) !important;
+}
+
+.bk-plugin-update-primary {
+  background: linear-gradient(135deg, #4f46e5 0%, #2563eb 100%) !important;
+  box-shadow: 0 8px 20px rgba(79, 70, 229, 0.2) !important;
+}
+
+.bk-plugin-update-primary:hover {
+  background: linear-gradient(135deg, #4338ca 0%, #1d4ed8 100%) !important;
+}
+
 [class*="hover:scale"],
 [class*="hover:-translate"] {
   transform: none !important;
