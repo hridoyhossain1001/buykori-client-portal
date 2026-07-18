@@ -519,7 +519,7 @@ capi('track', 'Purchase', {
       {/* --- SHOPIFY SETUP --- */}
       {activeTab === 'shopify' && (
         <div id="setup-shopify" className="relative scroll-mt-24 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm animate-fadeIn">
-          <div aria-hidden="true" className="pointer-events-none space-y-6 p-6 opacity-45 blur-[3px] select-none">
+          <div aria-hidden="true" inert className="pointer-events-none space-y-6 p-6 opacity-45 blur-[3px] select-none">
           
           <div>
             <h2 className="font-bold text-slate-800 text-base uppercase tracking-wider  flex items-center gap-2">
@@ -610,7 +610,7 @@ capi('track', 'Purchase', {
       {/* --- CUSTOM CODE SETUP --- */}
       {activeTab === 'custom' && (
         <div id="setup-custom" className="relative scroll-mt-24 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm animate-fadeIn">
-          <div aria-hidden="true" className="pointer-events-none space-y-6 p-6 opacity-45 blur-[3px] select-none">
+          <div aria-hidden="true" inert className="pointer-events-none space-y-6 p-6 opacity-45 blur-[3px] select-none">
           
           <div>
             <h2 className="font-bold text-slate-800 text-base uppercase tracking-wider  flex items-center gap-2">
