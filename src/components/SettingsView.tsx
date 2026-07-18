@@ -1167,6 +1167,71 @@ export function SettingsView({
             </div>
           </div>
 
+          {adPlatform === 'meta' && (
+            <details className="group overflow-hidden rounded-xl border border-slate-200 bg-white">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 hover:bg-slate-50">
+                <div>
+                  <p className="text-xs font-bold text-slate-800">Show picture guide</p>
+                  <p className="mt-0.5 text-[10px] leading-4 text-slate-500">See exactly where to create the reporting token and give permission.</p>
+                </div>
+                <span className="rounded-full bg-indigo-50 px-2.5 py-1 text-[9px] font-bold text-indigo-700 group-open:hidden">Open guide</span>
+                <span className="hidden rounded-full bg-slate-100 px-2.5 py-1 text-[9px] font-bold text-slate-600 group-open:inline">Close guide</span>
+              </summary>
+
+              <div className="border-t border-slate-200 bg-slate-50 p-4">
+                <div className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-[11px] leading-5 text-emerald-900">
+                  <p className="font-bold">You need these three things</p>
+                  <p>1. A Meta Business System User. 2. Your Ad Account assigned to that user. 3. A token that includes <code className="rounded bg-white px-1 py-0.5 font-mono font-bold">ads_read</code>.</p>
+                  <p className="mt-1 text-emerald-700">Buykori only reads campaign reports. It does not create, edit, publish, or charge for ads.</p>
+                </div>
+
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                  {[
+                    {
+                      image: '/guides/meta-reporting/system-user.png',
+                      title: '1. Open System users',
+                      text: 'Meta Business Settings → Users → System users. Select an existing admin system user or create one.',
+                      alt: 'Meta Business Settings System users location'
+                    },
+                    {
+                      image: '/guides/meta-reporting/assign-ad-account.png',
+                      title: '2. Assign the Ad Account',
+                      text: 'Click Add assets → Ad accounts. Select the account and allow View performance. Full control is not required.',
+                      alt: 'Meta asset permission selection for an ad account'
+                    },
+                    {
+                      image: '/guides/meta-reporting/permission-warning.png',
+                      title: '3. Generate the right token',
+                      text: 'Click Generate token, choose your Business app, then tick ads_read. If "No permissions available" appears, assign the app to the System User first.',
+                      alt: 'Meta token screen showing a missing app permission warning'
+                    }
+                  ].map((step) => (
+                    <article key={step.title} className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+                      <div className="aspect-[4/3] overflow-hidden border-b border-slate-100 bg-slate-100">
+                        <img src={step.image} alt={step.alt} loading="lazy" className="h-full w-full object-contain" />
+                      </div>
+                      <div className="p-3">
+                        <h3 className="text-[11px] font-bold text-slate-800">{step.title}</h3>
+                        <p className="mt-1 text-[10px] leading-4 text-slate-600">{step.text}</p>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+
+                <div className="mt-4 grid grid-cols-1 gap-3 rounded-lg border border-indigo-100 bg-indigo-50 p-3 text-[10px] leading-4 text-slate-700 sm:grid-cols-2">
+                  <div>
+                    <p className="font-bold text-slate-800">Then return to Buykori</p>
+                    <p>Paste the token → click <strong>Find my Meta accounts</strong> → choose the account from the list → click <strong>Connect & Verify</strong>.</p>
+                  </div>
+                  <div>
+                    <p className="font-bold text-rose-700">Do not use these</p>
+                    <p>Do not paste a Pixel ID, Conversions API token, Page token, personal password, or payment information here.</p>
+                  </div>
+                </div>
+              </div>
+            </details>
+          )}
+
           <form onSubmit={handleConnectAdAccount} autoComplete="off" className="space-y-4 p-4 rounded-lg border border-slate-200 bg-slate-50/50">
             <h4 className="font-bold text-xs text-indigo-600 uppercase tracking-wider pb-2 border-b border-slate-100">
               Connect Ad Account
