@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ChevronDown, Copy, Check, CheckCircle2, Circle, Globe, ShoppingBag, Code, Download, RefreshCw, Clock3, KeyRound, PackageCheck, ArrowRight } from 'lucide-react';
+import { ChevronDown, Copy, Check, CheckCircle2, Circle, Globe, ShoppingBag, Code, Download, RefreshCw, Clock3, KeyRound, PackageCheck, ArrowRight, LockKeyhole } from 'lucide-react';
 import { staticFAQs } from '../lib/mock-data';
 import { PluginReleaseInfo } from '../types';
 
@@ -364,6 +364,7 @@ capi('track', 'Purchase', {
         >
           <ShoppingBag className="w-4 h-4" />
           <span>Shopify Store</span>
+          <span className="rounded-full bg-amber-100 px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wide text-amber-700">Coming soon</span>
         </button>
         <button
           onClick={() => setActiveTab('custom')}
@@ -375,6 +376,7 @@ capi('track', 'Purchase', {
         >
           <Code className="w-4 h-4" />
           <span>Custom Website</span>
+          <span className="rounded-full bg-amber-100 px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wide text-amber-700">Coming soon</span>
         </button>
       </div>
 
@@ -516,7 +518,8 @@ capi('track', 'Purchase', {
 
       {/* --- SHOPIFY SETUP --- */}
       {activeTab === 'shopify' && (
-        <div id="setup-shopify" className="scroll-mt-24 rounded-xl border border-slate-200 bg-white p-6 shadow-sm   animate-fadeIn space-y-6">
+        <div id="setup-shopify" className="relative scroll-mt-24 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm animate-fadeIn">
+          <div aria-hidden="true" className="pointer-events-none space-y-6 p-6 opacity-45 blur-[3px] select-none">
           
           <div>
             <h2 className="font-bold text-slate-800 text-base uppercase tracking-wider  flex items-center gap-2">
@@ -590,12 +593,24 @@ capi('track', 'Purchase', {
             </div>
           </div>
 
+          </div>
+          <div className="absolute inset-0 z-10 flex items-start justify-center bg-white/35 px-4 pt-16 backdrop-blur-[1px] sm:pt-20">
+            <div role="status" className="max-w-md rounded-2xl border border-amber-200 bg-white/95 p-5 text-center shadow-xl">
+              <span className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-amber-100 text-amber-700">
+                <LockKeyhole className="h-5 w-5" />
+              </span>
+              <p className="mt-3 text-xs font-black uppercase tracking-[0.16em] text-amber-700">Coming soon</p>
+              <h2 className="mt-1 text-base font-bold text-slate-900">Shopify setup is still being tested</h2>
+              <p className="mt-2 text-xs leading-relaxed text-slate-600">This guide will open after Shopify event tracking and order webhooks pass our production tests.</p>
+            </div>
+          </div>
         </div>
       )}
 
       {/* --- CUSTOM CODE SETUP --- */}
       {activeTab === 'custom' && (
-        <div id="setup-custom" className="scroll-mt-24 rounded-xl border border-slate-200 bg-white p-6 shadow-sm   animate-fadeIn space-y-6">
+        <div id="setup-custom" className="relative scroll-mt-24 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm animate-fadeIn">
+          <div aria-hidden="true" className="pointer-events-none space-y-6 p-6 opacity-45 blur-[3px] select-none">
           
           <div>
             <h2 className="font-bold text-slate-800 text-base uppercase tracking-wider  flex items-center gap-2">
@@ -680,6 +695,17 @@ capi('track', 'Purchase', {
             </div>
           </div>
 
+          </div>
+          <div className="absolute inset-0 z-10 flex items-start justify-center bg-white/35 px-4 pt-16 backdrop-blur-[1px] sm:pt-20">
+            <div role="status" className="max-w-md rounded-2xl border border-amber-200 bg-white/95 p-5 text-center shadow-xl">
+              <span className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-amber-100 text-amber-700">
+                <LockKeyhole className="h-5 w-5" />
+              </span>
+              <p className="mt-3 text-xs font-black uppercase tracking-[0.16em] text-amber-700">Coming soon</p>
+              <h2 className="mt-1 text-base font-bold text-slate-900">Custom website setup is still being tested</h2>
+              <p className="mt-2 text-xs leading-relaxed text-slate-600">This guide will open after browser and server event tracking pass our production tests.</p>
+            </div>
+          </div>
         </div>
       )}
 
