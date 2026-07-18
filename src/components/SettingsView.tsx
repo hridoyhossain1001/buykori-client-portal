@@ -1207,8 +1207,8 @@ export function SettingsView({
                     }
                   ].map((step) => (
                     <article key={step.title} className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-                      <div className="aspect-[4/3] overflow-hidden border-b border-slate-100 bg-slate-100">
-                        <img src={step.image} alt={step.alt} loading="lazy" className="h-full w-full object-contain" />
+                      <div className="h-32 overflow-hidden border-b border-slate-100 bg-slate-100">
+                        <img src={step.image} alt={step.alt} loading="lazy" className="h-full w-full object-cover object-left-top" />
                       </div>
                       <div className="p-3">
                         <h3 className="text-[11px] font-bold text-slate-800">{step.title}</h3>
