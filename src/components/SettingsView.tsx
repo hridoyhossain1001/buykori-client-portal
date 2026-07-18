@@ -1180,35 +1180,59 @@ export function SettingsView({
 
               <div className="border-t border-slate-200 bg-slate-50 p-4">
                 <div className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-[11px] leading-5 text-emerald-900">
-                  <p className="font-bold">You need these three things</p>
-                  <p>1. A Meta Business System User. 2. Your Ad Account assigned to that user. 3. A token that includes <code className="rounded bg-white px-1 py-0.5 font-mono font-bold">ads_read</code>.</p>
-                  <p className="mt-1 text-emerald-700">Buykori only reads campaign reports. It does not create, edit, publish, or charge for ads.</p>
+                  <p className="font-bold">Before you start</p>
+                  <p>You need a Meta Business portfolio, a Business app with Marketing API, a System User, and an Ad Account assigned to that user.</p>
+                  <p>The final token must include <code className="rounded bg-white px-1 py-0.5 font-mono font-bold">ads_read</code>. Buykori only reads campaign reports; it cannot create, edit, publish, or charge for ads.</p>
                 </div>
 
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
                   {[
                     {
                       image: '/guides/meta-reporting/system-user.png',
-                      title: '1. Open System users',
-                      text: 'Meta Business Settings → Users → System users. Select an existing admin system user or create one.',
-                      alt: 'Meta Business Settings System users location'
+                      title: '1. Open or create a System User',
+                      text: 'Open Meta Business Settings → Users → System users. Select an existing Admin system user, or click Add and create one. This user will securely hold the reporting permissions.',
+                      alt: 'Meta Business Settings System users location',
+                      position: 'object-left-top'
                     },
                     {
-                      image: '/guides/meta-reporting/assign-ad-account.png',
-                      title: '2. Assign the Ad Account',
-                      text: 'Click Add assets → Ad accounts. Select the account and allow View performance. Full control is not required.',
-                      alt: 'Meta asset permission selection for an ad account'
+                      image: '/guides/meta-reporting/business-app.png',
+                      title: '2. Check your Business app',
+                      text: 'Open Meta for Developers and choose your Business app. Confirm Marketing API is added. The same app must also be assigned to the System User before token permissions can appear.',
+                      alt: 'Meta developer Business app with Marketing API enabled',
+                      position: 'object-left-top'
+                    },
+                    {
+                      image: '/guides/meta-reporting/assigned-assets.png',
+                      title: '3. Assign the app and Ad Account',
+                      text: 'Return to the System User and click Add assets. Assign the Business app, then assign the Ad Account with View performance access. You do not need Full control or permission to publish ads.',
+                      alt: 'Meta System User assigned business assets',
+                      position: 'object-left-top'
+                    },
+                    {
+                      image: '/guides/meta-reporting/generate-token.png',
+                      title: '4. Start token generation',
+                      text: 'With the same System User selected, click Generate token. Choose the Business app you assigned, select an expiration that fits your policy, and continue to permissions.',
+                      alt: 'Generate token button for a Meta System User',
+                      position: 'object-right-top'
                     },
                     {
                       image: '/guides/meta-reporting/permission-warning.png',
-                      title: '3. Generate the right token',
-                      text: 'Click Generate token, choose your Business app, then tick ads_read. If "No permissions available" appears, assign the app to the System User first.',
-                      alt: 'Meta token screen showing a missing app permission warning'
+                      title: '5. Select ads_read',
+                      text: 'Tick ads_read and generate the token. If "No permissions available" appears, stop: the selected app is not assigned to this System User, or Marketing API is missing. Fix that first and generate again.',
+                      alt: 'Meta token screen showing a missing app permission warning',
+                      position: 'object-left-top'
+                    },
+                    {
+                      image: '/guides/meta-reporting/buykori-connect.png',
+                      title: '6. Connect it in Buykori',
+                      text: 'Copy the generated token once. Paste it below, click Find my Meta accounts, select the correct account, check the display name, currency and timezone, then click Connect & Verify.',
+                      alt: 'Buykori Meta Ad Account connection form',
+                      position: 'object-center'
                     }
                   ].map((step) => (
                     <article key={step.title} className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-                      <div className="h-32 overflow-hidden border-b border-slate-100 bg-slate-100">
-                        <img src={step.image} alt={step.alt} loading="lazy" className="h-full w-full object-cover object-left-top" />
+                      <div className="h-44 overflow-hidden border-b border-slate-100 bg-slate-100">
+                        <img src={step.image} alt={step.alt} loading="lazy" className={`h-full w-full object-cover ${step.position}`} />
                       </div>
                       <div className="p-3">
                         <h3 className="text-[11px] font-bold text-slate-800">{step.title}</h3>
@@ -1220,12 +1244,16 @@ export function SettingsView({
 
                 <div className="mt-4 grid grid-cols-1 gap-3 rounded-lg border border-indigo-100 bg-indigo-50 p-3 text-[10px] leading-4 text-slate-700 sm:grid-cols-2">
                   <div>
-                    <p className="font-bold text-slate-800">Then return to Buykori</p>
-                    <p>Paste the token → click <strong>Find my Meta accounts</strong> → choose the account from the list → click <strong>Connect & Verify</strong>.</p>
+                    <p className="font-bold text-slate-800">What Buykori needs</p>
+                    <p>One System User token with <strong>ads_read</strong>, plus access to the Ad Account you select. The account ID is filled automatically after discovery.</p>
                   </div>
                   <div>
                     <p className="font-bold text-rose-700">Do not use these</p>
                     <p>Do not paste a Pixel ID, Conversions API token, Page token, personal password, or payment information here.</p>
+                  </div>
+                  <div className="sm:col-span-2">
+                    <p className="font-bold text-amber-700">If verification fails</p>
+                    <p>Check that the token has not expired, ads_read is present, the Ad Account is assigned to the same System User, and the selected account belongs to the Business portfolio connected to your app.</p>
                   </div>
                 </div>
               </div>
