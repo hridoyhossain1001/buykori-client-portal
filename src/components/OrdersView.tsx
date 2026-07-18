@@ -1386,11 +1386,11 @@ export function OrdersView({
 
       {/* Book to Courier Form Modal */}
       {isSendModalOpen && selectedOrder && (
-        <div className="fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in">
-          <div className="bg-white  border border-slate-200  rounded-2xl w-full max-w-lg shadow-2xl p-6 flex flex-col space-y-5 animate-slide-in-up">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-3 backdrop-blur-sm animate-fade-in sm:p-4">
+          <div className="flex max-h-[calc(100vh-1.5rem)] w-full max-w-lg flex-col space-y-3 overflow-y-auto overscroll-contain rounded-2xl border border-slate-200 bg-white p-4 shadow-2xl animate-slide-in-up sm:max-h-[calc(100vh-2rem)]">
             
             {/* Modal Header */}
-            <div className="flex items-center justify-between border-b border-slate-100  pb-3">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-2">
               <div className="flex items-center gap-2">
                 <Truck className="w-5 h-5 text-indigo-600 " />
                 <h3 className="font-bold text-slate-800  text-base">Book Consignment with Courier</h3>
@@ -1404,15 +1404,15 @@ export function OrdersView({
             </div>
 
             {/* Modal Body Form */}
-            <form onSubmit={handleSendToCourierSubmit} className="space-y-4">
+            <form onSubmit={handleSendToCourierSubmit} className="space-y-3">
               
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 {/* Order Meta details read-only */}
-                <div className="p-3 bg-slate-50 rounded-lg  border border-slate-100 ">
+                <div className="rounded-lg border border-slate-100 bg-slate-50 p-2.5">
                   <span className="block text-[10px] text-slate-400 uppercase font-bold tracking-wider">Order Reference ID</span>
                   <span className="font-mono font-bold text-sm text-slate-800 ">{selectedOrder.orderId || selectedOrder.order_id}</span>
                 </div>
-                <div className="p-3 bg-slate-50 rounded-lg  border border-slate-100 ">
+                <div className="rounded-lg border border-slate-100 bg-slate-50 p-2.5">
                   <span className="block text-[10px] text-slate-400 uppercase font-bold tracking-wider">Original Value</span>
                   <span className="font-bold text-sm text-slate-800 ">BDT {(selectedOrder.amount || selectedOrder.cod_amount || 0).toLocaleString()}</span>
                 </div>
@@ -1466,8 +1466,8 @@ export function OrdersView({
               {/* Courier Selection */}
               <div>
                 <label className="block text-[10px] font-bold text-slate-500  uppercase tracking-wider mb-1">Select Courier Partner</label>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <label className={`border rounded-xl p-3 flex items-center justify-between cursor-pointer transition-all duration-200 ${
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                  <label className={`flex cursor-pointer items-center justify-between rounded-xl border p-2.5 transition-all duration-200 ${
                     courierProvider === 'steadfast' 
                       ? 'border-indigo-600 bg-indigo-50/10 text-indigo-700   ' 
                       : 'border-slate-200 hover:bg-slate-50  '
@@ -1486,7 +1486,7 @@ export function OrdersView({
                     />
                   </label>
 
-                  <label className={`border rounded-xl p-3 flex items-center justify-between cursor-pointer transition-all duration-200 ${
+                  <label className={`flex cursor-pointer items-center justify-between rounded-xl border p-2.5 transition-all duration-200 ${
                     courierProvider === 'pathao' 
                       ? 'border-indigo-600 bg-indigo-50/10 text-indigo-700   ' 
                       : 'border-slate-200 hover:bg-slate-50  '
@@ -1505,7 +1505,7 @@ export function OrdersView({
                     />
                   </label>
 
-                  <label className={`border rounded-xl p-3 flex items-center justify-between cursor-pointer transition-all duration-200 ${
+                  <label className={`flex cursor-pointer items-center justify-between rounded-xl border p-2.5 transition-all duration-200 ${
                     courierProvider === 'redx'
                       ? 'border-indigo-600 bg-indigo-50/10 text-indigo-700   '
                       : 'border-slate-200 hover:bg-slate-50  '
@@ -1527,7 +1527,7 @@ export function OrdersView({
               </div>
 
               {/* Recipient details */}
-              <div className="space-y-3 pt-2">
+              <div className="space-y-2 pt-1">
                 <h4 className="text-[10px] font-bold text-indigo-600  uppercase tracking-wider border-b border-slate-100  pb-1">
                   Recipient Information
                 </h4>
@@ -1658,7 +1658,7 @@ export function OrdersView({
                     </div>
                   )}
                   {courierProvider === 'redx' && (
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:col-span-2">
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-3 md:col-span-2">
                       <div>
                         <label className="block text-[10px] font-semibold text-slate-500  uppercase mb-1">RedX Delivery Area</label>
                         {loadingRedxAreas ? (
@@ -1670,7 +1670,7 @@ export function OrdersView({
                               value={redxAreaSearch}
                               onChange={(e) => setRedxAreaSearch(e.target.value)}
                               placeholder="Search area, post code, or ID"
-                              className="w-full py-2 px-3 text-xs bg-slate-50 border border-slate-200 rounded-lg"
+                              className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs"
                             />
                             <select
                               required
@@ -1683,7 +1683,7 @@ export function OrdersView({
                                   setRedxAreaSearch(area.name);
                                 }
                               }}
-                              className="w-full py-2 px-3 text-xs bg-slate-50 border border-slate-200 rounded-lg"
+                              className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs"
                             >
                               <option value="">Select from matches</option>
                               {filteredRedxAreas.map((area) => <option key={area.id} value={area.id}>{area.name}{area.post_code ? ` (${area.post_code})` : ''} - ID {area.id}</option>)}
@@ -1693,11 +1693,11 @@ export function OrdersView({
                       </div>
                       <div>
                         <label className="block text-[10px] font-semibold text-slate-500  uppercase mb-1">RedX Delivery Area Name</label>
-                        <input required type="text" value={redxDeliveryAreaName} onChange={(e) => setRedxDeliveryAreaName(e.target.value)} className="w-full py-2 px-3 text-xs bg-slate-50 border border-slate-200 rounded-lg   " />
+                        <input required type="text" value={redxDeliveryAreaName} onChange={(e) => setRedxDeliveryAreaName(e.target.value)} className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs" />
                       </div>
                       <div>
                         <label className="block text-[10px] font-semibold text-slate-500  uppercase mb-1">RedX Pickup Store ID</label>
-                        <input type="number" value={redxPickupStoreId} onChange={(e) => setRedxPickupStoreId(e.target.value)} className="w-full py-2 px-3 text-xs bg-slate-50 border border-slate-200 rounded-lg   " />
+                        <input type="number" value={redxPickupStoreId} onChange={(e) => setRedxPickupStoreId(e.target.value)} className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs" />
                       </div>
                     </div>
                   )}
@@ -1735,7 +1735,7 @@ export function OrdersView({
               </div>
 
               {/* Submit Buttons */}
-              <div className="flex gap-3 justify-end pt-3 border-t border-slate-100 ">
+              <div className="flex justify-end gap-3 border-t border-slate-100 pt-2">
                 <button
                   type="button"
                   onClick={() => setIsSendModalOpen(false)}
