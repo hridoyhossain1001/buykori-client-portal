@@ -328,15 +328,19 @@ export function EventLogsView({
                         }`} />
                         {highlightText(e.platform, searchFilter)}
                       </span>
-                      <span className="text-right font-mono">Code {e.status === 'Filtered' ? '—' : e.httpCode}</span>
+                      <span className="text-right">{highlightText(e.contextLabel || 'Website event', searchFilter)}</span>
                       <span className="font-mono">{new Date(e.timestamp).toLocaleTimeString()}</span>
                       <span className="text-right font-mono">{new Date(e.timestamp).toLocaleDateString()}</span>
                     </div>
-                    <p className="mt-2 truncate font-mono text-[10px] text-slate-400">{highlightText(e.deduplicationKey, searchFilter)}</p>
+                    <p className="mt-2 truncate text-[10px] text-slate-400">{e.pageUrl || 'Open for technical details'}</p>
                   </button>
 
                   {isExpanded && (
                     <div className="mt-4 space-y-3 border-t border-slate-100 pt-3 ">
+                      <div className="rounded-lg bg-slate-50 p-3 text-[10px] text-slate-500">
+                        <p><span className="font-bold text-slate-700">HTTP:</span> {e.httpCode || '—'}</p>
+                        <p className="mt-1 break-all font-mono"><span className="font-sans font-bold text-slate-700">Event key:</span> {e.deduplicationKey}</p>
+                      </div>
                       <div className="rounded-lg bg-slate-900 p-3 font-mono text-[10px] text-slate-200">
                         <p className="mb-2 font-bold uppercase tracking-wider text-indigo-400">Event Details</p>
                         <JsonViewer value={e.payload} search={searchFilter} className="max-h-56" />
@@ -361,8 +365,8 @@ export function EventLogsView({
                   <th className="px-6 py-3">Event Name</th>
                   <th className="px-6 py-3">Platform</th>
                   <th className="px-6 py-3">Status</th>
-                  <th className="px-6 py-3">Code</th>
-                  <th className="px-6 py-3 text-right">Unique Event ID</th>
+                  <th className="px-6 py-3">Page / Product</th>
+                  <th className="px-6 py-3 text-right">Details</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 ">
@@ -407,11 +411,14 @@ export function EventLogsView({
                             {highlightText(e.status, searchFilter)}
                           </span>
                         </td>
-                        <td className="px-6 py-4 font-mono text-slate-500 ">
-                          {e.status === 'Filtered' ? '—' : highlightText(String(e.httpCode), searchFilter)}
+                        <td className="max-w-[260px] px-6 py-4 text-slate-700 ">
+                          <span className="block truncate font-semibold" title={e.contextLabel || 'Website event'}>
+                            {highlightText(e.contextLabel || 'Website event', searchFilter)}
+                          </span>
+                          {e.pageUrl && <span className="mt-0.5 block truncate text-[10px] text-slate-400" title={e.pageUrl}>{e.pageUrl}</span>}
                         </td>
-                        <td className="px-6 py-4 font-mono text-right text-slate-400 ">
-                          {highlightText(e.deduplicationKey, searchFilter)}
+                        <td className="px-6 py-4 text-right text-indigo-600 ">
+                          <span className="text-[11px] font-bold">{isExpanded ? 'Hide' : 'View'}</span>
                         </td>
                       </tr>
 
@@ -422,7 +429,7 @@ export function EventLogsView({
                             <div className="space-y-4">
                               <div className="flex justify-between items-center">
                                 <h5 className="font-bold text-xs text-slate-700  uppercase tracking-widest">Event Details</h5>
-                                <span className="text-[10px] text-slate-400  font-mono">Unique Event ID: {highlightText(e.deduplicationKey, searchFilter)}</span>
+                                <span className="text-[10px] text-slate-400 font-mono">HTTP {e.httpCode || '—'} · Event key: {highlightText(e.deduplicationKey, searchFilter)}</span>
                               </div>
 
                               <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">

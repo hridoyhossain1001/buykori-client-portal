@@ -1562,8 +1562,8 @@ export default function App() {
       if (format === 'json') {
         payload = JSON.stringify(events, null, 2);
       } else {
-        payload = "Date,EventName,Platform,Status,HttpCode,DeduplicationKey\n" + 
-          events.map(e => `"${e.timestamp}","${e.name}","${e.platform}","${e.status}",${e.httpCode},"${e.deduplicationKey}"`).join("\n");
+        payload = "Date,EventName,PageOrProduct,PageUrl,Platform,Status,HttpCode,DeduplicationKey\n" +
+          events.map(e => `"${e.timestamp}","${e.name}","${e.contextLabel || 'Website event'}","${e.pageUrl || ''}","${e.platform}","${e.status}",${e.httpCode},"${e.deduplicationKey}"`).join("\n");
       }
     } else {
       if (format === 'json') {
@@ -1592,10 +1592,14 @@ export default function App() {
       ? (e.name.toLowerCase().includes(searchVal.toLowerCase()) || 
          e.id.toLowerCase().includes(searchVal.toLowerCase()) ||
          e.platform.toLowerCase().includes(searchVal.toLowerCase()) ||
+         (e.contextLabel || '').toLowerCase().includes(searchVal.toLowerCase()) ||
+         (e.pageUrl || '').toLowerCase().includes(searchVal.toLowerCase()) ||
          e.status.toLowerCase().includes(searchVal.toLowerCase()))
       : (searchFilter 
           ? (e.name.toLowerCase().includes(searchFilter.toLowerCase()) || 
              e.id.toLowerCase().includes(searchFilter.toLowerCase()) ||
+             (e.contextLabel || '').toLowerCase().includes(searchFilter.toLowerCase()) ||
+             (e.pageUrl || '').toLowerCase().includes(searchFilter.toLowerCase()) ||
              e.deduplicationKey.toLowerCase().includes(searchFilter.toLowerCase()))
           : true);
     

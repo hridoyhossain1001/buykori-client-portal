@@ -15,6 +15,12 @@ export interface CAPIEvent {
   status: EventStatus;
   httpCode: number;
   deduplicationKey: string;
+  contextLabel?: string;
+  pageTitle?: string | null;
+  pageUrl?: string | null;
+  contentName?: string | null;
+  orderId?: string | null;
+  itemCount?: number | null;
   payload: any;
   headers: Record<string, string>;
   responseBody: any;

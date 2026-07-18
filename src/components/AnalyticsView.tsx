@@ -654,7 +654,7 @@ export function AnalyticsView({
                   <p className="text-[10px] font-semibold uppercase text-slate-400">Orders</p>
                 </div>
               </div>
-              <p className="mt-2 text-right text-xs font-bold text-indigo-600">BDT {numberText(row.revenue)}</p>
+              <p className="mt-2 text-right text-xs font-bold text-indigo-600">{formatMoney(row.revenue, row.currency)}</p>
             </div>
           ))}
         </div>
@@ -1191,7 +1191,7 @@ export function AnalyticsView({
                     <td className="px-6 py-3.5 font-semibold">{numberText(row.add_to_cart)}</td>
                     <td className="px-6 py-3.5 font-semibold">{numberText(row.initiate_checkout)}</td>
                     <td className="px-6 py-3.5 font-bold text-slate-800 ">{numberText(row.purchase)}</td>
-                    <td className="px-6 py-3.5 font-bold text-indigo-600  text-right">BDT {numberText(row.revenue)}</td>
+                    <td className="px-6 py-3.5 font-bold text-indigo-600 text-right">{formatMoney(row.revenue, row.currency)}</td>
                   </tr>
                 ))
               )}
