@@ -614,8 +614,11 @@ export function AccountView({
 
       {paymentPlan && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/55 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-label="Plan payment">
-          <div className={`relative w-full overflow-hidden rounded-2xl shadow-2xl ${paymentIntent ? 'max-w-2xl border border-slate-600 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-950 text-white' : 'max-w-lg border border-slate-200 bg-white'}`}>
-            {paymentIntent && <div className="pointer-events-none absolute inset-0 opacity-30 [background-image:radial-gradient(circle_at_12%_12%,rgba(139,92,246,.35),transparent_28%),radial-gradient(circle_at_88%_86%,rgba(245,158,11,.18),transparent_30%)]" />}
+          <div
+            className={`relative w-full overflow-hidden rounded-2xl shadow-2xl ${paymentIntent ? 'max-w-2xl border border-slate-700 bg-slate-900 text-white' : 'max-w-lg border border-slate-200 bg-white'}`}
+            style={paymentIntent ? { background: 'linear-gradient(145deg, #111827 0%, #1e293b 52%, #0f172a 100%)' } : undefined}
+          >
+            {paymentIntent && <div className="pointer-events-none absolute inset-0 opacity-30" style={{ background: 'radial-gradient(circle at 12% 12%, rgba(139,92,246,.35), transparent 28%), radial-gradient(circle at 88% 86%, rgba(245,158,11,.18), transparent 30%)' }} />}
             <div className={`relative flex items-start justify-between px-5 py-4 ${paymentIntent ? 'border-b border-white/10' : 'border-b border-slate-100'}`}>
               <div>
                 <p className={`text-[10px] font-bold uppercase tracking-[0.2em] ${paymentIntent ? 'text-violet-300' : 'text-indigo-600'}`}>Secure manual payment</p>
@@ -661,21 +664,21 @@ export function AccountView({
                 <>
                   <div className="grid gap-4 md:grid-cols-[1.08fr_.92fr]">
                     <div className="space-y-4">
-                      <div className="overflow-hidden rounded-xl border border-white/20 bg-white/[0.07] shadow-inner">
+                      <div className="overflow-hidden rounded-xl border border-slate-600 bg-slate-800 shadow-inner">
                         <div className="grid grid-cols-2 divide-x divide-white/10 text-center">
                           <div className="px-3 py-3"><p className="text-[9px] font-bold uppercase tracking-wide text-slate-400">{paymentPlan === 'test' ? 'Test amount' : 'Plan price'}</p><p className="mt-1 text-base font-bold text-white">৳{paymentIntent.baseAmount}</p></div>
                           <div className="px-3 py-3"><p className="text-[9px] font-bold uppercase tracking-wide text-slate-400">Fee ({paymentIntent.feeRatePercent}%)</p><p className="mt-1 text-base font-bold text-white">৳{paymentIntent.feeAmount}</p></div>
                         </div>
-                        <div className="border-t border-violet-300/30 bg-gradient-to-r from-violet-500/10 via-amber-300/10 to-violet-500/10 px-4 py-3 text-center shadow-[inset_0_1px_rgba(196,181,253,.25)]">
+                        <div className="border-t border-violet-400/40 bg-slate-900 px-4 py-3 text-center" style={{ background: 'linear-gradient(90deg, rgba(124,58,237,.18), rgba(245,158,11,.13), rgba(124,58,237,.18))' }}>
                           <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-violet-200">Pay exactly</p>
                           <p className="mt-1 text-3xl font-black tracking-tight text-amber-200 drop-shadow-[0_0_12px_rgba(253,230,138,.35)]">৳{paymentIntent.totalAmount}</p>
                         </div>
                       </div>
 
-                      <div className="rounded-xl border border-white/15 bg-slate-950/45 p-4">
+                      <div className="rounded-xl border border-slate-600 bg-slate-950 p-4">
                         <div className="flex items-center justify-between gap-3">
                           <span className="rounded-full border border-violet-400/30 bg-violet-400/10 px-2.5 py-1 text-[9px] font-black uppercase tracking-wider text-violet-200">{paymentProvider === 'bkash' ? 'bKash' : 'Nagad'} number</span>
-                          <button type="button" onClick={() => navigator.clipboard.writeText(paymentIntent.receivingPhone)} className="flex items-center gap-1 rounded-lg border border-white/15 bg-white/10 px-3 py-2 text-xs font-bold text-white hover:bg-white/15"><Copy className="h-3.5 w-3.5" /> Copy</button>
+                          <button type="button" onClick={() => navigator.clipboard.writeText(paymentIntent.receivingPhone)} className="flex items-center gap-1 rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-xs font-bold text-white hover:bg-slate-700"><Copy className="h-3.5 w-3.5" /> Copy</button>
                         </div>
                         <p className="mt-3 font-mono text-2xl font-black tracking-[0.08em] text-white">{paymentIntent.receivingPhone}</p>
                         <div className="mt-4 grid grid-cols-3 items-start text-center text-[8px] font-bold uppercase tracking-wide text-slate-400">
@@ -686,12 +689,12 @@ export function AccountView({
                       </div>
                     </div>
 
-                    <div className="flex flex-col rounded-xl border border-white/15 bg-white/[0.06] p-4">
+                    <div className="flex flex-col rounded-xl border border-slate-600 bg-slate-800 p-4">
                       <label className="block">
                         <span className="mb-2 block text-[10px] font-bold uppercase tracking-wide text-slate-300">Transaction ID (TrxID)</span>
-                        <input value={paymentTrxId} onChange={(event) => setPaymentTrxId(event.target.value.toUpperCase())} placeholder="Example: DG765H4K9Q" className="w-full rounded-xl border border-violet-300/30 bg-slate-950/60 px-4 py-3 font-mono text-sm uppercase text-white outline-none placeholder:text-slate-500 focus:border-violet-300 focus:ring-2 focus:ring-violet-400/20" />
+                        <input value={paymentTrxId} onChange={(event) => setPaymentTrxId(event.target.value.toUpperCase())} placeholder="Example: DG765H4K9Q" className="w-full rounded-xl border border-violet-400 bg-slate-950 px-4 py-3 font-mono text-sm uppercase text-white outline-none placeholder:text-slate-500 focus:border-violet-300 focus:ring-2 focus:ring-violet-400" />
                       </label>
-                      <div className="mt-3 flex items-center gap-2 rounded-lg border border-white/10 bg-slate-950/35 px-3 py-2 text-[10px] leading-relaxed text-slate-300">
+                      <div className="mt-3 flex items-center gap-2 rounded-lg border border-slate-600 bg-slate-900 px-3 py-2 text-[10px] leading-relaxed text-slate-300">
                         <Clock3 className={`h-4 w-4 shrink-0 ${paymentSecondsLeft <= 120 ? 'text-rose-400' : 'text-violet-300'}`} />
                         Finish within the timer. Cash In payments need a quick manual review.
                       </div>
@@ -702,7 +705,7 @@ export function AccountView({
                         </div>
                       )}
                       <div className="mt-auto pt-4">
-                        <button type="button" disabled={paymentBusy || paymentTrxId.trim().length < 6} onClick={submitPayment} className="w-full rounded-xl border border-violet-300/50 bg-gradient-to-r from-indigo-600 via-violet-600 to-indigo-600 px-4 py-3 text-sm font-bold text-white shadow-[0_0_22px_rgba(124,58,237,.3)] hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-45">
+                        <button type="button" disabled={paymentBusy || paymentTrxId.trim().length < 6} onClick={submitPayment} className="w-full rounded-xl border border-violet-400 bg-violet-600 px-4 py-3 text-sm font-bold text-white hover:bg-violet-500 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-400" style={paymentBusy || paymentTrxId.trim().length < 6 ? undefined : { background: 'linear-gradient(90deg, #4f46e5, #7c3aed, #4f46e5)', boxShadow: '0 0 22px rgba(124,58,237,.3)' }}>
                           {paymentBusy ? 'Checking payment...' : paymentIntent.trxId ? 'Check payment again' : 'I have paid - check payment'}
                         </button>
                         <button type="button" onClick={() => setPaymentIntent(null)} className="mt-2 w-full rounded-xl border border-white/10 px-4 py-2.5 text-xs font-bold text-slate-300 hover:bg-white/5 hover:text-white">Change payment details</button>
