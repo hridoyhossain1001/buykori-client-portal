@@ -233,7 +233,7 @@ export function IncompleteCheckoutsView({ data, onStatusChange, onCreateOrder, o
             Incomplete Checkout Recovery
             <Tooltip content="Incomplete checkout sessions that remain unfinished after the customer entered checkout details." />
           </h2>
-          <p className="mt-1 text-xs text-slate-500">Customers who started checkout but didn't complete. Active ones become incomplete after 20 minutes.</p>
+          <p className="mt-1 text-xs text-slate-500">Customers who start checkout but do not order within 5 minutes appear here.</p>
         </div>
         <button onClick={onRefresh} className="rounded-lg border border-slate-200 px-3 py-2 text-xs font-bold hover:bg-slate-50  ">
           Refresh list
@@ -351,7 +351,7 @@ export function IncompleteCheckoutsView({ data, onStatusChange, onCreateOrder, o
                     <div className="mx-auto flex max-w-sm flex-col items-center gap-2">
                       <Phone className="h-7 w-7 text-slate-300" />
                       <p className="font-bold text-slate-600 ">No recoverable checkouts yet</p>
-                      <p className="text-xs">Customers who leave checkout with a phone number will appear here after 20 minutes.</p>
+                      <p className="text-xs">Customers who leave checkout with a phone number will appear here after 5 minutes.</p>
                     </div>
                   </td>
                 </tr>
