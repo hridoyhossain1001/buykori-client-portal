@@ -63,6 +63,9 @@ interface EventLogsViewProps {
   outboxItems: OutboxItem[];
   retryingOutboxIds: number[];
   handleRetryOutbox: (id: number) => void;
+  loading: boolean;
+  loadError: string | null;
+  onRetry: () => Promise<void>;
 }
 
 export function EventLogsView({
@@ -83,7 +86,10 @@ export function EventLogsView({
   handleExportData,
   outboxItems,
   retryingOutboxIds,
-  handleRetryOutbox
+  handleRetryOutbox,
+  loading,
+  loadError,
+  onRetry
 }: EventLogsViewProps) {
   const failedOutboxItems = outboxItems.filter(item => item.status === 'dead');
 
@@ -277,12 +283,41 @@ export function EventLogsView({
 
       {/* Big full-width searchable logs list */}
       <section aria-labelledby="event-log-results-title" className="min-w-0 rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden flex flex-col  ">
+        {loadError && filteredEventsForTable.length > 0 && (
+          <div className="flex items-center justify-between gap-3 border-b border-amber-200 bg-amber-50 px-4 py-2.5 text-xs text-amber-800" role="alert">
+            <span>Refresh failed. Showing the last event history that loaded successfully.</span>
+            <button type="button" onClick={() => void onRetry()} className="shrink-0 font-bold underline">Try again</button>
+          </div>
+        )}
         <div className="p-4 bg-slate-50/50 border-b border-slate-100   flex justify-between items-center gap-3 text-xs">
           <span className="font-semibold text-slate-500 ">{filteredEventsForTable.length} events matching your search</span>
           <span id="event-log-results-title" className="text-[10px] text-slate-500 ">Showing latest 100 events</span>
         </div>
 
-        {filteredEventsForTable.length === 0 ? (
+        {loading && filteredEventsForTable.length === 0 ? (
+          <div className="p-16 text-center space-y-3" role="status">
+            <Loader2 className="mx-auto h-7 w-7 animate-spin text-indigo-500" />
+            <div>
+              <h4 className="font-bold text-slate-700">Loading event history</h4>
+              <p className="mt-1 text-xs text-slate-400">Getting the latest events for this store.</p>
+            </div>
+          </div>
+        ) : loadError && filteredEventsForTable.length === 0 ? (
+          <div className="p-16 text-center space-y-4" role="alert">
+            <AlertTriangle className="mx-auto h-8 w-8 text-amber-500" />
+            <div>
+              <h4 className="font-bold text-slate-700">Event history could not load</h4>
+              <p className="mx-auto mt-1 max-w-sm text-xs text-slate-400">{loadError}</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => void onRetry()}
+              className="rounded-lg bg-indigo-600 px-4 py-2 text-xs font-bold text-white hover:bg-indigo-700"
+            >
+              Try again
+            </button>
+          </div>
+        ) : filteredEventsForTable.length === 0 ? (
           <div className="p-16 text-center space-y-4">
             <div className="w-12 h-12 rounded-full bg-slate-50  border border-slate-200  flex items-center justify-center mx-auto text-slate-400">
               <ListChecks className="w-6 h-6 text-slate-300" />

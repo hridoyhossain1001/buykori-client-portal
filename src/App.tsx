@@ -159,6 +159,10 @@ export default function App() {
   const [customEventAutomations, setCustomEventAutomations] = useState<CustomEventAutomation[]>([]);
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [events, setEvents] = useState<CAPIEvent[]>([]);
+  const [eventsLoading, setEventsLoading] = useState<boolean>(false);
+  const [eventsLoadError, setEventsLoadError] = useState<string | null>(null);
+  const eventsRequestIdRef = useRef(0);
+  const activePageRef = useRef(activePage);
   const [apiLogs, setApiLogs] = useState<APILog[]>([]);
   const [outboxItems, setOutboxItems] = useState<OutboxItem[]>([]);
   const [retryingOutboxIds, setRetryingOutboxIds] = useState<number[]>([]);
@@ -191,6 +195,7 @@ export default function App() {
   const setActivePage = useCallback((pageId: string) => {
     const nextPage = isClientPageId(pageId) ? pageId : 'dashboard';
     const nextPath = clientPathForPage(nextPage) || '/dashboard';
+    activePageRef.current = nextPage;
     setActivePageState(nextPage);
     setActiveRouteSection(null);
     if (window.location.pathname !== nextPath) {
@@ -262,6 +267,7 @@ export default function App() {
     const handlePopState = () => {
       const route = resolveClientRoute(window.location.pathname);
       if (!route) return;
+      activePageRef.current = route.pageId;
       setActivePageState(route.pageId);
       setActiveRouteSection(route.sectionId);
       setMobileSidebarOpen(false);
@@ -270,6 +276,10 @@ export default function App() {
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
   }, [isPluginConnectRoute]);
+
+  useEffect(() => {
+    activePageRef.current = activePage;
+  }, [activePage]);
 
   useEffect(() => {
     const handleSectionNavigation = (event: Event) => {
@@ -547,50 +557,70 @@ export default function App() {
   };
 
   const fetchEvents = async () => {
-    const [eventsRes, outboxRes] = await Promise.all([
-      fetch('/api/events?limit=100'),
-      fetch('/api/outbox?limit=100'),
-    ]);
-    const eventData = eventsRes.ok ? await eventsRes.json() : { events: [] };
-    const outboxData = outboxRes.ok ? await outboxRes.json() : { items: [] };
-    const loggedEvents: CAPIEvent[] = eventData.events || [];
-    const loggedKeys = new Set(loggedEvents.map(event => event.deduplicationKey));
+    const requestId = ++eventsRequestIdRef.current;
+    setEventsLoading(true);
+    setEventsLoadError(null);
+    try {
+      const [eventsRes, outboxRes] = await Promise.all([
+        fetch('/api/events?limit=100'),
+        fetch('/api/outbox?limit=100'),
+      ]);
+      if (isAuthFailure([eventsRes])) {
+        redirectToClientLogin();
+        return;
+      }
+      if (!eventsRes.ok) {
+        throw new Error(`Event history could not load (${eventsRes.status}).`);
+      }
+      const eventData = await eventsRes.json();
+      const outboxData = outboxRes.ok ? await outboxRes.json() : { items: [] };
+      const loggedEvents: CAPIEvent[] = eventData.events || [];
+      const loggedKeys = new Set(loggedEvents.map(event => event.deduplicationKey));
 
-    const ingestEvents: CAPIEvent[] = (outboxData.items || []).flatMap((item: OutboxItem) =>
-      item.eventNames.map((eventName, index) => {
-        const eventId = item.eventIds[index] || `outbox-${item.id}-${index}`;
-        return {
-          id: `outbox_${item.id}_${index}`,
-          timestamp: item.createdAt,
-          name: eventName,
-          platform: 'Gateway Ingest',
-          status: item.status === 'dead' ? 'Failed' : item.status === 'processing' ? 'Retry' : 'Fired',
-          httpCode: item.status === 'dead' ? 500 : 202,
-          deduplicationKey: eventId,
-          payload: {
-            event_name: eventName,
-            event_id: eventId,
-            source: 'event_outbox',
-            event_count: item.eventCount,
-          },
-          headers: { 'X-Buykori-Queue': item.status },
-          responseBody: {
-            status: item.status,
-            attempts: item.attempts,
-            maxAttempts: item.maxAttempts,
-            nextAttemptAt: item.nextAttemptAt,
-            error: item.lastError || undefined,
-          },
-          latencyMs: null,
-        } as CAPIEvent;
-      })
-    ).filter((event: CAPIEvent) => !loggedKeys.has(event.deduplicationKey));
+      const ingestEvents: CAPIEvent[] = (outboxData.items || []).flatMap((item: OutboxItem) =>
+        item.eventNames.map((eventName, index) => {
+          const eventId = item.eventIds[index] || `outbox-${item.id}-${index}`;
+          return {
+            id: `outbox_${item.id}_${index}`,
+            timestamp: item.createdAt,
+            name: eventName,
+            platform: 'Gateway Ingest',
+            status: item.status === 'dead' ? 'Failed' : item.status === 'processing' ? 'Retry' : 'Fired',
+            httpCode: item.status === 'dead' ? 500 : 202,
+            deduplicationKey: eventId,
+            payload: {
+              event_name: eventName,
+              event_id: eventId,
+              source: 'event_outbox',
+              event_count: item.eventCount,
+            },
+            headers: { 'X-Buykori-Queue': item.status },
+            responseBody: {
+              status: item.status,
+              attempts: item.attempts,
+              maxAttempts: item.maxAttempts,
+              nextAttemptAt: item.nextAttemptAt,
+              error: item.lastError || undefined,
+            },
+            latencyMs: null,
+          } as CAPIEvent;
+        })
+      ).filter((event: CAPIEvent) => !loggedKeys.has(event.deduplicationKey));
 
-    setEvents(
-      [...ingestEvents, ...loggedEvents]
-        .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
-        .slice(0, 200)
-    );
+      if (requestId !== eventsRequestIdRef.current) return;
+      setEvents(
+        [...ingestEvents, ...loggedEvents]
+          .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+          .slice(0, 200)
+      );
+    } catch (error) {
+      if (requestId === eventsRequestIdRef.current) {
+        setEventsLoadError(error instanceof Error ? error.message : 'Event history could not load.');
+      }
+      throw error;
+    } finally {
+      if (requestId === eventsRequestIdRef.current) setEventsLoading(false);
+    }
   };
 
   const fetchApiLogs = async () => {
@@ -705,12 +735,11 @@ export default function App() {
     try {
       // Route-specific payloads load when their workspace opens.
       const [
-        resProf, resConn, resSugg, resLogs, resSidebar, resPlugin, resTrend
+        resProf, resConn, resSugg, resSidebar, resPlugin, resTrend
       ] = await Promise.all([
         fetch('/api/profile'),
         fetch('/api/connection'),
         fetch('/api/suggestions'),
-        fetch(`/api/events?limit=100`),
         fetch('/api/sidebar/status'),
         fetch('/api/v1/plugin/info'),
         fetch(`/api/events/trend?days=${analyticsDays}`)
@@ -728,7 +757,6 @@ export default function App() {
       const dProf = await resProf.json();
       const dConn = await resConn.json();
       const dSugg = resSugg.ok ? await resSugg.json() : [];
-      const dLogs = resLogs.ok ? await resLogs.json() : { events: [] };
       const dSidebar = resSidebar.ok ? await resSidebar.json() : null;
       const dPlugin = resPlugin.ok ? await resPlugin.json() : null;
       const dTrend = resTrend.ok ? await resTrend.json() : { trend: [] };
@@ -736,7 +764,6 @@ export default function App() {
       setProfile(dProf);
       setConnection(dConn);
       setSuggestions(uniqueSuggestions(dSugg));
-      setEvents(dLogs.events);
       setSidebarStatus(dSidebar);
       setPluginReleaseInfo(dPlugin);
       setTrendData(dTrend.trend || []);
@@ -752,7 +779,9 @@ export default function App() {
       setProfWhatsappNumber(dProf.ownerWhatsappNumber || '');
 
       setErrState(null);
-      await loadActivePageData(activePage);
+      await loadActivePageData(activePageRef.current).catch(error => {
+        console.error(`Failed to load ${activePageRef.current} workspace`, error);
+      });
     } catch (e: any) {
       console.error(e);
       setErrState(e.message || "Something went wrong. Please refresh or try again.");
@@ -1920,6 +1949,9 @@ export default function App() {
                 outboxItems={outboxItems}
                 retryingOutboxIds={retryingOutboxIds}
                 handleRetryOutbox={handleRetryOutbox}
+                loading={eventsLoading}
+                loadError={eventsLoadError}
+                onRetry={fetchEvents}
               />
             )}
 
