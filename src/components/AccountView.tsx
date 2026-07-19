@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { CheckCircle2, Clock3, Copy, Loader2, RotateCcw, X } from 'lucide-react';
+import { CheckCircle2, Clock3, Copy, CreditCard, KeyRound, Loader2, ReceiptText, RotateCcw, ShieldAlert, UserRound, WalletCards, X } from 'lucide-react';
 import { UserProfile } from '../types';
 
 const PLAN_PRICING = Object.freeze({
@@ -21,6 +21,24 @@ type PaymentIntent = {
   trxId?: string | null;
   status: string;
   expiresAt: string;
+};
+
+type PaymentHistoryItem = {
+  reference: string;
+  planTier: string;
+  provider: string;
+  baseAmount: string;
+  feeAmount: string;
+  totalAmount: string;
+  currency: string;
+  senderPhone?: string | null;
+  trxId?: string | null;
+  paymentType?: string | null;
+  status: string;
+  createdAt?: string | null;
+  receivedAt?: string | null;
+  reviewedAt?: string | null;
+  isTest: boolean;
 };
 
 interface AccountViewProps {
@@ -97,6 +115,10 @@ export function AccountView({
   const [paymentSecondsLeft, setPaymentSecondsLeft] = useState(0);
   const [paymentFeedback, setPaymentFeedback] = useState('');
   const [paymentSuccess, setPaymentSuccess] = useState<{ title: string; message: string } | null>(null);
+  const [accountSection, setAccountSection] = useState<'profile' | 'security' | 'billing' | 'payments' | 'danger'>('profile');
+  const [paymentHistory, setPaymentHistory] = useState<PaymentHistoryItem[]>([]);
+  const [paymentHistoryLoading, setPaymentHistoryLoading] = useState(false);
+  const [paymentHistoryLoaded, setPaymentHistoryLoaded] = useState(false);
   const paymentBrand = paymentProvider === 'bkash'
     ? { name: 'bKash', primary: '#E2136E', secondary: '#A90052', soft: '#FFF1F7', text: '#9D174D' }
     : { name: 'Nagad', primary: '#D8292F', secondary: '#F37021', soft: '#FFF4ED', text: '#9A3412' };
@@ -202,6 +224,22 @@ export function AccountView({
     return () => window.clearInterval(timer);
   }, [paymentIntent?.reference, paymentIntent?.status, paymentIntent?.trxId]);
 
+  useEffect(() => {
+    if (accountSection !== 'payments' || paymentHistoryLoaded || paymentHistoryLoading) return;
+    setPaymentHistoryLoading(true);
+    fetch('/api/payments/history?limit=100')
+      .then(async (response) => {
+        if (!response.ok) throw new Error(await readApiError(response));
+        return response.json();
+      })
+      .then((payload) => {
+        setPaymentHistory(Array.isArray(payload.payments) ? payload.payments : []);
+        setPaymentHistoryLoaded(true);
+      })
+      .catch((error) => showToast(error instanceof Error ? error.message : 'Could not load payment history.', true))
+      .finally(() => setPaymentHistoryLoading(false));
+  }, [accountSection, paymentHistoryLoaded, paymentHistoryLoading]);
+
   const createPayment = async () => {
     if (!paymentPlan) return;
     setPaymentBusy(true);
@@ -252,14 +290,45 @@ export function AccountView({
     }
   };
 
+  const accountSections = [
+    { id: 'profile' as const, label: 'Profile', icon: UserRound },
+    { id: 'security' as const, label: 'Security', icon: KeyRound },
+    { id: 'billing' as const, label: 'Plan & Billing', icon: WalletCards },
+    { id: 'payments' as const, label: 'Payment History', icon: ReceiptText },
+    { id: 'danger' as const, label: 'Danger Zone', icon: ShieldAlert },
+  ];
+
+  const statusClasses = (paymentStatus: string) => {
+    if (['approved', 'matched'].includes(paymentStatus)) return 'border-emerald-200 bg-emerald-50 text-emerald-700';
+    if (['needs_review', 'ambiguous'].includes(paymentStatus)) return 'border-amber-200 bg-amber-50 text-amber-700';
+    if (paymentStatus === 'pending') return 'border-blue-200 bg-blue-50 text-blue-700';
+    if (['rejected', 'failed'].includes(paymentStatus)) return 'border-rose-200 bg-rose-50 text-rose-700';
+    return 'border-slate-200 bg-slate-50 text-slate-600';
+  };
+
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+    <div className="space-y-6">
+      <div className="rounded-xl border border-slate-200 bg-white p-2 shadow-sm">
+        <div className="flex gap-1 overflow-x-auto" role="tablist" aria-label="Account sections">
+          {accountSections.map((section) => {
+            const Icon = section.icon;
+            const active = accountSection === section.id;
+            return (
+              <button key={section.id} type="button" role="tab" aria-selected={active} onClick={() => setAccountSection(section.id)} className={`flex shrink-0 items-center gap-2 rounded-lg px-3.5 py-2.5 text-xs font-bold transition ${active ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800'}`}>
+                <Icon className="h-4 w-4" /> {section.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className={`grid grid-cols-1 gap-8 ${accountSection === 'billing' ? 'lg:grid-cols-3' : ''}`}>
       
       {/* Edit forms */}
-      <div className="lg:col-span-2 space-y-6">
+      <div className={`${accountSection === 'billing' ? 'lg:col-span-2' : ''} space-y-6`}>
         
         {/* Account detail profile save */}
-        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm  ">
+        {accountSection === 'profile' && <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm  ">
           <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wide mb-4 ">Edit Profile</h3>
           
           <form onSubmit={submitProfileSave} className="space-y-4">
@@ -343,10 +412,10 @@ export function AccountView({
               </button>
             </div>
           </form>
-        </div>
+        </div>}
 
         {/* Password modifier */}
-        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm  ">
+        {accountSection === 'security' && <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm  ">
           <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wide mb-4 ">Change Password</h3>
           
           <div className="space-y-4">
@@ -402,10 +471,10 @@ export function AccountView({
               </button>
             </div>
           </div>
-        </div>
+        </div>}
 
         {/* Danger parameters */}
-        <div className="rounded-xl border border-rose-200 bg-rose-50   p-6 shadow-sm space-y-6">
+        {accountSection === 'danger' && <div className="rounded-xl border border-rose-200 bg-rose-50   p-6 shadow-sm space-y-6">
           <div>
             <h3 className="font-bold text-rose-800  text-sm uppercase tracking-wide">Danger Zone</h3>
             <p className="text-xs text-rose-600  leading-normal mt-0.5">These actions can't be undone. Please confirm carefully.</p>
@@ -464,12 +533,47 @@ export function AccountView({
             </div>
 
           </div>
-        </div>
+        </div>}
+
+        {accountSection === 'payments' && (
+          <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+            <div className="flex flex-col gap-3 border-b border-slate-200 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h3 className="flex items-center gap-2 text-sm font-black uppercase tracking-wide text-slate-800"><ReceiptText className="h-4 w-4 text-indigo-600" /> Payment History</h3>
+                <p className="mt-1 text-xs text-slate-500">Your plan payments, test checks, fees, and current payment status.</p>
+              </div>
+              <button type="button" onClick={() => setPaymentHistoryLoaded(false)} disabled={paymentHistoryLoading} className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-xs font-bold text-slate-600 hover:bg-slate-50 disabled:opacity-50"><RotateCcw className={`h-3.5 w-3.5 ${paymentHistoryLoading ? 'animate-spin' : ''}`} /> Refresh</button>
+            </div>
+            {paymentHistoryLoading ? (
+              <div className="flex items-center justify-center gap-2 px-5 py-14 text-sm text-slate-500"><Loader2 className="h-5 w-5 animate-spin text-indigo-600" /> Loading payment history...</div>
+            ) : paymentHistory.length === 0 ? (
+              <div className="px-5 py-14 text-center"><CreditCard className="mx-auto h-9 w-9 text-slate-300" /><h4 className="mt-3 text-sm font-bold text-slate-800">No payments yet</h4><p className="mt-1 text-xs text-slate-500">Your payment records will appear here after you start a payment.</p></div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[850px] text-left text-xs">
+                  <thead className="bg-slate-50 text-[10px] uppercase tracking-wide text-slate-500"><tr><th className="px-5 py-3">Date</th><th className="px-4 py-3">Plan</th><th className="px-4 py-3">Payment</th><th className="px-4 py-3">Sender / TrxID</th><th className="px-4 py-3">Amount</th><th className="px-5 py-3 text-right">Status</th></tr></thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {paymentHistory.map((payment) => (
+                      <tr key={payment.reference} className="hover:bg-slate-50/70">
+                        <td className="whitespace-nowrap px-5 py-4"><span className="block font-semibold text-slate-700">{payment.createdAt ? new Date(payment.createdAt).toLocaleDateString() : '-'}</span><span className="mt-0.5 block text-[10px] text-slate-400">{payment.createdAt ? new Date(payment.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}</span></td>
+                        <td className="px-4 py-4"><span className="font-bold capitalize text-slate-800">{payment.planTier}</span>{payment.isTest && <span className="ml-2 rounded-full bg-violet-100 px-2 py-0.5 text-[9px] font-bold uppercase text-violet-700">Test</span>}<span className="mt-1 block font-mono text-[9px] text-slate-400">{payment.reference}</span></td>
+                        <td className="px-4 py-4"><span className="font-bold capitalize text-slate-700">{payment.provider}</span><span className="mt-1 block text-[10px] capitalize text-slate-400">{payment.paymentType?.replaceAll('_', ' ') || 'Awaiting SMS'}</span></td>
+                        <td className="px-4 py-4"><span className="block font-mono font-semibold text-slate-700">{payment.senderPhone || '-'}</span><span className="mt-1 block font-mono text-[10px] text-slate-400">{payment.trxId || 'TrxID not submitted'}</span></td>
+                        <td className="px-4 py-4"><span className="font-black text-slate-900">BDT {payment.totalAmount}</span><span className="mt-1 block text-[10px] text-slate-400">Price {payment.baseAmount} + fee {payment.feeAmount}</span></td>
+                        <td className="px-5 py-4 text-right"><span className={`inline-flex rounded-full border px-2.5 py-1 text-[9px] font-black uppercase tracking-wide ${statusClasses(payment.status)}`}>{payment.status.replaceAll('_', ' ')}</span></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
 
       </div>
 
       {/* Left side subscriptions container */}
-      <div className="space-y-6">
+      {accountSection === 'billing' && <div className="space-y-6">
         
         {/* Current Active Plan summary card */}
         <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-4  ">
@@ -613,6 +717,8 @@ export function AccountView({
             </button>
           </div>
         )}
+
+      </div>}
 
       </div>
 

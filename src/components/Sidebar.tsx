@@ -25,6 +25,7 @@ import {
   Check,
   PhoneCall,
   LockKeyhole,
+  UserRound,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { UserProfile } from '../types';
@@ -215,6 +216,7 @@ export function Sidebar({
         { id: 'event-logs', name: 'Event Logs', icon: ListChecks },
         { id: 'api-logs', name: 'API Logs', icon: Terminal },
         { id: 'settings', name: 'Settings', icon: Settings2 },
+        { id: 'account', name: 'Account', icon: UserRound },
       ],
     },
   ];
