@@ -3,6 +3,7 @@ import { Copy, RotateCcw, X } from 'lucide-react';
 import { UserProfile } from '../types';
 
 const PLAN_PRICING = Object.freeze({
+  test: { label: 'Test Payment', events: 'Checks SMS payment only', price: 'BDT 10 + fee' },
   growth: { label: 'Growth Plan', events: '500k Events / mo', price: 'BDT 899 / mo' },
   scale: { label: 'Scale Plan', events: '1M Events / mo', price: 'BDT 2,499 / mo' }
 });
@@ -87,7 +88,7 @@ export function AccountView({
   handleDemoReset,
   showToast
 }: AccountViewProps) {
-  const [paymentPlan, setPaymentPlan] = useState<'growth' | 'scale' | null>(null);
+  const [paymentPlan, setPaymentPlan] = useState<'test' | 'growth' | 'scale' | null>(null);
   const [paymentProvider, setPaymentProvider] = useState<'bkash' | 'nagad'>('bkash');
   const [paymentSender, setPaymentSender] = useState('');
   const [paymentTrxId, setPaymentTrxId] = useState('');
@@ -124,7 +125,7 @@ export function AccountView({
     return typeof payload?.detail === 'string' ? payload.detail : 'Payment request failed. Please try again.';
   };
 
-  const openPayment = (plan: 'growth' | 'scale') => {
+  const openPayment = (plan: 'test' | 'growth' | 'scale') => {
     setPaymentPlan(plan);
     setPaymentIntent(null);
     setPaymentTrxId('');
@@ -518,6 +519,18 @@ export function AccountView({
               </div>
             )}
           </div>
+
+          <div className="rounded-lg border border-dashed border-amber-300 bg-amber-50/70 p-3 text-center">
+            <span className="block text-[10px] font-bold uppercase tracking-wide text-amber-700">Payment system check</span>
+            <p className="mt-1 text-[11px] leading-relaxed text-amber-800">Make a small payment to test SMS matching. This will not change your plan.</p>
+            <button
+              type="button"
+              onClick={() => openPayment('test')}
+              className="mt-2 w-full rounded-lg bg-amber-500 px-3 py-2 text-[11px] font-bold text-white hover:bg-amber-600"
+            >
+              Test with BDT 10 + fee
+            </button>
+          </div>
         </div>
 
         {/* Reset demo sandbox context values widget */}
@@ -547,6 +560,7 @@ export function AccountView({
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-indigo-600">Secure manual payment</p>
                 <h3 className="mt-1 text-lg font-bold text-slate-900">Pay for {PLAN_PRICING[paymentPlan].label}</h3>
+                {paymentPlan === 'test' && <p className="mt-1 text-xs font-medium text-amber-600">Test only. Your active plan will not change.</p>}
               </div>
               <button type="button" onClick={() => setPaymentPlan(null)} className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700" aria-label="Close payment">
                 <X className="h-4 w-4" />
@@ -574,7 +588,7 @@ export function AccountView({
               ) : (
                 <>
                   <div className="grid grid-cols-3 gap-2 rounded-xl border border-slate-200 bg-slate-50 p-3 text-center">
-                    <div><p className="text-[9px] font-bold uppercase text-slate-400">Plan price</p><p className="mt-1 text-sm font-bold">৳{paymentIntent.baseAmount}</p></div>
+                    <div><p className="text-[9px] font-bold uppercase text-slate-400">{paymentPlan === 'test' ? 'Test amount' : 'Plan price'}</p><p className="mt-1 text-sm font-bold">৳{paymentIntent.baseAmount}</p></div>
                     <div><p className="text-[9px] font-bold uppercase text-slate-400">Fee ({paymentIntent.feeRatePercent}%)</p><p className="mt-1 text-sm font-bold">৳{paymentIntent.feeAmount}</p></div>
                     <div><p className="text-[9px] font-bold uppercase text-indigo-500">Pay exactly</p><p className="mt-1 text-sm font-black text-indigo-700">৳{paymentIntent.totalAmount}</p></div>
                   </div>
