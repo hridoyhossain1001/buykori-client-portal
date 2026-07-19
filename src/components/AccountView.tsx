@@ -115,7 +115,7 @@ export function AccountView({
   const [paymentSecondsLeft, setPaymentSecondsLeft] = useState(0);
   const [paymentFeedback, setPaymentFeedback] = useState('');
   const [paymentSuccess, setPaymentSuccess] = useState<{ title: string; message: string } | null>(null);
-  const [accountSection, setAccountSection] = useState<'profile' | 'security' | 'billing' | 'payments' | 'danger'>('profile');
+  const [accountSection, setAccountSection] = useState<'profile' | 'billing' | 'payments' | 'danger'>('profile');
   const [paymentHistory, setPaymentHistory] = useState<PaymentHistoryItem[]>([]);
   const [paymentHistoryLoading, setPaymentHistoryLoading] = useState(false);
   const [paymentHistoryLoaded, setPaymentHistoryLoaded] = useState(false);
@@ -124,7 +124,6 @@ export function AccountView({
     : { name: 'Nagad', primary: '#D8292F', secondary: '#F37021', soft: '#FFF4ED', text: '#9A3412' };
   const paymentExpired = !!paymentIntent && new Date(paymentIntent.expiresAt).getTime() <= Date.now();
   const currentPlanLower = String(profile.plan || '').toLowerCase();
-  const isFreeOrTrial = currentPlanLower.includes('free') || currentPlanLower.includes('trial');
   const isGrowth = currentPlanLower.includes('growth');
   const isScale = currentPlanLower.includes('scale');
   const isAgency = currentPlanLower.includes('agency');
@@ -291,8 +290,7 @@ export function AccountView({
   };
 
   const accountSections = [
-    { id: 'profile' as const, label: 'Profile', icon: UserRound },
-    { id: 'security' as const, label: 'Security', icon: KeyRound },
+    { id: 'profile' as const, label: 'Profile & Security', icon: UserRound },
     { id: 'billing' as const, label: 'Plan & Billing', icon: WalletCards },
     { id: 'payments' as const, label: 'Payment History', icon: ReceiptText },
     { id: 'danger' as const, label: 'Danger Zone', icon: ShieldAlert },
@@ -305,6 +303,33 @@ export function AccountView({
     if (['rejected', 'failed'].includes(paymentStatus)) return 'border-rose-200 bg-rose-50 text-rose-700';
     return 'border-slate-200 bg-slate-50 text-slate-600';
   };
+
+  const statusLabel = (paymentStatus: string) => {
+    if (['approved', 'matched'].includes(paymentStatus)) return 'Paid';
+    if (['needs_review', 'ambiguous'].includes(paymentStatus)) return 'Under review';
+    return paymentStatus.replaceAll('_', ' ');
+  };
+
+  const growthPlanFeatures = [
+    '1 WooCommerce store',
+    'Up to 500,000 tracked events each month',
+    'Meta CAPI, TikTok Events API, and GA4',
+    'Browser and server event deduplication',
+    'Telegram order and recovery alerts',
+    'Incomplete checkout recovery',
+    'Manual courier booking tools',
+    'Up to 60 days of event history',
+  ];
+  const scalePlanFeatures = [
+    'Up to 3 WooCommerce stores',
+    'Up to 1,000,000 tracked events each month',
+    'Everything included in Growth',
+    'Multiple pixels and tracking routes',
+    'Advanced event quality checks',
+    'Higher order and automation capacity',
+    'Priority support and onboarding help',
+    'Up to 60 days of event history',
+  ];
 
   return (
     <div className="space-y-6">
@@ -322,13 +347,25 @@ export function AccountView({
         </div>
       </div>
 
-      <div className={`grid grid-cols-1 gap-8 ${accountSection === 'billing' ? 'lg:grid-cols-3' : ''}`}>
+      <div className="grid grid-cols-1 gap-8">
       
       {/* Edit forms */}
-      <div className={`${accountSection === 'billing' ? 'lg:col-span-2' : ''} space-y-6`}>
+      <div className={`${accountSection === 'billing' ? 'hidden' : ''} space-y-6`}>
         
         {/* Account detail profile save */}
         {accountSection === 'profile' && <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm  ">
+          <div className="mb-6 grid gap-4 rounded-xl border border-indigo-100 bg-gradient-to-r from-indigo-50 to-violet-50 p-5 md:grid-cols-[auto_1fr] md:items-center">
+            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-600 to-violet-600 text-2xl font-black uppercase text-white shadow-lg shadow-indigo-200">{(profile.name || profile.email || 'A').trim().charAt(0)}</div>
+            <div>
+              <div className="flex flex-wrap items-center gap-2"><h3 className="text-lg font-black text-slate-900">{profile.name || 'Your account'}</h3><span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[9px] font-black uppercase tracking-wide text-emerald-700">Active account</span></div>
+              <p className="mt-1 text-xs text-slate-600">{profile.email}</p>
+              <div className="mt-3 grid gap-2 sm:grid-cols-3">
+                <div className="rounded-lg bg-white/80 px-3 py-2"><span className="block text-[9px] font-bold uppercase text-slate-400">Current plan</span><strong className="mt-1 block text-xs text-slate-800">{profile.plan}</strong></div>
+                <div className="rounded-lg bg-white/80 px-3 py-2"><span className="block text-[9px] font-bold uppercase text-slate-400">Notification email</span><strong className="mt-1 block truncate text-xs text-slate-800">{profile.notificationEmail || profile.email}</strong></div>
+                <div className="rounded-lg bg-white/80 px-3 py-2"><span className="block text-[9px] font-bold uppercase text-slate-400">Monthly usage</span><strong className="mt-1 block text-xs text-slate-800">{profile.eventsUsed.toLocaleString()} / {profile.eventsQuota.toLocaleString()}</strong></div>
+              </div>
+            </div>
+          </div>
           <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wide mb-4 ">Edit Profile</h3>
           
           <form onSubmit={submitProfileSave} className="space-y-4">
@@ -415,8 +452,9 @@ export function AccountView({
         </div>}
 
         {/* Password modifier */}
-        {accountSection === 'security' && <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm  ">
-          <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wide mb-4 ">Change Password</h3>
+        {accountSection === 'profile' && <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm  ">
+          <h3 className="mb-1 flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-slate-800"><KeyRound className="h-4 w-4 text-indigo-600" /> Change Password</h3>
+          <p className="mb-4 text-xs text-slate-500">Keep your account secure with a password you do not use on other websites.</p>
           
           <div className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -560,7 +598,7 @@ export function AccountView({
                         <td className="px-4 py-4"><span className="font-bold capitalize text-slate-700">{payment.provider}</span><span className="mt-1 block text-[10px] capitalize text-slate-400">{payment.paymentType?.replaceAll('_', ' ') || 'Awaiting SMS'}</span></td>
                         <td className="px-4 py-4"><span className="block font-mono font-semibold text-slate-700">{payment.senderPhone || '-'}</span><span className="mt-1 block font-mono text-[10px] text-slate-400">{payment.trxId || 'TrxID not submitted'}</span></td>
                         <td className="px-4 py-4"><span className="font-black text-slate-900">BDT {payment.totalAmount}</span><span className="mt-1 block text-[10px] text-slate-400">Price {payment.baseAmount} + fee {payment.feeAmount}</span></td>
-                        <td className="px-5 py-4 text-right"><span className={`inline-flex rounded-full border px-2.5 py-1 text-[9px] font-black uppercase tracking-wide ${statusClasses(payment.status)}`}>{payment.status.replaceAll('_', ' ')}</span></td>
+                        <td className="px-5 py-4 text-right"><span className={`inline-flex rounded-full border px-2.5 py-1 text-[9px] font-black uppercase tracking-wide ${statusClasses(payment.status)}`}>{statusLabel(payment.status)}</span></td>
                       </tr>
                     ))}
                   </tbody>
@@ -576,7 +614,18 @@ export function AccountView({
       {accountSection === 'billing' && <div className="space-y-6">
         
         {/* Current Active Plan summary card */}
-        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-4  ">
+        <div className="space-y-6 rounded-xl border border-slate-200 bg-white p-6 shadow-sm lg:p-8">
+          <div>
+            <span className="block text-[10px] font-bold uppercase tracking-wider text-indigo-600">Plan & Billing</span>
+            <h3 className="mt-1 text-xl font-black text-slate-900">Your plan and available upgrades</h3>
+            <p className="mt-1 text-xs text-slate-500">Review your usage and compare Growth with Scale in simple terms.</p>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="rounded-xl border border-indigo-100 bg-indigo-50 p-4"><span className="text-[9px] font-bold uppercase tracking-wide text-indigo-500">Current plan</span><strong className="mt-1 block text-base text-slate-900">{profile.plan}</strong></div>
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-4"><span className="text-[9px] font-bold uppercase tracking-wide text-slate-400">Renewal date</span><strong className="mt-1 block text-sm text-slate-800">{profile.renewalDate || 'Not scheduled'}</strong></div>
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-4"><span className="text-[9px] font-bold uppercase tracking-wide text-slate-400">Monthly usage</span><strong className="mt-1 block text-sm text-slate-800">{profile.eventsUsed.toLocaleString()} / {profile.eventsQuota.toLocaleString()}</strong></div>
+            <div className="rounded-xl border border-emerald-100 bg-emerald-50 p-4"><span className="text-[9px] font-bold uppercase tracking-wide text-emerald-600">Tracking protection</span><strong className="mt-1 block text-sm text-emerald-800">Fully enabled</strong></div>
+          </div>
           <div>
             <span className="text-[10px] font-bold text-indigo-600  uppercase tracking-wider block">Your Plan</span>
             <h3 className="text-lg font-bold text-slate-800  mt-1">{profile.plan}</h3>
@@ -629,62 +678,24 @@ export function AccountView({
           <div className="h-px bg-slate-100 " />
 
           <div>
-            <span className="block text-[10px] font-bold text-slate-400  uppercase tracking-wide mb-2">Upgrade Plan</span>
-            {isScale ? (
-              <div className="p-4 border border-indigo-200  rounded bg-indigo-50/20  text-center space-y-2">
-                <span className="font-bold text-slate-800  block text-xs uppercase tracking-wide">You are on our highest standard plan</span>
-                <p className="text-[11px] text-slate-500  leading-relaxed">For custom event volume, extra tracking routes, or higher usage limits, please contact support.</p>
-                <button 
-                  onClick={() => showToast("Custom billing requests are not automated here. Contact support@buykori.app.", true)}
-                  className="w-full py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded font-semibold text-[10px] cursor-pointer shadow-sm transition-colors"
-                  type="button"
-                >
-                  Contact Enterprise Support
-                </button>
-              </div>
-            ) : isAgency ? (
-              <div className="p-4 border border-slate-200  rounded bg-slate-50/50  text-center space-y-2">
-                <span className="font-bold text-slate-800  block text-xs uppercase tracking-wide">Active Premium Agency Plan</span>
-                <p className="text-[11px] text-slate-500  leading-relaxed">Your account is configured with a customized event volume capacity.</p>
-                <button 
-                  onClick={() => showToast("Contact support@buykori.app for any plan modifications.", true)}
-                  className="w-full py-1.5 bg-slate-800 hover:bg-slate-900 text-white rounded font-semibold text-[10px] cursor-pointer shadow-sm transition-colors"
-                  type="button"
-                >
-                  Contact Support
-                </button>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-center text-xs">
-                {isFreeOrTrial && (
-                  <div className="p-3 border border-indigo-200  rounded bg-indigo-50/50  flex flex-col justify-between">
-                    <span className="font-bold text-slate-800  leading-none">{PLAN_PRICING.growth.label}</span>
-                    <span className="text-[10px] text-indigo-600  mt-1 leading-none">{PLAN_PRICING.growth.events}</span>
-                    <span className="text-xs font-mono font-extrabold mt-3 text-indigo-700 ">{PLAN_PRICING.growth.price}</span>
-                    <button 
-                      onClick={() => openPayment('growth')}
-                      className="mt-3 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded font-semibold text-[10px] cursor-pointer"
-                      type="button"
-                    >
-                      Upgrade Plan
-                    </button>
+            <div className="mb-3"><span className="block text-[10px] font-bold uppercase tracking-wide text-slate-400">Compare plans</span><h4 className="mt-1 text-base font-black text-slate-900">Growth or Scale</h4></div>
+            <div className="grid gap-4 lg:grid-cols-2">
+              {[
+                { tier: 'growth' as const, label: 'Growth Plan', events: '500K events / month', price: 'BDT 899 / month', features: growthPlanFeatures, active: isGrowth },
+                { tier: 'scale' as const, label: 'Scale Plan', events: '1M events / month', price: 'BDT 2,499 / month', features: scalePlanFeatures, active: isScale },
+              ].map((plan) => (
+                <div key={plan.tier} className={`flex flex-col rounded-2xl border p-5 ${plan.tier === 'growth' ? 'border-indigo-200 bg-gradient-to-br from-indigo-50 to-white' : 'border-slate-200 bg-gradient-to-br from-slate-50 to-white'}`}>
+                  <div className="flex items-start justify-between gap-3">
+                    <div><span className={`text-[10px] font-black uppercase tracking-wider ${plan.tier === 'growth' ? 'text-indigo-600' : 'text-slate-500'}`}>{plan.events}</span><h5 className="mt-1 text-xl font-black text-slate-900">{plan.label}</h5><p className="mt-1 font-mono text-sm font-black text-slate-700">{plan.price}</p></div>
+                    {plan.active && <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-[9px] font-black uppercase text-emerald-700">Current</span>}
                   </div>
-                )}
-                
-                <div className="p-3 border border-slate-200  rounded hover:bg-slate-50  flex flex-col justify-between">
-                  <span className="font-bold text-slate-800  leading-none">{PLAN_PRICING.scale.label}</span>
-                  <span className="text-[10px] text-slate-400  mt-1 leading-none font-medium">{PLAN_PRICING.scale.events}</span>
-                  <span className="text-xs font-mono font-extrabold mt-3 text-slate-700 ">{PLAN_PRICING.scale.price}</span>
-                  <button 
-                    onClick={() => openPayment('scale')}
-                    className="mt-3 py-1 bg-slate-800 hover:bg-slate-900   text-white rounded font-semibold text-[10px] cursor-pointer"
-                    type="button"
-                  >
-                    Upgrade Plan
-                  </button>
+                  <div className="mt-5 grid gap-2 sm:grid-cols-2">
+                    {plan.features.map((feature) => <div key={feature} className="flex items-start gap-2 text-xs leading-relaxed text-slate-600"><CheckCircle2 className={`mt-0.5 h-4 w-4 shrink-0 ${plan.tier === 'growth' ? 'text-indigo-600' : 'text-emerald-600'}`} /><span>{feature}</span></div>)}
+                  </div>
+                  <button type="button" disabled={plan.active || isAgency} onClick={() => openPayment(plan.tier)} className={`mt-6 w-full rounded-xl px-4 py-3 text-xs font-black text-white transition disabled:cursor-default disabled:bg-emerald-600 ${plan.tier === 'growth' ? 'bg-indigo-600 hover:bg-indigo-700' : 'bg-slate-900 hover:bg-slate-800'}`}>{plan.active ? 'Your current plan' : isAgency ? 'Managed by support' : `Choose ${plan.label}`}</button>
                 </div>
-              </div>
-            )}
+              ))}
+            </div>
           </div>
 
           <div className="rounded-lg border border-dashed border-amber-300 bg-amber-50/70 p-3 text-center">
