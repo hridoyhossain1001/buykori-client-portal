@@ -1,11 +1,26 @@
-import React from 'react';
-import { RotateCcw } from 'lucide-react';
+import React, { useState } from 'react';
+import { Copy, RotateCcw, X } from 'lucide-react';
 import { UserProfile } from '../types';
 
 const PLAN_PRICING = Object.freeze({
   growth: { label: 'Growth Plan', events: '500k Events / mo', price: 'BDT 899 / mo' },
   scale: { label: 'Scale Plan', events: '1M Events / mo', price: 'BDT 2,499 / mo' }
 });
+
+type PaymentIntent = {
+  reference: string;
+  planTier: string;
+  baseAmount: string;
+  feeRatePercent: string;
+  feeAmount: string;
+  totalAmount: string;
+  provider: string;
+  senderPhone: string;
+  receivingPhone: string;
+  trxId?: string | null;
+  status: string;
+  expiresAt: string;
+};
 
 interface AccountViewProps {
   profile: UserProfile;
@@ -72,6 +87,12 @@ export function AccountView({
   handleDemoReset,
   showToast
 }: AccountViewProps) {
+  const [paymentPlan, setPaymentPlan] = useState<'growth' | 'scale' | null>(null);
+  const [paymentProvider, setPaymentProvider] = useState<'bkash' | 'nagad'>('bkash');
+  const [paymentSender, setPaymentSender] = useState('');
+  const [paymentTrxId, setPaymentTrxId] = useState('');
+  const [paymentIntent, setPaymentIntent] = useState<PaymentIntent | null>(null);
+  const [paymentBusy, setPaymentBusy] = useState(false);
   const currentPlanLower = String(profile.plan || '').toLowerCase();
   const isFreeOrTrial = currentPlanLower.includes('free') || currentPlanLower.includes('trial');
   const isGrowth = currentPlanLower.includes('growth');
@@ -97,6 +118,75 @@ export function AccountView({
   
   const isDemo = window.location.hostname.includes('localhost') || 
                  window.location.hostname.includes('127.0.0.1');
+
+  const readApiError = async (response: Response) => {
+    const payload = await response.json().catch(() => ({}));
+    return typeof payload?.detail === 'string' ? payload.detail : 'Payment request failed. Please try again.';
+  };
+
+  const openPayment = (plan: 'growth' | 'scale') => {
+    setPaymentPlan(plan);
+    setPaymentIntent(null);
+    setPaymentTrxId('');
+  };
+
+  const createPayment = async () => {
+    if (!paymentPlan) return;
+    setPaymentBusy(true);
+    try {
+      const response = await fetch('/api/payments/intents', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ planTier: paymentPlan, senderPhone: paymentSender, provider: paymentProvider }),
+      });
+      if (!response.ok) throw new Error(await readApiError(response));
+      const payload = await response.json();
+      setPaymentIntent(payload.payment);
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'Could not create payment request.', true);
+    } finally {
+      setPaymentBusy(false);
+    }
+  };
+
+  const submitPayment = async () => {
+    if (!paymentIntent) return;
+    setPaymentBusy(true);
+    try {
+      const response = await fetch(`/api/payments/intents/${encodeURIComponent(paymentIntent.reference)}/submit`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ trxId: paymentTrxId }),
+      });
+      if (!response.ok) throw new Error(await readApiError(response));
+      const payload = await response.json();
+      setPaymentIntent(payload.payment);
+      showToast('Transaction submitted. We will update the plan after payment review.');
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'Could not submit transaction.', true);
+    } finally {
+      setPaymentBusy(false);
+    }
+  };
+
+  const checkPayment = async () => {
+    setPaymentBusy(true);
+    try {
+      const response = await fetch('/api/payments/intents/latest');
+      if (!response.ok) throw new Error(await readApiError(response));
+      const payload = await response.json();
+      if (payload.payment) setPaymentIntent(payload.payment);
+      if (payload.payment?.status === 'approved') {
+        showToast('Payment approved. Your plan is active.');
+      } else {
+        showToast(`Payment status: ${String(payload.payment?.status || 'pending').replaceAll('_', ' ')}`);
+      }
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'Could not check payment status.', true);
+    } finally {
+      setPaymentBusy(false);
+    }
+  };
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -404,7 +494,7 @@ export function AccountView({
                     <span className="text-[10px] text-indigo-600  mt-1 leading-none">{PLAN_PRICING.growth.events}</span>
                     <span className="text-xs font-mono font-extrabold mt-3 text-indigo-700 ">{PLAN_PRICING.growth.price}</span>
                     <button 
-                      onClick={() => showToast("Billing checkout is not connected yet. Contact support@buykori.app to upgrade.", true)}
+                      onClick={() => openPayment('growth')}
                       className="mt-3 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded font-semibold text-[10px] cursor-pointer"
                       type="button"
                     >
@@ -418,7 +508,7 @@ export function AccountView({
                   <span className="text-[10px] text-slate-400  mt-1 leading-none font-medium">{PLAN_PRICING.scale.events}</span>
                   <span className="text-xs font-mono font-extrabold mt-3 text-slate-700 ">{PLAN_PRICING.scale.price}</span>
                   <button 
-                    onClick={() => showToast("Billing checkout is not connected yet. Contact support@buykori.app to upgrade.", true)}
+                    onClick={() => openPayment('scale')}
                     className="mt-3 py-1 bg-slate-800 hover:bg-slate-900   text-white rounded font-semibold text-[10px] cursor-pointer"
                     type="button"
                   >
@@ -449,6 +539,75 @@ export function AccountView({
         )}
 
       </div>
+
+      {paymentPlan && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/55 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-label="Plan payment">
+          <div className="w-full max-w-lg overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl">
+            <div className="flex items-start justify-between border-b border-slate-100 px-5 py-4">
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-indigo-600">Secure manual payment</p>
+                <h3 className="mt-1 text-lg font-bold text-slate-900">Pay for {PLAN_PRICING[paymentPlan].label}</h3>
+              </div>
+              <button type="button" onClick={() => setPaymentPlan(null)} className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700" aria-label="Close payment">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="space-y-4 p-5">
+              {!paymentIntent ? (
+                <>
+                  <div className="rounded-xl border border-indigo-100 bg-indigo-50 p-4 text-xs text-slate-700">
+                    Enter the number you will pay from. We use it with the transaction ID to find the correct payment.
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <button type="button" onClick={() => setPaymentProvider('bkash')} className={`rounded-xl border px-4 py-3 text-sm font-bold ${paymentProvider === 'bkash' ? 'border-pink-500 bg-pink-50 text-pink-700' : 'border-slate-200 text-slate-600'}`}>bKash</button>
+                    <button type="button" onClick={() => setPaymentProvider('nagad')} className={`rounded-xl border px-4 py-3 text-sm font-bold ${paymentProvider === 'nagad' ? 'border-orange-500 bg-orange-50 text-orange-700' : 'border-slate-200 text-slate-600'}`}>Nagad</button>
+                  </div>
+                  <label className="block">
+                    <span className="mb-1 block text-[10px] font-bold uppercase tracking-wide text-slate-500">Your sender phone</span>
+                    <input value={paymentSender} onChange={(event) => setPaymentSender(event.target.value)} inputMode="tel" placeholder="01XXXXXXXXX" className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-indigo-500" />
+                  </label>
+                  <button type="button" disabled={paymentBusy} onClick={createPayment} className="w-full rounded-xl bg-indigo-600 px-4 py-3 text-sm font-bold text-white hover:bg-indigo-700 disabled:opacity-60">
+                    {paymentBusy ? 'Creating payment...' : 'Show payment amount'}
+                  </button>
+                </>
+              ) : (
+                <>
+                  <div className="grid grid-cols-3 gap-2 rounded-xl border border-slate-200 bg-slate-50 p-3 text-center">
+                    <div><p className="text-[9px] font-bold uppercase text-slate-400">Plan price</p><p className="mt-1 text-sm font-bold">৳{paymentIntent.baseAmount}</p></div>
+                    <div><p className="text-[9px] font-bold uppercase text-slate-400">Fee ({paymentIntent.feeRatePercent}%)</p><p className="mt-1 text-sm font-bold">৳{paymentIntent.feeAmount}</p></div>
+                    <div><p className="text-[9px] font-bold uppercase text-indigo-500">Pay exactly</p><p className="mt-1 text-sm font-black text-indigo-700">৳{paymentIntent.totalAmount}</p></div>
+                  </div>
+                  <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4">
+                    <p className="text-[10px] font-bold uppercase tracking-wide text-emerald-700">Send money to this {paymentProvider === 'bkash' ? 'bKash' : 'Nagad'} number</p>
+                    <div className="mt-2 flex items-center justify-between gap-3">
+                      <span className="font-mono text-xl font-black tracking-wide text-slate-900">{paymentIntent.receivingPhone}</span>
+                      <button type="button" onClick={() => navigator.clipboard.writeText(paymentIntent.receivingPhone)} className="flex items-center gap-1 rounded-lg border border-emerald-200 bg-white px-3 py-2 text-xs font-bold text-emerald-700"><Copy className="h-3.5 w-3.5" /> Copy</button>
+                    </div>
+                    <p className="mt-2 text-[11px] text-emerald-800">This request is valid for 30 minutes. Personal Send Money and agent Cash In are accepted; Cash In is reviewed manually.</p>
+                  </div>
+                  <label className="block">
+                    <span className="mb-1 block text-[10px] font-bold uppercase tracking-wide text-slate-500">Transaction ID (TrxID)</span>
+                    <input value={paymentTrxId} onChange={(event) => setPaymentTrxId(event.target.value.toUpperCase())} placeholder="Example: DG765H4K9Q" className="w-full rounded-xl border border-slate-200 px-4 py-3 font-mono text-sm uppercase outline-none focus:border-indigo-500" />
+                  </label>
+                  <div className="flex gap-3">
+                    <button type="button" onClick={() => setPaymentIntent(null)} className="rounded-xl border border-slate-200 px-4 py-3 text-xs font-bold text-slate-600">Start again</button>
+                    <button type="button" disabled={paymentBusy || paymentTrxId.trim().length < 6} onClick={submitPayment} className="flex-1 rounded-xl bg-indigo-600 px-4 py-3 text-sm font-bold text-white hover:bg-indigo-700 disabled:opacity-50">
+                      {paymentBusy ? 'Submitting...' : paymentIntent.trxId ? 'Update TrxID' : 'I have paid - submit TrxID'}
+                    </button>
+                  </div>
+                  {paymentIntent.trxId && (
+                    <button type="button" disabled={paymentBusy} onClick={checkPayment} className="w-full rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-2.5 text-xs font-bold text-indigo-700 hover:bg-indigo-100 disabled:opacity-50">
+                      Check payment status · {paymentIntent.status.replaceAll('_', ' ')}
+                    </button>
+                  )}
+                  <p className="text-center text-[10px] text-slate-400">Reference: {paymentIntent.reference}</p>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

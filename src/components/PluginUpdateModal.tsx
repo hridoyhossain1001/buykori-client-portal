@@ -43,7 +43,7 @@ export function PluginUpdateModal({
             </span>
             <div>
               <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-indigo-100">WordPress plugin update</p>
-              <h2 id="plugin-update-title" className="mt-0.5 text-base font-black leading-snug">A new version is ready</h2>
+              <h2 id="plugin-update-title" className="mt-0.5 text-base font-black leading-snug">A new Buykori AdSync version is ready</h2>
             </div>
           </div>
         </div>
