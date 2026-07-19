@@ -614,19 +614,32 @@ export function AccountView({
 
       {paymentPlan && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/55 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-label="Plan payment">
-          <div className="w-full max-w-lg overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl">
-            <div className="flex items-start justify-between border-b border-slate-100 px-5 py-4">
+          <div className={`relative w-full overflow-hidden rounded-2xl shadow-2xl ${paymentIntent ? 'max-w-2xl border border-slate-600 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-950 text-white' : 'max-w-lg border border-slate-200 bg-white'}`}>
+            {paymentIntent && <div className="pointer-events-none absolute inset-0 opacity-30 [background-image:radial-gradient(circle_at_12%_12%,rgba(139,92,246,.35),transparent_28%),radial-gradient(circle_at_88%_86%,rgba(245,158,11,.18),transparent_30%)]" />}
+            <div className={`relative flex items-start justify-between px-5 py-4 ${paymentIntent ? 'border-b border-white/10' : 'border-b border-slate-100'}`}>
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-indigo-600">Secure manual payment</p>
-                <h3 className="mt-1 text-lg font-bold text-slate-900">Pay for {PLAN_PRICING[paymentPlan].label}</h3>
-                {paymentPlan === 'test' && <p className="mt-1 text-xs font-medium text-amber-600">Test only. Your active plan will not change.</p>}
+                <p className={`text-[10px] font-bold uppercase tracking-[0.2em] ${paymentIntent ? 'text-violet-300' : 'text-indigo-600'}`}>Secure manual payment</p>
+                <h3 className={`mt-1 text-lg font-bold ${paymentIntent ? 'text-white' : 'text-slate-900'}`}>Pay for {PLAN_PRICING[paymentPlan].label}</h3>
+                {paymentPlan === 'test' && <p className={`mt-1 text-xs font-medium ${paymentIntent ? 'text-amber-300' : 'text-amber-600'}`}>Test only. Your active plan will not change.</p>}
               </div>
-              <button type="button" onClick={() => setPaymentPlan(null)} className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700" aria-label="Close payment">
-                <X className="h-4 w-4" />
-              </button>
+              <div className="flex items-start gap-3">
+                {paymentIntent && (
+                  <div
+                    className="flex h-16 w-16 items-center justify-center rounded-full p-1 shadow-[0_0_24px_rgba(139,92,246,.35)]"
+                    style={{ background: `conic-gradient(#a78bfa ${Math.min(100, (paymentSecondsLeft / 600) * 100)}%, #334155 0)` }}
+                  >
+                    <div className="flex h-full w-full items-center justify-center rounded-full border border-white/20 bg-slate-950 font-mono text-base font-black text-white">
+                      {String(Math.floor(paymentSecondsLeft / 60)).padStart(2, '0')}:{String(paymentSecondsLeft % 60).padStart(2, '0')}
+                    </div>
+                  </div>
+                )}
+                <button type="button" onClick={() => setPaymentPlan(null)} className={`rounded-lg p-2 ${paymentIntent ? 'text-slate-400 hover:bg-white/10 hover:text-white' : 'text-slate-400 hover:bg-slate-100 hover:text-slate-700'}`} aria-label="Close payment">
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
             </div>
 
-            <div className="space-y-4 p-5">
+            <div className="relative space-y-4 p-5">
               {!paymentIntent ? (
                 <>
                   <div className="rounded-xl border border-indigo-100 bg-indigo-50 p-4 text-xs text-slate-700">
@@ -646,47 +659,65 @@ export function AccountView({
                 </>
               ) : (
                 <>
-                  <div className="grid grid-cols-3 gap-2 rounded-xl border border-slate-200 bg-slate-50 p-3 text-center">
-                    <div><p className="text-[9px] font-bold uppercase text-slate-400">{paymentPlan === 'test' ? 'Test amount' : 'Plan price'}</p><p className="mt-1 text-sm font-bold">৳{paymentIntent.baseAmount}</p></div>
-                    <div><p className="text-[9px] font-bold uppercase text-slate-400">Fee ({paymentIntent.feeRatePercent}%)</p><p className="mt-1 text-sm font-bold">৳{paymentIntent.feeAmount}</p></div>
-                    <div><p className="text-[9px] font-bold uppercase text-indigo-500">Pay exactly</p><p className="mt-1 text-sm font-black text-indigo-700">৳{paymentIntent.totalAmount}</p></div>
-                  </div>
-                  <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4">
-                    <p className="text-[10px] font-bold uppercase tracking-wide text-emerald-700">Send money to this {paymentProvider === 'bkash' ? 'bKash' : 'Nagad'} number</p>
-                    <div className="mt-2 flex items-center justify-between gap-3">
-                      <span className="font-mono text-xl font-black tracking-wide text-slate-900">{paymentIntent.receivingPhone}</span>
-                      <button type="button" onClick={() => navigator.clipboard.writeText(paymentIntent.receivingPhone)} className="flex items-center gap-1 rounded-lg border border-emerald-200 bg-white px-3 py-2 text-xs font-bold text-emerald-700"><Copy className="h-3.5 w-3.5" /> Copy</button>
+                  <div className="grid gap-4 md:grid-cols-[1.08fr_.92fr]">
+                    <div className="space-y-4">
+                      <div className="overflow-hidden rounded-xl border border-white/20 bg-white/[0.07] shadow-inner">
+                        <div className="grid grid-cols-2 divide-x divide-white/10 text-center">
+                          <div className="px-3 py-3"><p className="text-[9px] font-bold uppercase tracking-wide text-slate-400">{paymentPlan === 'test' ? 'Test amount' : 'Plan price'}</p><p className="mt-1 text-base font-bold text-white">৳{paymentIntent.baseAmount}</p></div>
+                          <div className="px-3 py-3"><p className="text-[9px] font-bold uppercase tracking-wide text-slate-400">Fee ({paymentIntent.feeRatePercent}%)</p><p className="mt-1 text-base font-bold text-white">৳{paymentIntent.feeAmount}</p></div>
+                        </div>
+                        <div className="border-t border-violet-300/30 bg-gradient-to-r from-violet-500/10 via-amber-300/10 to-violet-500/10 px-4 py-3 text-center shadow-[inset_0_1px_rgba(196,181,253,.25)]">
+                          <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-violet-200">Pay exactly</p>
+                          <p className="mt-1 text-3xl font-black tracking-tight text-amber-200 drop-shadow-[0_0_12px_rgba(253,230,138,.35)]">৳{paymentIntent.totalAmount}</p>
+                        </div>
+                      </div>
+
+                      <div className="rounded-xl border border-white/15 bg-slate-950/45 p-4">
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="rounded-full border border-violet-400/30 bg-violet-400/10 px-2.5 py-1 text-[9px] font-black uppercase tracking-wider text-violet-200">{paymentProvider === 'bkash' ? 'bKash' : 'Nagad'} number</span>
+                          <button type="button" onClick={() => navigator.clipboard.writeText(paymentIntent.receivingPhone)} className="flex items-center gap-1 rounded-lg border border-white/15 bg-white/10 px-3 py-2 text-xs font-bold text-white hover:bg-white/15"><Copy className="h-3.5 w-3.5" /> Copy</button>
+                        </div>
+                        <p className="mt-3 font-mono text-2xl font-black tracking-[0.08em] text-white">{paymentIntent.receivingPhone}</p>
+                        <div className="mt-4 grid grid-cols-3 items-start text-center text-[8px] font-bold uppercase tracking-wide text-slate-400">
+                          <div><span className="mx-auto mb-1 block h-3 w-3 rounded-full border-2 border-violet-300 bg-violet-400" />Initiated</div>
+                          <div><span className="mx-auto mb-1 block h-3 w-3 rounded-full border-2 border-violet-200 bg-violet-300 shadow-[0_0_12px_#a78bfa]" />Send money</div>
+                          <div><span className={`mx-auto mb-1 block h-3 w-3 rounded-full border-2 ${paymentIntent.status === 'pending' ? 'border-slate-500 bg-slate-700' : 'border-emerald-300 bg-emerald-400'}`} />Confirmation</div>
+                        </div>
+                      </div>
                     </div>
-                    <div className="mt-3 flex items-center justify-between rounded-lg border border-emerald-200 bg-white/80 px-3 py-2">
-                      <span className="flex items-center gap-1.5 text-[11px] font-semibold text-emerald-800"><Clock3 className="h-3.5 w-3.5" /> Complete payment within</span>
-                      <span className={`font-mono text-sm font-black ${paymentSecondsLeft <= 120 ? 'text-rose-600' : 'text-emerald-700'}`}>
-                        {String(Math.floor(paymentSecondsLeft / 60)).padStart(2, '0')}:{String(paymentSecondsLeft % 60).padStart(2, '0')}
-                      </span>
+
+                    <div className="flex flex-col rounded-xl border border-white/15 bg-white/[0.06] p-4">
+                      <label className="block">
+                        <span className="mb-2 block text-[10px] font-bold uppercase tracking-wide text-slate-300">Transaction ID (TrxID)</span>
+                        <input value={paymentTrxId} onChange={(event) => setPaymentTrxId(event.target.value.toUpperCase())} placeholder="Example: DG765H4K9Q" className="w-full rounded-xl border border-violet-300/30 bg-slate-950/60 px-4 py-3 font-mono text-sm uppercase text-white outline-none placeholder:text-slate-500 focus:border-violet-300 focus:ring-2 focus:ring-violet-400/20" />
+                      </label>
+                      <div className="mt-3 flex items-center gap-2 rounded-lg border border-white/10 bg-slate-950/35 px-3 py-2 text-[10px] leading-relaxed text-slate-300">
+                        <Clock3 className={`h-4 w-4 shrink-0 ${paymentSecondsLeft <= 120 ? 'text-rose-400' : 'text-violet-300'}`} />
+                        Finish within the timer. Cash In payments need a quick manual review.
+                      </div>
+                      {paymentFeedback && (
+                        <div className="mt-3 flex items-start gap-2 rounded-lg border border-blue-300/25 bg-blue-400/10 px-3 py-2.5 text-[11px] leading-relaxed text-blue-100">
+                          <Loader2 className="mt-0.5 h-4 w-4 shrink-0 animate-spin" />
+                          <span>{paymentFeedback} We will check automatically.</span>
+                        </div>
+                      )}
+                      <div className="mt-auto pt-4">
+                        <button type="button" disabled={paymentBusy || paymentTrxId.trim().length < 6} onClick={submitPayment} className="w-full rounded-xl border border-violet-300/50 bg-gradient-to-r from-indigo-600 via-violet-600 to-indigo-600 px-4 py-3 text-sm font-bold text-white shadow-[0_0_22px_rgba(124,58,237,.3)] hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-45">
+                          {paymentBusy ? 'Checking payment...' : paymentIntent.trxId ? 'Check payment again' : 'I have paid - check payment'}
+                        </button>
+                        <button type="button" onClick={() => setPaymentIntent(null)} className="mt-2 w-full rounded-xl border border-white/10 px-4 py-2.5 text-xs font-bold text-slate-300 hover:bg-white/5 hover:text-white">Change payment details</button>
+                      </div>
                     </div>
-                    <p className="mt-2 text-[11px] text-emerald-800">Personal Send Money and agent Cash In are accepted; Cash In is reviewed manually.</p>
                   </div>
-                  <label className="block">
-                    <span className="mb-1 block text-[10px] font-bold uppercase tracking-wide text-slate-500">Transaction ID (TrxID)</span>
-                    <input value={paymentTrxId} onChange={(event) => setPaymentTrxId(event.target.value.toUpperCase())} placeholder="Example: DG765H4K9Q" className="w-full rounded-xl border border-slate-200 px-4 py-3 font-mono text-sm uppercase outline-none focus:border-indigo-500" />
-                  </label>
-                  <div className="flex gap-3">
-                    <button type="button" onClick={() => setPaymentIntent(null)} className="rounded-xl border border-slate-200 px-4 py-3 text-xs font-bold text-slate-600">Start again</button>
-                    <button type="button" disabled={paymentBusy || paymentTrxId.trim().length < 6} onClick={submitPayment} className="flex-1 rounded-xl bg-indigo-600 px-4 py-3 text-sm font-bold text-white hover:bg-indigo-700 disabled:opacity-50">
-                      {paymentBusy ? 'Checking payment...' : paymentIntent.trxId ? 'Check payment again' : 'I have paid - check payment'}
-                    </button>
-                  </div>
-                  {paymentFeedback && (
-                    <div className="flex items-start gap-2 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-xs leading-relaxed text-blue-800">
-                      <Loader2 className="mt-0.5 h-4 w-4 shrink-0 animate-spin" />
-                      <span>{paymentFeedback} We will check automatically.</span>
-                    </div>
-                  )}
                   {paymentIntent.trxId && (
-                    <button type="button" disabled={paymentBusy} onClick={checkPayment} className="w-full rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-2.5 text-xs font-bold text-indigo-700 hover:bg-indigo-100 disabled:opacity-50">
+                    <button type="button" disabled={paymentBusy} onClick={checkPayment} className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-xs font-bold text-violet-200 hover:bg-white/10 disabled:opacity-50">
                       Check payment status · {paymentIntent.status.replaceAll('_', ' ')}
                     </button>
                   )}
-                  <p className="text-center text-[10px] text-slate-400">Reference: {paymentIntent.reference}</p>
+                  <div className="flex items-center justify-center gap-2 text-[10px] text-slate-500">
+                    <span>Reference: {paymentIntent.reference}</span>
+                    <button type="button" onClick={() => navigator.clipboard.writeText(paymentIntent.reference)} className="rounded p-1 text-slate-400 hover:bg-white/10 hover:text-white" aria-label="Copy payment reference"><Copy className="h-3 w-3" /></button>
+                  </div>
                 </>
               )}
             </div>
