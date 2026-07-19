@@ -97,6 +97,9 @@ export function AccountView({
   const [paymentSecondsLeft, setPaymentSecondsLeft] = useState(0);
   const [paymentFeedback, setPaymentFeedback] = useState('');
   const [paymentSuccess, setPaymentSuccess] = useState<{ title: string; message: string } | null>(null);
+  const paymentBrand = paymentProvider === 'bkash'
+    ? { name: 'bKash', primary: '#E2136E', secondary: '#A90052', soft: '#FFF1F7', text: '#9D174D' }
+    : { name: 'Nagad', primary: '#D8292F', secondary: '#F37021', soft: '#FFF4ED', text: '#9A3412' };
   const currentPlanLower = String(profile.plan || '').toLowerCase();
   const isFreeOrTrial = currentPlanLower.includes('free') || currentPlanLower.includes('trial');
   const isGrowth = currentPlanLower.includes('growth');
@@ -615,28 +618,28 @@ export function AccountView({
       {paymentPlan && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/55 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-label="Plan payment">
           <div
-            className={`relative w-full overflow-hidden rounded-2xl shadow-2xl ${paymentIntent ? 'max-w-2xl border border-slate-700 bg-slate-900 text-white' : 'max-w-lg border border-slate-200 bg-white'}`}
-            style={paymentIntent ? { background: 'linear-gradient(145deg, #111827 0%, #1e293b 52%, #0f172a 100%)' } : undefined}
+            className={`relative w-full overflow-hidden rounded-2xl shadow-2xl ${paymentIntent ? 'max-w-2xl border border-slate-200 bg-white text-slate-900' : 'max-w-lg border border-slate-200 bg-white'}`}
+            style={paymentIntent ? { background: `linear-gradient(145deg, #ffffff 0%, ${paymentBrand.soft} 100%)` } : undefined}
           >
-            {paymentIntent && <div className="pointer-events-none absolute inset-0 opacity-30" style={{ background: 'radial-gradient(circle at 12% 12%, rgba(139,92,246,.35), transparent 28%), radial-gradient(circle at 88% 86%, rgba(245,158,11,.18), transparent 30%)' }} />}
-            <div className={`relative flex items-start justify-between px-5 py-4 ${paymentIntent ? 'border-b border-white/10' : 'border-b border-slate-100'}`}>
+            {paymentIntent && <div className="pointer-events-none absolute inset-0 opacity-50" style={{ background: `radial-gradient(circle at 12% 12%, ${paymentBrand.soft}, transparent 30%), radial-gradient(circle at 88% 86%, ${paymentBrand.soft}, transparent 34%)` }} />}
+            <div className="relative flex items-start justify-between border-b border-slate-200 px-5 py-4">
               <div>
-                <p className={`text-[10px] font-bold uppercase tracking-[0.2em] ${paymentIntent ? 'text-violet-300' : 'text-indigo-600'}`}>Secure manual payment</p>
-                <h3 className={`mt-1 text-lg font-bold ${paymentIntent ? 'text-white' : 'text-slate-900'}`}>Pay for {PLAN_PRICING[paymentPlan].label}</h3>
-                {paymentPlan === 'test' && <p className={`mt-1 text-xs font-medium ${paymentIntent ? 'text-amber-300' : 'text-amber-600'}`}>Test only. Your active plan will not change.</p>}
+                <p className="text-[10px] font-bold uppercase tracking-[0.2em]" style={{ color: paymentIntent ? paymentBrand.primary : '#4f46e5' }}>Secure manual payment</p>
+                <h3 className="mt-1 text-lg font-bold text-slate-900">Pay for {PLAN_PRICING[paymentPlan].label}</h3>
+                {paymentPlan === 'test' && <p className="mt-1 text-xs font-medium text-amber-600">Test only. Your active plan will not change.</p>}
               </div>
               <div className="flex items-start gap-3">
                 {paymentIntent && (
                   <div
                     className="flex h-16 w-16 items-center justify-center rounded-full p-1 shadow-[0_0_24px_rgba(139,92,246,.35)]"
-                    style={{ background: `conic-gradient(#a78bfa ${Math.min(100, (paymentSecondsLeft / 600) * 100)}%, #334155 0)` }}
+                    style={{ background: `conic-gradient(${paymentBrand.primary} ${Math.min(100, (paymentSecondsLeft / 600) * 100)}%, #e2e8f0 0)`, boxShadow: `0 0 22px ${paymentBrand.soft}` }}
                   >
-                    <div className="flex h-full w-full items-center justify-center rounded-full border border-white/20 bg-slate-950 font-mono text-base font-black text-white">
+                    <div className="flex h-full w-full items-center justify-center rounded-full border border-slate-200 bg-white font-mono text-base font-black text-slate-900">
                       {String(Math.floor(paymentSecondsLeft / 60)).padStart(2, '0')}:{String(paymentSecondsLeft % 60).padStart(2, '0')}
                     </div>
                   </div>
                 )}
-                <button type="button" onClick={() => setPaymentPlan(null)} className={`rounded-lg p-2 ${paymentIntent ? 'text-slate-400 hover:bg-white/10 hover:text-white' : 'text-slate-400 hover:bg-slate-100 hover:text-slate-700'}`} aria-label="Close payment">
+                <button type="button" onClick={() => setPaymentPlan(null)} className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700" aria-label="Close payment">
                   <X className="h-4 w-4" />
                 </button>
               </div>
@@ -664,38 +667,38 @@ export function AccountView({
                 <>
                   <div className="grid gap-4 md:grid-cols-[1.08fr_.92fr]">
                     <div className="space-y-4">
-                      <div className="overflow-hidden rounded-xl border border-slate-600 bg-slate-800 shadow-inner">
-                        <div className="grid grid-cols-2 divide-x divide-white/10 text-center">
-                          <div className="px-3 py-3"><p className="text-[9px] font-bold uppercase tracking-wide text-slate-400">{paymentPlan === 'test' ? 'Test amount' : 'Plan price'}</p><p className="mt-1 text-base font-bold text-white">৳{paymentIntent.baseAmount}</p></div>
-                          <div className="px-3 py-3"><p className="text-[9px] font-bold uppercase tracking-wide text-slate-400">Fee ({paymentIntent.feeRatePercent}%)</p><p className="mt-1 text-base font-bold text-white">৳{paymentIntent.feeAmount}</p></div>
+                      <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+                        <div className="grid grid-cols-2 divide-x divide-slate-200 text-center">
+                          <div className="px-3 py-3"><p className="text-[9px] font-bold uppercase tracking-wide text-slate-500">{paymentPlan === 'test' ? 'Test amount' : 'Plan price'}</p><p className="mt-1 text-base font-bold text-slate-900">৳{paymentIntent.baseAmount}</p></div>
+                          <div className="px-3 py-3"><p className="text-[9px] font-bold uppercase tracking-wide text-slate-500">Fee ({paymentIntent.feeRatePercent}%)</p><p className="mt-1 text-base font-bold text-slate-900">৳{paymentIntent.feeAmount}</p></div>
                         </div>
-                        <div className="border-t border-violet-400/40 bg-slate-900 px-4 py-3 text-center" style={{ background: 'linear-gradient(90deg, rgba(124,58,237,.18), rgba(245,158,11,.13), rgba(124,58,237,.18))' }}>
-                          <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-violet-200">Pay exactly</p>
-                          <p className="mt-1 text-3xl font-black tracking-tight text-amber-200 drop-shadow-[0_0_12px_rgba(253,230,138,.35)]">৳{paymentIntent.totalAmount}</p>
+                        <div className="border-t px-4 py-3 text-center" style={{ borderColor: `${paymentBrand.primary}33`, background: paymentBrand.soft }}>
+                          <p className="text-[9px] font-bold uppercase tracking-[0.16em]" style={{ color: paymentBrand.text }}>Pay exactly</p>
+                          <p className="mt-1 text-3xl font-black tracking-tight" style={{ color: paymentBrand.primary }}>৳{paymentIntent.totalAmount}</p>
                         </div>
                       </div>
 
-                      <div className="rounded-xl border border-slate-600 bg-slate-950 p-4">
+                      <div className="rounded-xl border p-4 text-white shadow-lg" style={{ borderColor: `${paymentBrand.primary}55`, background: `linear-gradient(135deg, ${paymentBrand.primary}, ${paymentBrand.secondary})` }}>
                         <div className="flex items-center justify-between gap-3">
-                          <span className="rounded-full border border-violet-400/30 bg-violet-400/10 px-2.5 py-1 text-[9px] font-black uppercase tracking-wider text-violet-200">{paymentProvider === 'bkash' ? 'bKash' : 'Nagad'} number</span>
-                          <button type="button" onClick={() => navigator.clipboard.writeText(paymentIntent.receivingPhone)} className="flex items-center gap-1 rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-xs font-bold text-white hover:bg-slate-700"><Copy className="h-3.5 w-3.5" /> Copy</button>
+                          <span className="rounded-full border border-white/40 bg-white/15 px-2.5 py-1 text-[9px] font-black uppercase tracking-wider text-white">{paymentBrand.name} number</span>
+                          <button type="button" onClick={() => navigator.clipboard.writeText(paymentIntent.receivingPhone)} className="flex items-center gap-1 rounded-lg border border-white/50 bg-white px-3 py-2 text-xs font-bold shadow-sm hover:bg-slate-50" style={{ color: paymentBrand.text }}><Copy className="h-3.5 w-3.5" /> Copy</button>
                         </div>
                         <p className="mt-3 font-mono text-2xl font-black tracking-[0.08em] text-white">{paymentIntent.receivingPhone}</p>
-                        <div className="mt-4 grid grid-cols-3 items-start text-center text-[8px] font-bold uppercase tracking-wide text-slate-400">
-                          <div><span className="mx-auto mb-1 block h-3 w-3 rounded-full border-2 border-violet-300 bg-violet-400" />Initiated</div>
-                          <div><span className="mx-auto mb-1 block h-3 w-3 rounded-full border-2 border-violet-200 bg-violet-300 shadow-[0_0_12px_#a78bfa]" />Send money</div>
-                          <div><span className={`mx-auto mb-1 block h-3 w-3 rounded-full border-2 ${paymentIntent.status === 'pending' ? 'border-slate-500 bg-slate-700' : 'border-emerald-300 bg-emerald-400'}`} />Confirmation</div>
+                        <div className="mt-4 grid grid-cols-3 items-start text-center text-[8px] font-bold uppercase tracking-wide text-white/80">
+                          <div><span className="mx-auto mb-1 block h-3 w-3 rounded-full border-2 border-white bg-white" />Initiated</div>
+                          <div><span className="mx-auto mb-1 block h-3 w-3 rounded-full border-2 border-white bg-white shadow-[0_0_12px_#fff]" />Send money</div>
+                          <div><span className={`mx-auto mb-1 block h-3 w-3 rounded-full border-2 ${paymentIntent.status === 'pending' ? 'border-white/60 bg-transparent' : 'border-white bg-white'}`} />Confirmation</div>
                         </div>
                       </div>
                     </div>
 
-                    <div className="flex flex-col rounded-xl border border-slate-600 bg-slate-800 p-4">
+                    <div className="flex flex-col rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
                       <label className="block">
-                        <span className="mb-2 block text-[10px] font-bold uppercase tracking-wide text-slate-300">Transaction ID (TrxID)</span>
-                        <input value={paymentTrxId} onChange={(event) => setPaymentTrxId(event.target.value.toUpperCase())} placeholder="Example: DG765H4K9Q" className="w-full rounded-xl border border-violet-400 bg-slate-950 px-4 py-3 font-mono text-sm uppercase text-white outline-none placeholder:text-slate-500 focus:border-violet-300 focus:ring-2 focus:ring-violet-400" />
+                        <span className="mb-2 block text-[10px] font-bold uppercase tracking-wide text-slate-600">Transaction ID (TrxID)</span>
+                        <input value={paymentTrxId} onChange={(event) => setPaymentTrxId(event.target.value.toUpperCase())} placeholder="Example: DG765H4K9Q" className="w-full rounded-xl border bg-white px-4 py-3 font-mono text-sm uppercase text-slate-900 outline-none placeholder:text-slate-400 focus:ring-2" style={{ borderColor: `${paymentBrand.primary}66`, boxShadow: paymentTrxId ? `0 0 0 2px ${paymentBrand.soft}` : undefined }} />
                       </label>
-                      <div className="mt-3 flex items-center gap-2 rounded-lg border border-slate-600 bg-slate-900 px-3 py-2 text-[10px] leading-relaxed text-slate-300">
-                        <Clock3 className={`h-4 w-4 shrink-0 ${paymentSecondsLeft <= 120 ? 'text-rose-400' : 'text-violet-300'}`} />
+                      <div className="mt-3 flex items-center gap-2 rounded-lg border px-3 py-2 text-[10px] leading-relaxed" style={{ borderColor: `${paymentBrand.primary}33`, background: paymentBrand.soft, color: paymentBrand.text }}>
+                        <Clock3 className={`h-4 w-4 shrink-0 ${paymentSecondsLeft <= 120 ? 'text-rose-600' : ''}`} style={paymentSecondsLeft > 120 ? { color: paymentBrand.primary } : undefined} />
                         Finish within the timer. Cash In payments need a quick manual review.
                       </div>
                       {paymentFeedback && (
@@ -705,21 +708,21 @@ export function AccountView({
                         </div>
                       )}
                       <div className="mt-auto pt-4">
-                        <button type="button" disabled={paymentBusy || paymentTrxId.trim().length < 6} onClick={submitPayment} className="w-full rounded-xl border border-violet-400 bg-violet-600 px-4 py-3 text-sm font-bold text-white hover:bg-violet-500 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-400" style={paymentBusy || paymentTrxId.trim().length < 6 ? undefined : { background: 'linear-gradient(90deg, #4f46e5, #7c3aed, #4f46e5)', boxShadow: '0 0 22px rgba(124,58,237,.3)' }}>
-                          {paymentBusy ? 'Checking payment...' : paymentIntent.trxId ? 'Check payment again' : 'I have paid - check payment'}
+                        <button type="button" disabled={paymentBusy || paymentTrxId.trim().length < 6} onClick={submitPayment} className="w-full rounded-xl border px-4 py-3 text-sm font-bold text-white disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400" style={paymentBusy || paymentTrxId.trim().length < 6 ? undefined : { borderColor: paymentBrand.primary, background: `linear-gradient(90deg, ${paymentBrand.primary}, ${paymentBrand.secondary})`, boxShadow: `0 8px 22px ${paymentBrand.primary}33` }}>
+                          {paymentBusy ? 'Checking payment...' : paymentIntent.trxId ? 'Check payment again' : paymentTrxId.trim().length < 6 ? 'Enter TrxID to continue' : 'I have paid - check payment'}
                         </button>
-                        <button type="button" onClick={() => setPaymentIntent(null)} className="mt-2 w-full rounded-xl border border-white/10 px-4 py-2.5 text-xs font-bold text-slate-300 hover:bg-white/5 hover:text-white">Change payment details</button>
+                        <button type="button" onClick={() => setPaymentIntent(null)} className="mt-2 w-full rounded-xl border border-slate-200 px-4 py-2.5 text-xs font-bold text-slate-600 hover:bg-slate-50 hover:text-slate-900">Change payment details</button>
                       </div>
                     </div>
                   </div>
                   {paymentIntent.trxId && (
-                    <button type="button" disabled={paymentBusy} onClick={checkPayment} className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-xs font-bold text-violet-200 hover:bg-white/10 disabled:opacity-50">
+                    <button type="button" disabled={paymentBusy} onClick={checkPayment} className="w-full rounded-xl border bg-white px-4 py-2.5 text-xs font-bold hover:bg-slate-50 disabled:opacity-50" style={{ borderColor: `${paymentBrand.primary}44`, color: paymentBrand.text }}>
                       Check payment status · {paymentIntent.status.replaceAll('_', ' ')}
                     </button>
                   )}
-                  <div className="flex items-center justify-center gap-2 text-[10px] text-slate-500">
+                  <div className="flex items-center justify-center gap-2 text-[10px] text-slate-400">
                     <span>Reference: {paymentIntent.reference}</span>
-                    <button type="button" onClick={() => navigator.clipboard.writeText(paymentIntent.reference)} className="rounded p-1 text-slate-400 hover:bg-white/10 hover:text-white" aria-label="Copy payment reference"><Copy className="h-3 w-3" /></button>
+                    <button type="button" onClick={() => navigator.clipboard.writeText(paymentIntent.reference)} className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700" aria-label="Copy payment reference"><Copy className="h-3 w-3" /></button>
                   </div>
                 </>
               )}
