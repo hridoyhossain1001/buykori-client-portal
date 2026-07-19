@@ -648,18 +648,55 @@ export function AccountView({
             <div className="relative space-y-4 p-5">
               {!paymentIntent ? (
                 <>
-                  <div className="rounded-xl border border-indigo-100 bg-indigo-50 p-4 text-xs text-slate-700">
-                    Enter the number you will pay from. We use it with the transaction ID to find the correct payment.
+                  <div className="overflow-hidden rounded-xl border bg-white shadow-sm" style={{ borderColor: `${paymentBrand.primary}33` }}>
+                    <div className="h-1" style={{ background: `linear-gradient(90deg, ${paymentBrand.primary}, ${paymentBrand.secondary})` }} />
+                    <div className="p-4" style={{ background: `linear-gradient(135deg, #ffffff, ${paymentBrand.soft})` }}>
+                      <p className="text-[10px] font-black uppercase tracking-[0.16em]" style={{ color: paymentBrand.text }}>Start your secure payment</p>
+                      <p className="mt-1 text-sm font-semibold text-slate-800">Choose where you will pay from, then enter that account's phone number.</p>
+                      <div className="mt-4 grid grid-cols-3 items-start text-center text-[9px] font-bold uppercase tracking-wide text-slate-500">
+                        {['Choose', 'Phone', 'Amount'].map((label, index) => (
+                          <div key={label} className="relative">
+                            {index < 2 && <span className="absolute left-[58%] top-2 h-px w-[84%] bg-slate-200" />}
+                            <span className="relative mx-auto mb-1.5 flex h-4 w-4 items-center justify-center rounded-full text-[8px] text-white" style={{ background: index === 0 ? paymentBrand.primary : '#cbd5e1' }}>{index + 1}</span>
+                            {label}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   </div>
                   <div className="grid grid-cols-2 gap-3">
-                    <button type="button" onClick={() => setPaymentProvider('bkash')} className={`rounded-xl border px-4 py-3 text-sm font-bold ${paymentProvider === 'bkash' ? 'border-pink-500 bg-pink-50 text-pink-700' : 'border-slate-200 text-slate-600'}`}>bKash</button>
-                    <button type="button" onClick={() => setPaymentProvider('nagad')} className={`rounded-xl border px-4 py-3 text-sm font-bold ${paymentProvider === 'nagad' ? 'border-orange-500 bg-orange-50 text-orange-700' : 'border-slate-200 text-slate-600'}`}>Nagad</button>
+                    {([
+                      { id: 'bkash' as const, name: 'bKash', color: '#E2136E', soft: '#FFF1F7' },
+                      { id: 'nagad' as const, name: 'Nagad', color: '#D8292F', soft: '#FFF4ED' },
+                    ]).map((provider) => {
+                      const selected = paymentProvider === provider.id;
+                      return (
+                        <button
+                          key={provider.id}
+                          type="button"
+                          onClick={() => setPaymentProvider(provider.id)}
+                          className="relative overflow-hidden rounded-xl border px-4 py-3.5 text-left transition hover:-translate-y-0.5 hover:shadow-md"
+                          style={{ borderColor: selected ? provider.color : '#e2e8f0', background: selected ? provider.soft : '#ffffff', boxShadow: selected ? `0 8px 20px ${provider.color}20` : undefined }}
+                        >
+                          <span className="flex items-center justify-between gap-3">
+                            <span>
+                              <span className="block text-[9px] font-bold uppercase tracking-wider text-slate-400">Pay with</span>
+                              <span className="mt-0.5 block text-sm font-black" style={{ color: selected ? provider.color : '#475569' }}>{provider.name}</span>
+                            </span>
+                            <span className="flex h-5 w-5 items-center justify-center rounded-full border" style={{ borderColor: selected ? provider.color : '#cbd5e1', background: selected ? provider.color : '#ffffff' }}>
+                              {selected && <CheckCircle2 className="h-3.5 w-3.5 text-white" />}
+                            </span>
+                          </span>
+                        </button>
+                      );
+                    })}
                   </div>
                   <label className="block">
-                    <span className="mb-1 block text-[10px] font-bold uppercase tracking-wide text-slate-500">Your sender phone</span>
-                    <input value={paymentSender} onChange={(event) => setPaymentSender(event.target.value)} inputMode="tel" placeholder="01XXXXXXXXX" className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-indigo-500" />
+                    <span className="mb-1.5 block text-[10px] font-bold uppercase tracking-wide text-slate-500">Your {paymentBrand.name} phone number</span>
+                    <input value={paymentSender} onChange={(event) => setPaymentSender(event.target.value)} inputMode="tel" placeholder="01XXXXXXXXX" className="w-full rounded-xl border bg-white px-4 py-3 text-sm font-semibold text-slate-900 outline-none transition placeholder:font-normal placeholder:text-slate-400 focus:ring-2" style={{ borderColor: `${paymentBrand.primary}55`, boxShadow: paymentSender ? `0 0 0 2px ${paymentBrand.soft}` : undefined }} />
+                    <span className="mt-1.5 block text-[10px] leading-relaxed text-slate-500">Use the same number that will appear in the payment SMS.</span>
                   </label>
-                  <button type="button" disabled={paymentBusy} onClick={createPayment} className="w-full rounded-xl bg-indigo-600 px-4 py-3 text-sm font-bold text-white hover:bg-indigo-700 disabled:opacity-60">
+                  <button type="button" disabled={paymentBusy} onClick={createPayment} className="w-full rounded-xl px-4 py-3 text-sm font-bold text-white transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60" style={{ background: `linear-gradient(90deg, ${paymentBrand.primary}, ${paymentBrand.secondary})`, boxShadow: `0 10px 24px ${paymentBrand.primary}30` }}>
                     {paymentBusy ? 'Creating payment...' : 'Show payment amount'}
                   </button>
                 </>
@@ -733,16 +770,24 @@ export function AccountView({
 
       {paymentSuccess && (
         <div className="fixed inset-0 z-[110] flex items-center justify-center bg-slate-950/55 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-label="Payment successful">
-          <div className="w-full max-w-md rounded-2xl border border-emerald-200 bg-white p-7 text-center shadow-2xl">
-            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
-              <CheckCircle2 className="h-9 w-9" />
+          <div className="relative w-full max-w-md overflow-hidden rounded-2xl border bg-white text-center shadow-2xl" style={{ borderColor: `${paymentBrand.primary}44` }}>
+            <div className="h-1.5" style={{ background: `linear-gradient(90deg, ${paymentBrand.primary}, ${paymentBrand.secondary})` }} />
+            <div className="relative p-7" style={{ background: `radial-gradient(circle at 50% 0%, ${paymentBrand.soft}, #ffffff 54%)` }}>
+              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full border-4 border-white text-white shadow-lg" style={{ background: `linear-gradient(135deg, ${paymentBrand.primary}, ${paymentBrand.secondary})`, boxShadow: `0 12px 28px ${paymentBrand.primary}35` }}>
+                <CheckCircle2 className="h-9 w-9" />
+              </div>
+              <p className="mt-4 text-[10px] font-black uppercase tracking-[0.2em]" style={{ color: paymentBrand.text }}>{paymentBrand.name} payment update</p>
+              <h3 className="mt-2 text-xl font-black text-slate-900">{paymentSuccess.title}</h3>
+              <p className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-slate-600">{paymentSuccess.message}</p>
+              {paymentIntent?.reference && (
+                <div className="mx-auto mt-4 inline-flex items-center gap-2 rounded-full border bg-white px-3 py-1.5 text-[10px] font-semibold text-slate-500" style={{ borderColor: `${paymentBrand.primary}33` }}>
+                  Reference: {paymentIntent.reference}
+                </div>
+              )}
+              <button type="button" onClick={() => setPaymentSuccess(null)} className="mt-6 w-full rounded-xl px-4 py-3 text-sm font-bold text-white transition hover:-translate-y-0.5" style={{ background: `linear-gradient(90deg, ${paymentBrand.primary}, ${paymentBrand.secondary})`, boxShadow: `0 10px 24px ${paymentBrand.primary}30` }}>
+                Continue
+              </button>
             </div>
-            <p className="mt-4 text-[10px] font-bold uppercase tracking-[0.2em] text-emerald-600">Payment update</p>
-            <h3 className="mt-2 text-xl font-black text-slate-900">{paymentSuccess.title}</h3>
-            <p className="mt-2 text-sm leading-relaxed text-slate-600">{paymentSuccess.message}</p>
-            <button type="button" onClick={() => setPaymentSuccess(null)} className="mt-6 w-full rounded-xl bg-emerald-600 px-4 py-3 text-sm font-bold text-white hover:bg-emerald-700">
-              Continue
-            </button>
           </div>
         </div>
       )}
