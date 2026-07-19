@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Copy, RotateCcw, X } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { CheckCircle2, Clock3, Copy, Loader2, RotateCcw, X } from 'lucide-react';
 import { UserProfile } from '../types';
 
 const PLAN_PRICING = Object.freeze({
@@ -94,6 +94,9 @@ export function AccountView({
   const [paymentTrxId, setPaymentTrxId] = useState('');
   const [paymentIntent, setPaymentIntent] = useState<PaymentIntent | null>(null);
   const [paymentBusy, setPaymentBusy] = useState(false);
+  const [paymentSecondsLeft, setPaymentSecondsLeft] = useState(0);
+  const [paymentFeedback, setPaymentFeedback] = useState('');
+  const [paymentSuccess, setPaymentSuccess] = useState<{ title: string; message: string } | null>(null);
   const currentPlanLower = String(profile.plan || '').toLowerCase();
   const isFreeOrTrial = currentPlanLower.includes('free') || currentPlanLower.includes('trial');
   const isGrowth = currentPlanLower.includes('growth');
@@ -129,7 +132,71 @@ export function AccountView({
     setPaymentPlan(plan);
     setPaymentIntent(null);
     setPaymentTrxId('');
+    setPaymentFeedback('');
+    setPaymentSuccess(null);
   };
+
+  const finishMatchedPayment = (intent: PaymentIntent) => {
+    const isTest = intent.planTier === 'test';
+    const isApproved = intent.status === 'approved';
+    const needsReview = intent.status === 'needs_review';
+    setPaymentIntent(intent);
+    setPaymentPlan(null);
+    setPaymentFeedback('');
+    setPaymentSuccess({
+      title: needsReview ? 'Payment found - review needed' : isTest ? 'Payment test successful!' : isApproved ? 'Payment approved!' : 'Payment received successfully!',
+      message: needsReview
+        ? 'The Cash In SMS matched your details. Our team will confirm it after a quick manual review.'
+        : isTest
+        ? 'The SMS, sender number, amount, and TrxID matched correctly. Your current plan was not changed.'
+        : isApproved
+          ? `Your ${PLAN_PRICING[intent.planTier as 'growth' | 'scale']?.label || 'paid plan'} is now active.`
+          : 'Your payment matched successfully. We will activate your plan after a quick review.',
+    });
+  };
+
+  const applyPaymentStatus = (intent: PaymentIntent, showStatusToast = false) => {
+    if (['matched', 'needs_review', 'approved'].includes(intent.status)) {
+      finishMatchedPayment(intent);
+      return;
+    }
+    setPaymentIntent(intent);
+    if (intent.status === 'pending') {
+      setPaymentFeedback('TrxID received. Waiting for the payment SMS to reach our server...');
+    } else {
+      setPaymentFeedback(`Payment status: ${intent.status.replaceAll('_', ' ')}.`);
+    }
+    if (showStatusToast) showToast(`Payment status: ${intent.status.replaceAll('_', ' ')}`);
+  };
+
+  const loadPaymentStatus = async (showStatusToast = false) => {
+    const response = await fetch('/api/payments/intents/latest');
+    if (!response.ok) throw new Error(await readApiError(response));
+    const payload = await response.json();
+    if (payload.payment) applyPaymentStatus(payload.payment, showStatusToast);
+  };
+
+  useEffect(() => {
+    if (!paymentIntent?.expiresAt) {
+      setPaymentSecondsLeft(0);
+      return;
+    }
+    const updateCountdown = () => {
+      const remaining = Math.max(0, Math.ceil((new Date(paymentIntent.expiresAt).getTime() - Date.now()) / 1000));
+      setPaymentSecondsLeft(remaining);
+    };
+    updateCountdown();
+    const timer = window.setInterval(updateCountdown, 1000);
+    return () => window.clearInterval(timer);
+  }, [paymentIntent?.expiresAt]);
+
+  useEffect(() => {
+    if (!paymentIntent?.trxId || paymentIntent.status !== 'pending') return;
+    const timer = window.setInterval(() => {
+      void loadPaymentStatus(false).catch(() => undefined);
+    }, 3000);
+    return () => window.clearInterval(timer);
+  }, [paymentIntent?.reference, paymentIntent?.status, paymentIntent?.trxId]);
 
   const createPayment = async () => {
     if (!paymentPlan) return;
@@ -143,6 +210,7 @@ export function AccountView({
       if (!response.ok) throw new Error(await readApiError(response));
       const payload = await response.json();
       setPaymentIntent(payload.payment);
+      setPaymentFeedback('');
     } catch (error) {
       showToast(error instanceof Error ? error.message : 'Could not create payment request.', true);
     } finally {
@@ -161,8 +229,7 @@ export function AccountView({
       });
       if (!response.ok) throw new Error(await readApiError(response));
       const payload = await response.json();
-      setPaymentIntent(payload.payment);
-      showToast('Transaction submitted. We will update the plan after payment review.');
+      applyPaymentStatus(payload.payment);
     } catch (error) {
       showToast(error instanceof Error ? error.message : 'Could not submit transaction.', true);
     } finally {
@@ -173,15 +240,7 @@ export function AccountView({
   const checkPayment = async () => {
     setPaymentBusy(true);
     try {
-      const response = await fetch('/api/payments/intents/latest');
-      if (!response.ok) throw new Error(await readApiError(response));
-      const payload = await response.json();
-      if (payload.payment) setPaymentIntent(payload.payment);
-      if (payload.payment?.status === 'approved') {
-        showToast('Payment approved. Your plan is active.');
-      } else {
-        showToast(`Payment status: ${String(payload.payment?.status || 'pending').replaceAll('_', ' ')}`);
-      }
+      await loadPaymentStatus(true);
     } catch (error) {
       showToast(error instanceof Error ? error.message : 'Could not check payment status.', true);
     } finally {
@@ -598,7 +657,13 @@ export function AccountView({
                       <span className="font-mono text-xl font-black tracking-wide text-slate-900">{paymentIntent.receivingPhone}</span>
                       <button type="button" onClick={() => navigator.clipboard.writeText(paymentIntent.receivingPhone)} className="flex items-center gap-1 rounded-lg border border-emerald-200 bg-white px-3 py-2 text-xs font-bold text-emerald-700"><Copy className="h-3.5 w-3.5" /> Copy</button>
                     </div>
-                    <p className="mt-2 text-[11px] text-emerald-800">This request is valid for 30 minutes. Personal Send Money and agent Cash In are accepted; Cash In is reviewed manually.</p>
+                    <div className="mt-3 flex items-center justify-between rounded-lg border border-emerald-200 bg-white/80 px-3 py-2">
+                      <span className="flex items-center gap-1.5 text-[11px] font-semibold text-emerald-800"><Clock3 className="h-3.5 w-3.5" /> Complete payment within</span>
+                      <span className={`font-mono text-sm font-black ${paymentSecondsLeft <= 120 ? 'text-rose-600' : 'text-emerald-700'}`}>
+                        {String(Math.floor(paymentSecondsLeft / 60)).padStart(2, '0')}:{String(paymentSecondsLeft % 60).padStart(2, '0')}
+                      </span>
+                    </div>
+                    <p className="mt-2 text-[11px] text-emerald-800">Personal Send Money and agent Cash In are accepted; Cash In is reviewed manually.</p>
                   </div>
                   <label className="block">
                     <span className="mb-1 block text-[10px] font-bold uppercase tracking-wide text-slate-500">Transaction ID (TrxID)</span>
@@ -607,9 +672,15 @@ export function AccountView({
                   <div className="flex gap-3">
                     <button type="button" onClick={() => setPaymentIntent(null)} className="rounded-xl border border-slate-200 px-4 py-3 text-xs font-bold text-slate-600">Start again</button>
                     <button type="button" disabled={paymentBusy || paymentTrxId.trim().length < 6} onClick={submitPayment} className="flex-1 rounded-xl bg-indigo-600 px-4 py-3 text-sm font-bold text-white hover:bg-indigo-700 disabled:opacity-50">
-                      {paymentBusy ? 'Submitting...' : paymentIntent.trxId ? 'Update TrxID' : 'I have paid - submit TrxID'}
+                      {paymentBusy ? 'Checking payment...' : paymentIntent.trxId ? 'Check payment again' : 'I have paid - check payment'}
                     </button>
                   </div>
+                  {paymentFeedback && (
+                    <div className="flex items-start gap-2 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-xs leading-relaxed text-blue-800">
+                      <Loader2 className="mt-0.5 h-4 w-4 shrink-0 animate-spin" />
+                      <span>{paymentFeedback} We will check automatically.</span>
+                    </div>
+                  )}
                   {paymentIntent.trxId && (
                     <button type="button" disabled={paymentBusy} onClick={checkPayment} className="w-full rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-2.5 text-xs font-bold text-indigo-700 hover:bg-indigo-100 disabled:opacity-50">
                       Check payment status · {paymentIntent.status.replaceAll('_', ' ')}
@@ -619,6 +690,22 @@ export function AccountView({
                 </>
               )}
             </div>
+          </div>
+        </div>
+      )}
+
+      {paymentSuccess && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-slate-950/55 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-label="Payment successful">
+          <div className="w-full max-w-md rounded-2xl border border-emerald-200 bg-white p-7 text-center shadow-2xl">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
+              <CheckCircle2 className="h-9 w-9" />
+            </div>
+            <p className="mt-4 text-[10px] font-bold uppercase tracking-[0.2em] text-emerald-600">Payment update</p>
+            <h3 className="mt-2 text-xl font-black text-slate-900">{paymentSuccess.title}</h3>
+            <p className="mt-2 text-sm leading-relaxed text-slate-600">{paymentSuccess.message}</p>
+            <button type="button" onClick={() => setPaymentSuccess(null)} className="mt-6 w-full rounded-xl bg-emerald-600 px-4 py-3 text-sm font-bold text-white hover:bg-emerald-700">
+              Continue
+            </button>
           </div>
         </div>
       )}
