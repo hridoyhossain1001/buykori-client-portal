@@ -100,6 +100,7 @@ export function AccountView({
   const paymentBrand = paymentProvider === 'bkash'
     ? { name: 'bKash', primary: '#E2136E', secondary: '#A90052', soft: '#FFF1F7', text: '#9D174D' }
     : { name: 'Nagad', primary: '#D8292F', secondary: '#F37021', soft: '#FFF4ED', text: '#9A3412' };
+  const paymentExpired = !!paymentIntent && new Date(paymentIntent.expiresAt).getTime() <= Date.now();
   const currentPlanLower = String(profile.plan || '').toLowerCase();
   const isFreeOrTrial = currentPlanLower.includes('free') || currentPlanLower.includes('trial');
   const isGrowth = currentPlanLower.includes('growth');
@@ -632,10 +633,10 @@ export function AccountView({
                 {paymentIntent && (
                   <div
                     className="flex h-16 w-16 items-center justify-center rounded-full p-1 shadow-[0_0_24px_rgba(139,92,246,.35)]"
-                    style={{ background: `conic-gradient(${paymentBrand.primary} ${Math.min(100, (paymentSecondsLeft / 600) * 100)}%, #e2e8f0 0)`, boxShadow: `0 0 22px ${paymentBrand.soft}` }}
+                    style={{ background: paymentExpired ? '#e2e8f0' : `conic-gradient(${paymentBrand.primary} ${Math.min(100, (paymentSecondsLeft / 600) * 100)}%, #e2e8f0 0)`, boxShadow: `0 0 22px ${paymentBrand.soft}` }}
                   >
-                    <div className="flex h-full w-full items-center justify-center rounded-full border border-slate-200 bg-white font-mono text-base font-black text-slate-900">
-                      {String(Math.floor(paymentSecondsLeft / 60)).padStart(2, '0')}:{String(paymentSecondsLeft % 60).padStart(2, '0')}
+                    <div className={`flex h-full w-full items-center justify-center rounded-full border border-slate-200 bg-white font-mono font-black ${paymentExpired ? 'text-[10px] uppercase tracking-wide text-rose-600' : 'text-base text-slate-900'}`}>
+                      {paymentExpired ? 'Expired' : `${String(Math.floor(paymentSecondsLeft / 60)).padStart(2, '0')}:${String(paymentSecondsLeft % 60).padStart(2, '0')}`}
                     </div>
                   </div>
                 )}
@@ -700,6 +701,33 @@ export function AccountView({
                     {paymentBusy ? 'Creating payment...' : 'Show payment amount'}
                   </button>
                 </>
+              ) : paymentExpired ? (
+                <div className="py-3 text-center">
+                  <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full border-4 border-white shadow-lg" style={{ background: paymentBrand.soft, color: paymentBrand.primary, boxShadow: `0 12px 30px ${paymentBrand.primary}22` }}>
+                    <Clock3 className="h-8 w-8" />
+                  </div>
+                  <p className="mt-4 text-[10px] font-black uppercase tracking-[0.18em] text-rose-600">Payment session expired</p>
+                  <h4 className="mt-2 text-xl font-black text-slate-900">Your 10-minute payment time has ended</h4>
+                  <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-slate-600">For your safety, this payment reference can no longer be used. Start again to get a fresh amount, timer, and reference.</p>
+                  <div className="mx-auto mt-4 max-w-sm rounded-xl border bg-white px-4 py-3 text-xs text-slate-500" style={{ borderColor: `${paymentBrand.primary}33` }}>
+                    Expired reference: <span className="font-mono font-bold text-slate-700">{paymentIntent.reference}</span>
+                  </div>
+                  <button
+                    type="button"
+                    disabled={paymentBusy}
+                    onClick={() => {
+                      setPaymentTrxId('');
+                      setPaymentFeedback('');
+                      void createPayment();
+                    }}
+                    className="mx-auto mt-5 flex w-full max-w-sm items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-bold text-white transition hover:-translate-y-0.5 disabled:opacity-60"
+                    style={{ background: `linear-gradient(90deg, ${paymentBrand.primary}, ${paymentBrand.secondary})`, boxShadow: `0 10px 24px ${paymentBrand.primary}30` }}
+                  >
+                    <RotateCcw className={`h-4 w-4 ${paymentBusy ? 'animate-spin' : ''}`} />
+                    {paymentBusy ? 'Starting a new session...' : 'Start payment again'}
+                  </button>
+                  <button type="button" onClick={() => setPaymentIntent(null)} className="mt-2 text-xs font-bold text-slate-500 hover:text-slate-800">Change payment details</button>
+                </div>
               ) : (
                 <>
                   <div className="grid gap-4 md:grid-cols-[1.08fr_.92fr]">
@@ -721,10 +749,10 @@ export function AccountView({
                           <button type="button" onClick={() => navigator.clipboard.writeText(paymentIntent.receivingPhone)} className="flex items-center gap-1 rounded-lg border border-white/50 bg-white px-3 py-2 text-xs font-bold shadow-sm hover:bg-slate-50" style={{ color: paymentBrand.text }}><Copy className="h-3.5 w-3.5" /> Copy</button>
                         </div>
                         <p className="mt-3 font-mono text-2xl font-black tracking-[0.08em] text-white">{paymentIntent.receivingPhone}</p>
-                        <div className="mt-4 grid grid-cols-3 items-start text-center text-[8px] font-bold uppercase tracking-wide text-white/80">
-                          <div><span className="mx-auto mb-1 block h-3 w-3 rounded-full border-2 border-white bg-white" />Initiated</div>
-                          <div><span className="mx-auto mb-1 block h-3 w-3 rounded-full border-2 border-white bg-white shadow-[0_0_12px_#fff]" />Send money</div>
-                          <div><span className={`mx-auto mb-1 block h-3 w-3 rounded-full border-2 ${paymentIntent.status === 'pending' ? 'border-white/60 bg-transparent' : 'border-white bg-white'}`} />Confirmation</div>
+                        <div className="mt-4 grid grid-cols-3 items-start rounded-lg bg-white px-2 py-2.5 text-center text-[8px] font-bold uppercase tracking-wide shadow-sm" style={{ color: paymentBrand.text }}>
+                          <div><span className="mx-auto mb-1 block h-3 w-3 rounded-full border-2" style={{ borderColor: paymentBrand.primary, background: paymentBrand.primary }} />Initiated</div>
+                          <div><span className="mx-auto mb-1 block h-3 w-3 rounded-full border-2 shadow-sm" style={{ borderColor: paymentBrand.primary, background: paymentBrand.primary, boxShadow: `0 0 10px ${paymentBrand.primary}66` }} />Send money</div>
+                          <div><span className="mx-auto mb-1 block h-3 w-3 rounded-full border-2 bg-white" style={{ borderColor: paymentBrand.primary, background: paymentIntent.status === 'pending' ? '#ffffff' : paymentBrand.primary }} />Confirmation</div>
                         </div>
                       </div>
                     </div>
