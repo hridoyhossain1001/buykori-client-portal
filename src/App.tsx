@@ -196,6 +196,7 @@ export default function App() {
     const nextPage = isClientPageId(pageId) ? pageId : 'dashboard';
     const nextPath = clientPathForPage(nextPage) || '/dashboard';
     activePageRef.current = nextPage;
+    setSearchVal('');
     setActivePageState(nextPage);
     setActiveRouteSection(null);
     if (window.location.pathname !== nextPath) {
@@ -1616,21 +1617,16 @@ export default function App() {
   const merchantVisibleEvents = events.filter(e => e.status !== 'Filtered');
 
   const filteredEventsForTable = merchantVisibleEvents.filter(e => {
-    // Search filter
-    const matchesSearch = searchVal 
-      ? (e.name.toLowerCase().includes(searchVal.toLowerCase()) || 
-         e.id.toLowerCase().includes(searchVal.toLowerCase()) ||
-         e.platform.toLowerCase().includes(searchVal.toLowerCase()) ||
-         (e.contextLabel || '').toLowerCase().includes(searchVal.toLowerCase()) ||
-         (e.pageUrl || '').toLowerCase().includes(searchVal.toLowerCase()) ||
-         e.status.toLowerCase().includes(searchVal.toLowerCase()))
-      : (searchFilter 
-          ? (e.name.toLowerCase().includes(searchFilter.toLowerCase()) || 
-             e.id.toLowerCase().includes(searchFilter.toLowerCase()) ||
-             (e.contextLabel || '').toLowerCase().includes(searchFilter.toLowerCase()) ||
-             (e.pageUrl || '').toLowerCase().includes(searchFilter.toLowerCase()) ||
-             e.deduplicationKey.toLowerCase().includes(searchFilter.toLowerCase()))
-          : true);
+    const normalizedFilter = searchFilter.trim().toLowerCase();
+    const matchesSearch = normalizedFilter
+      ? (e.name.toLowerCase().includes(normalizedFilter) ||
+         e.id.toLowerCase().includes(normalizedFilter) ||
+         e.platform.toLowerCase().includes(normalizedFilter) ||
+         (e.contextLabel || '').toLowerCase().includes(normalizedFilter) ||
+         (e.pageUrl || '').toLowerCase().includes(normalizedFilter) ||
+         e.status.toLowerCase().includes(normalizedFilter) ||
+         e.deduplicationKey.toLowerCase().includes(normalizedFilter))
+      : true;
     
     // Platform select filter
     const matchesPlatform = platformFilters.length > 0 ? platformFilters.includes(e.platform) : true;
@@ -1642,9 +1638,8 @@ export default function App() {
   });
 
   const filteredApiLogsForTable = apiLogs.filter(l => {
-    const matchesSearch = searchVal 
-      ? (l.endpoint.toLowerCase().includes(searchVal.toLowerCase()) || l.statusCode.toString().includes(searchVal))
-      : true;
+    // The header field is page navigation, not a data-table filter.
+    const matchesSearch = true;
     const matchesPlatform = platformFilters.length > 0 ? platformFilters.includes(l.platform) : true;
     return matchesSearch && matchesPlatform;
   });
@@ -1940,7 +1935,6 @@ export default function App() {
                 setPlatformFilters={setPlatformFilters}
                 statusFilters={statusFilters}
                 setStatusFilters={setStatusFilters}
-                setSearchVal={setSearchVal}
                 expandedEventId={expandedEventId}
                 setExpandedEventId={setExpandedEventId}
                 copiedStates={copiedStates}

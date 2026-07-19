@@ -54,7 +54,6 @@ interface EventLogsViewProps {
   setPlatformFilters: React.Dispatch<React.SetStateAction<string[]>>;
   statusFilters: string[];
   setStatusFilters: React.Dispatch<React.SetStateAction<string[]>>;
-  setSearchVal: (v: string) => void;
   expandedEventId: string | null;
   setExpandedEventId: (id: string | null) => void;
   copiedStates: Record<string, boolean>;
@@ -78,7 +77,6 @@ export function EventLogsView({
   setPlatformFilters,
   statusFilters,
   setStatusFilters,
-  setSearchVal,
   expandedEventId,
   setExpandedEventId,
   copiedStates,
@@ -270,7 +268,6 @@ export function EventLogsView({
                 setPlatformFilters([]);
                 setStatusFilters([]);
                 setSearchFilter('');
-                setSearchVal('');
               }}
               className="text-indigo-600 hover:text-indigo-800 text-[11px] font-bold flex items-center gap-1 ml-auto shrink-0 self-center  "
             >
