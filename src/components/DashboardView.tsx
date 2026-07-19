@@ -605,27 +605,24 @@ export function DashboardView({
               </div>
               <div className="mt-2 grid grid-cols-2 gap-2 text-[11px] text-slate-500">
                 <span className="font-mono">{new Date(e.timestamp).toLocaleTimeString()}</span>
-                <span className="text-right font-mono">Code {e.httpCode}</span>
+                <span className="truncate text-right font-semibold">{e.contextLabel || 'Website event'}</span>
               </div>
+              {e.pageUrl && <p className="mt-2 truncate text-[10px] text-slate-400">{e.pageUrl}</p>}
             </button>
           ))}
         </div>
 
         <div className="hidden overflow-x-auto md:block">
-          <table className="w-full text-left text-xs text-slate-600  divide-y divide-slate-100  min-w-[800px]">
+          <table className="w-full min-w-[900px] divide-y divide-slate-100 text-left text-xs text-slate-600">
             <thead className="bg-slate-50  text-[10px] font-bold uppercase tracking-wider text-slate-500 ">
               <tr>
                 <th className="px-6 py-3">Timestamp</th>
+                <th className="px-6 py-3">Event ID</th>
                 <th className="px-6 py-3">Event Name</th>
                 <th className="px-6 py-3">Platform</th>
                 <th className="px-6 py-3">Status</th>
-                <th className="px-6 py-3">Code</th>
-                <th className="px-6 py-3 text-right">
-                  <div className="flex items-center justify-end">
-                    Unique Event ID
-                    <Tooltip content="ডুপ্লিকেট ইভেন্ট ফিল্টারিং বা Deduplication Key। ব্রাউজার পিক্সেল এবং সার্ভার ইভেন্টকে ম্যাচ করার জন্য এটি ব্যবহৃত হয় যেন একই সেলস দুইবার কাউন্ট না হয়।" />
-                  </div>
-                </th>
+                <th className="px-6 py-3">Page / Product</th>
+                <th className="px-6 py-3 text-right">Details</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 ">
@@ -660,6 +657,9 @@ export function DashboardView({
                         <td className="px-6 py-3.5 font-mono text-slate-400 ">
                           {new Date(e.timestamp).toLocaleTimeString()}
                         </td>
+                        <td className="px-6 py-3.5 font-mono font-bold text-indigo-600">
+                          {e.id}
+                        </td>
                         <td className="px-6 py-3.5 font-semibold text-slate-800 ">
                           {e.name}
                         </td>
@@ -681,18 +681,19 @@ export function DashboardView({
                             {e.status}
                           </span>
                         </td>
-                        <td className="px-6 py-3.5 font-mono font-medium text-slate-500 ">
-                          {e.httpCode}
+                        <td className="max-w-[260px] px-6 py-3.5 text-slate-700">
+                          <span className="block truncate font-semibold" title={e.contextLabel || 'Website event'}>{e.contextLabel || 'Website event'}</span>
+                          {e.pageUrl && <span className="mt-0.5 block truncate text-[10px] text-slate-400" title={e.pageUrl}>{e.pageUrl}</span>}
                         </td>
-                        <td className="px-6 py-3.5 font-mono text-right text-slate-400 ">
-                          {e.deduplicationKey}
+                        <td className="px-6 py-3.5 text-right text-indigo-600">
+                          <span className="text-[11px] font-bold">{isExpanded ? 'Hide' : 'View'}</span>
                         </td>
                       </tr>
 
                       {/* Collapsible raw JSON details */}
                       {isExpanded && (
                         <tr>
-                          <td colSpan={6} className="bg-slate-50  border-t border-slate-100  px-6 py-4">
+                          <td colSpan={7} className="bg-slate-50  border-t border-slate-100  px-6 py-4">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                               <div className="bg-slate-900 text-slate-200 text-[11px] font-mono p-4 rounded-lg overflow-auto max-h-60 relative group">
                                 <div className="absolute top-2 right-2 flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
