@@ -128,23 +128,6 @@ export function AccountView({
   const isScale = currentPlanLower.includes('scale');
   const isAgency = currentPlanLower.includes('agency');
   const emailChanged = profEmail.trim().toLowerCase() !== profile.email.trim().toLowerCase();
-  const planFeatures = profile.planFeatures?.length ? profile.planFeatures : [
-    {
-      key: 'client_alerts',
-      label: 'Telegram order alerts',
-      description: 'Purchase and recovery notifications can be sent securely to the store owner by Telegram.',
-      included: !!profile.growthFeaturesEnabled,
-      minimumPlan: 'Growth',
-    },
-    {
-      key: 'incomplete_checkout_recovery',
-      label: 'Incomplete checkout recovery',
-      description: 'Abandoned checkout leads can be reviewed, contacted, and recovered from the portal.',
-      included: !!profile.growthFeaturesEnabled,
-      minimumPlan: 'Growth',
-    },
-  ];
-  
   const isDemo = window.location.hostname.includes('localhost') || 
                  window.location.hostname.includes('127.0.0.1');
 
@@ -627,58 +610,7 @@ export function AccountView({
             <div className="rounded-xl border border-emerald-100 bg-emerald-50 p-4"><span className="text-[9px] font-bold uppercase tracking-wide text-emerald-600">Tracking protection</span><strong className="mt-1 block text-sm text-emerald-800">Fully enabled</strong></div>
           </div>
           <div>
-            <span className="text-[10px] font-bold text-indigo-600  uppercase tracking-wider block">Your Plan</span>
-            <h3 className="text-lg font-bold text-slate-800  mt-1">{profile.plan}</h3>
-            <p className="text-[11px] text-slate-400  mt-0.5">Billing changes are handled by support</p>
-          </div>
-
-          <div className="space-y-2 text-xs text-slate-700  font-medium">
-            <div className="flex justify-between border-b border-slate-100  pb-2">
-              <span className="text-slate-400 ">Monthly renewal date:</span>
-              <span className="font-semibold text-slate-800 ">{profile.renewalDate}</span>
-            </div>
-            
-            <div className="flex justify-between border-b border-slate-100  pb-2">
-              <span className="text-slate-400 ">Monthly Usage:</span>
-              <span className="font-semibold text-slate-800 ">{(profile.eventsUsed).toLocaleString()} / {profile.eventsQuota.toLocaleString()} counts</span>
-            </div>
-
-            <div className="flex justify-between pb-2">
-              <span className="text-slate-400 ">Ad Blocker Bypass:</span>
-              <span className="font-semibold text-indigo-700 ">Fully Enabled ✓</span>
-            </div>
-          </div>
-
-          <div className="h-px bg-slate-100 " />
-
-          <div className="rounded-lg border border-emerald-100 bg-emerald-50/50 p-3">
-            <div className="mb-2 flex items-center justify-between gap-2">
-              <span className="text-[10px] font-bold uppercase tracking-wide text-emerald-700">Growth features</span>
-              {profile.growthFeaturesEnabled ? (
-                <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-700">Included</span>
-              ) : (
-                <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-700">Upgrade required</span>
-              )}
-            </div>
-            <div className="space-y-2">
-              {planFeatures.map((feature) => (
-                <div key={feature.key} className="flex items-start gap-2 text-xs">
-                  <span className={`mt-0.5 flex h-4 min-w-7 shrink-0 items-center justify-center rounded-full px-1 text-[9px] font-black ${feature.included ? 'bg-emerald-500 text-white' : 'bg-slate-200 text-slate-500'}`}>
-                    {feature.included ? 'Yes' : 'No'}
-                  </span>
-                  <div>
-                    <div className="font-bold text-slate-800 ">{feature.label}</div>
-                    <p className="text-[11px] leading-snug text-slate-500 ">{feature.description}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="h-px bg-slate-100 " />
-
-          <div>
-            <div className="mb-3"><span className="block text-[10px] font-bold uppercase tracking-wide text-slate-400">Compare plans</span><h4 className="mt-1 text-base font-black text-slate-900">Growth or Scale</h4></div>
+            <div className="mb-3"><span className="block text-[10px] font-bold uppercase tracking-wide text-indigo-600">Upgrade your plan</span><h4 className="mt-1 text-base font-black text-slate-900">Choose Growth or Scale</h4></div>
             <div className="grid gap-4 lg:grid-cols-2">
               {[
                 { tier: 'growth' as const, label: 'Growth Plan', events: '500K events / month', price: 'BDT 899 / month', features: growthPlanFeatures, active: isGrowth },
