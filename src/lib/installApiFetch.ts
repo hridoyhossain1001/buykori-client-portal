@@ -98,6 +98,10 @@ export const installApiFetch = () => {
     };
 
     const response = await current(input, await withClientDefaults());
+    if (response.status === 401 && window.location.pathname !== '/client') {
+      window.location.assign('/client');
+      return response;
+    }
     if (mutation && response.status === 403) {
       let csrf = readCookie(CSRF_COOKIE);
       const csrfRejected = await isCsrfRejectedResponse(response);

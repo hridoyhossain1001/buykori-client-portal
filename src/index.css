@@ -5,6 +5,12 @@
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
   --font-display: "Space Grotesk", sans-serif;
+  --text-caption: 0.75rem;
+  --text-body-sm: 0.8125rem;
+  --text-body: 0.875rem;
+  --text-subtitle: 1rem;
+  --text-title: 1.25rem;
+  --text-display: 1.5rem;
 }
 
 @layer base {
@@ -27,9 +33,39 @@
 
   body {
     @apply antialiased font-sans;
+    font-size: var(--text-body);
+    line-height: 1.5;
     color: var(--bk-console-text);
     background-color: var(--bk-console-bg);
-    background-image: none !important;
+    background-image: none;
+  }
+
+  :where(a, button, summary, [role="button"], [tabindex]):focus-visible {
+    outline: 2px solid var(--bk-console-blue) !important;
+    outline-offset: 2px;
+  }
+
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]),
+  select,
+  textarea {
+    min-height: 40px;
+    background-color: #ffffff;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.02);
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+  }
+
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):focus,
+  select:focus,
+  textarea:focus {
+    border-color: var(--bk-console-blue);
+    box-shadow: 0 0 0 2px rgba(0, 105, 218, 0.16);
+    outline: none;
+  }
+
+  [tabindex="-1"]:focus {
+    outline: none !important;
   }
 }
 
@@ -108,24 +144,29 @@
     box-shadow: none;
   }
 
+  .bk-console-topbar button {
+    min-width: 40px;
+    min-height: 40px;
+  }
+
   .bk-console-search {
-    background: #f1f3f4 !important;
-    border: 1px solid transparent !important;
-    border-radius: 9999px !important;
-    box-shadow: none !important;
+    background: #f1f3f4;
+    border: 1px solid transparent;
+    border-radius: 9999px;
+    box-shadow: none;
   }
 
   .bk-console-search input {
     width: 100%;
-    background: transparent !important;
-    border: 0 !important;
-    box-shadow: none !important;
+    background: transparent;
+    border: 0;
+    box-shadow: none;
   }
 
   .bk-console-search:focus-within {
-    background: #ffffff !important;
-    border-color: #c6dafc !important;
-    box-shadow: 0 1px 2px rgba(60, 64, 67, 0.12) !important;
+    background: #ffffff;
+    border-color: #c6dafc;
+    box-shadow: 0 1px 2px rgba(60, 64, 67, 0.12);
   }
 
   .bk-console-surface {
@@ -157,30 +198,7 @@
   }
 }
 
-/* Console redesign guardrails: keep existing pages flat and enterprise-clean. */
-.rounded-3xl,
-.rounded-2xl {
-  border-radius: var(--bk-console-radius) !important;
-}
-
-[class*="bg-gradient-to-"] {
-  background: var(--bk-console-surface) !important;
-}
-
-[class*="shadow-xl"],
-[class*="shadow-2xl"],
-[class*="shadow-lg"],
-[class*="shadow-md"] {
-  box-shadow: none !important;
-}
-
-[class*="backdrop-blur"] {
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
-}
-
-/* Plugin update reminder has its own visual system so console guardrails do not
-   erase the branded header or elevation. */
+/* Plugin update reminder visual system. */
 .bk-plugin-update-overlay {
   background: rgba(15, 23, 42, 0.58);
   backdrop-filter: blur(6px);
@@ -189,202 +207,38 @@
 
 .bk-plugin-update-modal {
   border: 1px solid rgba(199, 210, 254, 0.9);
-  border-radius: 18px !important;
-  box-shadow: 0 24px 70px rgba(15, 23, 42, 0.28) !important;
+  border-radius: 18px;
+  box-shadow: 0 24px 70px rgba(15, 23, 42, 0.28);
 }
 
 .bk-plugin-update-header {
-  background: linear-gradient(135deg, #4338ca 0%, #6d28d9 100%) !important;
+  background: linear-gradient(135deg, #4338ca 0%, #6d28d9 100%);
 }
 
 .bk-plugin-update-primary {
-  background: linear-gradient(135deg, #4f46e5 0%, #2563eb 100%) !important;
-  box-shadow: 0 8px 20px rgba(79, 70, 229, 0.2) !important;
+  background: linear-gradient(135deg, #4f46e5 0%, #2563eb 100%);
+  box-shadow: 0 8px 20px rgba(79, 70, 229, 0.2);
 }
 
 .bk-plugin-update-primary:hover {
-  background: linear-gradient(135deg, #4338ca 0%, #1d4ed8 100%) !important;
-}
-
-[class*="hover:scale"],
-[class*="hover:-translate"] {
-  transform: none !important;
-}
-
-/* Premium Solid Card Styles — replacing glassmorphism */
-.rounded-xl.bg-white, 
-.rounded-lg.bg-white, 
-.rounded-xl.bg-slate-50, 
-.rounded-xl.bg-slate-50\/50,
-.rounded-2xl.bg-white,
-.rounded-3xl.bg-white {
-  background-color: #ffffff !important;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
-  border: 1px solid #e2e8f0 !important;
-  box-shadow: 0 1px 3px 0 rgba(15, 23, 42, 0.05) !important;
-}
-
-.rounded-2xl, .rounded-3xl {
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
-  box-shadow: 0 1px 3px 0 rgba(15, 23, 42, 0.05);
-}
-
-/* Sidebar & Header solid layouts */
-.bg-white:not(.rounded-xl):not(.rounded-lg):not(.rounded-md):not(.rounded-full):not(.rounded):not(.rounded-2xl):not(.rounded-3xl) {
-  background-color: #ffffff !important;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
-  border-bottom: 1px solid #e2e8f0;
-  box-shadow: 0 1px 2px 0 rgba(15, 23, 42, 0.02);
-}
-
-/* Clean solid inputs with 8px corners */
-input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]),
-select,
-textarea {
-  background-color: #ffffff !important;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
-  border: 1px solid #cbd5e1 !important;
-  border-radius: 8px !important;
-  box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.02) !important;
-  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out !important;
-}
-
-input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):focus,
-select:focus,
-textarea:focus {
-  border-color: #6366f1 !important;
-  box-shadow: 0 0 0 1px #6366f1, 0 1px 2px rgba(15, 23, 42, 0.05) !important;
-  outline: none !important;
-}
-
-/* =====================================================
-   PREMIUM MINIMAL BUTTON STYLES (8px / rounded-lg)
-   ===================================================== */
-@layer utilities {
-
-  /* Indigo / Primary Buttons */
-  button.bg-indigo-600,
-  button.bg-indigo-700,
-  button.bg-indigo-800,
-  button.bg-indigo-900 {
-    background: var(--bk-console-blue) !important;
-    border: 1px solid var(--bk-console-blue) !important;
-    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05) !important;
-    color: #ffffff !important;
-    font-weight: 600 !important;
-    border-radius: 8px !important;
-    text-shadow: none;
-    backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
-  }
-  button.bg-indigo-600:hover,
-  button.bg-indigo-700:hover,
-  button.bg-indigo-800:hover,
-  button.bg-indigo-900:hover {
-    background: var(--bk-console-blue-hover) !important;
-    border-color: var(--bk-console-blue-hover) !important;
-    box-shadow: 0 1px 2px rgba(60, 64, 67, 0.18) !important;
-  }
-
-  /* Emerald / Green / Active Buttons */
-  button.bg-emerald-600,
-  button.bg-emerald-700,
-  button.bg-green-600,
-  button.bg-green-700 {
-    background: #10b981 !important;
-    border: 1px solid #059669 !important;
-    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05) !important;
-    color: #ffffff !important;
-    font-weight: 600 !important;
-    border-radius: 8px !important;
-    backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
-  }
-  button.bg-emerald-600:hover,
-  button.bg-emerald-700:hover,
-  button.bg-green-600:hover,
-  button.bg-green-700:hover {
-    background: #059669 !important;
-  }
-
-  /* Rose / Danger buttons */
-  button.bg-rose-600,
-  button.bg-rose-700 {
-    background: #ef4444 !important;
-    border: 1px solid #dc2626 !important;
-    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05) !important;
-    color: #ffffff !important;
-    font-weight: 600 !important;
-    border-radius: 8px !important;
-    backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
-  }
-  button.bg-rose-600:hover,
-  button.bg-rose-700:hover {
-    background: #dc2626 !important;
-  }
-
-  /* Dark / Save Settings buttons */
-  button.bg-slate-900,
-  button.bg-slate-800 {
-    background: #1f2937 !important;
-    border: 1px solid #111827 !important;
-    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05) !important;
-    color: #ffffff !important;
-    font-weight: 600 !important;
-    border-radius: 8px !important;
-  }
-  button.bg-slate-900:hover,
-  button.bg-slate-800:hover {
-    background: #111827 !important;
-  }
-
-  /* White / Secondary buttons */
-  button.bg-white,
-  button.bg-slate-50,
-  button.bg-slate-100,
-  button.bg-indigo-50,
-  button.bg-green-50,
-  button.bg-rose-50 {
-    background: #ffffff !important;
-    border: 1px solid #d1d5db !important;
-    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05) !important;
-    color: #374151 !important;
-    font-weight: 600 !important;
-    border-radius: 8px !important;
-    backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
-  }
-  button.bg-white:hover,
-  button.bg-slate-50:hover,
-  button.bg-slate-100:hover,
-  button.bg-indigo-50:hover,
-  button.bg-green-50:hover,
-  button.bg-rose-50:hover {
-    background: #f9fafb !important;
-    border-color: #c4c5c5 !important;
-  }
+  background: linear-gradient(135deg, #4338ca 0%, #1d4ed8 100%);
 }
 
 /* Typography contrast boosts globally in Light Mode */
 .text-slate-400 {
-  color: #64748b !important; /* High-contrast grey */
+  color: #64748b; /* High-contrast grey */
 }
 .text-slate-500 {
-  color: #4b5563 !important; /* Deeper slate-600 equivalent */
+  color: #4b5563; /* Deeper slate-600 equivalent */
 }
 .text-slate-600 {
-  color: #374151 !important; /* Deep charcoal */
+  color: #374151; /* Deep charcoal */
 }
 .text-slate-700 {
-  color: #1f2937 !important; /* Near black */
+  color: #1f2937; /* Near black */
 }
 .text-slate-800, .text-slate-900, .text-slate-950 {
-  color: #0f172a !important; /* Pitch black slate */
+  color: #0f172a; /* Pitch black slate */
 }
 
 /* Scrollbars styling */
@@ -436,43 +290,43 @@ textarea:focus {
 /* Premium Minimal Search Input */
 .orange-glow-capsule-input {
   position: relative;
-  background-color: #ffffff !important;
-  border: 1px solid #cbd5e1 !important;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.02) !important;
+  background-color: #ffffff;
+  border: 1px solid #cbd5e1;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.02);
 }
 
 .orange-glow-capsule-input input {
-  background-color: transparent !important;
-  border: none !important;
-  box-shadow: none !important;
-  padding: 0 !important;
-  height: auto !important;
-  width: 100% !important;
-  outline: none !important;
+  background-color: transparent;
+  border: none;
+  box-shadow: none;
+  padding: 0;
+  height: auto;
+  width: 100%;
+  outline: none;
 }
 
 .orange-glow-capsule-input input::placeholder {
-  color: #64748b !important;
-  font-weight: 500 !important;
+  color: #64748b;
+  font-weight: 500;
 }
 
 /* Active sidebar item styling */
 .sidebar-active-glow {
   position: relative;
-  background-color: var(--bk-console-blue-soft) !important;
-  border: 1px solid transparent !important;
-  color: var(--bk-console-blue) !important;
+  background-color: var(--bk-console-blue-soft);
+  border: 1px solid transparent;
+  color: var(--bk-console-blue);
 }
 
 .sidebar-active-indicator {
-  background-color: var(--bk-console-blue) !important;
-  box-shadow: none !important;
+  background-color: var(--bk-console-blue);
+  box-shadow: none;
 }
 
 /* Mark styling */
 mark {
-  background-color: #fef08a !important; /* yellow-200 */
-  color: #0f172a !important;
+  background-color: #fef08a; /* yellow-200 */
+  color: #0f172a;
   border-radius: 2px;
   padding-left: 1px;
   padding-right: 1px;
@@ -500,32 +354,47 @@ mark {
 
 /* Button hover micro-animations */
 button {
-  transition: all 0.15s ease-in-out !important;
+  transition-property: background-color, border-color, box-shadow, color, opacity, transform;
+  transition-duration: 0.15s;
+  transition-timing-function: ease-out;
 }
 
-button:hover {
-  transform: translateY(-0.5px);
+.bk-skip-link {
+  position: fixed;
+  left: 1rem;
+  top: 1rem;
+  z-index: 1000;
+  transform: translateY(-200%);
+  border-radius: 8px;
+  background: var(--bk-console-blue);
+  color: #ffffff;
+  padding: 0.65rem 0.9rem;
+  font-size: var(--text-body-sm);
+  font-weight: 700;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.18);
 }
 
-button.bg-transparent:hover, 
-button[class*="text-slate-400"]:not([class*="bg-"]):hover {
-  box-shadow: none !important;
-  transform: none;
+.bk-skip-link:focus-visible {
+  transform: translateY(0);
 }
 
-/* Mobile responsive padding and touch target updates */
-@media (max-width: 820px) {
-  .rounded-xl.bg-white, .rounded-lg.bg-white, .rounded-xl.bg-slate-50, .rounded-xl.bg-slate-50\/50,
-  .rounded-2xl, .rounded-3xl,
-  .bg-white:not(.rounded-xl):not(.rounded-lg):not(.rounded-md):not(.rounded-full):not(.rounded):not(.rounded-2xl):not(.rounded-3xl),
-  input, select, textarea {
-    backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
-  }
+/* Invoice previews stay readable on screen; the print window supplies compact sizes. */
+.invoice-print-8,
+.invoice-print-9,
+.invoice-print-10,
+.invoice-print-11 {
+  font-size: var(--text-caption);
+  line-height: 1.4;
+}
 
-  .rounded-3xl {
-    border-radius: 12px !important;
-    padding: 1rem !important;
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }
 

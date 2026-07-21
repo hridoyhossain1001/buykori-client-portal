@@ -67,8 +67,8 @@ export function PluginConnectAuthorizeView() {
         throw new Error(data.detail || 'Could not authorize this WordPress connection.');
       }
       window.location.assign(data.redirectUrl);
-    } catch (err: any) {
-      setError(err.message || 'Authorization failed.');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Authorization failed.');
       setSubmitting(false);
     }
   };

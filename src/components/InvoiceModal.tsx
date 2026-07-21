@@ -10,6 +10,7 @@ import {
   FileText
 } from 'lucide-react';
 import { clonePrintMarkup } from '../lib/print';
+import { Modal } from './common/Modal';
 
 interface ProductItem {
   name: string;
@@ -230,9 +231,10 @@ function InvoiceContent({ onClose, ordersList, storeName = "Buykori AdSync Shop"
     .text-base { font-size: 13px; line-height: 18px; }
     .text-xl { font-size: 16px; line-height: 22px; }
     .text-2xl { font-size: 18px; line-height: 24px; }
-    .text-\\[9px\\] { font-size: 8px; }
-    .text-\\[10px\\] { font-size: 9px; }
-    .text-\\[11px\\] { font-size: 10px; line-height: 1.4; }
+    .invoice-print-8 { font-size: 8px; }
+    .invoice-print-9 { font-size: 8px; }
+    .invoice-print-10 { font-size: 9px; }
+    .invoice-print-11 { font-size: 10px; line-height: 1.4; }
     .text-left { text-align: left; }
     .text-center { text-align: center; }
     .text-right { text-align: right; }
@@ -446,16 +448,18 @@ function InvoiceContent({ onClose, ordersList, storeName = "Buykori AdSync Shop"
   };
 
   return (
-    <div className="fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm overflow-y-auto">
-      
-      {/* Modal Container */}
-      <div className="bg-white  border border-slate-200  rounded-2xl w-full max-w-4xl shadow-2xl flex flex-col my-8  ">
+    <Modal
+      onClose={onClose}
+      labelledBy="invoice-modal-title"
+      overlayClassName="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-slate-900/60 p-4 backdrop-blur-sm"
+      panelClassName="my-8 flex w-full max-w-4xl flex-col rounded-2xl border border-slate-200 bg-white shadow-2xl"
+    >
         
         {/* Modal Header - Hidden on Print */}
         <div className="flex items-center justify-between border-b border-slate-100  pb-3 p-6 print:hidden">
           <div className="flex items-center gap-2">
             <FileText className="w-5 h-5 text-indigo-600 " />
-            <h3 className="font-bold text-slate-800  text-base">
+            <h3 id="invoice-modal-title" className="font-bold text-slate-800  text-base">
               Invoice Generator {ordersList.length > 1 && `(Bulk Mode: ${ordersList.length} Invoices)`}
             </h3>
           </div>
@@ -478,7 +482,9 @@ function InvoiceContent({ onClose, ordersList, storeName = "Buykori AdSync Shop"
               {ordersList.length > 1 ? `Print All Invoices (${ordersList.length})` : 'Print Invoice'}
             </button>
             <button 
+              type="button"
               onClick={onClose}
+              aria-label="Close invoice dialog"
               className="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg hover:bg-slate-50  cursor-pointer"
             >
               <X className="w-5 h-5" />
@@ -496,13 +502,13 @@ function InvoiceContent({ onClose, ordersList, storeName = "Buykori AdSync Shop"
                 <Store className="w-3.5 h-3.5 text-indigo-500" />
                 Customize Invoice Print
               </h4>
-              <p className="text-[11px] text-slate-400">
+              <p className="text-xs text-slate-400">
                 You can change these values to match your store details. They will apply to all invoices currently being customized.
               </p>
               
               <div className="space-y-3 pt-2">
                 <div>
-                  <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Store / Brand Name</label>
+                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Store / Brand Name</label>
                   <input
                     type="text"
                     value={bizName}
@@ -511,7 +517,7 @@ function InvoiceContent({ onClose, ordersList, storeName = "Buykori AdSync Shop"
                   />
                 </div>
                 <div>
-                  <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Support Email</label>
+                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Support Email</label>
                   <input
                     type="email"
                     value={bizEmail}
@@ -520,7 +526,7 @@ function InvoiceContent({ onClose, ordersList, storeName = "Buykori AdSync Shop"
                   />
                 </div>
                 <div>
-                  <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Phone Number</label>
+                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Phone Number</label>
                   <input
                     type="text"
                     value={bizPhone}
@@ -529,7 +535,7 @@ function InvoiceContent({ onClose, ordersList, storeName = "Buykori AdSync Shop"
                   />
                 </div>
                 <div>
-                  <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Store Address</label>
+                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Store Address</label>
                   <input
                     type="text"
                     value={bizAddress}
@@ -538,7 +544,7 @@ function InvoiceContent({ onClose, ordersList, storeName = "Buykori AdSync Shop"
                   />
                 </div>
                 <div>
-                  <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Global Invoice Notes</label>
+                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Global Invoice Notes</label>
                   <textarea
                     value={bizInvoiceNote}
                     onChange={(e) => setBizInvoiceNote(e.target.value)}
@@ -552,10 +558,10 @@ function InvoiceContent({ onClose, ordersList, storeName = "Buykori AdSync Shop"
                   // Legacy single order inputs
                   <>
                     <div className="border-t border-slate-200  pt-3">
-                      <h5 className="text-[10px] font-bold text-slate-600  uppercase tracking-wide mb-2">Order Customizations</h5>
+                      <h5 className="text-xs font-bold text-slate-600  uppercase tracking-wide mb-2">Order Customizations</h5>
                       <div className="space-y-3">
                         <div>
-                          <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Delivery Charge (৳)</label>
+                          <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Delivery Charge (৳)</label>
                           <input
                             type="number"
                             value={orderSettings[String(ordersList[0].orderId || ordersList[0].order_id)]?.deliveryCharge ?? 80}
@@ -564,7 +570,7 @@ function InvoiceContent({ onClose, ordersList, storeName = "Buykori AdSync Shop"
                           />
                         </div>
                         <div>
-                          <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Courier Consignment ID</label>
+                          <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Courier Consignment ID</label>
                           <input
                             type="text"
                             value={orderSettings[String(ordersList[0].orderId || ordersList[0].order_id)]?.courierId ?? ''}
@@ -579,7 +585,7 @@ function InvoiceContent({ onClose, ordersList, storeName = "Buykori AdSync Shop"
                 ) : (
                   // Bulk items customization list
                   <div className="border-t border-slate-200  pt-3 space-y-3">
-                    <h5 className="text-[10px] font-bold text-slate-600  uppercase tracking-wide">Per-Order Customizations</h5>
+                    <h5 className="text-xs font-bold text-slate-600  uppercase tracking-wide">Per-Order Customizations</h5>
                     <div className="space-y-3 max-h-[30vh] overflow-y-auto pr-1">
                       {ordersList.map((ord) => {
                         const oId = String(ord.orderId || ord.order_id || 'N/A');
@@ -587,27 +593,27 @@ function InvoiceContent({ onClose, ordersList, storeName = "Buykori AdSync Shop"
                         return (
                           <div key={oId} className="p-3 bg-white  border border-slate-200  rounded-xl space-y-2 shadow-xs">
                             <div className="flex justify-between items-center border-b border-slate-100  pb-1">
-                              <span className="font-mono font-bold text-[10px] text-indigo-600 ">#{oId}</span>
-                              <span className="text-[9px] text-slate-400">{ord.recipientName || ord.recipient_name || 'Customer'}</span>
+                              <span className="font-mono font-bold text-xs text-indigo-600 ">#{oId}</span>
+                              <span className="text-xs text-slate-400">{ord.recipientName || ord.recipient_name || 'Customer'}</span>
                             </div>
                             <div className="grid grid-cols-2 gap-2">
                               <div>
-                                <label className="block text-[8px] font-bold text-slate-400 uppercase mb-0.5">Courier ID</label>
+                                <label className="block text-xs font-bold text-slate-400 uppercase mb-0.5">Courier ID</label>
                                 <input
                                   type="text"
                                   value={settings.courierId}
                                   onChange={(e) => handleOrderCourierIdChange(oId, e.target.value)}
                                   placeholder="Consignment ID"
-                                  className="w-full px-2 py-1 text-[10px] bg-slate-50 border border-slate-200 rounded focus:outline-none focus:ring-1 focus:ring-indigo-500   "
+                                  className="w-full px-2 py-1 text-xs bg-slate-50 border border-slate-200 rounded focus:outline-none focus:ring-1 focus:ring-indigo-500   "
                                 />
                               </div>
                               <div>
-                                <label className="block text-[8px] font-bold text-slate-400 uppercase mb-0.5">Delivery (৳)</label>
+                                <label className="block text-xs font-bold text-slate-400 uppercase mb-0.5">Delivery (৳)</label>
                                 <input
                                   type="number"
                                   value={settings.deliveryCharge}
                                   onChange={(e) => handleOrderDeliveryChargeChange(oId, Number(e.target.value))}
-                                  className="w-full px-2 py-1 text-[10px] bg-slate-50 border border-slate-200 rounded focus:outline-none focus:ring-1 focus:ring-indigo-500   "
+                                  className="w-full px-2 py-1 text-xs bg-slate-50 border border-slate-200 rounded focus:outline-none focus:ring-1 focus:ring-indigo-500   "
                                 />
                               </div>
                             </div>
@@ -675,7 +681,7 @@ function InvoiceContent({ onClose, ordersList, storeName = "Buykori AdSync Shop"
                           </div>
                           <span className="text-base font-bold tracking-tight text-slate-900  print:text-black">{bizName}</span>
                         </div>
-                        <div className="text-[10px] text-slate-400  space-y-0.5 print:text-slate-600">
+                        <div className="invoice-print-10 text-slate-400  space-y-0.5 print:text-slate-600">
                           <p>{bizAddress}</p>
                           <p>Phone: {bizPhone} | Email: {bizEmail}</p>
                         </div>
@@ -683,7 +689,7 @@ function InvoiceContent({ onClose, ordersList, storeName = "Buykori AdSync Shop"
 
                       <div className="text-right space-y-1">
                         <h2 className="text-lg font-black tracking-wider text-slate-900  print:text-black uppercase">INVOICE</h2>
-                        <div className="text-[10px] text-slate-500  print:text-slate-600 space-y-0.5 font-mono">
+                        <div className="invoice-print-10 text-slate-500  print:text-slate-600 space-y-0.5 font-mono">
                           <p>Invoice #: <span className="font-bold text-slate-800  print:text-black">{oId}</span></p>
                           <p>Date: {invoiceDate}</p>
                           <p>Payment Mode: <span className="font-bold text-emerald-600 print:text-emerald-700">Cash on Delivery (COD)</span></p>
@@ -694,11 +700,11 @@ function InvoiceContent({ onClose, ordersList, storeName = "Buykori AdSync Shop"
                     {/* Bill To / Ship To customer details */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50  p-3 rounded-xl border border-slate-100  print:bg-slate-50 print:border-slate-200 print:grid-cols-2">
                       <div>
-                        <h4 className="text-[9px] font-bold text-indigo-600  uppercase tracking-widest mb-1.5 flex items-center gap-1.5 print:text-indigo-600">
+                        <h4 className="invoice-print-9 font-bold text-indigo-600  uppercase tracking-widest mb-1.5 flex items-center gap-1.5 print:text-indigo-600">
                           <User className="w-3 h-3" />
                           Billing & Shipping Recipient
                         </h4>
-                        <div className="text-[11px] space-y-0.5">
+                        <div className="invoice-print-11 space-y-0.5">
                           <p className="font-bold text-slate-850  print:text-black">{customerName}</p>
                           <p className="font-mono flex items-center gap-1 text-slate-500  print:text-slate-600">
                             <Phone className="w-2.5 h-2.5 text-slate-400" /> {customerPhone}
@@ -707,11 +713,11 @@ function InvoiceContent({ onClose, ordersList, storeName = "Buykori AdSync Shop"
                       </div>
 
                       <div>
-                        <h4 className="text-[9px] font-bold text-indigo-600  uppercase tracking-widest mb-1.5 flex items-center gap-1.5 print:text-indigo-600">
+                        <h4 className="invoice-print-9 font-bold text-indigo-600  uppercase tracking-widest mb-1.5 flex items-center gap-1.5 print:text-indigo-600">
                           <MapPin className="w-3 h-3" />
                           Delivery Destination
                         </h4>
-                        <p className="text-[11px] text-slate-700  leading-normal print:text-black">
+                        <p className="invoice-print-11 text-slate-700  leading-normal print:text-black">
                           {customerAddress}
                         </p>
                       </div>
@@ -719,38 +725,38 @@ function InvoiceContent({ onClose, ordersList, storeName = "Buykori AdSync Shop"
 
                     {/* Invoice Products Table */}
                     <div className="border border-slate-200  rounded-xl overflow-hidden print:border-slate-200">
-                      <table className="w-full text-[10px] text-left border-collapse">
+                      <table className="w-full invoice-print-10 text-left border-collapse">
                         <thead>
                           <tr className="bg-slate-50  border-b border-slate-200  font-bold uppercase tracking-wider text-slate-500  print:bg-slate-100 print:border-slate-200 print:text-slate-600">
-                            <th className="px-3 py-2 text-[9px]">Product Name</th>
-                            <th className="px-3 py-2 text-center w-20 text-[9px]">Price</th>
-                            <th className="px-3 py-2 text-center w-16 text-[9px]">Quantity</th>
-                            <th className="px-3 py-2 text-right w-24 text-[9px]">Total</th>
+                            <th className="px-3 py-2 invoice-print-9">Product Name</th>
+                            <th className="px-3 py-2 text-center w-20 invoice-print-9">Price</th>
+                            <th className="px-3 py-2 text-center w-16 invoice-print-9">Quantity</th>
+                            <th className="px-3 py-2 text-right w-24 invoice-print-9">Total</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100  print:divide-slate-200">
                           {products.length === 0 ? (
                             <tr className="hover:bg-slate-50/50 ">
-                              <td className="px-3 py-2 text-slate-500 italic text-[10px]">
+                              <td className="px-3 py-2 text-slate-500 italic invoice-print-10">
                                 Standard E-Commerce Product Order
                               </td>
-                              <td className="px-3 py-2 text-center font-mono text-[10px]">৳{subtotal.toLocaleString()}</td>
-                              <td className="px-3 py-2 text-center text-[10px]">1</td>
-                              <td className="px-3 py-2 text-right font-semibold font-mono text-[10px]">৳{subtotal.toLocaleString()}</td>
+                              <td className="px-3 py-2 text-center font-mono invoice-print-10">৳{subtotal.toLocaleString()}</td>
+                              <td className="px-3 py-2 text-center invoice-print-10">1</td>
+                              <td className="px-3 py-2 text-right font-semibold font-mono invoice-print-10">৳{subtotal.toLocaleString()}</td>
                             </tr>
                           ) : (
                             products.map((p, i) => (
                               <tr key={i} className="hover:bg-slate-50/50 ">
-                                <td className="px-3 py-2 font-medium text-slate-800  print:text-black text-[10px]">
+                                <td className="px-3 py-2 font-medium text-slate-800  print:text-black invoice-print-10">
                                   {p.name}
                                 </td>
-                                <td className="px-3 py-2 text-center font-mono text-slate-500  print:text-black text-[10px]">
+                                <td className="px-3 py-2 text-center font-mono text-slate-500  print:text-black invoice-print-10">
                                   ৳{p.price.toLocaleString()}
                                 </td>
-                                <td className="px-3 py-2 text-center font-bold text-slate-600  print:text-black text-[10px]">
+                                <td className="px-3 py-2 text-center font-bold text-slate-600  print:text-black invoice-print-10">
                                   {p.quantity}
                                 </td>
-                                <td className="px-3 py-2 text-right font-semibold font-mono text-slate-800  print:text-black text-[10px]">
+                                <td className="px-3 py-2 text-right font-semibold font-mono text-slate-800  print:text-black invoice-print-10">
                                   ৳{(p.price * p.quantity).toLocaleString()}
                                 </td>
                               </tr>
@@ -763,9 +769,9 @@ function InvoiceContent({ onClose, ordersList, storeName = "Buykori AdSync Shop"
                     {/* Total calculations */}
                     <div className="flex justify-between items-start pt-3 gap-4 border-t border-slate-100  print:border-slate-200">
                       {/* Column 1: Note Area */}
-                      <div className="invoice-notes-area flex-1 text-[10px] space-y-1">
-                        <p className="font-bold text-[8px] uppercase text-slate-400  print:text-slate-600 tracking-wider">Terms & Notes</p>
-                        <p className="text-[10px] text-slate-500  print:text-black leading-relaxed italic">
+                      <div className="invoice-notes-area flex-1 invoice-print-10 space-y-1">
+                        <p className="font-bold invoice-print-8 uppercase text-slate-400  print:text-slate-600 tracking-wider">Terms & Notes</p>
+                        <p className="invoice-print-10 text-slate-500  print:text-black leading-relaxed italic">
                           {bizInvoiceNote}
                         </p>
                       </div>
@@ -773,7 +779,7 @@ function InvoiceContent({ onClose, ordersList, storeName = "Buykori AdSync Shop"
                       {/* Column 2: Courier QR Code Card */}
                       {courierId.trim() && (
                         <div className="courier-qr-card w-40 bg-slate-50  p-2.5 rounded-xl border border-slate-200  flex flex-col items-center justify-center text-center space-y-1 shrink-0 print:bg-slate-50 print:border-slate-200">
-                          <span className="text-[8px] font-bold text-indigo-600  uppercase tracking-widest print:text-indigo-600">
+                          <span className="invoice-print-8 font-bold text-indigo-600  uppercase tracking-widest print:text-indigo-600">
                             Courier ID QR
                           </span>
                           {qrCodeDataUrl ? (
@@ -783,18 +789,18 @@ function InvoiceContent({ onClose, ordersList, storeName = "Buykori AdSync Shop"
                               className="courier-qr-image w-20 h-20 shrink-0 bg-white p-1 rounded-lg border border-slate-200"
                             />
                           ) : (
-                            <div className="w-20 h-20 shrink-0 border border-dashed border-slate-200 bg-white flex items-center justify-center text-[9px] text-slate-400">
+                            <div className="w-20 h-20 shrink-0 border border-dashed border-slate-200 bg-white flex items-center justify-center invoice-print-9 text-slate-400">
                               Generating QR...
                             </div>
                           )}
-                          <span className="font-mono text-[10px] font-black text-slate-800  print:text-black tracking-wider">
+                          <span className="font-mono invoice-print-10 font-black text-slate-800  print:text-black tracking-wider">
                             #{courierId.trim()}
                           </span>
                         </div>
                       )}
 
                       {/* Column 3: Subtotal & Total calculations */}
-                      <div className="w-48 text-[10px] space-y-1.5 shrink-0">
+                      <div className="w-48 invoice-print-10 space-y-1.5 shrink-0">
                         <div className="flex justify-between text-slate-500  print:text-slate-600 font-mono">
                           <span>Subtotal:</span>
                           <span>৳{subtotal.toLocaleString()}</span>
@@ -817,7 +823,7 @@ function InvoiceContent({ onClose, ordersList, storeName = "Buykori AdSync Shop"
                     </div>
 
                     {/* Signatures */}
-                    <div className="invoice-signatures flex justify-between pt-10 text-[10px] text-slate-400  print:text-slate-600">
+                    <div className="invoice-signatures flex justify-between pt-10 invoice-print-10 text-slate-400  print:text-slate-600">
                       <div className="border-t border-slate-100  pt-1 w-32 text-center print:border-slate-350">
                         Customer Signature
                       </div>
@@ -838,8 +844,6 @@ function InvoiceContent({ onClose, ordersList, storeName = "Buykori AdSync Shop"
 
         </div>
 
-      </div>
-
-    </div>
+    </Modal>
   );
 }

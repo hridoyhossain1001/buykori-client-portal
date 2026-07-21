@@ -17,11 +17,17 @@ import { PluginConnectAuthorizeView } from './components/PluginConnectAuthorizeV
 import { ProductGuide } from './components/ProductGuide';
 import { SupportWidget } from './components/SupportWidget';
 import { PluginUpdateModal } from './components/PluginUpdateModal';
-import { CAPIEvent, APILog, Suggestion, Platform, EventRule, PlatformConfig, UserProfile, ClientConnection, OutboxItem, PluginReleaseInfo, CustomEventAutomation } from './types';
+import { Button } from './components/common/Button';
+import { Modal } from './components/common/Modal';
+import { CAPIEvent, APILog, Suggestion, Platform, EventRule, PlatformConfig, UserProfile, ClientConnection, OutboxItem, PluginReleaseInfo, CustomEventAutomation, CourierOrder, DeferredData, IncompleteCheckoutData, RecoveryOrderPayload, SidebarStatus, StoreInfo, AnalyticsAudience, AnalyticsCampaigns, AnalyticsOverview, CampaignDispatchResponse, RecoverySummary, SignalDoctor, SyncedAdCampaign, TrendPoint } from './types';
 import { clientPathForPage, clientPathForSection, isClientPageId, resolveClientRoute } from './lib/clientRoutes';
+import { comparePluginVersions, errorMessage, normalizePluginVersion, uniqueSuggestions } from './lib/clientAppUtils';
+import { fetchAnalyticsBundle, fetchDashboardAnalytics } from './services/analyticsApi';
+import { fetchClientStores, fetchDeferredData, markClientSidebarSeen, runDeferredBulkAction, runDeferredOrderAction, saveClientStoreDomain, saveDeferredSettings, switchClientStore } from './services/operationsApi';
+import { requestAccountDeletion, requestProfileEmailCode, resetDemoProfile, revokeClientConnection, sendPasswordResetEmail, updateClientPassword, updateClientProfile } from './services/accountApi';
 
-const lazyWithReload = <T extends React.ComponentType<any>>(
-  loader: () => Promise<{ default: T }>
+const lazyWithReload = <Props extends object>(
+  loader: () => Promise<{ default: React.ComponentType<Props> }>
 ) => lazy(() => loader().catch((error) => {
   const chunkFailed = /Failed to fetch dynamically imported module|Importing a module script failed|Loading chunk/i.test(String(error?.message || error));
   if (chunkFailed && sessionStorage.getItem('buykori_chunk_reload') !== '1') {
@@ -34,63 +40,6 @@ const lazyWithReload = <T extends React.ComponentType<any>>(
 // Lazy-loaded modular views (code-splitting for smaller initial bundle)
 const DashboardView = lazyWithReload(() => import('./components/DashboardView').then(m => ({ default: m.DashboardView })));
 const WeeklyReportCard = lazyWithReload(() => import('./components/WeeklyReportCard').then(m => ({ default: m.WeeklyReportCard })));
-
-const suggestionDedupeKey = (item: Suggestion) => [
-  item.platform || 'global',
-  item.title,
-  item.explanation,
-  item.fixAction,
-].map(value => String(value || '').trim().toLowerCase()).join('|');
-
-const uniqueSuggestions = (items: Suggestion[] = []) => {
-  const byContent = new Map<string, Suggestion>();
-  items.forEach((item) => {
-    const key = suggestionDedupeKey(item) || item.id;
-    const existing = byContent.get(key);
-    if (!existing) {
-      byContent.set(key, item);
-      return;
-    }
-
-    byContent.set(key, {
-      ...existing,
-      ...item,
-      id: existing.id,
-      resolved: existing.resolved && item.resolved,
-    });
-  });
-  return Array.from(byContent.values());
-};
-
-const normalizePluginVersion = (version?: string) => (version || '').replace(/^v/i, '').trim();
-
-const comparePluginVersions = (left: string, right: string) => {
-  const leftParts = left.split('.').map(part => Number.parseInt(part, 10) || 0);
-  const rightParts = right.split('.').map(part => Number.parseInt(part, 10) || 0);
-  const length = Math.max(leftParts.length, rightParts.length);
-  for (let index = 0; index < length; index += 1) {
-    const difference = (leftParts[index] || 0) - (rightParts[index] || 0);
-    if (difference !== 0) return difference;
-  }
-  return 0;
-};
-
-const readCookie = (name: string) => {
-  const prefix = `${name}=`;
-  return document.cookie
-    .split(';')
-    .map(part => part.trim())
-    .find(part => part.startsWith(prefix))
-    ?.slice(prefix.length) || '';
-};
-
-const jsonHeadersWithClientCsrf = () => {
-  const csrf = readCookie('buykori_client_csrf');
-  return {
-    'Content-Type': 'application/json',
-    ...(csrf ? { 'X-Client-CSRF-Token': csrf } : {}),
-  };
-};
 
 class PageErrorBoundary extends React.Component<
   { pageKey: string; children: React.ReactNode },
@@ -166,10 +115,10 @@ export default function App() {
   const [apiLogs, setApiLogs] = useState<APILog[]>([]);
   const [outboxItems, setOutboxItems] = useState<OutboxItem[]>([]);
   const [retryingOutboxIds, setRetryingOutboxIds] = useState<number[]>([]);
-  const [deferredData, setDeferredData] = useState<any>(null);
-  const [courierOrders, setCourierOrders] = useState<any[]>([]);
-  const [sidebarStatus, setSidebarStatus] = useState<any>(null);
-  const [incompleteCheckoutData, setIncompleteCheckoutData] = useState<any>({ items: [], counts: {} });
+  const [deferredData, setDeferredData] = useState<DeferredData | null>(null);
+  const [courierOrders, setCourierOrders] = useState<CourierOrder[]>([]);
+  const [sidebarStatus, setSidebarStatus] = useState<SidebarStatus | null>(null);
+  const [incompleteCheckoutData, setIncompleteCheckoutData] = useState<IncompleteCheckoutData>({ items: [], counts: {} });
   const [pluginReleaseInfo, setPluginReleaseInfo] = useState<PluginReleaseInfo | null>(null);
   const [selectedOrderIds, setSelectedOrderIds] = useState<string[]>([]);
   const [deferredEnabled, setDeferredEnabled] = useState<boolean>(false);
@@ -178,19 +127,18 @@ export default function App() {
   const [savingDeferredSettings, setSavingDeferredSettings] = useState<boolean>(false);
 
   // Multiple Store Management
-  const [stores, setStores] = useState<any[]>([]);
+  const [stores, setStores] = useState<StoreInfo[]>([]);
   const [createStoreModalOpen, setCreateStoreModalOpen] = useState<boolean>(false);
 
   // Advanced Analytics States
-  const [analyticsOverview, setAnalyticsOverview] = useState<any>(null);
-  const [analyticsCampaigns, setAnalyticsCampaigns] = useState<any>(null);
-  const [analyticsHourly, setAnalyticsHourly] = useState<any>(null);
-  const [analyticsAudience, setAnalyticsAudience] = useState<any>(null);
-  const [signalDoctor, setSignalDoctor] = useState<any>(null);
+  const [analyticsOverview, setAnalyticsOverview] = useState<AnalyticsOverview | null>(null);
+  const [analyticsCampaigns, setAnalyticsCampaigns] = useState<AnalyticsCampaigns | null>(null);
+  const [analyticsAudience, setAnalyticsAudience] = useState<AnalyticsAudience | null>(null);
+  const [signalDoctor, setSignalDoctor] = useState<SignalDoctor | null>(null);
   const [analyticsDays, setAnalyticsDays] = useState<number>(7);
   const [analyticsError, setAnalyticsError] = useState<string | null>(null);
-  const [trendData, setTrendData] = useState<any[]>([]);
-  const [recoverySummary, setRecoverySummary] = useState<any>(null);
+  const [trendData, setTrendData] = useState<TrendPoint[]>([]);
+  const [recoverySummary, setRecoverySummary] = useState<RecoverySummary | null>(null);
 
   const setActivePage = useCallback((pageId: string) => {
     const nextPage = isClientPageId(pageId) ? pageId : 'dashboard';
@@ -214,7 +162,7 @@ export default function App() {
 
   // Live Mode Polling State
   const [liveMode, setLiveMode] = useState<boolean>(false);
-  const liveIntervalRef = useRef<any | null>(null);
+  const liveIntervalRef = useRef<ReturnType<typeof window.setInterval> | null>(null);
 
   // Filters State for Logs
   const [platformFilters, setPlatformFilters] = useState<string[]>([]);
@@ -241,7 +189,7 @@ export default function App() {
     { k: 'content_name', v: 'Designer Leather Jacket' },
     { k: 'content_category', v: 'Apparel > Outerwear' }
   ]);
-  const [campaignResp, setCampaignResp] = useState<any | null>(null);
+  const [campaignResp, setCampaignResp] = useState<CampaignDispatchResponse | null>(null);
   const [dispatchingTest, setDispatchingTest] = useState<boolean>(false);
 
   // Campaign URL Builder States
@@ -253,7 +201,7 @@ export default function App() {
   const [urlBuilderTerm, setUrlBuilderTerm] = useState<string>('');
   const [urlBuilderAdPlatform, setUrlBuilderAdPlatform] = useState<'meta' | 'tiktok'>('meta');
   const [urlBuilderCampaignId, setUrlBuilderCampaignId] = useState<string>('');
-  const [syncedAdCampaigns, setSyncedAdCampaigns] = useState<any[]>([]);
+  const [syncedAdCampaigns, setSyncedAdCampaigns] = useState<SyncedAdCampaign[]>([]);
   const [loadingSyncedAdCampaigns, setLoadingSyncedAdCampaigns] = useState<boolean>(false);
   const [generatedCampaignUrl, setGeneratedCampaignUrl] = useState<string>('');
 
@@ -515,16 +463,11 @@ export default function App() {
 
   const fetchDeferred = async () => {
     try {
-      const res = await fetch('/api/deferred');
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(body.detail || `Could not load verification queue (${res.status}).`);
-      }
-      const data = await res.json();
+      const data = await fetchDeferredData();
       setDeferredData(data);
-      setDeferredEnabled(data.deferredEnabled);
-      setAutoConfirmDays(data.autoConfirmDays);
-      setAutoConfirmStatus(data.autoConfirmStatus);
+      setDeferredEnabled(Boolean(data.deferredEnabled));
+      setAutoConfirmDays(Number(data.autoConfirmDays || 0));
+      setAutoConfirmStatus(data.autoConfirmStatus || 'completed');
       setDeferredLoadError(null);
     } catch (err) {
       console.error("Failed to fetch COD Protection", err);
@@ -634,17 +577,9 @@ export default function App() {
 
   const fetchTrendData = async (days = 7) => {
     try {
-      const [trendRes, recoveryRes] = await Promise.all([
-        fetch(`/api/events/trend?days=${days}`),
-        fetch(`/api/events/recovery-summary?days=${days}`)
-      ]);
-      if (trendRes.ok) {
-        const data = await trendRes.json();
-        setTrendData(data.trend || []);
-      }
-      if (recoveryRes.ok) {
-        setRecoverySummary(await recoveryRes.json());
-      }
+      const data = await fetchDashboardAnalytics(days);
+      if (data.trend) setTrendData(data.trend);
+      if (data.recoverySummary) setRecoverySummary(data.recoverySummary);
     } catch (err) {
       console.error("Failed to fetch trend data", err);
     }
@@ -706,7 +641,7 @@ export default function App() {
     await fetchIncompleteCheckouts();
   };
 
-  const handleCreateRecoveryOrder = async (id: number, payload: any) => {
+  const handleCreateRecoveryOrder = async (id: number, payload: RecoveryOrderPayload) => {
     const res = await fetch(`/api/incomplete-checkouts/${id}/create-order`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -783,9 +718,9 @@ export default function App() {
       await loadActivePageData(activePageRef.current).catch(error => {
         console.error(`Failed to load ${activePageRef.current} workspace`, error);
       });
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error(e);
-      setErrState(e.message || "Something went wrong. Please refresh or try again.");
+      setErrState(errorMessage(e, "Something went wrong. Please refresh or try again."));
     } finally {
       if (showShimmer) setLoading(false);
     }
@@ -794,49 +729,13 @@ export default function App() {
   const loadAnalyticsData = async (days = 7) => {
     try {
       setAnalyticsError(null);
-      const [resAnOver, resAnCamp, resAnHour, resAnAudience, resAnDoc] = await Promise.all([
-        fetch(`/api/v1/analytics/overview?days=${days}`),
-        fetch(`/api/v1/analytics/campaigns?days=${days}`),
-        fetch(`/api/v1/analytics/hourly?days=${days}`),
-        fetch(`/api/v1/analytics/audience?days=${days}`),
-        fetch(`/api/v1/analytics/signal-doctor?days=${days}`)
-      ]);
-      const failedSections: string[] = [];
-      if (!resAnOver.ok) failedSections.push('summary');
-      if (!resAnCamp.ok) failedSections.push('sales source');
-      if (!resAnHour.ok) failedSections.push('hourly data');
-      if (!resAnAudience.ok) failedSections.push('customers');
-      if (!resAnDoc.ok) failedSections.push('tracking health');
-      if (resAnOver.ok) {
-        const data = await resAnOver.json();
-        setAnalyticsOverview({ ...data, funnel: Array.isArray(data.funnel) ? data.funnel : [] });
-      }
-      if (resAnCamp.ok) {
-        const data = await resAnCamp.json();
-        setAnalyticsCampaigns({ ...data, campaigns: Array.isArray(data.campaigns) ? data.campaigns : [] });
-      }
-      if (resAnHour.ok) setAnalyticsHourly(await resAnHour.json());
-      if (resAnAudience.ok) {
-        const data = await resAnAudience.json();
-        setAnalyticsAudience({
-          ...data,
-          top_districts: Array.isArray(data.top_districts) ? data.top_districts : [],
-          device_mix: Array.isArray(data.device_mix) ? data.device_mix : [],
-          browser_mix: Array.isArray(data.browser_mix) ? data.browser_mix : [],
-          district_funnel: Array.isArray(data.district_funnel) ? data.district_funnel : [],
-          visitor_district_funnel: Array.isArray(data.visitor_district_funnel) ? data.visitor_district_funnel : [],
-        });
-      }
-      if (resAnDoc.ok) {
-        const data = await resAnDoc.json();
-        setSignalDoctor({
-          ...data,
-          issues: Array.isArray(data.issues) ? data.issues : [],
-          signal_rates: data.signal_rates && Object.keys(data.signal_rates).length ? data.signal_rates : null,
-        });
-      }
-      if (failedSections.length) {
-        setAnalyticsError(`Some ad insight data could not load: ${failedSections.join(', ')}.`);
+      const data = await fetchAnalyticsBundle(days);
+      if (data.overview) setAnalyticsOverview(data.overview);
+      if (data.campaigns) setAnalyticsCampaigns(data.campaigns);
+      if (data.audience) setAnalyticsAudience(data.audience);
+      if (data.signalDoctor) setSignalDoctor(data.signalDoctor);
+      if (data.failedSections.length) {
+        setAnalyticsError(`Some ad insight data could not load: ${data.failedSections.join(', ')}.`);
       }
     } catch (err) {
       console.error("Failed to load analytics data", err);
@@ -863,11 +762,7 @@ export default function App() {
 
   const fetchStores = async () => {
     try {
-      const res = await fetch('/api/stores');
-      if (res.ok) {
-        const data = await res.json();
-        setStores(data.stores || []);
-      }
+      setStores(await fetchClientStores());
     } catch (err) {
       console.error('Failed to fetch stores', err);
     }
@@ -876,40 +771,26 @@ export default function App() {
   const currentStore = stores.find(store => store.is_current);
 
   const handleSaveStoreDomain = async (domain: string) => {
-    const res = await fetch('/api/store/domain', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ domain: domain.trim() || null }),
-    });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      showToast(data.detail || 'Could not save the store domain.', true);
-      return;
+    try {
+      const data = await saveClientStoreDomain(domain);
+      showToast(data.domain ? 'Store domain saved.' : 'Store domain cleared.', false);
+      await Promise.all([fetchStores(), fetchSettingsData()]);
+    } catch (error) {
+      showToast(errorMessage(error, 'Could not save the store domain.'), true);
     }
-    showToast(data.domain ? 'Store domain saved.' : 'Store domain cleared.', false);
-    await Promise.all([fetchStores(), fetchSettingsData()]);
   };
 
   const handleSwitchStore = async (clientId: number) => {
     try {
-      const res = await fetch('/api/switch-store', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ target_client_id: clientId }),
-      });
-      if (res.ok) {
-        showToast('Switching store...', false);
-        setTimeout(() => {
-          loadSystemData(true);
-          fetchStores();
-          setActivePage('dashboard');
-        }, 400);
-      } else {
-        const data = await res.json();
-        showToast(data.detail || 'Failed to switch store.', true);
-      }
-    } catch {
-      showToast('Network error while switching store.', true);
+      await switchClientStore(clientId);
+      showToast('Switching store...', false);
+      setTimeout(() => {
+        loadSystemData(true);
+        fetchStores();
+        setActivePage('dashboard');
+      }, 400);
+    } catch (error) {
+      showToast(errorMessage(error, 'Network error while switching store.'), true);
     }
   };
 
@@ -917,25 +798,15 @@ export default function App() {
   const markSidebarSeen = async (section: 'order_verification' | 'orders_delivery') => {
     const isOrderVerification = section === 'order_verification';
 
-    setSidebarStatus((prev: any) => prev ? {
+    setSidebarStatus(prev => prev ? {
       ...prev,
       orderVerificationNew: isOrderVerification ? 0 : prev.orderVerificationNew,
       ordersDeliveryNew: isOrderVerification ? prev.ordersDeliveryNew : 0,
     } : prev);
 
     try {
-      const res = await fetch('/api/sidebar/mark-seen', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ section })
-      });
-
-      if (res.ok) {
-        const statusRes = await fetch('/api/sidebar/status');
-        if (statusRes.ok) {
-          setSidebarStatus(await statusRes.json());
-        }
-      }
+      const status = await markClientSidebarSeen(section);
+      if (status) setSidebarStatus(status);
     } catch (err) {
       console.error("Failed to update sidebar seen state", err);
     }
@@ -1169,8 +1040,8 @@ export default function App() {
       setOutboxItems(prev => prev.map(item => item.id === id ? data.item : item));
       showToast(`Outbox event #${id} queued for retry.`, false);
       await loadSystemData(false);
-    } catch (err: any) {
-      showToast(err.message || 'Could not queue retry.', true);
+    } catch (err: unknown) {
+      showToast(errorMessage(err, 'Could not queue retry.'), true);
       await loadSystemData(false);
     } finally {
       setRetryingOutboxIds(prev => prev.filter(x => x !== id));
@@ -1179,105 +1050,67 @@ export default function App() {
 
   const handleConfirmOrder = async (orderId: string) => {
     try {
-      const res = await fetch('/api/deferred/confirm', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ order_id: orderId })
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || 'Verification action failed.');
+      const data = await runDeferredOrderAction('confirm', orderId);
       showToast(data.message || "Order verified & queued successfully.", false);
       await Promise.all([fetchDeferred(), loadSystemData(false)]);
-    } catch (err: any) {
-      showToast(err.message || "Verification action failed.", true);
+    } catch (err: unknown) {
+      showToast(errorMessage(err, "Verification action failed."), true);
     }
   };
 
   const handleCancelOrder = async (orderId: string) => {
     try {
-      const res = await fetch('/api/deferred/cancel', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ order_id: orderId })
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || 'Skip action failed.');
+      const data = await runDeferredOrderAction('cancel', orderId);
       showToast(data.message || "Event skipped.", false, {
         label: 'Undo',
         onClick: () => handleRestoreSkippedOrder(orderId),
       });
       await Promise.all([fetchDeferred(), loadSystemData(false)]);
-    } catch (err: any) {
-      showToast(err.message || "Skip action failed.", true);
+    } catch (err: unknown) {
+      showToast(errorMessage(err, "Skip action failed."), true);
     }
   };
 
   const handleRestoreSkippedOrder = async (orderId: string) => {
     try {
-      const res = await fetch('/api/deferred/restore', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ order_id: orderId })
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || 'Could not restore skipped event.');
+      const data = await runDeferredOrderAction('restore', orderId);
       showToast(data.message || "Event restored to verification queue.", false);
       await Promise.all([fetchDeferred(), loadSystemData(false)]);
-    } catch (err: any) {
-      showToast(err.message || "Could not restore skipped event.", true);
+    } catch (err: unknown) {
+      showToast(errorMessage(err, "Could not restore skipped event."), true);
     }
   };
 
   const handleBulkConfirm = async () => {
     if (selectedOrderIds.length === 0) return;
     try {
-      const res = await fetch('/api/deferred/confirm-bulk', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ order_ids: selectedOrderIds })
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || 'Bulk verification failed.');
+      const data = await runDeferredBulkAction('confirm-bulk', selectedOrderIds);
       showToast(`${Number(data.confirmed || 0)} orders verified${data.failed ? `, ${data.failed} failed` : ''}.`, Boolean(data.failed));
       setSelectedOrderIds([]);
       await Promise.all([fetchDeferred(), loadSystemData(false)]);
-    } catch (err: any) {
-      showToast(err.message || "Bulk verification failed.", true);
+    } catch (err: unknown) {
+      showToast(errorMessage(err, "Bulk verification failed."), true);
     }
   };
 
   const handleBulkCancel = async () => {
     if (selectedOrderIds.length === 0) return;
     try {
-      const res = await fetch('/api/deferred/cancel-bulk', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ order_ids: selectedOrderIds })
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || 'Bulk skip failed.');
+      const data = await runDeferredBulkAction('cancel-bulk', selectedOrderIds);
       showToast(`${Number(data.cancelled || 0)} events skipped${data.failed ? `, ${data.failed} failed` : ''}.`, Boolean(data.failed));
       setSelectedOrderIds([]);
       await Promise.all([fetchDeferred(), loadSystemData(false)]);
-    } catch (err: any) {
-      showToast(err.message || "Bulk skip failed.", true);
+    } catch (err: unknown) {
+      showToast(errorMessage(err, "Bulk skip failed."), true);
     }
   };
 
   const handleSaveDeferredSettings = async () => {
     setSavingDeferredSettings(true);
     try {
-      const res = await fetch('/api/deferred/settings', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ deferredEnabled, autoConfirmDays, autoConfirmStatus })
-      });
-      if (res.ok) {
-        showToast("COD Protection settings saved successfully.", false);
-        loadSystemData(false);
-      } else {
-        showToast("Failed to save COD Protection settings.", true);
-      }
+      await saveDeferredSettings({ deferredEnabled, autoConfirmDays, autoConfirmStatus });
+      showToast("COD Protection settings saved successfully.", false);
+      loadSystemData(false);
     } catch {
       showToast("Failed to save COD Protection settings.", true);
     } finally {
@@ -1294,7 +1127,7 @@ export default function App() {
       const data = await res.json();
       setSuggestions(uniqueSuggestions(data.suggestions));
       showToast("Scan complete! Suggestions updated.", false);
-    } catch (err: any) {
+    } catch {
       showToast("Setup scan failed. Please try again.", true);
     } finally {
       setAiReviewing(false);
@@ -1342,15 +1175,7 @@ export default function App() {
     try {
       const emailChanged = !!profile && profEmail.trim().toLowerCase() !== profile.email.trim().toLowerCase();
       if (emailChanged && !profEmailCodeRequested) {
-        const codeRes = await fetch('/api/profile/email-code', {
-          method: 'POST',
-          headers: jsonHeadersWithClientCsrf(),
-          body: JSON.stringify({ email: profEmail.trim() }),
-        });
-        const codeData = await codeRes.json().catch(() => ({}));
-        if (!codeRes.ok) {
-          throw new Error(codeData.detail || 'Could not send email verification code.');
-        }
+        await requestProfileEmailCode(profEmail.trim());
         setProfEmailCodeRequested(true);
         showToast('Verification code sent to your new email.', false);
         return false;
@@ -1359,36 +1184,26 @@ export default function App() {
         throw new Error('Enter the verification code and your current password.');
       }
 
-      const res = await fetch('/api/profile', {
-        method: 'POST',
-        headers: jsonHeadersWithClientCsrf(),
-        body: JSON.stringify({
-          name: profName,
-          email: profEmail,
-          notificationEmail: profNotifEmail,
-          ownerNotifyWhatsapp: profNotifyWhatsapp,
-          ownerWhatsappNumber: profWhatsappNumber,
-          emailCode: emailChanged ? profEmailCode.trim() : null,
-          currentPassword: emailChanged ? profEmailCurrentPassword : null,
-        })
+      const updatedProfile = await updateClientProfile({
+        name: profName,
+        email: profEmail,
+        notificationEmail: profNotifEmail,
+        ownerNotifyWhatsapp: profNotifyWhatsapp,
+        ownerWhatsappNumber: profWhatsappNumber,
+        emailCode: emailChanged ? profEmailCode.trim() : null,
+        currentPassword: emailChanged ? profEmailCurrentPassword : null,
       });
-      if (res.ok) {
-        const data = await res.json();
-        setProfile(data.profile);
-        setProfName(data.profile.name);
-        setProfEmail(data.profile.email);
-        setProfNotifEmail(data.profile.notificationEmail || data.profile.email);
-        setProfNotifyWhatsapp(data.profile.ownerNotifyWhatsapp || false);
-        setProfWhatsappNumber(data.profile.ownerWhatsappNumber || '');
-        setProfEmailCodeRequested(false);
-        setProfEmailCode('');
-        setProfEmailCurrentPassword('');
-        showToast("Profile saved!", false);
-        return true;
-      } else {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.detail || 'Profile save failed.');
-      }
+      setProfile(updatedProfile);
+      setProfName(updatedProfile.name);
+      setProfEmail(updatedProfile.email);
+      setProfNotifEmail(updatedProfile.notificationEmail || updatedProfile.email);
+      setProfNotifyWhatsapp(updatedProfile.ownerNotifyWhatsapp || false);
+      setProfWhatsappNumber(updatedProfile.ownerWhatsappNumber || '');
+      setProfEmailCodeRequested(false);
+      setProfEmailCode('');
+      setProfEmailCurrentPassword('');
+      showToast("Profile saved!", false);
+      return true;
     } catch (err) {
       showToast(err instanceof Error ? err.message : "Failed to save profile.", true);
       return false;
@@ -1420,7 +1235,7 @@ export default function App() {
     setCampaignResp(null);
 
     // Format customParams array as a flattened object
-    const customObj: Record<string, any> = {};
+    const customObj: Record<string, string> = {};
     customParams.forEach(p => {
       if (p.k.trim()) customObj[p.k.trim()] = p.v;
     });
@@ -1455,10 +1270,10 @@ export default function App() {
       } else {
         showToast(`Test failed. Please try again.`, true);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       setCampaignResp({
         statusCode: 500,
-        body: { error: "Network error. Please check your connection.", details: err.message }
+        body: { error: "Network error. Please check your connection.", details: errorMessage(err, 'Unknown network error') }
       });
       showToast("Test event failed to send.", true);
     } finally {
@@ -1469,13 +1284,11 @@ export default function App() {
   const confirmDemoReset = async () => {
     setShowDemoResetConfirm(false);
     try {
-      const res = await fetch('/api/profile/reset-demo', { method: 'POST' });
-      if (res.ok) {
-        showToast("Demo data reset.", false);
-        loadSystemData(true);
-      }
-    } catch {
-      showToast("Reset failed. Please try again.", true);
+      await resetDemoProfile();
+      showToast("Demo data reset.", false);
+      loadSystemData(true);
+    } catch (error) {
+      showToast(errorMessage(error, "Reset failed. Please try again."), true);
     }
   };
 
@@ -1490,19 +1303,9 @@ export default function App() {
       return;
     }
     try {
-      const res = await fetch('/api/connection/revoke', {
-        method: 'POST',
-        headers: jsonHeadersWithClientCsrf(),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setConnection(data.connection);
-        setConfirmRevokeText('');
-        showToast("API key has been reset.", false);
-      } else {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.detail || 'API key reset failed.');
-      }
+      setConnection(await revokeClientConnection());
+      setConfirmRevokeText('');
+      showToast("API key has been reset.", false);
     } catch (err) {
       showToast(err instanceof Error ? err.message : "Reset failed. Please try again or contact support.", true);
     }
@@ -1514,15 +1317,7 @@ export default function App() {
       return;
     }
     try {
-      const res = await fetch('/api/account/delete-request', {
-        method: 'POST',
-        headers: jsonHeadersWithClientCsrf(),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        throw new Error(data.detail || 'Could not submit deletion request.');
-      }
-      showToast(data.message || "Deletion request received. Support will review it.", false);
+      showToast(await requestAccountDeletion(), false);
       setConfirmDeleteText('');
     } catch (err) {
       showToast(err instanceof Error ? err.message : "Could not submit deletion request.", true);
@@ -1538,20 +1333,12 @@ export default function App() {
       showToast("New passwords do not match.", true);
       return;
     }
-    if (passNew.length < 8) {
-      showToast("New password must be at least 8 characters.", true);
+    if (passNew.length < 8 || passNew.length > 16) {
+      showToast("New password must be between 8 and 16 characters.", true);
       return;
     }
     try {
-      const res = await fetch('/api/account/password', {
-        method: 'POST',
-        headers: jsonHeadersWithClientCsrf(),
-        body: JSON.stringify({ currentPassword: passCurrent, newPassword: passNew })
-      });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.detail || 'Password update failed.');
-      }
+      await updateClientPassword(passCurrent, passNew);
       setPassCurrent('');
       setPassNew('');
       setPassConfirm('');
@@ -1568,15 +1355,7 @@ export default function App() {
       return;
     }
     try {
-      const res = await fetch('/api/v1/auth/client/password/forgot', {
-        method: 'POST',
-        headers: jsonHeadersWithClientCsrf(),
-        body: JSON.stringify({ email })
-      });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.detail || 'Could not send reset email.');
-      }
+      await sendPasswordResetEmail(email);
       showToast("Password reset link sent to your profile email.", false);
     } catch (err) {
       showToast(err instanceof Error ? err.message : "Could not send reset email.", true);
@@ -1710,6 +1489,9 @@ export default function App() {
 
   return (
     <div className="bk-console-shell flex min-h-screen font-sans transition-colors duration-200">
+      <a className="bk-skip-link" href="#main-content">
+        Skip to main content
+      </a>
       {/* Sidebar Navigation */}
       {profile && (
         <Sidebar 
@@ -1741,30 +1523,34 @@ export default function App() {
       )}
 
       {showDemoResetConfirm && (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-900/40 px-4 backdrop-blur-sm">
-          <div className="w-full max-w-sm rounded-xl border border-slate-200 bg-white p-5 shadow-2xl">
+        <Modal
+          onClose={() => setShowDemoResetConfirm(false)}
+          labelledBy="demo-reset-title"
+          overlayClassName="fixed inset-0 z-[70] flex items-center justify-center bg-slate-900/40 px-4 backdrop-blur-sm"
+          panelClassName="w-full max-w-sm rounded-xl border border-slate-200 bg-white p-5 shadow-2xl"
+        >
             <div className="space-y-1">
-              <h3 className="text-sm font-bold text-slate-900">Reset demo data?</h3>
+              <h3 id="demo-reset-title" className="text-sm font-bold text-slate-900">Reset demo data?</h3>
               <p className="text-xs leading-relaxed text-slate-500">This restores demo metrics and tracking history to their default values.</p>
             </div>
             <div className="mt-5 flex justify-end gap-2">
-              <button
-                type="button"
+              <Button
+                variant="secondary"
+                size="sm"
                 onClick={() => setShowDemoResetConfirm(false)}
-                className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-600 transition-colors hover:bg-slate-50"
+                className="text-slate-600"
               >
                 Cancel
-              </button>
-              <button
-                type="button"
+              </Button>
+              <Button
+                variant="primary"
+                size="sm"
                 onClick={confirmDemoReset}
-                className="rounded-lg bg-indigo-600 px-3 py-2 text-xs font-bold text-white transition-colors hover:bg-indigo-700"
               >
                 Reset Data
-              </button>
+              </Button>
             </div>
-          </div>
-        </div>
+        </Modal>
       )}
 
       <PluginUpdateModal
@@ -1792,7 +1578,7 @@ export default function App() {
           />
         )}
 
-        <main className="flex-1 min-w-0">
+        <main id="main-content" tabIndex={-1} className="flex-1 min-w-0">
         {/* Global Error Banner */}
         {errState && (
           <div className="m-4 md:m-8 p-4 rounded-xl border border-rose-200 bg-rose-50 text-rose-800 flex items-start gap-3">

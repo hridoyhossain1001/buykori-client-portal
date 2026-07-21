@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Check, Copy, Download, Globe2, MessageCircle, Plus, RefreshCw, Save, Trash2, X } from 'lucide-react';
 import { Tooltip } from './common/Tooltip';
-import { Platform, PlatformConfig, EventRule, ClientConnection, PluginReleaseInfo, CustomEventAutomation, CustomEventTrigger } from '../types';
+import { AdAccount, Platform, PlatformConfig, EventRule, ClientConnection, PluginReleaseInfo, CustomEventAutomation, CustomEventTrigger, CourierSettings } from '../types';
 
 interface SettingsViewProps {
   initialSectionId?: string | null;
@@ -435,7 +435,7 @@ export function SettingsView({
   }, [credentials]);
 
   // Courier Settings States
-  const [courierSettings, setCourierSettings] = useState<any>({
+  const [courierSettings, setCourierSettings] = useState<CourierSettings>({
     pathao_api_key: '',
     pathao_secret_key: '',
     pathao_client_id: '',
@@ -464,7 +464,7 @@ export function SettingsView({
   const [copyingCourierSecret, setCopyingCourierSecret] = useState<string>('');
 
   // Connected ad accounts states
-  const [adAccounts, setAdAccounts] = useState<any[]>([]);
+  const [adAccounts, setAdAccounts] = useState<AdAccount[]>([]);
   const [loadingAdAccounts, setLoadingAdAccounts] = useState<boolean>(false);
   const [savingAdAccount, setSavingAdAccount] = useState<boolean>(false);
   const [deletingAdAccountId, setDeletingAdAccountId] = useState<number | null>(null);
@@ -630,7 +630,7 @@ export function SettingsView({
         return;
       }
       await navigator.clipboard.writeText(data.secret);
-      setCourierSettings((prev: any) => ({
+      setCourierSettings((prev) => ({
         ...prev,
         pathao_webhook_secret: '',
         pathao_webhook_secret_configured: true,
@@ -657,7 +657,7 @@ export function SettingsView({
         ? data.callback_url
         : `Callback URL: ${data.callback_url}\nAuth Token: ${data.secret}`;
       await navigator.clipboard.writeText(value);
-      setCourierSettings((prev: any) => ({
+      setCourierSettings((prev) => ({
         ...prev,
         [`${provider === 'steadfast' ? 'steadfast_webhook_token' : 'redx_webhook_secret'}_configured`]: true
       }));
@@ -873,7 +873,7 @@ export function SettingsView({
               key={tab.id}
               type="button"
               onClick={() => openSettingsTab(tab.id)}
-              className={`min-w-fit rounded-lg px-3 py-2 text-xs font-bold transition-colors ${
+              className={`min-h-10 min-w-fit rounded-lg px-3 py-2 text-xs font-bold transition-colors ${
                 activeSettingsTab === tab.id
                   ? 'bg-indigo-600 text-white shadow-sm'
                   : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
@@ -893,7 +893,7 @@ export function SettingsView({
                 Change your tracking, courier, and alert settings here. The WordPress plugin will follow the choices you save on this page.
               </p>
             </div>
-            <span className="inline-flex w-fit rounded-full border border-indigo-200 bg-white px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-indigo-700">
+            <span className="inline-flex w-fit rounded-full border border-indigo-200 bg-white px-3 py-1 text-xs font-bold uppercase tracking-wide text-indigo-700">
               WordPress stays simple
             </span>
           </div>
@@ -904,36 +904,36 @@ export function SettingsView({
               onClick={() => openSettingsTab('conversions')}
               className="rounded-lg border border-white bg-white/90 p-3 text-left shadow-sm transition-colors hover:border-indigo-200 hover:bg-white"
             >
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Where events go</span>
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Where events go</span>
               <p className="mt-1 text-lg font-black text-slate-900">{configuredPlatformCount}/{platformStatusRows.length} ready</p>
-              <p className="mt-0.5 text-[11px] font-semibold text-slate-500">{enabledPlatformCount} platforms on, {enabledRouteCount} events ready</p>
+              <p className="mt-0.5 text-xs font-semibold text-slate-500">{enabledPlatformCount} platforms on, {enabledRouteCount} events ready</p>
             </button>
             <button
               type="button"
               onClick={() => openSettingsTab('courier')}
               className="rounded-lg border border-white bg-white/90 p-3 text-left shadow-sm transition-colors hover:border-indigo-200 hover:bg-white"
             >
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Courier setup</span>
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Courier setup</span>
               <p className="mt-1 text-lg font-black text-slate-900">{courierProviderConfigured ? 'Ready' : 'Setup needed'}</p>
-              <p className="mt-0.5 text-[11px] font-semibold capitalize text-slate-500">{selectedCourierProvider} default, manual booking</p>
+              <p className="mt-0.5 text-xs font-semibold capitalize text-slate-500">{selectedCourierProvider} default, manual booking</p>
             </button>
             <button
               type="button"
               onClick={() => openSettingsTab('alerts')}
               className="rounded-lg border border-white bg-white/90 p-3 text-left shadow-sm transition-colors hover:border-indigo-200 hover:bg-white"
             >
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Telegram alerts</span>
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Telegram alerts</span>
               <p className="mt-1 text-lg font-black text-slate-900">{telegramStatusLabel}</p>
-              <p className="mt-0.5 text-[11px] font-semibold text-slate-500">Get order alerts in Telegram</p>
+              <p className="mt-0.5 text-xs font-semibold text-slate-500">Get order alerts in Telegram</p>
             </button>
             <button
               type="button"
               onClick={() => openSettingsTab('store')}
               className="rounded-lg border border-white bg-white/90 p-3 text-left shadow-sm transition-colors hover:border-indigo-200 hover:bg-white"
             >
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Plugin connection</span>
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Plugin connection</span>
               <p className="mt-1 text-lg font-black text-slate-900">{wordpressConnectionStatus}</p>
-              <p className="mt-0.5 text-[11px] font-semibold text-slate-500">{updateAvailable ? 'Plugin update available' : pluginVersionHelp}</p>
+              <p className="mt-0.5 text-xs font-semibold text-slate-500">{updateAvailable ? 'Plugin update available' : pluginVersionHelp}</p>
             </button>
           </div>
         </section>
@@ -961,7 +961,7 @@ export function SettingsView({
                 <p className="text-xs text-slate-400 ">Enter the website address connected to this store.</p>
               </div>
             </div>
-            <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide ${
+            <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-bold uppercase tracking-wide ${
               storeDomain
                 ? 'bg-emerald-50 text-emerald-700 border border-emerald-100   '
                 : 'bg-amber-50 text-amber-700 border border-amber-100   '
@@ -972,7 +972,7 @@ export function SettingsView({
 
           <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-3">
             <div>
-              <label htmlFor="store-domain" className="block text-[10px] font-semibold text-slate-400 uppercase mb-1">Store Domain</label>
+              <label htmlFor="store-domain" className="block text-xs font-semibold text-slate-400 uppercase mb-1">Store Domain</label>
               <input
                 id="store-domain"
                 type="text"
@@ -987,7 +987,7 @@ export function SettingsView({
               type="button"
               disabled={savingStoreDomain || localStoreDomain.trim() === (storeDomain || '').trim()}
               onClick={saveStoreDomain}
-              className="inline-flex items-center justify-center gap-2 rounded-lg bg-slate-900 px-4 py-2.5 text-xs font-bold text-white disabled:cursor-not-allowed disabled:opacity-50 sm:self-end  "
+              className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-slate-900 px-4 py-2.5 text-xs font-bold text-white disabled:cursor-not-allowed disabled:opacity-50 sm:self-end  "
             >
               <Save className="h-3.5 w-3.5" />
               {savingStoreDomain ? 'Saving' : 'Save Domain'}
@@ -1013,7 +1013,7 @@ export function SettingsView({
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <span className="font-semibold text-xs text-slate-800  uppercase tracking-wider">{plat}</span>
-                    <span className={`inline-flex px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider ${
+                    <span className={`inline-flex px-1.5 py-0.5 rounded text-xs font-bold uppercase tracking-wider ${
                       config.status === 'Valid' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200   ' : 
                       config.status === 'Invalid' ? 'bg-rose-50 text-rose-700 border border-rose-200   ' : 
                       'bg-slate-100 text-slate-600  '
@@ -1031,7 +1031,7 @@ export function SettingsView({
                       className="sr-only peer"
                     />
                     <div className="w-9 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600" />
-                    <span className="ml-2 text-[10px] font-semibold text-slate-500 uppercase ">
+                    <span className="ml-2 text-xs font-semibold text-slate-500 uppercase ">
                       {config.enabled ? 'On' : 'Off'}
                     </span>
                   </label>
@@ -1048,7 +1048,7 @@ export function SettingsView({
 
                 <div className={`grid grid-cols-1 ${plat === 'GA4' ? 'md:grid-cols-2' : 'md:grid-cols-3'} gap-4`}>
                   <div>
-                    <label className="block text-[10px] font-semibold text-slate-400 uppercase mb-1">{platformDestinationLabel(plat)}</label>
+                    <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">{platformDestinationLabel(plat)}</label>
                     <input 
                       type="text"
                       value={localPixelIds[plat]}
@@ -1058,11 +1058,11 @@ export function SettingsView({
                       onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); }}
                       className="w-full p-2 text-xs bg-white border border-slate-200 rounded font-mono text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500   "
                     />
-                    <p className="mt-1 text-[10px] leading-4 text-slate-500">{credentialHelp.destination}</p>
+                    <p className="mt-1 text-xs leading-4 text-slate-500">{credentialHelp.destination}</p>
                   </div>
                   
                   <div>
-                    <label className="block text-[10px] font-semibold text-slate-400 uppercase mb-1">{platformTokenLabel(plat)}</label>
+                    <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">{platformTokenLabel(plat)}</label>
                     <input 
                       type="password"
                       name={`platform-${plat.toLowerCase().replace(/\s+/g, '-')}-access-token`}
@@ -1074,12 +1074,12 @@ export function SettingsView({
                       onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); }}
                       className="w-full p-2 text-xs bg-white border border-slate-200 rounded font-mono text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500   "
                     />
-                    <p className="mt-1 text-[10px] leading-4 text-slate-500">{credentialHelp.token}</p>
+                    <p className="mt-1 text-xs leading-4 text-slate-500">{credentialHelp.token}</p>
                   </div>
 
                   {plat !== 'GA4' && (
                     <div>
-                      <label className="text-[10px] font-semibold text-slate-400 uppercase mb-1 flex items-center">
+                      <label className="text-xs font-semibold text-slate-400 uppercase mb-1 flex items-center">
                         Test Event Code (Optional)
                         <Tooltip content="Use this optional Meta or TikTok test event code only while validating tracking setup." />
                       </label>
@@ -1113,9 +1113,9 @@ export function SettingsView({
             <div className="flex flex-wrap items-center justify-between gap-2 border-b border-indigo-100 px-4 py-3">
               <div>
                 <p className="text-xs font-bold text-slate-900">Connect your {adPlatform === 'meta' ? 'Meta' : 'TikTok'} ad account in 4 easy steps</p>
-                <p className="mt-0.5 text-[10px] text-slate-600">Complete these steps once. Buykori will use the connection only to read advertising performance.</p>
+                <p className="mt-0.5 text-xs text-slate-600">Complete these steps once. Buykori will use the connection only to read advertising performance.</p>
               </div>
-              <span className="rounded-full bg-white px-2.5 py-1 text-[9px] font-bold uppercase tracking-wide text-indigo-700 shadow-sm">
+              <span className="rounded-full bg-white px-2.5 py-1 text-xs font-bold uppercase tracking-wide text-indigo-700 shadow-sm">
                 {adPlatform === 'meta' ? 'Meta setup' : 'TikTok setup'}
               </span>
             </div>
@@ -1130,10 +1130,10 @@ export function SettingsView({
                 ].map(([title, description], index) => (
                   <div key={title} className="bg-white/80 px-4 py-3">
                     <div className="flex items-start gap-2.5">
-                      <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-indigo-600 text-[10px] font-bold text-white">{index + 1}</span>
+                      <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-indigo-600 text-xs font-bold text-white">{index + 1}</span>
                       <div>
-                        <p className="text-[11px] font-bold text-slate-800">{title}</p>
-                        <p className="mt-1 text-[10px] leading-4 text-slate-600">{description}</p>
+                        <p className="text-xs font-bold text-slate-800">{title}</p>
+                        <p className="mt-1 text-xs leading-4 text-slate-600">{description}</p>
                       </div>
                     </div>
                   </div>
@@ -1149,10 +1149,10 @@ export function SettingsView({
                 ].map(([title, description], index) => (
                   <div key={title} className="bg-white/80 px-4 py-3">
                     <div className="flex items-start gap-2.5">
-                      <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-cyan-600 text-[10px] font-bold text-white">{index + 1}</span>
+                      <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-cyan-600 text-xs font-bold text-white">{index + 1}</span>
                       <div>
-                        <p className="text-[11px] font-bold text-slate-800">{title}</p>
-                        <p className="mt-1 text-[10px] leading-4 text-slate-600">{description}</p>
+                        <p className="text-xs font-bold text-slate-800">{title}</p>
+                        <p className="mt-1 text-xs leading-4 text-slate-600">{description}</p>
                       </div>
                     </div>
                   </div>
@@ -1160,7 +1160,7 @@ export function SettingsView({
               </div>
             )}
 
-            <div className="border-t border-amber-200 bg-amber-50 px-4 py-2 text-[10px] leading-4 text-amber-800">
+            <div className="border-t border-amber-200 bg-amber-50 px-4 py-2 text-xs leading-4 text-amber-800">
               <strong>Important:</strong> {adPlatform === 'meta'
                 ? 'Use a System User advertising token with ads_read. Do not use a Pixel or Conversions API event token.'
                 : 'Use a TikTok Marketing API reporting token. Do not use a TikTok Events API token.'}
@@ -1172,14 +1172,14 @@ export function SettingsView({
               <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 hover:bg-slate-50">
                 <div>
                   <p className="text-xs font-bold text-slate-800">Show picture guide</p>
-                  <p className="mt-0.5 text-[10px] leading-4 text-slate-500">See exactly where to create the reporting token and give permission.</p>
+                  <p className="mt-0.5 text-xs leading-4 text-slate-500">See exactly where to create the reporting token and give permission.</p>
                 </div>
-                <span className="rounded-full bg-indigo-50 px-2.5 py-1 text-[9px] font-bold text-indigo-700 group-open:hidden">Open guide</span>
-                <span className="hidden rounded-full bg-slate-100 px-2.5 py-1 text-[9px] font-bold text-slate-600 group-open:inline">Close guide</span>
+                <span className="rounded-full bg-indigo-50 px-2.5 py-1 text-xs font-bold text-indigo-700 group-open:hidden">Open guide</span>
+                <span className="hidden rounded-full bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-600 group-open:inline">Close guide</span>
               </summary>
 
               <div className="border-t border-slate-200 bg-slate-50 p-4">
-                <div className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-[11px] leading-5 text-emerald-900">
+                <div className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-xs leading-5 text-emerald-900">
                   <p className="font-bold">Before you start</p>
                   <p>You need a Meta Business portfolio, a Business app with Marketing API, a System User, and an Ad Account assigned to that user.</p>
                   <p>The final token must include <code className="rounded bg-white px-1 py-0.5 font-mono font-bold">ads_read</code>. Buykori only reads campaign reports; it cannot create, edit, publish, or charge for ads.</p>
@@ -1235,14 +1235,14 @@ export function SettingsView({
                         <img src={step.image} alt={step.alt} loading="lazy" className={`h-full w-full object-cover ${step.position}`} />
                       </div>
                       <div className="p-3">
-                        <h3 className="text-[11px] font-bold text-slate-800">{step.title}</h3>
-                        <p className="mt-1 text-[10px] leading-4 text-slate-600">{step.text}</p>
+                        <h3 className="text-xs font-bold text-slate-800">{step.title}</h3>
+                        <p className="mt-1 text-xs leading-4 text-slate-600">{step.text}</p>
                       </div>
                     </article>
                   ))}
                 </div>
 
-                <div className="mt-4 grid grid-cols-1 gap-3 rounded-lg border border-indigo-100 bg-indigo-50 p-3 text-[10px] leading-4 text-slate-700 sm:grid-cols-2">
+                <div className="mt-4 grid grid-cols-1 gap-3 rounded-lg border border-indigo-100 bg-indigo-50 p-3 text-xs leading-4 text-slate-700 sm:grid-cols-2">
                   <div>
                     <p className="font-bold text-slate-800">What Buykori needs</p>
                     <p>One System User token with <strong>ads_read</strong>, plus access to the Ad Account you select. The account ID is filled automatically after discovery.</p>
@@ -1267,7 +1267,7 @@ export function SettingsView({
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <label className="block text-[10px] font-semibold text-slate-500 uppercase mb-1">Platform</label>
+                <label className="block text-xs font-semibold text-slate-500 uppercase mb-1">Platform</label>
                 <select
                   value={adPlatform}
                   onChange={(e) => setAdPlatform(e.target.value as 'meta' | 'tiktok')}
@@ -1279,7 +1279,7 @@ export function SettingsView({
               </div>
 
               <div>
-                <label className="block text-[10px] font-semibold text-slate-500 uppercase mb-1">
+                <label className="block text-xs font-semibold text-slate-500 uppercase mb-1">
                   {adPlatform === 'meta' ? 'Meta Ad Account ID' : 'TikTok Advertiser ID'}
                   {adPlatform === 'meta' && <span className="ml-1 normal-case text-indigo-500">(auto-filled)</span>}
                 </label>
@@ -1296,7 +1296,7 @@ export function SettingsView({
               </div>
 
               <div>
-                <label className="block text-[10px] font-semibold text-slate-500 uppercase mb-1">Account Display Name</label>
+                <label className="block text-xs font-semibold text-slate-500 uppercase mb-1">Account Display Name</label>
                 <input
                   type="text"
                   name="buykori-ad-account-display-name"
@@ -1311,7 +1311,7 @@ export function SettingsView({
 
             <div className={`grid grid-cols-1 gap-3 ${adPlatform === 'meta' ? 'md:grid-cols-[minmax(0,1fr)_auto]' : ''}`}>
               <div>
-                <label className="block text-[10px] font-semibold text-slate-500 uppercase mb-1">
+                <label className="block text-xs font-semibold text-slate-500 uppercase mb-1">
                   {adPlatform === 'meta' ? 'Meta System User Access Token' : 'TikTok Marketing API Access Token'}
                 </label>
                 <input
@@ -1331,7 +1331,7 @@ export function SettingsView({
                   type="button"
                   onClick={handleDiscoverMetaAccounts}
                   disabled={discoveringMetaAccounts || !adAccessToken.trim()}
-                  className="self-end rounded-lg bg-indigo-600 px-4 py-2 text-[11px] font-bold text-white shadow-sm transition-colors hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-slate-300 md:whitespace-nowrap"
+                  className="self-end rounded-lg bg-indigo-600 px-4 py-2 text-xs font-bold text-white shadow-sm transition-colors hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-slate-300 md:whitespace-nowrap"
                 >
                   {discoveringMetaAccounts ? 'Finding accounts...' : 'Find my Meta accounts'}
                 </button>
@@ -1340,7 +1340,7 @@ export function SettingsView({
 
             {adPlatform === 'meta' && discoveredMetaAccounts.length > 0 && (
               <div>
-                <label className="block text-[10px] font-semibold text-slate-500 uppercase mb-1">Choose Meta Ad Account</label>
+                <label className="block text-xs font-semibold text-slate-500 uppercase mb-1">Choose Meta Ad Account</label>
                 <select
                   value={adAccountId}
                   onChange={(e) => handleSelectDiscoveredMetaAccount(e.target.value)}
@@ -1353,13 +1353,13 @@ export function SettingsView({
                     </option>
                   ))}
                 </select>
-                <p className="mt-1 text-[10px] text-emerald-700">Selecting an account fills its ID, name, currency, and timezone automatically.</p>
+                <p className="mt-1 text-xs text-emerald-700">Selecting an account fills its ID, name, currency, and timezone automatically.</p>
               </div>
             )}
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <label className="block text-[10px] font-semibold text-slate-500 uppercase mb-1">Account Currency</label>
+                <label className="block text-xs font-semibold text-slate-500 uppercase mb-1">Account Currency</label>
                 <select
                   value={adCurrency}
                   onChange={(e) => setAdCurrency(e.target.value)}
@@ -1374,7 +1374,7 @@ export function SettingsView({
               </div>
 
               <div>
-                <label className="block text-[10px] font-semibold text-slate-500 uppercase mb-1">Account Timezone</label>
+                <label className="block text-xs font-semibold text-slate-500 uppercase mb-1">Account Timezone</label>
                 <select
                   value={adTimezone}
                   onChange={(e) => setAdTimezone(e.target.value)}
@@ -1419,7 +1419,7 @@ export function SettingsView({
             ) : (
               <div className="overflow-x-auto border border-slate-200 rounded-lg">
                 <table className="w-full text-xs text-slate-600 text-left min-w-[600px]">
-                  <thead className="bg-slate-50 text-[10px] font-bold uppercase tracking-wider text-slate-500 border-b border-slate-100">
+                  <thead className="bg-slate-50 text-xs font-bold uppercase tracking-wider text-slate-500 border-b border-slate-100">
                     <tr>
                       <th className="px-4 py-2.5">Platform</th>
                       <th className="px-4 py-2.5">Account Details</th>
@@ -1432,7 +1432,7 @@ export function SettingsView({
                     {adAccounts.map((account) => (
                       <tr key={account.id} className="hover:bg-slate-50/50">
                         <td className="px-4 py-3 align-middle">
-                          <span className={`inline-flex px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
+                          <span className={`inline-flex px-1.5 py-0.5 rounded text-xs font-bold uppercase tracking-wider ${
                             account.platform === 'meta' ? 'bg-blue-50 text-blue-700 border border-blue-200' : 'bg-slate-900 text-white border border-slate-900'
                           }`}>
                             {account.platform}
@@ -1441,16 +1441,16 @@ export function SettingsView({
                         <td className="px-4 py-3 align-middle">
                           <div className="flex flex-col">
                             <span className="font-bold text-slate-800">{account.account_name || 'Unnamed Account'}</span>
-                            <span className="font-mono text-[10px] text-slate-400">{account.external_account_id}</span>
+                            <span className="font-mono text-xs text-slate-400">{account.external_account_id}</span>
                           </div>
                         </td>
                         <td className="px-4 py-3 align-middle">
-                          <span className="text-[10px] font-medium text-slate-500">
+                          <span className="text-xs font-medium text-slate-500">
                             {account.account_currency} · {account.account_timezone}
                           </span>
                         </td>
                         <td className="px-4 py-3 align-middle">
-                          <span className="text-[10px] text-slate-500">
+                          <span className="text-xs text-slate-500">
                             {account.last_synced_at ? new Date(account.last_synced_at).toLocaleString() : 'Never'}
                           </span>
                         </td>
@@ -1459,7 +1459,7 @@ export function SettingsView({
                             type="button"
                             disabled={syncingAdAccountId === account.id}
                             onClick={() => handleSyncAdAccount(account.id)}
-                            className="mr-1 inline-flex items-center justify-center gap-1 rounded border border-slate-200 px-2 py-1 text-[10px] font-semibold text-slate-500 transition-colors hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-600 disabled:opacity-50"
+                            className="mr-1 inline-flex items-center justify-center gap-1 rounded border border-slate-200 px-2 py-1 text-xs font-semibold text-slate-500 transition-colors hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-600 disabled:opacity-50"
                             title="Sync campaign insights now"
                           >
                             <RefreshCw className={`h-3.5 w-3.5 ${syncingAdAccountId === account.id ? 'animate-spin' : ''}`} />
@@ -1492,14 +1492,14 @@ export function SettingsView({
               <p className="text-xs text-slate-400 ">Add your Pathao, SteadFast, or RedX account details here.</p>
             </div>
             
-            <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-slate-600">
+            <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-bold uppercase tracking-wide text-slate-600">
               Manual booking only
             </span>
           </div>
-          <p className="rounded-lg border border-indigo-100 bg-indigo-50 px-3 py-2 text-[11px] leading-relaxed text-indigo-700">
+          <p className="rounded-lg border border-indigo-100 bg-indigo-50 px-3 py-2 text-xs leading-relaxed text-indigo-700">
             Courier booking is manual for launch. Verify the order first, then use Courier Shipping to book the courier when you are ready.
           </p>
-          <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-[11px] leading-relaxed text-slate-600">
+          <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs leading-relaxed text-slate-600">
             <strong>Where to find these details:</strong> open the courier merchant panel and find its API or Developer Settings page. Copy only the key made for this store. Never enter your login password here.
           </div>
 
@@ -1517,37 +1517,37 @@ export function SettingsView({
                   <h4 className="font-bold text-xs text-indigo-600  uppercase tracking-wider pb-2 border-b border-slate-100 ">
                     SteadFast Courier API
                   </h4>
-                  <p className="text-[10px] leading-4 text-slate-500">In your SteadFast merchant panel, open API Settings. Copy this store's API Key and Secret Key into the fields below.</p>
+                  <p className="text-xs leading-4 text-slate-500">In your SteadFast merchant panel, open API Settings. Copy this store's API Key and Secret Key into the fields below.</p>
                   
                   <div>
-                    <label className="block text-[10px] font-semibold text-slate-500  uppercase mb-1">SteadFast API Key</label>
+                    <label className="block text-xs font-semibold text-slate-500  uppercase mb-1">SteadFast API Key</label>
                     <input 
                       type="text"
                       name="buykori-steadfast-api-key"
                       autoComplete="off"
                       value={courierSettings.steadfast_api_key || ''}
-                      onChange={(e) => setCourierSettings((prev: any) => ({ ...prev, steadfast_api_key: e.target.value }))}
+                      onChange={(e) => setCourierSettings((prev) => ({ ...prev, steadfast_api_key: e.target.value }))}
                       placeholder="Enter SteadFast Api-Key"
                       className="w-full p-2 text-xs bg-white border border-slate-200 rounded font-mono text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500   "
                     />
                   </div>
 
                   <div>
-                    <label className="block text-[10px] font-semibold text-slate-500  uppercase mb-1">SteadFast Secret Key</label>
+                    <label className="block text-xs font-semibold text-slate-500  uppercase mb-1">SteadFast Secret Key</label>
                     <input 
                       type="password"
                       name="buykori-steadfast-secret-key"
                       autoComplete="new-password"
                       value={courierSettings.steadfast_secret_key || ''}
-                      onChange={(e) => setCourierSettings((prev: any) => ({ ...prev, steadfast_secret_key: e.target.value }))}
+                      onChange={(e) => setCourierSettings((prev) => ({ ...prev, steadfast_secret_key: e.target.value }))}
                       placeholder="Paste SteadFast Secret Key"
                       className="w-full p-2 text-xs bg-white border border-slate-200 rounded font-mono text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500   "
                     />
                   </div>
                   <div className="rounded-lg border border-indigo-100 bg-indigo-50/50 p-3  ">
-                    <p className="text-[10px] font-semibold uppercase text-slate-500 ">SteadFast Webhook Setup</p>
-                    <p className="mt-1 text-[10px] text-slate-500 ">Copy callback URL and bearer auth token for the SteadFast panel.</p>
-                    <button type="button" onClick={() => handleCopyCourierWebhookSetup('steadfast')} disabled={copyingCourierSecret === 'steadfast'} className="mt-3 inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-3 py-2 text-[10px] font-bold text-white hover:bg-indigo-700 disabled:opacity-50">
+                    <p className="text-xs font-semibold uppercase text-slate-500 ">SteadFast Webhook Setup</p>
+                    <p className="mt-1 text-xs text-slate-500 ">Copy callback URL and bearer auth token for the SteadFast panel.</p>
+                    <button type="button" onClick={() => handleCopyCourierWebhookSetup('steadfast')} disabled={copyingCourierSecret === 'steadfast'} className="mt-3 inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-3 py-2 text-xs font-bold text-white hover:bg-indigo-700 disabled:opacity-50">
                       <Copy className="h-3.5 w-3.5" />
                       {copyingCourierSecret === 'steadfast' ? 'Preparing...' : courierSettings.steadfast_webhook_token_configured ? 'Copy Setup Again' : 'Copy Setup Secret'}
                     </button>
@@ -1559,11 +1559,11 @@ export function SettingsView({
                   <h4 className="font-bold text-xs text-indigo-600  uppercase tracking-wider pb-2 border-b border-slate-100 ">
                     Pathao Courier API
                   </h4>
-                  <p className="text-[10px] leading-4 text-slate-500">In the Pathao merchant/developer panel, copy the Client ID, Client Secret, and Store ID. The owner email and password must belong to that same Pathao merchant account.</p>
+                  <p className="text-xs leading-4 text-slate-500">In the Pathao merchant/developer panel, copy the Client ID, Client Secret, and Store ID. The owner email and password must belong to that same Pathao merchant account.</p>
                   
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-[10px] font-semibold text-slate-500  uppercase mb-1">
+                      <label className="block text-xs font-semibold text-slate-500  uppercase mb-1">
                         Pathao Client ID
                       </label>
                       <input
@@ -1571,13 +1571,13 @@ export function SettingsView({
                         name="buykori-pathao-client-id"
                         autoComplete="off"
                         value={courierSettings.pathao_client_id || ''}
-                        onChange={(e) => setCourierSettings((prev: any) => ({ ...prev, pathao_client_id: e.target.value }))}
+                        onChange={(e) => setCourierSettings((prev) => ({ ...prev, pathao_client_id: e.target.value }))}
                         placeholder="Client ID"
                         className="w-full p-2 text-xs bg-white border border-slate-200 rounded font-mono text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500   "
                       />
                     </div>
                     <div>
-                      <label className="block text-[10px] font-semibold text-slate-500  uppercase mb-1">
+                      <label className="block text-xs font-semibold text-slate-500  uppercase mb-1">
                         Store Owner Email
                       </label>
                       <input
@@ -1585,7 +1585,7 @@ export function SettingsView({
                         name="buykori-pathao-owner-email"
                         autoComplete="off"
                         value={courierSettings.pathao_email || ''}
-                        onChange={(e) => setCourierSettings((prev: any) => ({ ...prev, pathao_email: e.target.value }))}
+                        onChange={(e) => setCourierSettings((prev) => ({ ...prev, pathao_email: e.target.value }))}
                         placeholder="owner@example.com"
                         className="w-full p-2 text-xs bg-white border border-slate-200 rounded font-mono text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500   "
                       />
@@ -1594,7 +1594,7 @@ export function SettingsView({
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-[10px] font-semibold text-slate-500  uppercase mb-1">
+                      <label className="block text-xs font-semibold text-slate-500  uppercase mb-1">
                         Pathao Client Secret
                       </label>
                       <input
@@ -1602,13 +1602,13 @@ export function SettingsView({
                         name="buykori-pathao-client-secret"
                         autoComplete="new-password"
                         value={courierSettings.pathao_client_secret || ''}
-                        onChange={(e) => setCourierSettings((prev: any) => ({ ...prev, pathao_client_secret: e.target.value }))}
+                        onChange={(e) => setCourierSettings((prev) => ({ ...prev, pathao_client_secret: e.target.value }))}
                         placeholder="Paste Pathao Client Secret"
                         className="w-full p-2 text-xs bg-white border border-slate-200 rounded font-mono text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500   "
                       />
                     </div>
                     <div>
-                      <label className="block text-[10px] font-semibold text-slate-500  uppercase mb-1">
+                      <label className="block text-xs font-semibold text-slate-500  uppercase mb-1">
                         Store Password
                       </label>
                       <input
@@ -1616,7 +1616,7 @@ export function SettingsView({
                         name="buykori-pathao-store-password"
                         autoComplete="new-password"
                         value={courierSettings.pathao_password || ''}
-                        onChange={(e) => setCourierSettings((prev: any) => ({ ...prev, pathao_password: e.target.value }))}
+                        onChange={(e) => setCourierSettings((prev) => ({ ...prev, pathao_password: e.target.value }))}
                         placeholder="Paste Pathao Store Password"
                         className="w-full p-2 text-xs bg-white border border-slate-200 rounded font-mono text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500   "
                       />
@@ -1625,11 +1625,11 @@ export function SettingsView({
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                      <label htmlFor="pathao-environment" className="block text-[10px] font-semibold text-slate-500  uppercase mb-1">Pathao Environment</label>
+                      <label htmlFor="pathao-environment" className="block text-xs font-semibold text-slate-500  uppercase mb-1">Pathao Environment</label>
                       <select
                         id="pathao-environment"
                         value={courierSettings.pathao_environment || 'live'}
-                        onChange={(e) => setCourierSettings((prev: any) => ({ ...prev, pathao_environment: e.target.value }))}
+                        onChange={(e) => setCourierSettings((prev) => ({ ...prev, pathao_environment: e.target.value as 'live' | 'sandbox' }))}
                         className="w-full p-2 text-xs bg-white border border-slate-200 rounded text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500   "
                       >
                         <option value="live">Live</option>
@@ -1637,11 +1637,11 @@ export function SettingsView({
                       </select>
                     </div>
                     <div>
-                      <label className="block text-[10px] font-semibold text-slate-500  uppercase mb-1">Pathao Store ID</label>
+                      <label className="block text-xs font-semibold text-slate-500  uppercase mb-1">Pathao Store ID</label>
                       <input
                         type="text"
                         value={courierSettings.pathao_store_id || ''}
-                        onChange={(e) => setCourierSettings((prev: any) => ({ ...prev, pathao_store_id: e.target.value }))}
+                        onChange={(e) => setCourierSettings((prev) => ({ ...prev, pathao_store_id: e.target.value }))}
                         placeholder="Store ID"
                         className="w-full p-2 text-xs bg-white border border-slate-200 rounded font-mono text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500   "
                       />
@@ -1651,12 +1651,12 @@ export function SettingsView({
                   <div className="rounded-lg border border-indigo-100 bg-indigo-50/50 p-3  ">
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <div>
-                        <p className="text-[10px] font-semibold uppercase text-slate-500 ">Pathao Webhook Setup Secret</p>
-                        <p className="mt-1 text-[10px] leading-relaxed text-slate-500 ">
+                        <p className="text-xs font-semibold uppercase text-slate-500 ">Pathao Webhook Setup Secret</p>
+                        <p className="mt-1 text-xs leading-relaxed text-slate-500 ">
                           Copy this generated secret and paste it into Pathao Merchant Panel Webhook Integration.
                         </p>
                       </div>
-                      <span className={`rounded-full px-2 py-1 text-[9px] font-bold uppercase ${
+                      <span className={`rounded-full px-2 py-1 text-xs font-bold uppercase ${
                         courierSettings.pathao_webhook_verified_at
                           ? 'bg-emerald-100 text-emerald-700'
                           : courierSettings.pathao_webhook_secret_configured
@@ -1674,7 +1674,7 @@ export function SettingsView({
                       type="button"
                       onClick={handleCopyPathaoWebhookSecret}
                       disabled={copyingPathaoSecret}
-                      className="mt-3 inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-3 py-2 text-[10px] font-bold text-white transition-colors hover:bg-indigo-700 disabled:opacity-50"
+                      className="mt-3 inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-3 py-2 text-xs font-bold text-white transition-colors hover:bg-indigo-700 disabled:opacity-50"
                     >
                       <Copy className="h-3.5 w-3.5" />
                       {copyingPathaoSecret ? 'Preparing secret...' : 'Copy Setup Secret'}
@@ -1687,55 +1687,55 @@ export function SettingsView({
                   <h4 className="font-bold text-xs text-indigo-600  uppercase tracking-wider pb-2 border-b border-slate-100 ">
                     RedX Courier API
                   </h4>
-                  <p className="text-[10px] leading-4 text-slate-500">In your RedX merchant panel, open API Settings and copy the OpenAPI token. The pickup store and delivery area below are optional.</p>
+                  <p className="text-xs leading-4 text-slate-500">In your RedX merchant panel, open API Settings and copy the OpenAPI token. The pickup store and delivery area below are optional.</p>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-[10px] font-semibold text-slate-500  uppercase mb-1">RedX Access Token</label>
+                      <label className="block text-xs font-semibold text-slate-500  uppercase mb-1">RedX Access Token</label>
                       <input
                         type="password"
                         name="buykori-redx-access-token"
                         autoComplete="new-password"
                         value={courierSettings.redx_access_token || ''}
-                        onChange={(e) => setCourierSettings((prev: any) => ({ ...prev, redx_access_token: e.target.value }))}
+                        onChange={(e) => setCourierSettings((prev) => ({ ...prev, redx_access_token: e.target.value }))}
                         placeholder="Paste RedX OpenAPI token"
                         className="w-full p-2 text-xs bg-white border border-slate-200 rounded font-mono text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500   "
                       />
                     </div>
                     <div>
-                      <label className="block text-[10px] font-semibold text-slate-500  uppercase mb-1">Default Pickup Store ID (Optional)</label>
+                      <label className="block text-xs font-semibold text-slate-500  uppercase mb-1">Default Pickup Store ID (Optional)</label>
                       <input
                         type="text"
                         value={courierSettings.redx_pickup_store_id || ''}
-                        onChange={(e) => setCourierSettings((prev: any) => ({ ...prev, redx_pickup_store_id: e.target.value }))}
+                        onChange={(e) => setCourierSettings((prev) => ({ ...prev, redx_pickup_store_id: e.target.value }))}
                         placeholder="e.g. 1"
                         className="w-full p-2 text-xs bg-white border border-slate-200 rounded font-mono text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500   "
                       />
                     </div>
                     <div>
-                      <label className="block text-[10px] font-semibold text-slate-500  uppercase mb-1">Default Delivery Area ID</label>
+                      <label className="block text-xs font-semibold text-slate-500  uppercase mb-1">Default Delivery Area ID</label>
                       <input
                         type="text"
                         value={courierSettings.redx_delivery_area_id || ''}
-                        onChange={(e) => setCourierSettings((prev: any) => ({ ...prev, redx_delivery_area_id: e.target.value }))}
+                        onChange={(e) => setCourierSettings((prev) => ({ ...prev, redx_delivery_area_id: e.target.value }))}
                         placeholder="e.g. 12"
                         className="w-full p-2 text-xs bg-white border border-slate-200 rounded font-mono text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500   "
                       />
                     </div>
                     <div>
-                      <label className="block text-[10px] font-semibold text-slate-500  uppercase mb-1">Default Delivery Area Name</label>
+                      <label className="block text-xs font-semibold text-slate-500  uppercase mb-1">Default Delivery Area Name</label>
                       <input
                         type="text"
                         value={courierSettings.redx_delivery_area_name || ''}
-                        onChange={(e) => setCourierSettings((prev: any) => ({ ...prev, redx_delivery_area_name: e.target.value }))}
+                        onChange={(e) => setCourierSettings((prev) => ({ ...prev, redx_delivery_area_name: e.target.value }))}
                         placeholder="e.g. Mirpur DOHS"
                         className="w-full p-2 text-xs bg-white border border-slate-200 rounded font-mono text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500   "
                       />
                     </div>
                   </div>
                   <div className="rounded-lg border border-indigo-100 bg-indigo-50/50 p-3  ">
-                    <p className="text-[10px] font-semibold uppercase text-slate-500 ">RedX Webhook Setup</p>
-                    <p className="mt-1 text-[10px] text-slate-500 ">Copy the callback URL with its dedicated token and paste it into RedX.</p>
-                    <button type="button" onClick={() => handleCopyCourierWebhookSetup('redx')} disabled={copyingCourierSecret === 'redx'} className="mt-3 inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-3 py-2 text-[10px] font-bold text-white hover:bg-indigo-700 disabled:opacity-50">
+                    <p className="text-xs font-semibold uppercase text-slate-500 ">RedX Webhook Setup</p>
+                    <p className="mt-1 text-xs text-slate-500 ">Copy the callback URL with its dedicated token and paste it into RedX.</p>
+                    <button type="button" onClick={() => handleCopyCourierWebhookSetup('redx')} disabled={copyingCourierSecret === 'redx'} className="mt-3 inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-3 py-2 text-xs font-bold text-white hover:bg-indigo-700 disabled:opacity-50">
                       <Copy className="h-3.5 w-3.5" />
                       {copyingCourierSecret === 'redx' ? 'Preparing...' : courierSettings.redx_webhook_secret_configured ? 'Copy Callback URL Again' : 'Copy Callback URL'}
                     </button>
@@ -1746,11 +1746,11 @@ export function SettingsView({
               {/* General courier choices */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label htmlFor="default-courier-provider" className="block text-[10px] font-bold text-slate-500  uppercase tracking-wider mb-1.5">Courier Used First</label>
+                  <label htmlFor="default-courier-provider" className="block text-xs font-bold text-slate-500  uppercase tracking-wider mb-1.5">Courier Used First</label>
                   <select 
                     id="default-courier-provider"
                     value={courierSettings.default_courier || 'steadfast'}
-                    onChange={(e) => setCourierSettings((prev: any) => ({ ...prev, default_courier: e.target.value }))}
+                    onChange={(e) => setCourierSettings((prev) => ({ ...prev, default_courier: e.target.value }))}
                     className="w-full p-2 text-xs bg-white border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500    cursor-pointer"
                   >
                     <option value="steadfast">SteadFast Courier</option>
@@ -1783,7 +1783,7 @@ export function SettingsView({
                 Choose when a COD Purchase event is sent. You can send it at once, or wait until you confirm the order.
               </p>
             </div>
-            <span className={`inline-flex w-fit rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide ${
+            <span className={`inline-flex w-fit rounded-full border px-2.5 py-1 text-xs font-bold uppercase tracking-wide ${
               deferredEnabled
                 ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
                 : 'border-slate-200 bg-slate-50 text-slate-500'
@@ -1794,15 +1794,15 @@ export function SettingsView({
 
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             <div className="rounded-lg border border-slate-200 bg-slate-50/70 p-3">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Purchase timing</p>
+              <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Purchase timing</p>
               <p className="mt-1 text-sm font-black text-slate-900">{deferredEnabled ? 'Wait for your confirmation' : 'Send right away'}</p>
             </div>
             <div className="rounded-lg border border-slate-200 bg-slate-50/70 p-3">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Auto-confirm</p>
+              <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Auto-confirm</p>
               <p className="mt-1 text-sm font-black text-slate-900">{autoConfirmLabel}</p>
             </div>
             <div className="rounded-lg border border-slate-200 bg-slate-50/70 p-3">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Confirm status</p>
+              <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Confirm status</p>
               <p className="mt-1 text-sm font-black text-slate-900">{formattedConfirmStatus}</p>
             </div>
           </div>
@@ -1829,7 +1829,7 @@ export function SettingsView({
               <p className="text-xs text-slate-400 ">Turn an event on, then choose Meta, TikTok, or GA4. Turn it off if you do not want the plugin to collect or send it.</p>
             </div>
             <div className="rounded-lg border border-emerald-100 bg-emerald-50 px-3 py-2 text-xs text-emerald-800 xl:max-w-[360px]">
-              <p className="font-bold uppercase tracking-wide text-[10px] text-emerald-700">WordPress is connected</p>
+              <p className="font-bold uppercase tracking-wide text-xs text-emerald-700">WordPress is connected</p>
               <p className="mt-1 leading-relaxed">
                 The plugin checks these choices every 5 minutes. Events that are off are stopped before they leave the website.
               </p>
@@ -1868,7 +1868,7 @@ export function SettingsView({
                   className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 font-mono text-xs text-slate-800 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20   "
                 />
               )}
-              <p className="text-[10px] leading-normal text-slate-400 ">
+              <p className="text-xs leading-normal text-slate-400 ">
                 Custom names can use letters, numbers, and underscores. WordPress must fire the same event name.
               </p>
             </div>
@@ -1919,7 +1919,7 @@ export function SettingsView({
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <p className="font-mono text-sm font-bold text-slate-900 ">{rule.eventName}</p>
-                    <p className="mt-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+                    <p className="mt-1 text-xs font-semibold uppercase tracking-wider text-slate-400">
                       {coreEventRoutes.has(rule.eventName) ? 'Core route' : 'Custom route'}
                     </p>
                   </div>
@@ -1934,7 +1934,7 @@ export function SettingsView({
                     </button>
                   )}
                 </div>
-                <div className="mt-4 grid grid-cols-3 gap-2 text-center text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                <div className="mt-4 grid grid-cols-3 gap-2 text-center text-xs font-bold uppercase tracking-wider text-slate-500">
                   <label className="rounded-lg bg-slate-50 p-2 ">
                     <span className="block">Meta</span>
                     <input type="checkbox" checked={rule.metaEnabled} onChange={() => handleToggleRule(idx, 'metaEnabled')} className="mt-2 h-4 w-4 rounded accent-indigo-600" />
@@ -1954,7 +1954,7 @@ export function SettingsView({
 
           <div className="hidden overflow-x-auto md:block">
             <table className="w-full text-xs text-slate-600 text-left min-w-[760px] ">
-              <thead className="bg-slate-50 text-[10px] font-bold uppercase tracking-wider text-slate-500 border-b border-slate-100   ">
+              <thead className="bg-slate-50 text-xs font-bold uppercase tracking-wider text-slate-500 border-b border-slate-100   ">
                 <tr>
                   <th className="px-4 py-3">Active event route</th>
                   <th className="px-4 py-3 text-center">Meta CAPI</th>
@@ -1970,7 +1970,7 @@ export function SettingsView({
                       <div className="flex flex-col">
                         <span className="font-mono text-xs font-semibold text-slate-800 ">{rule.eventName}</span>
                         {!coreEventRoutes.has(rule.eventName) && (
-                          <span className="mt-0.5 text-[10px] font-semibold uppercase tracking-wider text-indigo-500 ">Custom / optional route</span>
+                          <span className="mt-0.5 text-xs font-semibold uppercase tracking-wider text-indigo-500 ">Custom / optional route</span>
                         )}
                       </div>
                     </td>
@@ -2012,7 +2012,7 @@ export function SettingsView({
                           <Trash2 className="h-3.5 w-3.5" />
                         </button>
                       ) : (
-                        <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-350 ">Core</span>
+                        <span className="text-xs font-semibold uppercase tracking-wider text-slate-350 ">Core</span>
                       )}
                     </td>
                   </tr>
@@ -2062,13 +2062,13 @@ export function SettingsView({
               {automationDrafts.map((automation, index) => (
                 <div key={automation.id || index} className="rounded-xl border border-slate-200 bg-slate-50/60 p-4">
                   <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                    <p className="text-[11px] text-slate-500">{automationTriggerHelp(automation)}</p>
-                    <span className={`inline-flex w-fit items-center rounded-full border px-2 py-1 text-[10px] font-bold uppercase tracking-wide ${automationRouteState(automation).className}`}>
+                    <p className="text-xs text-slate-500">{automationTriggerHelp(automation)}</p>
+                    <span className={`inline-flex w-fit items-center rounded-full border px-2 py-1 text-xs font-bold uppercase tracking-wide ${automationRouteState(automation).className}`}>
                       {automationRouteState(automation).label}
                     </span>
                   </div>
                   <div className="grid grid-cols-1 gap-3 lg:grid-cols-[1fr_150px_1fr_auto]">
-                    <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                    <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
                       Event name
                       <input
                         type="text"
@@ -2078,7 +2078,7 @@ export function SettingsView({
                         className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 font-mono text-xs text-slate-800 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
                       />
                     </label>
-                    <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                    <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
                       Trigger
                       <select
                         value={automation.trigger}
@@ -2093,7 +2093,7 @@ export function SettingsView({
                         <option value="visible">Element visible</option>
                       </select>
                     </label>
-                    <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                    <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
                       {automation.trigger === 'timer' ? 'Seconds' : automation.trigger === 'scroll' ? 'Scroll percent' : automation.trigger === 'url' ? 'URL contains' : 'CSS selector'}
                       <input
                         type={automation.trigger === 'timer' || automation.trigger === 'scroll' ? 'number' : 'text'}
@@ -2138,7 +2138,7 @@ export function SettingsView({
                     </div>
                   </div>
                   <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-3">
-                    <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                    <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
                       Value
                       <input
                         type="number"
@@ -2147,7 +2147,7 @@ export function SettingsView({
                         className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-800 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
                       />
                     </label>
-                    <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                    <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
                       Currency
                       <input
                         type="text"
@@ -2156,7 +2156,7 @@ export function SettingsView({
                         className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 font-mono text-xs text-slate-800 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
                       />
                     </label>
-                    <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                    <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
                       Custom parameter label
                       <input
                         type="text"
@@ -2205,14 +2205,15 @@ export function SettingsView({
 
           <div className="p-4 rounded-lg bg-slate-50 border border-slate-200   space-y-3 font-mono text-xs text-slate-700 ">
             <div>
-              <span className="block text-[9px] font-semibold text-slate-400  uppercase tracking-wider mb-0.5">Plugin connection key</span>
+              <span className="block text-xs font-semibold text-slate-400  uppercase tracking-wider mb-0.5">Plugin connection key</span>
               <div className="flex items-center gap-2 bg-white  px-2 py-1.5 rounded border border-slate-200 ">
                 <span className="truncate" aria-label="Masked API access key">{maskedApiAccessKey}</span>
                 <button 
                   type="button"
                   onClick={() => handleCopy(apiAccessKey, 'sett_wp_tok')}
                   disabled={!apiAccessKey}
-                  className="text-slate-400 hover:text-slate-600 ml-auto shrink-0 cursor-pointer"
+                  className="ml-auto inline-flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+                  aria-label="Copy API access key"
                   title="Copy API access key"
                 >
                   {copiedStates['sett_wp_tok'] ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
@@ -2220,16 +2221,16 @@ export function SettingsView({
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[10px]">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
               <div>
-                <span className="block text-[9px] text-slate-400  uppercase mb-0.5">Plugin detected version</span>
+                <span className="block text-xs text-slate-400  uppercase mb-0.5">Plugin detected version</span>
                 <span className="font-semibold text-slate-800 ">{pluginVersionStatus}</span>
                 {!installedVersionReported && connection.wpVersion ? (
-                  <span className="mt-0.5 block text-[9px] text-slate-400">{pluginVersionHelp}</span>
+                  <span className="mt-0.5 block text-xs text-slate-400">{pluginVersionHelp}</span>
                 ) : null}
               </div>
               <div>
-                <span className="block text-[9px] text-slate-400  uppercase mb-0.5">Last plugin check-in</span>
+                <span className="block text-xs text-slate-400  uppercase mb-0.5">Last plugin check-in</span>
                 <span className="font-semibold text-slate-800 ">{connection.lastHeartbeat ? new Date(connection.lastHeartbeat).toLocaleString() : 'Not reported yet'}</span>
               </div>
             </div>
@@ -2238,24 +2239,24 @@ export function SettingsView({
           <div className="rounded-lg border border-slate-200 bg-white p-3 text-xs  ">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <p className="text-[9px] font-semibold uppercase tracking-wider text-slate-400 ">Latest plugin package</p>
+                <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 ">Latest plugin package</p>
                 <p className="mt-1 font-semibold text-slate-800 ">
                   {pluginReleaseInfo ? `v${pluginReleaseInfo.version}` : 'Checking release...'}
                 </p>
                 {pluginReleaseInfo && (
-                  <p className="mt-0.5 text-[10px] text-slate-500 ">
+                  <p className="mt-0.5 text-xs text-slate-500 ">
                     WordPress {pluginReleaseInfo.requires}+ / PHP {pluginReleaseInfo.requires_php}+ / {packageSizeKb} KB
                   </p>
                 )}
               </div>
               <span className={
                 !installedVersionReported
-                  ? 'shrink-0 rounded-md border border-slate-200 bg-slate-50 px-2 py-1 text-[10px] font-semibold text-slate-500   '
+                  ? 'shrink-0 rounded-md border border-slate-200 bg-slate-50 px-2 py-1 text-xs font-semibold text-slate-500   '
                   : updateAvailable
-                  ? 'shrink-0 rounded-md border border-amber-200 bg-amber-50 px-2 py-1 text-[10px] font-semibold text-amber-700   '
+                  ? 'shrink-0 rounded-md border border-amber-200 bg-amber-50 px-2 py-1 text-xs font-semibold text-amber-700   '
                   : pluginReleaseInfo?.package_available
-                    ? 'shrink-0 rounded-md border border-emerald-200 bg-emerald-50 px-2 py-1 text-[10px] font-semibold text-emerald-700   '
-                    : 'shrink-0 rounded-md border border-slate-200 bg-slate-50 px-2 py-1 text-[10px] font-semibold text-slate-500   '
+                    ? 'shrink-0 rounded-md border border-emerald-200 bg-emerald-50 px-2 py-1 text-xs font-semibold text-emerald-700   '
+                    : 'shrink-0 rounded-md border border-slate-200 bg-slate-50 px-2 py-1 text-xs font-semibold text-slate-500   '
               }>
                 {!installedVersionReported
                   ? 'Version unknown'
@@ -2277,7 +2278,7 @@ export function SettingsView({
                 .then(() => showToast("WordPress site binding is active.", false))
                 .catch((error) => showToast(error?.message || "WordPress reconnection is required.", true));
             }}
-            className="w-full py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-lg transition-colors border border-indigo-700/20 cursor-pointer  "
+            className="min-h-10 w-full rounded-lg border border-indigo-700/20 bg-indigo-600 py-2 text-xs font-semibold text-white transition-colors hover:bg-indigo-700 cursor-pointer"
           >
             Test WordPress Connection
           </button>
@@ -2290,7 +2291,7 @@ export function SettingsView({
               <h2 id="settings-telegram-title" className="text-sm font-bold uppercase tracking-wide text-slate-800">Telegram Notifications</h2>
               <p className="mt-1 max-w-2xl text-xs leading-relaxed text-slate-500">Connect Telegram privately to receive purchase and incomplete checkout alerts for this store. No phone number or recurring QR pairing is required.</p>
             </div>
-            <span className={`inline-flex w-fit rounded-full border px-3 py-1 text-[10px] font-bold uppercase tracking-wide ${telegramStatus?.connected ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-amber-200 bg-amber-50 text-amber-700'}`}>
+            <span className={`inline-flex w-fit rounded-full border px-3 py-1 text-xs font-bold uppercase tracking-wide ${telegramStatus?.connected ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-amber-200 bg-amber-50 text-amber-700'}`}>
               {telegramStatus?.connected ? 'Connected' : 'Not connected'}
             </span>
           </div>
@@ -2298,7 +2299,7 @@ export function SettingsView({
           {telegramStatus?.botUsername ? (
             <div className="flex flex-col gap-3 rounded-xl border border-sky-200 bg-sky-50 p-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-wider text-sky-700">Official Buykori order-alert bot</p>
+                <p className="text-xs font-bold uppercase tracking-wider text-sky-700">Official Buykori order-alert bot</p>
                 <a
                   href={`https://t.me/${telegramStatus.botUsername}`}
                   target="_blank"
@@ -2307,8 +2308,8 @@ export function SettingsView({
                 >
                   Buykori Order Alert
                 </a>
-                <p className="mt-0.5 max-w-full truncate font-mono text-[10px] text-sky-700 sm:max-w-[360px]">@{telegramStatus.botUsername}</p>
-                <p className="mt-1 text-[11px] text-sky-800">Use only this bot for purchase and incomplete-checkout notifications.</p>
+                <p className="mt-0.5 max-w-full truncate font-mono text-xs text-sky-700 sm:max-w-[360px]">@{telegramStatus.botUsername}</p>
+                <p className="mt-1 text-xs text-sky-800">Use only this bot for purchase and incomplete-checkout notifications.</p>
               </div>
               <div className="flex flex-wrap gap-2">
                 <button
@@ -2339,8 +2340,8 @@ export function SettingsView({
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <p className="text-xs font-black text-emerald-950">Telegram alerts are active</p>
-                  <p className="mt-1 text-[11px] text-emerald-800">Connected as {telegramStatus.telegramUsername ? `@${telegramStatus.telegramUsername}` : telegramStatus.telegramFirstName || 'Telegram user'}.</p>
-                  <p className="mt-1 text-[10px] text-emerald-700">Only notifications for this store will be sent to the verified chat.</p>
+                  <p className="mt-1 text-xs text-emerald-800">Connected as {telegramStatus.telegramUsername ? `@${telegramStatus.telegramUsername}` : telegramStatus.telegramFirstName || 'Telegram user'}.</p>
+                  <p className="mt-1 text-xs text-emerald-700">Only notifications for this store will be sent to the verified chat.</p>
                 </div>
                 <button type="button" onClick={disconnectTelegram} disabled={telegramBusy} className="rounded-lg border border-rose-200 bg-white px-3 py-2 text-xs font-bold text-rose-600 hover:bg-rose-50 disabled:opacity-60">Disconnect</button>
               </div>
@@ -2349,7 +2350,7 @@ export function SettingsView({
             <div className="space-y-4">
               <div className="rounded-xl border border-indigo-100 bg-indigo-50/60 p-4">
                 <p className="text-xs font-black text-indigo-950">Connect in three simple steps</p>
-                <ol className="mt-3 grid gap-3 text-[11px] leading-relaxed text-indigo-900 md:grid-cols-3">
+                <ol className="mt-3 grid gap-3 text-xs leading-relaxed text-indigo-900 md:grid-cols-3">
                   <li className="rounded-lg bg-white p-3"><b className="block text-indigo-600">1. Generate code</b>Create a private, one-time security code here.</li>
                   <li className="rounded-lg bg-white p-3"><b className="block text-indigo-600">2. Open the official bot</b>Use the blue button above, press Start, and send the security code.</li>
                   <li className="rounded-lg bg-white p-3"><b className="block text-indigo-600">3. Verified</b>The bot confirms this store and alerts begin automatically.</li>
@@ -2362,9 +2363,9 @@ export function SettingsView({
                 <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
                   <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                     <div>
-                      <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">One-time security code</p>
+                      <p className="text-xs font-bold uppercase tracking-wider text-slate-400">One-time security code</p>
                       <p className="mt-1 font-mono text-3xl font-black tracking-[0.16em] text-slate-950">{telegramLinkCode.code}</p>
-                      <p className="mt-1 text-[10px] text-slate-500">Expires in {telegramLinkCode.expiresInMinutes} minutes and works once.</p>
+                      <p className="mt-1 text-xs text-slate-500">Expires in {telegramLinkCode.expiresInMinutes} minutes and works once.</p>
                     </div>
                     <div className="grid gap-2 sm:grid-cols-3">
                       <button type="button" onClick={() => handleCopy(telegramLinkCode.code, 'telegram-link-code')} className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100"><Copy className="h-4 w-4" /> Copy code</button>
@@ -2372,7 +2373,7 @@ export function SettingsView({
                       <button type="button" onClick={() => loadTelegramStatus()} className="inline-flex items-center justify-center gap-2 rounded-lg border border-indigo-200 bg-white px-3 py-2 text-xs font-bold text-indigo-700 hover:bg-indigo-50"><RefreshCw className="h-4 w-4" /> Check</button>
                     </div>
                   </div>
-                  <p className="mt-3 text-[11px] text-slate-600">Recommended: click <b>Open bot with code</b> and press <b>Start</b> in Telegram. If the code is not sent automatically, paste <b>{telegramLinkCode.code}</b>. This page checks the connection automatically.</p>
+                  <p className="mt-3 text-xs text-slate-600">Recommended: click <b>Open bot with code</b> and press <b>Start</b> in Telegram. If the code is not sent automatically, paste <b>{telegramLinkCode.code}</b>. This page checks the connection automatically.</p>
                 </div>
               ) : (
                 <button type="button" onClick={generateTelegramLinkCode} disabled={telegramBusy} className="w-full rounded-xl bg-indigo-600 px-4 py-3 text-sm font-black text-white shadow-sm hover:bg-indigo-700 disabled:opacity-60">
@@ -2395,7 +2396,7 @@ export function SettingsView({
             <div className="flex items-center justify-between">
               <div>
                 <span className="block text-xs font-semibold text-slate-700">Enable WhatsApp Alerts</span>
-                <span className="block text-[11px] text-slate-400">Send automatic alerts to WhatsApp number.</span>
+                <span className="block text-xs text-slate-400">Send automatic alerts to WhatsApp number.</span>
               </div>
               <label className="relative inline-flex items-center cursor-pointer select-none">
                 <input 
@@ -2410,11 +2411,11 @@ export function SettingsView({
 
             <div className="rounded-lg border border-sky-200 bg-sky-50 p-3 text-xs text-sky-950">
               <p className="font-bold">For smooth WhatsApp notifications</p>
-              <ol className="mt-2 list-decimal space-y-1 pl-4 text-[11px] leading-relaxed text-sky-900">
+              <ol className="mt-2 list-decimal space-y-1 pl-4 text-xs leading-relaxed text-sky-900">
                 <li>Save the Buykori WhatsApp number that sends your notifications to your contacts using any name.</li>
                 <li>Open that contact in WhatsApp and send one message such as "Hi", "Hello", or "Start".</li>
               </ol>
-              <p className="mt-2 text-[10px] leading-relaxed text-sky-700">
+              <p className="mt-2 text-xs leading-relaxed text-sky-700">
                 These steps help WhatsApp recognize the conversation and improve reliable notification delivery.
               </p>
             </div>
@@ -2422,7 +2423,7 @@ export function SettingsView({
             {profNotifyWhatsapp && (
               <div className="animate-fadeIn transition-all space-y-3">
                 <div>
-                  <label className="block text-[10px] font-semibold text-slate-400 uppercase mb-1">WhatsApp Number (with Country Code)</label>
+                  <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">WhatsApp Number (with Country Code)</label>
                   <input 
                     type="text" 
                     placeholder="e.g. 88017XXXXXXXX"
@@ -2433,11 +2434,11 @@ export function SettingsView({
                 </div>
                 <div className="hidden rounded-lg border border-sky-200 bg-sky-50 p-3 text-xs text-sky-950">
                   <p className="font-bold">For smooth WhatsApp notifications</p>
-                  <ol className="mt-2 list-decimal space-y-1 pl-4 text-[11px] leading-relaxed text-sky-900">
+                  <ol className="mt-2 list-decimal space-y-1 pl-4 text-xs leading-relaxed text-sky-900">
                     <li>Save the Buykori WhatsApp number that sends your notifications to your contacts using any name.</li>
                     <li>Open that contact in WhatsApp and send one message such as “Hi”, “Hello”, or “Start”.</li>
                   </ol>
-                  <p className="mt-2 text-[10px] leading-relaxed text-sky-700">
+                  <p className="mt-2 text-xs leading-relaxed text-sky-700">
                     These steps help WhatsApp recognize the conversation and improve reliable notification delivery.
                   </p>
                 </div>
@@ -2499,11 +2500,11 @@ export function SettingsView({
 
             <div className="space-y-4 p-5">
               <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-center">
-                <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-emerald-700">Buykori WhatsApp sender</p>
+                <p className="text-xs font-bold uppercase tracking-[0.16em] text-emerald-700">Buykori WhatsApp sender</p>
                 <p className="mt-2 font-mono text-2xl font-black tracking-wide text-slate-950">
                   +{whatsappRecommendation.phoneNumber.replace(/^\+/, '')}
                 </p>
-                <p className="mt-1 text-[11px] font-semibold text-emerald-800">
+                <p className="mt-1 text-xs font-semibold text-emerald-800">
                   {whatsappRecommendation.currentAssignment
                     ? 'Your existing sender remains assigned.'
                     : `${whatsappRecommendation.availableSlots} client slot${whatsappRecommendation.availableSlots === 1 ? '' : 's'} available.`}
@@ -2543,7 +2544,7 @@ export function SettingsView({
               >
                 {profUpdating ? 'Enabling alerts...' : 'I saved it - Enable WhatsApp alerts'}
               </button>
-              <p className="text-center text-[10px] leading-relaxed text-slate-400">
+              <p className="text-center text-xs leading-relaxed text-slate-400">
                 Buykori will re-check sender availability when you confirm.
               </p>
             </div>

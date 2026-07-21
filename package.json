@@ -10,7 +10,11 @@
     "start": "node dist/server.cjs",
     "clean": "node -e \"fs.rmSync('dist',{recursive:true,force:true});fs.rmSync('server.js',{force:true})\"",
     "lint": "tsc --noEmit",
-    "test:routing": "tsx --test src/lib/clientRoutes.test.ts"
+    "test:routing": "tsx --test src/lib/clientRoutes.test.ts",
+    "test:analytics": "tsx --test src/services/analyticsApi.test.ts",
+    "test:courier": "tsx --test src/services/courierApi.test.ts",
+    "test:operations": "tsx --test src/services/operationsApi.test.ts",
+    "test:account": "tsx --test src/services/accountApi.test.ts"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.1.14",

@@ -28,14 +28,9 @@ import {
   UserRound,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import { UserProfile } from '../types';
-
-interface StoreInfo {
-  client_id: number;
-  name: string;
-  domain: string;
-  is_current: boolean;
-}
+import { StoreInfo, UserProfile } from '../types';
+import { Button } from './common/Button';
+import { Modal } from './common/Modal';
 
 interface SidebarItem {
   id: string;
@@ -91,6 +86,7 @@ export function Sidebar({
 }: SidebarProps) {
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [showLockedFeature, setShowLockedFeature] = useState(false);
+  const logoutTriggerRef = useRef<HTMLButtonElement>(null);
   const [storeSwitcherOpen, setStoreSwitcherOpen] = useState(false);
   const [switchingStore, setSwitchingStore] = useState<number | null>(null);
   const [openSubmenus, setOpenSubmenus] = useState<Record<string, boolean>>({});
@@ -306,7 +302,7 @@ export function Sidebar({
                 <p className="text-xs font-bold text-slate-800  truncate leading-tight">
                   {currentStore?.name || profile.name}
                 </p>
-                <p className="text-[9px] text-slate-400  truncate leading-tight">
+                <p className="text-xs text-slate-400  truncate leading-tight">
                   {currentStore?.domain || 'No domain set'}
                 </p>
               </div>
@@ -336,7 +332,7 @@ export function Sidebar({
                         <p className={`text-xs font-semibold truncate leading-tight ${store.is_current ? 'text-indigo-700 ' : 'text-slate-700 '}`}>
                           {store.name}
                         </p>
-                        <p className="text-[9px] text-slate-400  truncate leading-tight">
+                        <p className="text-xs text-slate-400  truncate leading-tight">
                           {store.domain || 'No domain'}
                         </p>
                       </div>
@@ -443,7 +439,7 @@ export function Sidebar({
                           <span className="min-w-0 flex-1 text-left">
                             <span className="block truncate">{item.name}</span>
                             {item.subtitle && (
-                              <span className="block max-h-0 overflow-hidden text-[10px] font-medium leading-4 text-slate-400 opacity-0 transition-all duration-200 group-hover:max-h-4 group-hover:opacity-100 ">
+                              <span className="block max-h-0 overflow-hidden text-xs font-medium leading-4 text-slate-400 opacity-0 transition-all duration-200 group-hover:max-h-4 group-hover:opacity-100 ">
                                 {item.subtitle}
                               </span>
                             )}
@@ -473,7 +469,7 @@ export function Sidebar({
                         )}
 
                         {Boolean(item.count) && !collapsed && !hasSubmenu && (
-                          <span className="bk-console-chip ml-auto rounded-full px-1.5 py-0.5 text-[10px] font-bold">
+                          <span className="bk-console-chip ml-auto rounded-full px-1.5 py-0.5 text-xs font-bold">
                             {item.count}
                           </span>
                         )}
@@ -491,7 +487,7 @@ export function Sidebar({
 
                       {hasSubmenu && collapsed && (
                         <div className="pointer-events-none absolute left-full top-0 z-50 ml-3 w-52 rounded-lg border border-slate-200 bg-white p-2 opacity-0 shadow-xl shadow-slate-900/15 transition-opacity duration-150 group-hover/nav:pointer-events-auto group-hover/nav:opacity-100">
-                          <p className="px-2 py-1 text-[10px] font-black uppercase tracking-wide text-slate-400">{item.name}</p>
+                          <p className="px-2 py-1 text-xs font-black uppercase tracking-wide text-slate-400">{item.name}</p>
                           <div className="mt-1 space-y-0.5">
                             {subSections.map((section) => (
                               <button
@@ -540,7 +536,7 @@ export function Sidebar({
       <div className={`shrink-0 border-t border-slate-200 bg-white px-3 pt-3 ${collapsed ? 'hidden pb-3 md:block' : 'pb-2'}`}>
         {collapsed ? (
           <div className={`flex flex-col items-center gap-1.5 rounded-xl border px-1.5 py-2 shadow-sm ${usageCardColor}`} title="Monthly Event Usage">
-            <span className={`text-[10px] font-mono font-bold leading-none ${textQuotaColor}`}>
+            <span className={`text-xs font-mono font-bold leading-none ${textQuotaColor}`}>
               {formatQuota(profile.eventsUsed)}
             </span>
             <div className="h-1.5 w-10 overflow-hidden rounded-full bg-white/80 ring-1 ring-black/5">
@@ -551,19 +547,19 @@ export function Sidebar({
           <div className={`rounded-xl border px-3 py-2.5 shadow-sm ${usageCardColor}`}>
             <div className="flex items-center justify-between gap-3">
               <div>
-                <p className={`text-[10px] font-bold uppercase tracking-[0.12em] ${textQuotaColor}`}>Events usage</p>
-                <p className="mt-0.5 text-[10px] text-slate-500">
+                <p className={`text-xs font-bold uppercase tracking-[0.12em] ${textQuotaColor}`}>Events usage</p>
+                <p className="mt-0.5 text-xs text-slate-500">
                   {formatQuota(profile.eventsUsed)} of {formatQuota(profile.eventsQuota)} events
                 </p>
               </div>
-              <span className={`rounded-full bg-white/80 px-2 py-1 text-[11px] font-black shadow-sm ring-1 ring-black/5 ${textQuotaColor}`}>
+              <span className={`rounded-full bg-white/80 px-2 py-1 text-xs font-black shadow-sm ring-1 ring-black/5 ${textQuotaColor}`}>
                 {usagePercent.toFixed(1)}%
               </span>
             </div>
             <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-white/80 shadow-inner ring-1 ring-black/5">
               <div className={`h-full rounded-full transition-all duration-500 ${quotaColor}`} style={{ width: `${usagePercent}%` }} />
             </div>
-            <div className="mt-2 flex justify-end text-[9px] leading-none text-slate-500">
+            <div className="mt-2 flex justify-end text-xs leading-none text-slate-500">
               {profile.renewalDate ? (() => {
                 const resetDate = new Date(profile.renewalDate);
                 const today = new Date();
@@ -592,6 +588,7 @@ export function Sidebar({
               {profileInitial}
             </button>
             <button
+              ref={logoutTriggerRef}
               onClick={() => setShowLogoutConfirm(true)}
               className="group flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-rose-50 hover:text-rose-600"
               title="Log Out"
@@ -611,13 +608,14 @@ export function Sidebar({
               </div>
               <div className="min-w-0 flex-1 leading-tight">
                 <span className="block truncate text-xs font-bold text-slate-800">{displayProfileName}</span>
-                <span className="mt-1 inline-flex max-w-full truncate rounded-full bg-gradient-to-r from-indigo-100 to-violet-100 px-2 py-0.5 text-[9px] font-bold text-indigo-700 ring-1 ring-inset ring-indigo-200/70">
+                <span className="mt-1 inline-flex max-w-full truncate rounded-full bg-gradient-to-r from-indigo-100 to-violet-100 px-2 py-0.5 text-xs font-bold text-indigo-700 ring-1 ring-inset ring-indigo-200/70">
                   {profile.plan}
                 </span>
               </div>
             </button>
 
             <button
+              ref={logoutTriggerRef}
               onClick={() => setShowLogoutConfirm(true)}
               className="group flex items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-2 py-2 text-xs font-bold text-slate-500 transition-all hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600"
               title="Log Out"
@@ -630,43 +628,51 @@ export function Sidebar({
       </div>
     </aside>
     {showLogoutConfirm && (
-      <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-900/40 px-4 backdrop-blur-sm">
-        <div className="w-full max-w-sm rounded-xl border border-slate-200 bg-white p-5 shadow-2xl  ">
+      <Modal
+        onClose={() => setShowLogoutConfirm(false)}
+        labelledBy="logout-confirm-title"
+        returnFocusRef={logoutTriggerRef}
+        overlayClassName="fixed inset-0 z-[70] flex items-center justify-center bg-slate-900/40 px-4 backdrop-blur-sm"
+        panelClassName="w-full max-w-sm rounded-xl border border-slate-200 bg-white p-5 shadow-2xl"
+      >
           <div className="space-y-1">
-            <h3 className="text-sm font-bold text-slate-900 ">Log out?</h3>
+            <h3 id="logout-confirm-title" className="text-sm font-bold text-slate-900 ">Log out?</h3>
             <p className="text-xs leading-relaxed text-slate-500 ">You can log back in anytime.</p>
           </div>
           <div className="mt-5 flex justify-end gap-2">
-            <button
-              type="button"
+            <Button
+              variant="secondary"
+              size="sm"
               onClick={() => setShowLogoutConfirm(false)}
-              className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-600 transition-colors hover:bg-slate-50    "
+              className="text-slate-600"
             >
               Cancel
-            </button>
-            <button
-              type="button"
+            </Button>
+            <Button
+              variant="danger"
+              size="sm"
               onClick={() => {
                 setShowLogoutConfirm(false);
                 onLogout();
               }}
-              className="rounded-lg bg-rose-600 px-3 py-2 text-xs font-bold text-white transition-colors hover:bg-rose-700"
             >
               Log Out
-            </button>
+            </Button>
           </div>
-        </div>
-      </div>
+      </Modal>
     )}
     {showLockedFeature && (
-      <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-900/40 px-4 backdrop-blur-sm">
-        <div className="w-full max-w-sm rounded-xl border border-slate-200 bg-white p-5 shadow-2xl">
+      <Modal
+        onClose={() => setShowLockedFeature(false)}
+        labelledBy="locked-feature-title"
+        overlayClassName="fixed inset-0 z-[70] flex items-center justify-center bg-slate-900/40 px-4 backdrop-blur-sm"
+        panelClassName="w-full max-w-sm rounded-xl border border-slate-200 bg-white p-5 shadow-2xl"
+      >
           <LockKeyhole className="h-6 w-6 text-amber-500" />
-          <h3 className="mt-3 text-sm font-bold text-slate-900">Growth feature locked</h3>
+          <h3 id="locked-feature-title" className="mt-3 text-sm font-bold text-slate-900">Growth feature locked</h3>
           <p className="mt-1 text-xs leading-relaxed text-slate-500">Incomplete Orders is available with a Growth trial or paid plan.</p>
-          <button type="button" onClick={() => setShowLockedFeature(false)} className="mt-5 w-full rounded-lg bg-indigo-600 px-3 py-2 text-xs font-bold text-white hover:bg-indigo-700">Got it</button>
-        </div>
-      </div>
+          <Button variant="primary" size="sm" onClick={() => setShowLockedFeature(false)} className="mt-5 w-full">Got it</Button>
+      </Modal>
     )}
     </>
   );

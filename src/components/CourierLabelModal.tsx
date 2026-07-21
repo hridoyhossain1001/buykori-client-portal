@@ -3,6 +3,7 @@ import JsBarcode from 'jsbarcode';
 import QRCode from 'qrcode';
 import { Package, Printer, Ruler, X } from 'lucide-react';
 import { clonePrintMarkup } from '../lib/print';
+import { Modal } from './common/Modal';
 
 interface CourierLabelOrder {
   id?: number;
@@ -210,16 +211,20 @@ export function CourierLabelModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-slate-900/60 p-4 backdrop-blur-sm">
-      <div className="my-8 flex w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl  ">
+    <Modal
+      onClose={onClose}
+      labelledBy="courier-label-title"
+      overlayClassName="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-slate-900/60 p-4 backdrop-blur-sm"
+      panelClassName="my-8 flex w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl"
+    >
         <div className="flex flex-col gap-3 border-b border-slate-100 p-5  sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-2">
             <Package className="h-5 w-5 text-indigo-600 " />
             <div>
-              <h3 className="text-base font-bold text-slate-800 ">
+              <h3 id="courier-label-title" className="text-base font-bold text-slate-800 ">
                 Courier Label Printer {ordersList.length > 1 && `(${ordersList.length} labels)`}
               </h3>
-              <p className="text-[10px] text-slate-400">Thermal-printer layout with Code128 barcode and tracking QR.</p>
+              <p className="text-xs text-slate-400">Thermal-printer layout with Code128 barcode and tracking QR.</p>
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2">
@@ -250,6 +255,7 @@ export function CourierLabelModal({
             <button
               type="button"
               onClick={onClose}
+              aria-label="Close courier label dialog"
               className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 "
             >
               <X className="h-4 w-4" />
@@ -273,7 +279,7 @@ export function CourierLabelModal({
             <option>3 KG</option>
             <option>5 KG</option>
           </select>
-          <p className="text-[10px] text-slate-400">Each selected consignment prints on its own thermal label page.</p>
+          <p className="text-xs text-slate-400">Each selected consignment prints on its own thermal label page.</p>
         </div>
 
         <div className="max-h-[75vh] overflow-y-auto bg-slate-200 p-6 ">
@@ -296,7 +302,7 @@ export function CourierLabelModal({
                 >
                   <div className="courier-label-header flex items-center justify-between gap-2 border-b-2 border-slate-900 pb-1">
                     <span className="courier-label-brand truncate text-sm font-black">{storeName}</span>
-                    <span className="courier-label-provider text-[9px] font-black uppercase">{provider}</span>
+                    <span className="courier-label-provider text-xs font-black uppercase">{provider}</span>
                   </div>
                   {asset?.barcodeUrl ? (
                     <img className="courier-label-barcode h-[50px] w-full object-fill" src={asset.barcodeUrl} alt={`Barcode ${trackingCode}`} />
@@ -309,23 +315,23 @@ export function CourierLabelModal({
                     ) : (
                       <div className="h-[66px] w-[66px]" />
                     )}
-                    <div className="courier-label-meta grid grid-cols-[auto_1fr] gap-x-1 gap-y-0.5 text-[9px]">
+                    <div className="courier-label-meta grid grid-cols-[auto_1fr] gap-x-1 gap-y-0.5 text-xs">
                       <span className="font-black uppercase text-slate-500">Invoice</span><span className="text-right font-black">{orderId}</span>
                       <span className="font-black uppercase text-slate-500">Tracking</span><span className="text-right font-black">{trackingCode}</span>
                       <span className="font-black uppercase text-slate-500">Delivery</span><span className="text-right font-black">Home</span>
                       <span className="font-black uppercase text-slate-500">Weight</span><span className="text-right font-black">{parcelWeight}</span>
                     </div>
                   </div>
-                  <div className="courier-label-recipient grid gap-0.5 text-[10px] leading-tight">
+                  <div className="courier-label-recipient grid gap-0.5 text-xs leading-tight">
                     <div className="courier-label-row grid grid-cols-[54px_1fr] gap-1"><span className="font-black uppercase text-slate-500">Name</span><span className="font-black">{recipientName}</span></div>
                     <div className="courier-label-row grid grid-cols-[54px_1fr] gap-1"><span className="font-black uppercase text-slate-500">Phone</span><span className="font-black">{recipientPhone}</span></div>
                     <div className="courier-label-row grid grid-cols-[54px_1fr] gap-1"><span className="font-black uppercase text-slate-500">Address</span><span className="font-black">{recipientAddress}</span></div>
                   </div>
-                  <div className="courier-label-cod mt-auto flex items-center justify-between border-2 border-slate-900 px-1.5 py-1 text-[10px] font-black uppercase">
+                  <div className="courier-label-cod mt-auto flex items-center justify-between border-2 border-slate-900 px-1.5 py-1 text-xs font-black uppercase">
                     <span>Cash on delivery</span>
                     <strong className="text-[15px]">৳ {codAmount.toLocaleString()}</strong>
                   </div>
-                  <div className="courier-label-footer flex justify-between gap-1 text-[7px] text-slate-500">
+                  <div className="courier-label-footer flex justify-between gap-1 text-xs text-slate-500">
                     <span>Printed: {new Date().toLocaleString()}</span>
                     <span>Scan QR to track</span>
                   </div>
@@ -334,7 +340,6 @@ export function CourierLabelModal({
             })}
           </div>
         </div>
-      </div>
-    </div>
+    </Modal>
   );
 }

@@ -23,36 +23,13 @@ import {
   Settings2,
   AlertTriangle
 } from 'lucide-react';
-import { CAPIEvent, UserProfile, Platform } from '../types';
+import { CAPIEvent, UserProfile, Platform, RecoverySummary, TrendPoint } from '../types';
 
 interface DashboardViewProps {
   profile: UserProfile;
   events: CAPIEvent[];
-  trendData: any[];
-  recoverySummary: {
-    browser_events: number;
-    server_events: number;
-    server_attempt_events?: number;
-    server_failed_events?: number;
-    server_filtered_events?: number;
-    server_processed_events?: number;
-    platform_stats?: Record<string, {
-      attempts: number;
-      successful: number;
-      failed: number;
-      filtered: number;
-      last_event_at: string | null;
-    }>;
-    server_missing_event_id_events?: number;
-    diagnostic_reasons?: Array<{
-      status: string;
-      reason: string;
-      count: number;
-    }>;
-    matched_events: number;
-    recovered_events: number;
-    recovery_rate: number;
-  } | null;
+  trendData: TrendPoint[];
+  recoverySummary: RecoverySummary | null;
   metaStats: { total: number; rate: number; lastTime: string };
   tiktokStats: { total: number; rate: number; lastTime: string };
   ga4Stats: { total: number; rate: number; lastTime: string };
@@ -241,7 +218,7 @@ export function DashboardView({
           {railOpen && (
             <div className="absolute right-10 top-0 w-52 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xl shadow-slate-900/15">
               <div className="border-b border-slate-100 px-3 py-2">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Platform health</p>
+                <p className="text-xs font-bold uppercase tracking-wider text-slate-500">Platform health</p>
               </div>
               <div className="divide-y divide-slate-100">
                 {platformCards.map(card => (
@@ -251,13 +228,13 @@ export function DashboardView({
                         <span className={`h-1.5 w-1.5 rounded-full ${card.dotClass}`} />
                         {card.label}
                       </p>
-                      <p className="mt-0.5 truncate font-mono text-[10px] text-slate-400">
+                      <p className="mt-0.5 truncate font-mono text-xs text-slate-400">
                         {card.total > 0 ? `Last: ${card.lastTime}` : 'No events in selected timeframe'}
                       </p>
                     </div>
                     <div className="text-right">
                       <p className="text-sm font-bold text-slate-950">{card.total > 0 ? `${card.rate}%` : 'No events'}</p>
-                      <p className="text-[10px] font-bold uppercase text-slate-400">{card.total} events</p>
+                      <p className="text-xs font-bold uppercase text-slate-400">{card.total} events</p>
                     </div>
                   </div>
                 ))}
@@ -279,7 +256,7 @@ export function DashboardView({
             value={analyticsDays} 
             onChange={(e) => setAnalyticsDays(Number(e.target.value))}
             aria-label="Select dashboard timeframe"
-            className="h-9 rounded-lg border border-slate-200 bg-white px-2.5 text-xs font-semibold text-slate-700 shadow-sm outline-none focus:ring-1 focus:ring-blue-500 sm:px-3"
+            className="h-10 rounded-lg border border-slate-200 bg-white px-2.5 text-xs font-semibold text-slate-700 shadow-sm outline-none focus:ring-1 focus:ring-blue-500 sm:px-3"
           >
             <option value="7">Last 7 Days</option>
             <option value="14">Last 14 Days</option>
@@ -325,7 +302,7 @@ export function DashboardView({
         <section className="rounded-xl border border-indigo-100 bg-white p-5 shadow-sm  ">
           <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
             <div className="space-y-1.5">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-indigo-600 ">Welcome to Buykori</p>
+              <p className="text-xs font-bold uppercase tracking-wider text-indigo-600 ">Welcome to Buykori</p>
               <h3 className="text-base font-bold text-slate-900 ">Start tracking your first store</h3>
               <p className="max-w-2xl text-xs leading-relaxed text-slate-500 ">
                 Complete these steps to start sending purchase and visitor events to your ad platforms.
@@ -336,7 +313,7 @@ export function DashboardView({
               <button
                 type="button"
                 onClick={() => setActivePage('setup-guide')}
-                className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-left text-xs font-semibold text-slate-700 transition-colors hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700      "
+                className="flex min-h-10 items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-left text-xs font-semibold text-slate-700 transition-colors hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700"
               >
                 <BookOpen className="h-4 w-4 shrink-0 text-indigo-500" />
                 Setup Guide
@@ -370,7 +347,7 @@ export function DashboardView({
               Monthly Usage
               <Tooltip content="Quota-counted events processed this billing month. Recent logs can include browser, debug, or failed attempts that do not increase monthly usage." />
             </p>
-            <span className="inline-flex items-center gap-1 rounded-full bg-green-50 px-2 py-0.5 text-[11px] font-bold text-green-700">
+            <span className="inline-flex items-center gap-1 rounded-full bg-green-50 px-2 py-0.5 text-xs font-bold text-green-700">
               <TrendingUp className="h-3 w-3" />
               {quotaPercent}%
             </span>
@@ -378,7 +355,7 @@ export function DashboardView({
           <div className="mt-4 flex items-end justify-between gap-3">
             <div>
               <p className="text-2xl font-bold tracking-tight text-slate-950">{profile.eventsUsed.toLocaleString()}</p>
-              <p className="mt-0.5 text-[11px] font-semibold text-slate-400">of {profile.eventsQuota.toLocaleString()} quota-counted</p>
+              <p className="mt-0.5 text-xs font-semibold text-slate-400">of {profile.eventsQuota.toLocaleString()} quota-counted</p>
             </div>
             <div className="h-1.5 w-24 overflow-hidden rounded-full bg-slate-100">
               <div
@@ -392,16 +369,16 @@ export function DashboardView({
         {platformCards.map(card => (
           <div key={card.label} className="hidden rounded-lg border border-slate-200 bg-white p-4 shadow-sm md:block">
             <div className="flex items-center justify-between gap-2">
-              <span className={`inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-[11px] font-bold ${card.badgeClass}`}>
+              <span className={`inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-xs font-bold ${card.badgeClass}`}>
                 <span className={`h-1.5 w-1.5 rounded-full ${card.dotClass}`} />
                 {card.label}
               </span>
-              <span className="text-[10px] font-bold uppercase text-slate-400">{card.total} events</span>
+              <span className="text-xs font-bold uppercase text-slate-400">{card.total} events</span>
             </div>
             <p className={`mt-4 font-bold tracking-tight text-slate-950 ${card.total > 0 ? 'text-2xl' : 'text-lg leading-tight'}`}>
               {card.total > 0 ? `${card.rate}%` : platformEmptyCopy[card.label]}
             </p>
-            <p className={`mt-1 text-[10px] leading-4 text-slate-400 ${card.total > 0 ? 'truncate font-mono' : 'line-clamp-2'}`}>
+            <p className={`mt-1 text-xs leading-4 text-slate-400 ${card.total > 0 ? 'truncate font-mono' : 'line-clamp-2'}`}>
               {card.total > 0 ? `Last: ${card.lastTime}` : platformHintCopy[card.label]}
             </p>
           </div>
@@ -418,7 +395,7 @@ export function DashboardView({
               <h2 className="text-xs font-bold uppercase tracking-wide text-slate-800 md:text-sm">Event Activity</h2>
               <p className="text-xs text-slate-400 ">Successful server events over time</p>
             </div>
-            <div className="flex items-center gap-2 rounded border border-slate-200 bg-slate-50 px-2 py-1 font-mono text-[11px] text-slate-400">
+            <div className="flex items-center gap-2 rounded border border-slate-200 bg-slate-50 px-2 py-1 font-mono text-xs text-slate-400">
               <span className="w-1.5 h-1.5 bg-indigo-500 rounded-full" />
               Live
             </div>
@@ -441,10 +418,10 @@ export function DashboardView({
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                <XAxis dataKey="name" stroke="#94a3b8" fontSize={10} tickLine={false} axisLine={false} />
+                <XAxis dataKey="name" stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} />
                 <YAxis 
                   stroke="#94a3b8" 
-                  fontSize={10} 
+                  fontSize={12}
                   tickLine={false} 
                   axisLine={false} 
                   tickFormatter={(value) => {
@@ -454,9 +431,9 @@ export function DashboardView({
                   }}
                 />
                 <ReChartsTooltip 
-                  contentStyle={{ backgroundColor: '#ffffff', borderColor: '#e2e8f0', color: '#1e293b', borderRadius: '8px', fontSize: '11px', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.05)' }} 
+                  contentStyle={{ backgroundColor: '#ffffff', borderColor: '#e2e8f0', color: '#1e293b', borderRadius: '8px', fontSize: '12px', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.05)' }}
                 />
-                <Legend wrapperStyle={{ fontSize: '10px', paddingTop: '10px' }} />
+                <Legend wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }} />
                 <Area type="monotone" dataKey="Meta CAPI" stroke="#4f46e5" strokeWidth={2} fillOpacity={1} fill="url(#metaGrad)" />
                 <Area type="monotone" dataKey="TikTok Events" stroke="#06b6d4" strokeWidth={2} fillOpacity={1} fill="url(#tiktokGrad)" />
                 <Area type="monotone" dataKey="GA4" stroke="#34a853" strokeWidth={2} fillOpacity={1} fill="url(#ga4Grad)" />
@@ -491,7 +468,7 @@ export function DashboardView({
               </svg>
               <div className="absolute inset-0 flex flex-col items-center justify-center">
                 <span className="font-mono text-xl font-extrabold leading-none text-slate-800 md:text-2xl lg:text-3xl">{optScore}%</span>
-                <span className="text-[10px] text-slate-400 mt-1 font-semibold uppercase tracking-wider">Score</span>
+                <span className="mt-1 text-xs font-semibold uppercase tracking-wider text-slate-400">Score</span>
               </div>
             </div>
             
@@ -506,7 +483,7 @@ export function DashboardView({
 
           <button 
             onClick={() => setActivePage('suggestions')}
-            className="w-full rounded-lg border border-slate-200 bg-white py-2 text-xs font-semibold text-slate-700 transition-colors hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700"
+            className="min-h-10 w-full rounded-lg border border-slate-200 bg-white py-2 text-xs font-semibold text-slate-700 transition-colors hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700"
           >
             <span className="inline-flex items-center justify-center gap-1.5">
               {totalSuggCount === 0 ? <RefreshCw className="h-3.5 w-3.5" /> : null}
@@ -517,12 +494,12 @@ export function DashboardView({
           <div className={`mt-3 rounded-lg border p-3 ${coverageWarningTone ? 'border-amber-100 bg-amber-50/70' : 'border-emerald-100 bg-emerald-50/60'}`}>
             <div className="flex items-start justify-between gap-3">
               <div>
-                <p className={`text-[10px] font-black uppercase tracking-wide ${coverageWarningTone ? 'text-amber-700' : 'text-emerald-700'}`}>Browser / Server Coverage</p>
+                <p className={`text-xs font-black uppercase tracking-wide ${coverageWarningTone ? 'text-amber-700' : 'text-emerald-700'}`}>Browser / Server Coverage</p>
                 <p className={coverageWarningTone ? 'mt-1 text-xs text-amber-900' : 'mt-1 text-xs text-emerald-900'}>{coverageDescription}</p>
               </div>
               <span className={`font-mono text-lg font-black ${coverageWarningTone ? 'text-amber-700' : 'text-emerald-700'}`}>{coverageLabel}</span>
             </div>
-            <div className="mt-3 grid grid-cols-2 gap-2 text-[10px] font-bold text-slate-600">
+            <div className="mt-3 grid grid-cols-2 gap-2 text-xs font-bold text-slate-600">
               <div className={`rounded-md bg-white px-2 py-1.5 ring-1 ${coverageWarningTone ? 'ring-amber-100' : 'ring-emerald-100'}`}>
                 <span className="block text-slate-400">Browser seen</span>
                 <span className="font-mono text-slate-800">{browserEventCount.toLocaleString()}</span>
@@ -530,13 +507,13 @@ export function DashboardView({
               <div className={`rounded-md bg-white px-2 py-1.5 ring-1 ${coverageWarningTone ? 'ring-amber-100' : 'ring-emerald-100'}`}>
                 <span className="block text-slate-400">{serverDetailLabel}</span>
                 <span className="font-mono text-slate-800">{serverDetailValue}</span>
-                {serverDetailHint ? <span className="mt-0.5 block truncate text-[9px] text-slate-400">{serverDetailHint}</span> : null}
+                {serverDetailHint ? <span className="mt-0.5 block truncate text-xs text-slate-400">{serverDetailHint}</span> : null}
               </div>
             </div>
             {diagnosticReasons.length > 0 ? (
               <div className="mt-2 space-y-1.5">
                 {diagnosticReasons.map((item) => (
-                  <div key={`${item.status}-${item.reason}`} className="flex items-start justify-between gap-2 rounded-md bg-white/80 px-2 py-1.5 text-[10px] ring-1 ring-amber-100">
+                  <div key={`${item.status}-${item.reason}`} className="flex items-start justify-between gap-2 rounded-md bg-white/80 px-2 py-1.5 text-xs ring-1 ring-amber-100">
                     <span className="min-w-0 leading-snug text-amber-950">{item.reason}</span>
                     <span className="shrink-0 rounded-full bg-amber-100 px-1.5 py-0.5 font-mono font-black text-amber-800">
                       {Number(item.count || 0).toLocaleString()}
@@ -558,7 +535,7 @@ export function DashboardView({
           </div>
           <button 
             onClick={() => setActivePage('event-logs')}
-            className="flex shrink-0 items-center gap-1 text-xs font-semibold text-blue-600 hover:underline"
+            className="flex min-h-10 shrink-0 items-center gap-1 px-2 text-xs font-semibold text-blue-600 hover:underline"
           >
             Logs <ArrowUpRight className="w-3.5 h-3.5" />
           </button>
@@ -572,7 +549,7 @@ export function DashboardView({
               <button
                 type="button"
                 onClick={() => setActivePage('campaign-builder')}
-                className="mt-3 rounded-lg bg-indigo-600 px-3 py-2 text-xs font-bold text-white transition-colors hover:bg-indigo-700"
+                className="mt-3 min-h-10 rounded-lg bg-indigo-600 px-3 py-2 text-xs font-bold text-white transition-colors hover:bg-indigo-700"
               >
                 Send Test Event
               </button>
@@ -587,7 +564,7 @@ export function DashboardView({
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <p className="text-sm font-bold text-slate-900">{e.name}</p>
-                  <p className="mt-1 flex items-center gap-1.5 text-[11px] font-medium text-slate-500">
+                  <p className="mt-1 flex items-center gap-1.5 text-xs font-medium text-slate-500">
                     <span className={`h-1.5 w-1.5 rounded-full ${
                       e.platform === 'Meta CAPI' ? 'bg-indigo-500' :
                       e.platform === 'TikTok Events API' ? 'bg-cyan-500' : 'bg-orange-500'
@@ -595,7 +572,7 @@ export function DashboardView({
                     {e.platform}
                   </p>
                 </div>
-                <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase ${
+                <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-bold uppercase ${
                   e.status === 'Success' ? 'border-slate-200 bg-green-50 text-green-700' :
                   e.status === 'Retry' ? 'border-slate-200 bg-amber-50 text-amber-700' :
                   'border-slate-200 bg-rose-50 text-rose-700'
@@ -603,18 +580,18 @@ export function DashboardView({
                   {e.status}
                 </span>
               </div>
-              <div className="mt-2 grid grid-cols-2 gap-2 text-[11px] text-slate-500">
+              <div className="mt-2 grid grid-cols-2 gap-2 text-xs text-slate-500">
                 <span className="font-mono">{new Date(e.timestamp).toLocaleTimeString()}</span>
                 <span className="truncate text-right font-semibold">{e.contextLabel || 'Website event'}</span>
               </div>
-              {e.pageUrl && <p className="mt-2 truncate text-[10px] text-slate-400">{e.pageUrl}</p>}
+              {e.pageUrl && <p className="mt-2 truncate text-xs text-slate-400">{e.pageUrl}</p>}
             </button>
           ))}
         </div>
 
         <div className="hidden overflow-x-auto md:block">
           <table className="w-full min-w-[900px] divide-y divide-slate-100 text-left text-xs text-slate-600">
-            <thead className="bg-slate-50  text-[10px] font-bold uppercase tracking-wider text-slate-500 ">
+            <thead className="bg-slate-50 text-xs font-bold uppercase tracking-wider text-slate-500 ">
               <tr>
                 <th className="px-6 py-3">Timestamp</th>
                 <th className="px-6 py-3">Event ID</th>
@@ -638,7 +615,7 @@ export function DashboardView({
                       <button
                         type="button"
                         onClick={() => setActivePage('campaign-builder')}
-                        className="rounded-lg bg-indigo-600 px-3 py-2 text-xs font-bold text-white transition-colors hover:bg-indigo-700"
+                        className="min-h-10 rounded-lg bg-indigo-600 px-3 py-2 text-xs font-bold text-white transition-colors hover:bg-indigo-700"
                       >
                         Send Test Event
                       </button>
@@ -673,7 +650,7 @@ export function DashboardView({
                           </span>
                         </td>
                         <td className="px-6 py-3.5">
-                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider ${
                             e.status === 'Success' ? 'bg-green-50 text-green-700 border border-slate-200   ' :
                             e.status === 'Retry' ? 'bg-amber-50 text-amber-700 border border-slate-200   ' : 
                             'bg-rose-50 text-rose-700 border border-slate-200   '
@@ -683,10 +660,10 @@ export function DashboardView({
                         </td>
                         <td className="max-w-[260px] px-6 py-3.5 text-slate-700">
                           <span className="block truncate font-semibold" title={e.contextLabel || 'Website event'}>{e.contextLabel || 'Website event'}</span>
-                          {e.pageUrl && <span className="mt-0.5 block truncate text-[10px] text-slate-400" title={e.pageUrl}>{e.pageUrl}</span>}
+                          {e.pageUrl && <span className="mt-0.5 block truncate text-xs text-slate-400" title={e.pageUrl}>{e.pageUrl}</span>}
                         </td>
                         <td className="px-6 py-3.5 text-right text-indigo-600">
-                          <span className="text-[11px] font-bold">{isExpanded ? 'Hide' : 'View'}</span>
+                          <span className="text-xs font-bold">{isExpanded ? 'Hide' : 'View'}</span>
                         </td>
                       </tr>
 
@@ -695,7 +672,7 @@ export function DashboardView({
                         <tr>
                           <td colSpan={7} className="bg-slate-50  border-t border-slate-100  px-6 py-4">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                              <div className="bg-slate-900 text-slate-200 text-[11px] font-mono p-4 rounded-lg overflow-auto max-h-60 relative group">
+                              <div className="bg-slate-900 text-slate-200 text-xs font-mono p-4 rounded-lg overflow-auto max-h-60 relative group">
                                 <div className="absolute top-2 right-2 flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
                                   <button 
                                     onClick={(el) => { el.stopPropagation(); handleCopy(JSON.stringify(e.payload, null, 2), `c_det_p_${e.id}`) }}
@@ -705,11 +682,11 @@ export function DashboardView({
                                     {copiedStates[`c_det_p_${e.id}`] ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
                                   </button>
                                 </div>
-                                <p className="text-[10px] font-semibold text-indigo-400 uppercase tracking-widest mb-1 select-none">Data Sent</p>
+                                <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-indigo-400 select-none">Data Sent</p>
                                 <pre>{JSON.stringify(e.payload, null, 2)}</pre>
                               </div>
 
-                              <div className="bg-slate-900 text-slate-200 text-[11px] font-mono p-4 rounded-lg overflow-auto max-h-60 relative group">
+                              <div className="bg-slate-900 text-slate-200 text-xs font-mono p-4 rounded-lg overflow-auto max-h-60 relative group">
                                 <div className="absolute top-2 right-2 flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
                                   <button 
                                     onClick={(el) => { el.stopPropagation(); handleCopy(JSON.stringify(e.responseBody, null, 2), `c_det_r_${e.id}`) }}
@@ -719,7 +696,7 @@ export function DashboardView({
                                     {copiedStates[`c_det_r_${e.id}`] ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
                                   </button>
                                 </div>
-                                <p className="text-[10px] font-semibold text-emerald-400 uppercase tracking-widest mb-1 select-none">Reply From Platform</p>
+                                <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-emerald-400 select-none">Reply From Platform</p>
                                 <pre>{JSON.stringify(e.responseBody, null, 2)}</pre>
                               </div>
                             </div>

@@ -285,7 +285,7 @@ capi('track', 'Purchase', {
       <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-indigo-500">Is your store ready?</p>
+            <p className="text-xs font-bold uppercase tracking-widest text-indigo-500">Is your store ready?</p>
             <h2 className="mt-1 text-lg font-bold text-slate-900">
               {readinessLoading ? 'Checking your store...' : readiness?.ready ? 'Your store is ready' : 'Complete the steps below'}
             </h2>
@@ -293,7 +293,7 @@ capi('track', 'Purchase', {
               <p className="mt-1 text-xs text-slate-500">{readiness.completedRequired} of {readiness.requiredCount} important steps done - {readiness.score}%</p>
             )}
           </div>
-          <button type="button" onClick={loadReadiness} disabled={readinessLoading} className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-xs font-bold text-slate-600 hover:bg-slate-50 disabled:opacity-60">
+          <button type="button" onClick={loadReadiness} disabled={readinessLoading} className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-xs font-bold text-slate-600 hover:bg-slate-50 disabled:opacity-60">
             <RefreshCw className={`h-3.5 w-3.5 ${readinessLoading ? 'animate-spin' : ''}`} /> Refresh
           </button>
         </div>
@@ -305,11 +305,11 @@ capi('track', 'Purchase', {
                   {step.ready ? <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" /> : <Circle className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />}
                   <div className="min-w-0">
                     <p className="text-xs font-bold text-slate-800">{step.label}</p>
-                    <p className="mt-1 text-[10px] leading-relaxed text-slate-500">{step.detail || (step.ready ? 'Ready' : 'Needs your attention')}</p>
+                    <p className="mt-1 text-xs leading-relaxed text-slate-500">{step.detail || (step.ready ? 'Ready' : 'Needs your attention')}</p>
                   </div>
                 </div>
                 {!step.ready && (
-                  <button type="button" onClick={() => setActivePage(step.actionPage)} className="mt-3 text-[10px] font-bold text-indigo-600 hover:underline">
+                  <button type="button" onClick={() => setActivePage(step.actionPage)} className="mt-3 text-xs font-bold text-indigo-600 hover:underline">
                     {step.actionLabel}
                   </button>
                 )}
@@ -322,7 +322,7 @@ capi('track', 'Purchase', {
       <section className="rounded-xl border border-indigo-100 bg-indigo-50/60 p-5 shadow-sm">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div className="max-w-xl">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-indigo-600">Before you start</p>
+            <p className="text-xs font-bold uppercase tracking-widest text-indigo-600">Before you start</p>
             <h2 className="mt-1 text-base font-bold text-slate-900">Keep these four things ready</h2>
             <p className="mt-1 text-xs leading-relaxed text-slate-600">Most stores connect in 5-10 minutes. Meta, TikTok, GA4, or courier approval may take longer.</p>
           </div>
@@ -333,7 +333,7 @@ capi('track', 'Purchase', {
               { icon: PackageCheck, text: 'One product or test order' },
               { icon: Clock3, text: '5-10 minutes for the connection test' }
             ].map(({ icon: Icon, text }) => (
-              <div key={text} className="flex items-center gap-2 rounded-lg border border-indigo-100 bg-white px-3 py-2 text-[11px] font-semibold text-slate-700">
+              <div key={text} className="flex items-center gap-2 rounded-lg border border-indigo-100 bg-white px-3 py-2 text-xs font-semibold text-slate-700">
                 <Icon className="h-4 w-4 shrink-0 text-indigo-500" /> {text}
               </div>
             ))}
@@ -342,10 +342,12 @@ capi('track', 'Purchase', {
       </section>
       
       {/* Tab Selector */}
-      <div className="flex border-b border-slate-200  bg-white  rounded-xl p-1.5 shadow-sm">
+      <div role="tablist" aria-label="Setup platform" className="grid grid-cols-1 gap-1 border-b border-slate-200 bg-white rounded-xl p-1.5 shadow-sm sm:grid-cols-3">
         <button
+          role="tab"
+          aria-selected={activeTab === 'wordpress'}
           onClick={() => setActiveTab('wordpress')}
-          className={`flex items-center justify-center gap-2 flex-1 py-2.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
+          className={`flex min-h-10 items-center justify-center gap-2 flex-1 py-2.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
             activeTab === 'wordpress'
               ? 'bg-indigo-600 text-white shadow-sm'
               : 'text-slate-500 hover:text-slate-800   hover:bg-slate-50 '
@@ -355,8 +357,10 @@ capi('track', 'Purchase', {
           <span>WordPress / WooCommerce</span>
         </button>
         <button
+          role="tab"
+          aria-selected={activeTab === 'shopify'}
           onClick={() => setActiveTab('shopify')}
-          className={`flex items-center justify-center gap-2 flex-1 py-2.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
+          className={`flex min-h-10 items-center justify-center gap-2 flex-1 py-2.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
             activeTab === 'shopify'
               ? 'bg-indigo-600 text-white shadow-sm'
               : 'text-slate-500 hover:text-slate-800   hover:bg-slate-50 '
@@ -364,11 +368,13 @@ capi('track', 'Purchase', {
         >
           <ShoppingBag className="w-4 h-4" />
           <span>Shopify Store</span>
-          <span className="rounded-full bg-amber-100 px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wide text-amber-700">Coming soon</span>
+          <span className="rounded-full bg-amber-100 px-1.5 py-0.5 text-xs font-bold uppercase tracking-wide text-amber-700">Coming soon</span>
         </button>
         <button
+          role="tab"
+          aria-selected={activeTab === 'custom'}
           onClick={() => setActiveTab('custom')}
-          className={`flex items-center justify-center gap-2 flex-1 py-2.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
+          className={`flex min-h-10 items-center justify-center gap-2 flex-1 py-2.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
             activeTab === 'custom'
               ? 'bg-indigo-600 text-white shadow-sm'
               : 'text-slate-500 hover:text-slate-800   hover:bg-slate-50 '
@@ -376,7 +382,7 @@ capi('track', 'Purchase', {
         >
           <Code className="w-4 h-4" />
           <span>Custom Website</span>
-          <span className="rounded-full bg-amber-100 px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wide text-amber-700">Coming soon</span>
+          <span className="rounded-full bg-amber-100 px-1.5 py-0.5 text-xs font-bold uppercase tracking-wide text-amber-700">Coming soon</span>
         </button>
       </div>
 
@@ -405,7 +411,7 @@ capi('track', 'Purchase', {
                 </p>
                 <a
                   href={pluginDownloadUrl}
-                  className={`inline-flex items-center gap-2 px-3 py-1.5 rounded text-xs font-semibold border transition-colors ${
+                  className={`inline-flex min-h-10 items-center gap-2 px-3 py-1.5 rounded text-xs font-semibold border transition-colors ${
                     'bg-indigo-600 text-white border-indigo-700 hover:bg-indigo-700'
                   }`}
                   aria-disabled={false}
@@ -414,7 +420,7 @@ capi('track', 'Purchase', {
                   Download Plugin ZIP
                 </a>
                 {pluginReleaseInfo && (
-                  <p className="text-[11px] text-slate-500 ">
+                  <p className="text-xs text-slate-500 ">
                     Latest release v{pluginReleaseInfo.version} / tested up to WordPress {pluginReleaseInfo.tested} / {packageSizeKb} KB
                   </p>
                 )}
@@ -446,7 +452,7 @@ capi('track', 'Purchase', {
                 </p>
                 <button
                   onClick={() => openPortalSection('settings', 'settings-platforms')}
-                  className="px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200/50 rounded text-xs font-semibold shrink-0 cursor-pointer"
+                  className="min-h-10 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200/50 rounded text-xs font-semibold shrink-0 cursor-pointer"
                 >
                   Open Conversions API Settings
                 </button>
@@ -492,11 +498,11 @@ capi('track', 'Purchase', {
                 <div className="flex flex-wrap gap-2">
                 <button 
                   onClick={() => openPortalSection('campaign-builder', 'campaign-event-tester')}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white border border-indigo-700 rounded text-xs font-semibold shrink-0 cursor-pointer"
+                  className="inline-flex min-h-10 items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white border border-indigo-700 rounded text-xs font-semibold shrink-0 cursor-pointer"
                 >
                   Open Event Tester <ArrowRight className="h-3 w-3" />
                 </button>
-                <button onClick={() => setActivePage('event-logs')} className="px-3 py-1.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded text-xs font-semibold shrink-0 cursor-pointer">
+                <button onClick={() => setActivePage('event-logs')} className="min-h-10 px-3 py-1.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded text-xs font-semibold shrink-0 cursor-pointer">
                   Open Event Logs
                 </button>
                 </div>

@@ -23,9 +23,12 @@ import {
   Printer,
   Copy
 } from 'lucide-react';
-import { CourierOrder, CourierSettings } from '../types';
+import { CourierBookingPayload, CourierOrder, CourierSettings, DeferredData, DeferredOrder, DeferredOrderProduct, FulfillmentOrder } from '../types';
 import { CourierLabelModal } from './CourierLabelModal';
 import { InvoiceModal } from './InvoiceModal';
+import { Button } from './common/Button';
+import { Modal } from './common/Modal';
+import { loadCourierOrders, loadPathaoStores, type PathaoStore } from '../services/courierApi';
 
 // â”€â”€â”€ BD Phone Normalizer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Accepts any Bangladeshi phone format and returns clean 01XXXXXXXXX (11 digits)
@@ -62,7 +65,7 @@ function formatHeldAge(ageHours: unknown): string {
   return remainingHours > 0 ? `${days}d ${remainingHours}h ago` : `${days}d ago`;
 }
 
-function productMeta(product: any): Array<{ label: string; value: string; category?: boolean }> {
+function productMeta(product: DeferredOrderProduct): Array<{ label: string; value: string; category?: boolean }> {
   const meta: Array<{ label: string; value: string; category?: boolean }> = [];
   const category = String(product?.category || product?.content_category || '').trim();
   if (category) meta.push({ label: 'Category', value: category, category: true });
@@ -77,7 +80,7 @@ function productMeta(product: any): Array<{ label: string; value: string; catego
 }
 
 interface OrdersViewProps {
-  deferredData: any;
+  deferredData: DeferredData;
   deferredLoadError?: string | null;
   fetchDeferred: () => Promise<void>;
   showToast: (msg: string, isErr?: boolean) => void;
@@ -138,7 +141,7 @@ export function OrdersView({
 
   // Send to Courier Modal State
   const [isSendModalOpen, setIsSendModalOpen] = useState<boolean>(false);
-  const [selectedOrder, setSelectedOrder] = useState<any>(null);
+  const [selectedOrder, setSelectedOrder] = useState<FulfillmentOrder | null>(null);
   const [courierProvider, setCourierProvider] = useState<string>('steadfast');
   const [recipientName, setRecipientName] = useState<string>('');
   const [recipientPhone, setRecipientPhone] = useState<string>('');
@@ -146,8 +149,8 @@ export function OrdersView({
   const [itemId, setItemId] = useState<number>(0); // Pending Event ID
   
   // Pathao Store and Package details states
-  const [pathaoStores, setPathaoStores] = useState<Array<{store_id: number, store_name: string}>>([]);
-  const [selectedStoreId, setSelectedStoreId] = useState<number | ''>('');
+  const [pathaoStores, setPathaoStores] = useState<PathaoStore[]>([]);
+  const [selectedStoreId, setSelectedStoreId] = useState<number | string | ''>('');
   const [pathaoCities, setPathaoCities] = useState<Array<{city_id: number, city_name: string}>>([]);
   const [pathaoZones, setPathaoZones] = useState<Array<{zone_id: number, zone_name: string}>>([]);
   const [pathaoAreas, setPathaoAreas] = useState<Array<{area_id: number, area_name: string}>>([]);
@@ -158,7 +161,7 @@ export function OrdersView({
   const [redxDeliveryAreaId, setRedxDeliveryAreaId] = useState<string>('');
   const [redxDeliveryAreaName, setRedxDeliveryAreaName] = useState<string>('');
   const [redxPickupStoreId, setRedxPickupStoreId] = useState<string>('');
-  const [redxAreas, setRedxAreas] = useState<Array<{id: number, name: string, post_code?: number}>>([]);
+  const [redxAreas, setRedxAreas] = useState<Array<{id: number | string, name: string, post_code?: number}>>([]);
   const [redxAreaSearch, setRedxAreaSearch] = useState<string>('');
   const [loadingRedxAreas, setLoadingRedxAreas] = useState<boolean>(false);
   const [loadingStores, setLoadingStores] = useState<boolean>(false);
@@ -166,7 +169,7 @@ export function OrdersView({
   const [itemQuantity, setItemQuantity] = useState<number>(1);
   const [codAmount, setCodAmount] = useState<number>(0);
 
-  const openPendingCourierModal = (order: any) => {
+  const openPendingCourierModal = (order: DeferredOrder) => {
     setSelectedOrder(order);
     setRecipientName(order.recipientName && order.recipientName !== '-' ? order.recipientName : '');
     setRecipientPhone(usablePhone(order.recipientPhone) || usablePhone(order.customer));
@@ -177,7 +180,7 @@ export function OrdersView({
 
   // Selection state & functions for Shipped Courier Log
   const [selectedShippedOrderIds, setSelectedShippedOrderIds] = useState<number[]>([]);
-  const [invoiceOrders, setInvoiceOrders] = useState<any[] | null>(null);
+  const [invoiceOrders, setInvoiceOrders] = useState<FulfillmentOrder[] | null>(null);
 
   // Clear selection on tab, search, or filter changes to avoid stale/hidden selections
   useEffect(() => {
@@ -213,30 +216,30 @@ export function OrdersView({
 
   // Invoice Modal State
   const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState<boolean>(false);
-  const [invoiceOrder, setInvoiceOrder] = useState<any>(null);
+  const [invoiceOrder, setInvoiceOrder] = useState<FulfillmentOrder | null>(null);
   const [isLabelModalOpen, setIsLabelModalOpen] = useState<boolean>(false);
-  const [labelOrder, setLabelOrder] = useState<any>(null);
-  const [labelOrders, setLabelOrders] = useState<any[] | null>(null);
+  const [labelOrder, setLabelOrder] = useState<FulfillmentOrder | null>(null);
+  const [labelOrders, setLabelOrders] = useState<FulfillmentOrder[] | null>(null);
 
-  const openInvoice = (order: any) => {
+  const openInvoice = (order: FulfillmentOrder) => {
     setInvoiceOrder(order);
     setInvoiceOrders(null);
     setIsInvoiceModalOpen(true);
   };
 
-  const openBulkInvoices = (ordersList: any[]) => {
+  const openBulkInvoices = (ordersList: FulfillmentOrder[]) => {
     setInvoiceOrders(ordersList);
     setInvoiceOrder(null);
     setIsInvoiceModalOpen(true);
   };
 
-  const openLabel = (order: any) => {
+  const openLabel = (order: FulfillmentOrder) => {
     setLabelOrder(order);
     setLabelOrders(null);
     setIsLabelModalOpen(true);
   };
 
-  const openBulkLabels = (ordersList: any[]) => {
+  const openBulkLabels = (ordersList: FulfillmentOrder[]) => {
     setLabelOrders(ordersList);
     setLabelOrder(null);
     setIsLabelModalOpen(true);
@@ -245,24 +248,7 @@ export function OrdersView({
   const fetchCourierOrders = async () => {
     setLoadingOrders(true);
     try {
-      const res = await fetch('/api/courier/orders');
-      if (res.ok) {
-        const data = await res.json();
-        setCourierOrders(Array.isArray(data) ? data.map((order: any) => ({
-          ...order,
-          order_id: String(order?.order_id || ''),
-          courier_provider: String(order?.courier_provider || ''),
-          courier_status: String(order?.courier_status || 'pending'),
-          recipient_name: String(order?.recipient_name || ''),
-          recipient_phone: String(order?.recipient_phone || ''),
-          courier_tracking_id: String(order?.courier_tracking_id || ''),
-          cod_amount: Number(order?.cod_amount || 0),
-          delivery_charge: Number(order?.delivery_charge || 0),
-          products: Array.isArray(order?.products) ? order.products : [],
-        })) : []);
-      } else {
-        showToast("Failed to fetch courier orders.", true);
-      }
+      setCourierOrders(await loadCourierOrders());
     } catch (err) {
       console.error(err);
       showToast("Network error. Please try again.", true);
@@ -292,20 +278,17 @@ export function OrdersView({
   const fetchPathaoStores = async () => {
     setLoadingStores(true);
     try {
-      const res = await fetch('/api/courier/pathao/stores');
-      if (res.ok) {
-        const data = await res.json();
-        setPathaoStores(data);
-        if (data.length > 0) {
-          const defaultStore = data.find((s: any) => String(s.store_id) === String(courierSettings?.pathao_store_id));
+      const stores = await loadPathaoStores();
+      {
+        setPathaoStores(stores);
+        if (stores.length > 0) {
+          const defaultStore = stores.find(s => String(s.store_id) === String(courierSettings?.pathao_store_id));
           if (defaultStore) {
             setSelectedStoreId(defaultStore.store_id);
           } else {
-            setSelectedStoreId(data[0].store_id);
+            setSelectedStoreId(stores[0].store_id);
           }
         }
-      } else {
-        showToast("Failed to fetch Pathao stores.", true);
       }
     } catch (err) {
       console.error(err);
@@ -376,7 +359,7 @@ export function OrdersView({
     if (selectedPathaoZone !== '') fetchPathaoLocations('areas', Number(selectedPathaoZone));
   }, [selectedPathaoZone]);
 
-  const openSendModal = (order: any) => {
+  const openSendModal = (order: DeferredOrder) => {
     setSelectedOrder(order);
     setRecipientName(order.recipientName || (order.customer.includes('@') ? '' : order.customer));
     setRecipientPhone(order.recipientPhone || (order.customer.match(/^\+?[0-9\s-]{10,15}$/) ? order.customer : ''));
@@ -402,7 +385,7 @@ export function OrdersView({
         return;
       }
 
-      const payload: any = {
+      const payload: CourierBookingPayload = {
         pending_event_id: dbId,
         courier_provider: courierProvider,
         recipient_name: recipientName,
@@ -560,48 +543,48 @@ export function OrdersView({
     const s = String(status || 'pending').toLowerCase();
     if (s === 'booking_queued' || s === 'booking_processing') {
       return (
-        <span className="inline-flex min-w-[86px] justify-center rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-[11px] font-bold text-sky-700">
+        <span className="inline-flex min-w-[86px] justify-center rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-xs font-bold text-sky-700">
           {s === 'booking_processing' ? 'Booking Now' : 'Booking Queued'}
         </span>
       );
     }
     if (s === 'booking_failed') {
       return (
-        <span className="inline-flex min-w-[86px] justify-center rounded-full border border-rose-200 bg-rose-50 px-2 py-0.5 text-[11px] font-bold text-rose-700">
+        <span className="inline-flex min-w-[86px] justify-center rounded-full border border-rose-200 bg-rose-50 px-2 py-0.5 text-xs font-bold text-rose-700">
           Booking Failed
         </span>
       );
     }
     if (s === 'delivered' || s === 'completed') {
       return (
-        <span className="inline-flex min-w-[86px] justify-center rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[11px] font-bold text-emerald-700">
+        <span className="inline-flex min-w-[86px] justify-center rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs font-bold text-emerald-700">
           Delivered
         </span>
       );
     }
     if (s === 'returned' || s === 'partial_returned') {
       return (
-        <span className="inline-flex min-w-[86px] justify-center rounded-full border border-rose-200 bg-rose-50 px-2 py-0.5 text-[11px] font-bold text-rose-700">
+        <span className="inline-flex min-w-[86px] justify-center rounded-full border border-rose-200 bg-rose-50 px-2 py-0.5 text-xs font-bold text-rose-700">
           Returned
         </span>
       );
     }
     if (s === 'cancelled') {
       return (
-        <span className="inline-flex min-w-[86px] justify-center rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[11px] font-bold text-slate-700">
+        <span className="inline-flex min-w-[86px] justify-center rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-xs font-bold text-slate-700">
           Cancelled
         </span>
       );
     }
     if (s === 'in_transit' || s === 'picked_up' || s === 'shipped') {
       return (
-        <span className="inline-flex min-w-[86px] justify-center rounded-full border border-indigo-200 bg-indigo-50 px-2 py-0.5 text-[11px] font-bold text-indigo-700">
+        <span className="inline-flex min-w-[86px] justify-center rounded-full border border-indigo-200 bg-indigo-50 px-2 py-0.5 text-xs font-bold text-indigo-700">
           In Transit
         </span>
       );
     }
     return (
-      <span className="inline-flex min-w-[86px] justify-center rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[11px] font-bold text-amber-700">
+      <span className="inline-flex min-w-[86px] justify-center rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-xs font-bold text-amber-700">
         Pending
       </span>
     );
@@ -609,11 +592,11 @@ export function OrdersView({
 
   const getCapiStatusBadge = (sent: boolean) => {
     return sent ? (
-      <span className="inline-flex min-w-[86px] justify-center rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[11px] font-bold text-emerald-700">
+      <span className="inline-flex min-w-[86px] justify-center rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs font-bold text-emerald-700">
         Synced
       </span>
     ) : (
-      <span className="inline-flex min-w-[86px] justify-center rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[11px] font-bold text-slate-500">
+      <span className="inline-flex min-w-[86px] justify-center rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-xs font-bold text-slate-500">
         Waiting
       </span>
     );
@@ -645,8 +628,8 @@ export function OrdersView({
     return (
       <div className="w-[96px]">
         <div className="mb-1 flex items-center justify-between gap-2">
-          <span className={`text-[10px] font-black uppercase tracking-wide ${tone.text}`}>{tone.label}</span>
-          <span className="font-mono text-[10px] font-bold text-slate-500">{score}/100</span>
+          <span className={`text-xs font-black uppercase tracking-wide ${tone.text}`}>{tone.label}</span>
+          <span className="font-mono text-xs font-bold text-slate-500">{score}/100</span>
         </div>
         <div className="grid h-1.5 grid-cols-3 overflow-hidden rounded-full bg-slate-100">
           <span className="bg-green-400" />
@@ -667,7 +650,7 @@ export function OrdersView({
           <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0" />
           <div>
             <p className="font-bold">COD orders could not be loaded</p>
-            <p className="mt-0.5 text-[11px] text-amber-700">{deferredLoadError} Courier settings and shipped orders are still available.</p>
+            <p className="mt-0.5 text-xs text-amber-700">{deferredLoadError} Courier settings and shipped orders are still available.</p>
           </div>
         </div>
       )}
@@ -686,19 +669,19 @@ export function OrdersView({
             {shippedStatItems.map(item => (
               <span key={item.label} className="flex items-center justify-between rounded-xl bg-slate-50 px-1.5 py-1">
                 <span className={`h-1.5 w-1.5 rounded-full ${item.dot}`} />
-                <span className="text-[9px] font-bold uppercase leading-none text-slate-500">{item.shortLabel}</span>
-                <span className={`font-mono text-[10px] font-black leading-none ${item.tone}`}>{item.value}</span>
+                <span className="text-xs font-bold uppercase leading-none text-slate-500">{item.shortLabel}</span>
+                <span className={`font-mono text-xs font-black leading-none ${item.tone}`}>{item.value}</span>
               </span>
             ))}
           </button>
 
           {shippedStatsOpen && (
             <div className="absolute right-20 top-0 w-40 rounded-2xl border border-slate-200 bg-white p-2 shadow-xl shadow-slate-200/80">
-              <p className="px-1 pb-1 text-[10px] font-black uppercase tracking-wide text-slate-500">Shipment summary</p>
+              <p className="px-1 pb-1 text-xs font-black uppercase tracking-wide text-slate-500">Shipment summary</p>
               <div className="space-y-1">
                 {shippedStatItems.map(item => (
                   <div key={item.label} className="flex items-center justify-between rounded-xl bg-slate-50 px-2 py-1.5">
-                    <span className="flex items-center gap-1.5 text-[11px] font-bold text-slate-600">
+                    <span className="flex items-center gap-1.5 text-xs font-bold text-slate-600">
                       <span className={`h-1.5 w-1.5 rounded-full ${item.dot}`} />
                       {item.label}
                     </span>
@@ -716,7 +699,7 @@ export function OrdersView({
         <button
           onClick={() => setActiveTab('pending')}
           data-guide="orders-pending-tab"
-          className={`flex flex-1 items-center justify-center gap-1.5 border-b-2 px-2 py-2 text-xs font-bold transition-all cursor-pointer sm:flex-none sm:justify-start sm:gap-2 sm:px-5 sm:py-3 sm:text-sm ${
+          className={`flex min-h-10 flex-1 items-center justify-center gap-1.5 border-b-2 px-2 py-2 text-xs font-bold transition-all cursor-pointer sm:flex-none sm:justify-start sm:gap-2 sm:px-5 sm:py-3 sm:text-sm ${
             activeTab === 'pending'
               ? 'border-indigo-600 text-indigo-600  '
               : 'border-transparent text-slate-500 hover:text-slate-700  '
@@ -725,12 +708,12 @@ export function OrdersView({
           <Package className="w-4 h-4" />
           <span className="sm:hidden">Pending</span>
           <span className="hidden sm:inline">Pending Orders</span>
-          <span className="rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] font-black text-slate-600">{deferredData?.operationsPendingCount ?? deferredData?.pendingCount ?? codVerificationOrders.length}</span>
+          <span className="rounded-full bg-slate-100 px-1.5 py-0.5 text-xs font-black text-slate-600">{deferredData?.operationsPendingCount ?? deferredData?.pendingCount ?? codVerificationOrders.length}</span>
         </button>
         <button
           onClick={() => setActiveTab('shipped')}
           data-guide="orders-shipped-tab"
-          className={`flex flex-1 items-center justify-center gap-1.5 border-b-2 px-2 py-2 text-xs font-bold transition-all cursor-pointer sm:flex-none sm:justify-start sm:gap-2 sm:px-5 sm:py-3 sm:text-sm ${
+          className={`flex min-h-10 flex-1 items-center justify-center gap-1.5 border-b-2 px-2 py-2 text-xs font-bold transition-all cursor-pointer sm:flex-none sm:justify-start sm:gap-2 sm:px-5 sm:py-3 sm:text-sm ${
             activeTab === 'shipped'
               ? 'border-indigo-600 text-indigo-600  '
               : 'border-transparent text-slate-500 hover:text-slate-700  '
@@ -739,7 +722,7 @@ export function OrdersView({
           <Truck className="w-4 h-4" />
           <span className="sm:hidden">Shipped</span>
           <span className="hidden sm:inline">Shipped Courier Log</span>
-          <span className="rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] font-black text-slate-600">{courierOrders.length}</span>
+          <span className="rounded-full bg-slate-100 px-1.5 py-0.5 text-xs font-black text-slate-600">{courierOrders.length}</span>
         </button>
         
         <button 
@@ -748,7 +731,8 @@ export function OrdersView({
             fetchCourierOrders();
             showToast("Syncing data feeds...", false);
           }}
-          className="ml-auto p-2 self-center rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-50  cursor-pointer"
+          className="ml-auto inline-flex h-10 w-10 self-center items-center justify-center rounded-lg text-slate-400 hover:bg-slate-50 hover:text-slate-600 cursor-pointer"
+          aria-label="Reload lists"
           title="Reload lists"
         >
           <RefreshCw className="w-4 h-4" />
@@ -772,9 +756,9 @@ export function OrdersView({
                 <CheckCircle2 className="mx-auto mb-2 h-8 w-8 text-emerald-400" />
                 <p className="text-xs font-semibold">No COD orders are waiting for your review.</p>
               </div>
-            ) : codVerificationOrders.map((order: any) => {
+            ) : codVerificationOrders.map((order) => {
               const isExpanded = expandedOrderId === order.orderId;
-              const products: any[] = order.products || [];
+              const products = order.products || [];
               return (
                 <div key={order.orderId} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm  ">
                   <button type="button" onClick={() => toggleExpand(order.orderId)} className="w-full text-left">
@@ -782,11 +766,11 @@ export function OrdersView({
                       <div>
                         <p className="font-mono text-sm font-bold text-slate-900 ">#{order.orderId}</p>
                         <p className="mt-1 text-sm font-semibold text-slate-800 ">{order.recipientName || 'Customer unavailable'}</p>
-                        <p className="mt-0.5 font-mono text-[11px] text-slate-500">{usablePhone(order.recipientPhone) || usablePhone(order.customer) || 'No phone'}</p>
+                        <p className="mt-0.5 font-mono text-xs text-slate-500">{usablePhone(order.recipientPhone) || usablePhone(order.customer) || 'No phone'}</p>
                       </div>
                       <span className="font-bold text-slate-900 ">BDT {Number(order.amount || 0).toLocaleString()}</span>
                     </div>
-                    <div className="mt-4 grid grid-cols-2 gap-2 text-[11px]">
+                    <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
                       <div className="rounded-lg bg-slate-50 p-2 ">
                         <p className="font-bold uppercase text-slate-400">Risk</p>
                         <div className="mt-1">{renderRiskGauge(order.fraudScore)}</div>
@@ -805,7 +789,7 @@ export function OrdersView({
                       </div>
                       {products.length > 0 && (
                         <div className="rounded-lg border border-slate-200 ">
-                          {products.slice(0, 4).map((p: any, i: number) => {
+                          {products.slice(0, 4).map((p, i: number) => {
                             const meta = productMeta(p);
                             return (
                               <div key={i} className="border-b border-slate-100 px-3 py-2 text-xs last:border-b-0 ">
@@ -813,13 +797,13 @@ export function OrdersView({
                                 {meta.length > 0 && (
                                   <div className="mt-1 flex flex-wrap gap-1">
                                     {meta.map((item) => (
-                                      <span key={`${item.label}-${item.value}`} className={`rounded px-1.5 py-0.5 text-[10px] font-semibold ${item.category ? 'bg-slate-100 text-slate-600' : 'bg-indigo-50 text-indigo-700'}`}>
+                                      <span key={`${item.label}-${item.value}`} className={`rounded px-1.5 py-0.5 text-xs font-semibold ${item.category ? 'bg-slate-100 text-slate-600' : 'bg-indigo-50 text-indigo-700'}`}>
                                         {item.label}: {item.value}
                                       </span>
                                     ))}
                                   </div>
                                 )}
-                                <p className="mt-1 text-[10px] text-slate-500">
+                                <p className="mt-1 text-xs text-slate-500">
                                   Qty {p.quantity || 1} · {Number(p.price || 0) > 0 ? `BDT ${Number(p.price || 0).toLocaleString()}` : 'Price unavailable'}
                                 </p>
                               </div>
@@ -830,8 +814,8 @@ export function OrdersView({
                     </div>
                   )}
                   <div className="mt-4 grid grid-cols-2 gap-2">
-                    <button onClick={() => openInvoice(order)} className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-bold text-slate-700">Invoice</button>
-                    <button onClick={() => openPendingCourierModal(order)} className="rounded-lg bg-indigo-600 px-3 py-2 text-xs font-bold text-white">Book Courier</button>
+                    <button onClick={() => openInvoice(order)} className="min-h-10 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-bold text-slate-700">Invoice</button>
+                    <button onClick={() => openPendingCourierModal(order)} className="min-h-10 rounded-lg bg-indigo-600 px-3 py-2 text-xs font-bold text-white">Book Courier</button>
                   </div>
                 </div>
               );
@@ -840,7 +824,7 @@ export function OrdersView({
 
           <div className="hidden overflow-x-auto min-h-64 md:block">
             <table className="w-full text-left text-xs text-slate-600 divide-y divide-slate-100 min-w-[750px]  ">
-              <thead className="bg-slate-50 text-[10px] font-bold uppercase tracking-wider text-slate-500  ">
+              <thead className="bg-slate-50 text-xs font-bold uppercase tracking-wider text-slate-500  ">
                 <tr>
                   <th className="px-6 py-3">Order ID</th>
                   <th className="px-6 py-3">Customer Info</th>
@@ -859,9 +843,9 @@ export function OrdersView({
                     </td>
                   </tr>
                 ) : (
-                  codVerificationOrders.map((order: any) => {
+                  codVerificationOrders.map((order) => {
                     const isExpanded = expandedOrderId === order.orderId;
-                    const products: any[] = order.products || [];
+                    const products = order.products || [];
                     return (
                       <React.Fragment key={order.orderId}>
                         <tr className={`hover:bg-slate-50/50 transition-colors  ${isExpanded ? 'bg-indigo-50/20 ' : ''}`}>
@@ -897,14 +881,14 @@ export function OrdersView({
                           <td className="px-6 py-3 text-right space-x-2 whitespace-nowrap">
                             <button 
                               onClick={() => openInvoice(order)}
-                              className="btn-touch-expand px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700    text-[10px] font-bold rounded shadow-sm transition-colors cursor-pointer inline-flex items-center gap-1"
+                              className="btn-touch-expand px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700    text-xs font-bold rounded shadow-sm transition-colors cursor-pointer inline-flex items-center gap-1"
                               title="View and Print Invoice"
                             >
                               <FileText className="w-2.5 h-2.5" /> Invoice
                             </button>
                             <button
                               onClick={() => openPendingCourierModal(order)}
-                              className="btn-touch-expand px-2.5 py-1 bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-bold rounded shadow-sm transition-colors cursor-pointer inline-flex items-center gap-1"
+                              className="btn-touch-expand px-2.5 py-1 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded shadow-sm transition-colors cursor-pointer inline-flex items-center gap-1"
                             >
                               <Send className="w-2.5 h-2.5" /> Book Courier
                             </button>
@@ -919,8 +903,8 @@ export function OrdersView({
                                 {/* Customer Info Card */}
                                 <div className="self-start overflow-hidden rounded-xl border border-slate-200 bg-white">
                                   <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50/70 px-3 py-2">
-                                    <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Customer Details</p>
-                                    <span className="font-mono text-[10px] font-bold text-slate-400">#{order.orderId}</span>
+                                    <p className="text-xs font-bold uppercase tracking-widest text-slate-500">Customer Details</p>
+                                    <span className="font-mono text-xs font-bold text-slate-400">#{order.orderId}</span>
                                   </div>
                                   <div className="space-y-2 p-3">
                                     <div className="flex items-start gap-2.5">
@@ -928,7 +912,7 @@ export function OrdersView({
                                         <User className="w-3.5 h-3.5 text-indigo-500" />
                                       </div>
                                       <div className="min-w-0">
-                                        <p className="text-[9px] text-slate-400 uppercase font-bold">Name</p>
+                                        <p className="text-xs text-slate-400 uppercase font-bold">Name</p>
                                         <p className="truncate text-xs font-semibold text-slate-800">{order.recipientName || '-'}</p>
                                       </div>
                                     </div>
@@ -937,7 +921,7 @@ export function OrdersView({
                                         <Phone className="w-3.5 h-3.5 text-emerald-500" />
                                       </div>
                                       <div className="min-w-0 flex-1">
-                                        <p className="text-[9px] text-slate-400 uppercase font-bold">Phone</p>
+                                        <p className="text-xs text-slate-400 uppercase font-bold">Phone</p>
                                         <div className="flex items-center gap-1.5">
                                           <p className="font-mono text-xs font-semibold text-slate-800">{usablePhone(order.recipientPhone) || '-'}</p>
                                           {usablePhone(order.recipientPhone) && (
@@ -959,7 +943,7 @@ export function OrdersView({
                                         <MapPin className="w-3.5 h-3.5 text-amber-500" />
                                       </div>
                                       <div className="min-w-0">
-                                        <p className="text-[9px] text-slate-400 uppercase font-bold">Address</p>
+                                        <p className="text-xs text-slate-400 uppercase font-bold">Address</p>
                                         <p className="text-xs font-semibold leading-relaxed text-slate-800">{order.recipientAddress || '-'}</p>
                                       </div>
                                     </div>
@@ -969,38 +953,38 @@ export function OrdersView({
                                 {/* Products Card */}
                                 <div className="self-start overflow-hidden rounded-xl border border-slate-200 bg-white">
                                   <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50/70 px-3 py-2">
-                                    <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Order Items</p>
-                                    <span className="rounded-full bg-indigo-50 px-2 py-0.5 text-[10px] font-bold text-indigo-600">{products.length} item{products.length === 1 ? '' : 's'}</span>
+                                    <p className="text-xs font-bold uppercase tracking-widest text-slate-500">Order Items</p>
+                                    <span className="rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-bold text-indigo-600">{products.length} item{products.length === 1 ? '' : 's'}</span>
                                   </div>
                                   <div>
                                     {products.length === 0 ? (
                                       <div className="px-4 py-5 text-center">
                                         <Package className="w-5 h-5 mx-auto text-slate-300  mb-1" />
-                                        <p className="text-[10px] text-slate-400">Product details not available for this order</p>
+                                        <p className="text-xs text-slate-400">Product details not available for this order</p>
                                       </div>
                                     ) : (
                                       <div className="divide-y divide-slate-100">
-                                        {products.map((p: any, i: number) => {
+                                        {products.map((p, i: number) => {
                                           const meta = productMeta(p);
                                           return (
                                             <div key={i} className="px-3 py-3 hover:bg-slate-50/50">
                                               <div className="flex items-start justify-between gap-4">
                                                 <p className="text-xs font-semibold leading-snug text-slate-800">{p.name || p.content_name || 'Product'}</p>
                                                 <div className="shrink-0 text-right">
-                                                  <p className="text-[9px] font-bold uppercase text-slate-400">Unit price</p>
+                                                  <p className="text-xs font-bold uppercase text-slate-400">Unit price</p>
                                                   <p className="text-xs font-bold text-slate-800">{Number(p.price || 0) > 0 ? `BDT ${Number(p.price || 0).toLocaleString()}` : 'No price'}</p>
                                                 </div>
                                               </div>
                                               {meta.length > 0 && (
                                                 <div className="mt-2 flex flex-wrap gap-1.5">
                                                   {meta.map((item) => (
-                                                    <span key={`${item.label}-${item.value}`} className={`rounded-md border px-2 py-1 text-[9px] font-bold ${item.category ? 'border-slate-200 bg-slate-50 text-slate-600' : 'border-indigo-100 bg-indigo-50 text-indigo-700'}`}>
+                                                    <span key={`${item.label}-${item.value}`} className={`rounded-md border px-2 py-1 text-xs font-bold ${item.category ? 'border-slate-200 bg-slate-50 text-slate-600' : 'border-indigo-100 bg-indigo-50 text-indigo-700'}`}>
                                                       {item.label}: {item.value}
                                                     </span>
                                                   ))}
                                                 </div>
                                               )}
-                                              <div className="mt-2 flex items-center gap-3 text-[10px] text-slate-500">
+                                              <div className="mt-2 flex items-center gap-3 text-xs text-slate-500">
                                                 <span className="rounded bg-slate-100 px-1.5 py-0.5">Qty <strong className="text-slate-700">{p.quantity || 1}</strong></span>
                                               </div>
                                             </div>
@@ -1010,7 +994,7 @@ export function OrdersView({
                                     )}
                                   </div>
                                   <div className="border-t border-slate-100 bg-slate-50/70 px-3 py-2.5">
-                                    <div className="ml-auto max-w-xs space-y-1 text-[10px]">
+                                    <div className="ml-auto max-w-xs space-y-1 text-xs">
                                       <div className="flex items-center justify-between gap-5 text-slate-500">
                                         <span>Product subtotal</span>
                                         <strong className="text-slate-700">BDT {Number(order.productSubtotal ?? order.amount ?? 0).toLocaleString()}</strong>
@@ -1069,7 +1053,7 @@ export function OrdersView({
             {shippedStatItems.map(item => (
               <div key={item.label} className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
                 <p className={`text-base font-bold leading-none ${item.tone}`}>{item.value}</p>
-                <p className="mt-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">{item.label}</p>
+                <p className="mt-1 text-xs font-bold uppercase tracking-wider text-slate-400">{item.label}</p>
               </div>
             ))}
           </div>
@@ -1188,7 +1172,7 @@ export function OrdersView({
                       <span>
                         <span className="block font-mono text-sm font-bold text-slate-900 ">#{order.order_id}</span>
                         <span className="mt-1 block text-xs font-bold capitalize text-slate-800 ">{order.courier_provider}</span>
-                        <span className="mt-0.5 block font-mono text-[10px] text-slate-500">{order.courier_tracking_id || 'No tracking'}</span>
+                        <span className="mt-0.5 block font-mono text-xs text-slate-500">{order.courier_tracking_id || 'No tracking'}</span>
                       </span>
                     </label>
                     <span className="font-bold text-slate-900 ">BDT {Number(order.cod_amount || 0).toLocaleString()}</span>
@@ -1198,7 +1182,7 @@ export function OrdersView({
                     <p className="mt-1 font-mono text-slate-500">{order.recipient_phone || 'No phone'}</p>
                     <p className="mt-0.5 line-clamp-2 text-slate-500">{order.recipient_address || 'No address'}</p>
                   </div>
-                  <div className="mt-3 grid grid-cols-2 gap-2 text-[11px]">
+                  <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
                     <div>{getStatusBadge(order.courier_status)}</div>
                     <div className="text-right">{getCapiStatusBadge(order.purchase_event_sent)}</div>
                     <span className="font-mono text-slate-500">{new Date(order.created_at).toLocaleDateString()}</span>
@@ -1219,7 +1203,7 @@ export function OrdersView({
                         {isCancelling ? 'Cancelling...' : 'Cancel'}
                       </button>
                     ) : (
-                      <span className="self-center text-[11px] italic text-slate-400">{(order.courier_status || '').toLowerCase()}</span>
+                      <span className="self-center text-xs italic text-slate-400">{(order.courier_status || '').toLowerCase()}</span>
                     )}
                   </div>
                 </div>
@@ -1229,7 +1213,7 @@ export function OrdersView({
 
           <div className="hidden min-h-64 overflow-x-auto rounded-lg border border-slate-200 md:block">
             <table className="w-full min-w-[820px] divide-y divide-slate-100 text-left text-xs text-slate-600">
-              <thead className="bg-slate-50 text-[10px] font-bold uppercase tracking-wider text-slate-500">
+              <thead className="bg-slate-50 text-xs font-bold uppercase tracking-wider text-slate-500">
                 <tr>
                   <th className="w-10 px-4 py-3 text-center">
                     <input 
@@ -1287,24 +1271,24 @@ export function OrdersView({
                         <div className="min-w-0">
                           <div className="flex items-center gap-2">
                             <span className="font-mono text-sm font-bold text-slate-900">#{order.order_id}</span>
-                            <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[10px] font-bold uppercase text-slate-500">
+                            <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-xs font-bold uppercase text-slate-500">
                               {order.courier_provider}
                             </span>
                           </div>
                           <p className="mt-1 font-bold text-slate-800">{order.recipient_name || '-'}</p>
-                          <p className="font-mono text-[11px] text-slate-500">{order.recipient_phone || '-'}</p>
-                          <p className="mt-0.5 max-w-[260px] truncate text-[11px] text-slate-400" title={order.recipient_address}>
+                          <p className="font-mono text-xs text-slate-500">{order.recipient_phone || '-'}</p>
+                          <p className="mt-0.5 max-w-[260px] truncate text-xs text-slate-400" title={order.recipient_address}>
                             {order.recipient_address || '-'}
                           </p>
                         </div>
                       </td>
                       <td className="px-4 py-3 align-top">
                         <div className="flex flex-col">
-                          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                          <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
                             Tracking
                           </span>
                           {order.courier_tracking_id ? (
-                            <span className="mt-1 flex items-center gap-1 font-mono text-[11px] font-semibold text-slate-700">
+                            <span className="mt-1 flex items-center gap-1 font-mono text-xs font-semibold text-slate-700">
                               {order.courier_tracking_id}
                               <a
                                 href={getCourierTrackingUrl(order.courier_provider, order.courier_tracking_id)}
@@ -1316,17 +1300,17 @@ export function OrdersView({
                               </a>
                             </span>
                           ) : (
-                            <span className="mt-1 text-[11px] text-slate-400">No tracking yet</span>
+                            <span className="mt-1 text-xs text-slate-400">No tracking yet</span>
                           )}
                         </div>
                       </td>
                       <td className="px-4 py-3 align-top">
-                        <div className="flex flex-col text-[11px] leading-tight">
+                        <div className="flex flex-col text-xs leading-tight">
                           <span className="font-bold text-slate-900">BDT {Number(order.cod_amount || 0).toLocaleString()}</span>
                           {order.delivery_charge > 0 && (
-                            <span className="mt-0.5 text-[10px] font-medium text-slate-400">Charge BDT {order.delivery_charge}</span>
+                            <span className="mt-0.5 text-xs font-medium text-slate-400">Charge BDT {order.delivery_charge}</span>
                           )}
-                          <span className="mt-1 font-mono text-[10px] text-slate-400">
+                          <span className="mt-1 font-mono text-xs text-slate-400">
                             {new Date(order.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} · {new Date(order.created_at).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
                           </span>
                         </div>
@@ -1367,7 +1351,7 @@ export function OrdersView({
                             )}
                           </button>
                         ) : (
-                          <span className="self-center px-1 text-[10px] italic text-slate-400">
+                          <span className="self-center px-1 text-xs italic text-slate-400">
                             {(order.courier_status || '').toLowerCase() === 'cancelled' ? 'Cancelled' :
                              (order.courier_status || '').toLowerCase() === 'delivered' ? 'Delivered' : 'Returned'}
                           </span>
@@ -1386,21 +1370,27 @@ export function OrdersView({
 
       {/* Book to Courier Form Modal */}
       {isSendModalOpen && selectedOrder && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-3 backdrop-blur-sm animate-fade-in sm:p-4">
-          <div className="flex max-h-[calc(100vh-1.5rem)] w-full max-w-lg flex-col space-y-2 overflow-y-auto overscroll-contain rounded-2xl border border-slate-200 bg-white p-3 shadow-2xl animate-slide-in-up sm:max-h-[calc(100vh-2rem)]">
+        <Modal
+          onClose={() => setIsSendModalOpen(false)}
+          labelledBy="courier-booking-title"
+          overlayClassName="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-3 backdrop-blur-sm animate-fade-in sm:p-4"
+          panelClassName="flex max-h-[calc(100vh-1.5rem)] w-full max-w-lg flex-col space-y-2 overflow-y-auto overscroll-contain rounded-2xl border border-slate-200 bg-white p-3 shadow-2xl animate-slide-in-up sm:max-h-[calc(100vh-2rem)]"
+        >
             
             {/* Modal Header */}
             <div className="flex items-center justify-between border-b border-slate-100 pb-2">
               <div className="flex items-center gap-2">
                 <Truck className="w-5 h-5 text-indigo-600 " />
-                <h3 className="font-bold text-slate-800  text-base">Book Consignment with Courier</h3>
+                <h3 id="courier-booking-title" className="font-bold text-slate-800  text-base">Book Consignment with Courier</h3>
               </div>
-              <button 
+              <Button
+                variant="icon"
+                size="lg"
                 onClick={() => setIsSendModalOpen(false)}
-                className="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-50  cursor-pointer"
+                aria-label="Close courier booking dialog"
               >
                 <XCircle className="w-5 h-5" />
-              </button>
+              </Button>
             </div>
 
             {/* Modal Body Form */}
@@ -1409,34 +1399,34 @@ export function OrdersView({
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                 {/* Order Meta details read-only */}
                 <div className="rounded-lg border border-slate-100 bg-slate-50 p-2">
-                  <span className="block text-[10px] text-slate-400 uppercase font-bold tracking-wider">Order Reference ID</span>
+                  <span className="block text-xs text-slate-400 uppercase font-bold tracking-wider">Order Reference ID</span>
                   <span className="font-mono font-bold text-sm text-slate-800 ">{selectedOrder.orderId || selectedOrder.order_id}</span>
                 </div>
                 <div className="rounded-lg border border-slate-100 bg-slate-50 p-2">
-                  <span className="block text-[10px] text-slate-400 uppercase font-bold tracking-wider">Original Value</span>
+                  <span className="block text-xs text-slate-400 uppercase font-bold tracking-wider">Original Value</span>
                   <span className="font-bold text-sm text-slate-800 ">BDT {(selectedOrder.amount || selectedOrder.cod_amount || 0).toLocaleString()}</span>
                 </div>
               </div>
 
               {/* Order Items (Products) */}
               <div className="space-y-1.5">
-                <label className="block text-[10px] font-bold text-slate-500  uppercase tracking-wider">Order Items</label>
+                <label className="block text-xs font-bold text-slate-500  uppercase tracking-wider">Order Items</label>
                 <div className="bg-white  rounded-lg border border-slate-200  overflow-hidden">
                   {(!selectedOrder?.products || selectedOrder.products.length === 0) ? (
                     <div className="px-4 py-3 text-center">
-                      <p className="text-[10px] text-slate-400">Product details not available</p>
+                      <p className="text-xs text-slate-400">Product details not available</p>
                     </div>
                   ) : (
                     <table className="w-full text-xs">
                       <thead className="bg-slate-50 ">
                         <tr>
-                          <th className="px-3 py-1.5 text-left text-[9px] font-bold uppercase text-slate-400">Product</th>
-                          <th className="px-3 py-1.5 text-center text-[9px] font-bold uppercase text-slate-400">Qty</th>
-                          <th className="px-3 py-1.5 text-right text-[9px] font-bold uppercase text-slate-400">Price</th>
+                          <th className="px-3 py-1.5 text-left text-xs font-bold uppercase text-slate-400">Product</th>
+                          <th className="px-3 py-1.5 text-center text-xs font-bold uppercase text-slate-400">Qty</th>
+                          <th className="px-3 py-1.5 text-right text-xs font-bold uppercase text-slate-400">Price</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100 ">
-                        {selectedOrder.products.map((p: any, i: number) => {
+                        {selectedOrder.products.map((p, i: number) => {
                           const meta = productMeta(p);
                           return (
                             <tr key={i} className="hover:bg-slate-50/50 ">
@@ -1445,7 +1435,7 @@ export function OrdersView({
                                 {meta.length > 0 && (
                                   <div className="mt-1 flex flex-wrap gap-1">
                                     {meta.map((item) => (
-                                      <span key={`${item.label}-${item.value}`} className={`rounded px-1.5 py-0.5 text-[8px] font-bold ${item.category ? 'bg-slate-100 text-slate-600' : 'bg-indigo-50 text-indigo-700'}`}>
+                                      <span key={`${item.label}-${item.value}`} className={`rounded px-1.5 py-0.5 text-xs font-bold ${item.category ? 'bg-slate-100 text-slate-600' : 'bg-indigo-50 text-indigo-700'}`}>
                                         {item.label}: {item.value}
                                       </span>
                                     ))}
@@ -1465,7 +1455,7 @@ export function OrdersView({
 
               {/* Courier Selection */}
               <div>
-                <label className="block text-[10px] font-bold text-slate-500  uppercase tracking-wider mb-1">Select Courier Partner</label>
+                <label className="block text-xs font-bold text-slate-500  uppercase tracking-wider mb-1">Select Courier Partner</label>
                 <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                   <label className={`flex cursor-pointer items-center justify-between rounded-xl border p-2 transition-all duration-200 ${
                     courierProvider === 'steadfast' 
@@ -1474,7 +1464,7 @@ export function OrdersView({
                   }`}>
                     <div className="flex flex-col">
                       <span className="text-xs font-bold text-slate-800 ">SteadFast Courier</span>
-                      <span className="text-[9px] text-slate-400 mt-0.5">Automated API Booking</span>
+                      <span className="text-xs text-slate-400 mt-0.5">Automated API Booking</span>
                     </div>
                     <input 
                       type="radio" 
@@ -1493,7 +1483,7 @@ export function OrdersView({
                   }`}>
                     <div className="flex flex-col">
                       <span className="text-xs font-bold text-slate-800 ">Pathao Courier</span>
-                      <span className="text-[9px] text-slate-400 mt-0.5">OAuth-secured Aladdin Booking</span>
+                      <span className="text-xs text-slate-400 mt-0.5">OAuth-secured Aladdin Booking</span>
                     </div>
                     <input 
                       type="radio" 
@@ -1512,7 +1502,7 @@ export function OrdersView({
                   }`}>
                     <div className="flex flex-col">
                       <span className="text-xs font-bold text-slate-800 ">RedX Courier</span>
-                      <span className="text-[9px] text-slate-400 mt-0.5">Token-secured OpenAPI Booking</span>
+                      <span className="text-xs text-slate-400 mt-0.5">Token-secured OpenAPI Booking</span>
                     </div>
                     <input
                       type="radio"
@@ -1528,13 +1518,13 @@ export function OrdersView({
 
               {/* Recipient details */}
               <div className="space-y-2 pt-1">
-                <h4 className="text-[10px] font-bold text-indigo-600  uppercase tracking-wider border-b border-slate-100  pb-1">
+                <h4 className="text-xs font-bold text-indigo-600  uppercase tracking-wider border-b border-slate-100  pb-1">
                   Recipient Information
                 </h4>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-[10px] font-semibold text-slate-500  uppercase mb-1">Customer Name</label>
+                    <label className="block text-xs font-semibold text-slate-500  uppercase mb-1">Customer Name</label>
                     <div className="relative">
                       <User className="absolute left-2.5 top-2.5 w-3.5 h-3.5 text-slate-400" />
                       <input
@@ -1549,7 +1539,7 @@ export function OrdersView({
                   </div>
 
                   <div>
-                    <label className="block text-[10px] font-semibold text-slate-500  uppercase mb-1">Phone Number</label>
+                    <label className="block text-xs font-semibold text-slate-500  uppercase mb-1">Phone Number</label>
                     <div className="relative">
                       <Phone className="absolute left-2.5 top-2.5 w-3.5 h-3.5 text-slate-400" />
                       <input
@@ -1570,7 +1560,7 @@ export function OrdersView({
                 </div>
 
                 <div>
-                  <label className="block text-[10px] font-semibold text-slate-500  uppercase mb-1">Delivery Address</label>
+                  <label className="block text-xs font-semibold text-slate-500  uppercase mb-1">Delivery Address</label>
                   <div className="relative">
                     <MapPin className="absolute left-2.5 top-2.5 w-3.5 h-3.5 text-slate-400" />
                     <textarea
@@ -1586,7 +1576,7 @@ export function OrdersView({
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-[10px] font-semibold text-slate-500  uppercase mb-1">Cash on Delivery Amount to Collect (BDT)</label>
+                    <label className="block text-xs font-semibold text-slate-500  uppercase mb-1">Cash on Delivery Amount to Collect (BDT)</label>
                     <div className="relative">
                       <DollarSign className="absolute left-2.5 top-2.5 w-3.5 h-3.5 text-slate-400" />
                       <input
@@ -1602,7 +1592,7 @@ export function OrdersView({
                   {/* Pathao stores are fetched from the courier API when credentials are available. */}
                   {courierProvider === 'pathao' && (
                     <div className="space-y-3 md:col-span-2">
-                      <label className="block text-[10px] font-semibold text-slate-500  uppercase mb-1">Pathao Store</label>
+                      <label className="block text-xs font-semibold text-slate-500  uppercase mb-1">Pathao Store</label>
                       {loadingStores ? (
                         <div className="py-2 px-3 bg-slate-50  border border-slate-200  rounded-lg text-xs text-slate-500 flex items-center gap-1.5">
                           <Truck className="w-3.5 h-3.5 shrink-0 animate-pulse" />
@@ -1660,7 +1650,7 @@ export function OrdersView({
                   {courierProvider === 'redx' && (
                     <div className="grid grid-cols-1 gap-2 sm:grid-cols-3 md:col-span-2">
                       <div>
-                        <label className="block text-[10px] font-semibold text-slate-500  uppercase mb-1">RedX Delivery Area</label>
+                        <label className="block text-xs font-semibold text-slate-500  uppercase mb-1">RedX Delivery Area</label>
                         {loadingRedxAreas ? (
                           <div className="py-2 px-3 text-xs bg-slate-50 border border-slate-200 rounded-lg   ">Loading areas...</div>
                         ) : (
@@ -1692,11 +1682,11 @@ export function OrdersView({
                         )}
                       </div>
                       <div>
-                        <label className="block text-[10px] font-semibold text-slate-500  uppercase mb-1">RedX Delivery Area Name</label>
+                        <label className="block text-xs font-semibold text-slate-500  uppercase mb-1">RedX Delivery Area Name</label>
                         <input required type="text" value={redxDeliveryAreaName} onChange={(e) => setRedxDeliveryAreaName(e.target.value)} className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs" />
                       </div>
                       <div>
-                        <label className="block text-[10px] font-semibold text-slate-500  uppercase mb-1">RedX Pickup Store ID</label>
+                        <label className="block text-xs font-semibold text-slate-500  uppercase mb-1">RedX Pickup Store ID</label>
                         <input type="number" value={redxPickupStoreId} onChange={(e) => setRedxPickupStoreId(e.target.value)} className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs" />
                       </div>
                     </div>
@@ -1705,7 +1695,7 @@ export function OrdersView({
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-[10px] font-semibold text-slate-500  uppercase mb-1">Parcel Weight (KG)</label>
+                    <label className="block text-xs font-semibold text-slate-500  uppercase mb-1">Parcel Weight (KG)</label>
                     <select
                       value={itemWeight}
                       onChange={(e) => setItemWeight(Number(e.target.value))}
@@ -1721,7 +1711,7 @@ export function OrdersView({
                   </div>
                   
                   <div>
-                    <label className="block text-[10px] font-semibold text-slate-500  uppercase mb-1">Parcel Quantity</label>
+                    <label className="block text-xs font-semibold text-slate-500  uppercase mb-1">Parcel Quantity</label>
                     <input
                       type="number"
                       required
@@ -1736,17 +1726,21 @@ export function OrdersView({
 
               {/* Submit Buttons */}
               <div className="flex justify-end gap-3 border-t border-slate-100 pt-2">
-                <button
+                <Button
+                  variant="secondary"
+                  size="sm"
                   type="button"
                   onClick={() => setIsSendModalOpen(false)}
-                  className="px-4 py-1.5 border border-slate-200  rounded-lg text-xs font-bold text-slate-500 hover:bg-slate-50 hover:text-slate-700   transition-colors cursor-pointer"
+                  className="text-slate-500"
                 >
                   Cancel
-                </button>
-                <button
+                </Button>
+                <Button
+                  variant="primary"
+                  size="sm"
                   type="submit"
-                  disabled={submittingCourier}
-                  className="flex cursor-pointer items-center gap-1.5 rounded-lg bg-indigo-600 px-5 py-1.5 text-xs font-bold text-white shadow-md transition-colors hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
+                  loading={submittingCourier}
+                  className="px-5 shadow-md"
                 >
                   {submittingCourier ? (
                     <>
@@ -1758,20 +1752,23 @@ export function OrdersView({
                       <Send className="w-3.5 h-3.5" /> Book on Courier
                     </>
                   )}
-                </button>
+                </Button>
               </div>
 
             </form>
 
-          </div>
-        </div>
+        </Modal>
       )}
 
       {orderToCancel && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-sm rounded-xl border border-slate-200 bg-white p-5 shadow-2xl  ">
+        <Modal
+          onClose={() => setOrderToCancel(null)}
+          labelledBy="cancel-courier-title"
+          overlayClassName="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm"
+          panelClassName="w-full max-w-sm rounded-xl border border-slate-200 bg-white p-5 shadow-2xl"
+        >
             <div className="space-y-1">
-              <h3 className="text-sm font-bold text-slate-900 ">Cancel courier order?</h3>
+              <h3 id="cancel-courier-title" className="text-sm font-bold text-slate-900 ">Cancel courier order?</h3>
               <p className="text-xs leading-relaxed text-slate-500 ">
                 {orderToCancel.courier_provider === 'steadfast'
                   ? 'This cancels the order locally. Please also cancel it from the SteadFast merchant panel.'
@@ -1779,23 +1776,24 @@ export function OrdersView({
               </p>
             </div>
             <div className="mt-5 flex justify-end gap-2">
-              <button
-                type="button"
+              <Button
+                variant="secondary"
+                size="sm"
                 onClick={() => setOrderToCancel(null)}
-                className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-600 transition-colors hover:bg-slate-50    "
+                className="text-slate-600"
               >
                 Keep Order
-              </button>
-              <button
-                type="button"
+              </Button>
+              <Button
+                variant="danger"
+                size="sm"
                 onClick={confirmCancelCourierOrder}
-                className="rounded-lg bg-rose-900 px-3 py-2 text-xs font-bold text-white transition-colors hover:bg-rose-950"
+                className="bg-rose-900 hover:bg-rose-950"
               >
                 Cancel Order
-              </button>
+              </Button>
             </div>
-          </div>
-        </div>
+        </Modal>
       )}
 
       {isInvoiceModalOpen && (

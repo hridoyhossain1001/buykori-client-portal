@@ -79,7 +79,7 @@ function JsonNode({ name, value, depth, search }: { name?: string; value: unknow
 
 export function JsonViewer({ value, search = '', className = '' }: JsonViewerProps) {
   return (
-    <div className={`overflow-auto rounded-lg bg-slate-950 p-3 font-mono text-[10px] ${className}`}>
+    <div className={`overflow-auto rounded-lg bg-slate-950 p-3 font-mono text-xs ${className}`}>
       <JsonNode value={value ?? null} depth={0} search={search} />
     </div>
   );

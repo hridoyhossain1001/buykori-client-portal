@@ -54,14 +54,14 @@ export function ApiLogsView({
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <p className="text-xs font-bold text-slate-900">{item.platform}</p>
-                    <p className="mt-1 text-[10px] text-slate-500">{item.configured ? 'Configured' : 'Not configured'}</p>
+                    <p className="mt-1 text-xs text-slate-500">{item.configured ? 'Configured' : 'Not configured'}</p>
                   </div>
                   {needsAction ? <AlertTriangle className="h-4 w-4 text-rose-600" /> : retrying ? <Clock3 className="h-4 w-4 text-amber-600" /> : noData ? <Activity className="h-4 w-4 text-slate-400" /> : <CheckCircle2 className="h-4 w-4 text-emerald-600" />}
                 </div>
                 <p className={`mt-4 font-bold text-slate-900 ${noData ? 'text-base' : 'text-2xl'}`}>{noData ? noDataLabel : `${item.successRate}%`}</p>
-                <p className="mt-1 text-[10px] text-slate-500">{noData ? 'No delivery attempts in the last 7 days' : `${item.successful} successful · ${item.failed} failed`}</p>
+                <p className="mt-1 text-xs text-slate-500">{noData ? 'No delivery attempts in the last 7 days' : `${item.successful} successful · ${item.failed} failed`}</p>
                 {(item.queued > 0 || item.dead > 0) && (
-                  <p className={`mt-2 text-[10px] font-bold ${item.dead ? 'text-rose-700' : 'text-amber-700'}`}>{item.queued} retrying · {item.dead} needs manual retry</p>
+                  <p className={`mt-2 text-xs font-bold ${item.dead ? 'text-rose-700' : 'text-amber-700'}`}>{item.queued} retrying · {item.dead} needs manual retry</p>
                 )}
               </div>
             );
@@ -76,7 +76,7 @@ export function ApiLogsView({
         <div className="flex items-center gap-2">
           <button 
             onClick={() => handleExportData('json', 'apilogs')}
-            className="px-2.5 py-1 text-xs font-semibold rounded bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 flex items-center gap-1.5 cursor-pointer    "
+            className="flex min-h-10 items-center gap-1.5 rounded border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-slate-600 hover:bg-slate-50 cursor-pointer"
           >
             <Download className="w-3.5 h-3.5" /> Export Logs
           </button>
@@ -103,27 +103,27 @@ export function ApiLogsView({
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <p className="text-sm font-bold text-slate-900 ">{l.platform}</p>
-                      <p className="mt-1 font-mono text-[11px] text-slate-500">{endpointHost}</p>
+                      <p className="mt-1 font-mono text-xs text-slate-500">{endpointHost}</p>
                     </div>
-                    <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-mono text-[10px] font-bold ${hasErr ? 'bg-rose-50 text-rose-700' : 'bg-emerald-50 text-emerald-700'}`}>
+                    <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-mono text-xs font-bold ${hasErr ? 'bg-rose-50 text-rose-700' : 'bg-emerald-50 text-emerald-700'}`}>
                       {hasErr ? <AlertTriangle className="h-3 w-3" /> : null}
                       {l.statusCode}
                     </span>
                   </div>
-                  <div className="mt-3 grid grid-cols-3 gap-2 text-[11px] text-slate-500">
+                  <div className="mt-3 grid grid-cols-3 gap-2 text-xs text-slate-500">
                     <span className="font-mono">{new Date(l.timestamp).toLocaleTimeString()}</span>
                     <span className="text-center font-mono">{l.method}</span>
                     <span className="text-right font-mono">{l.retryCount > 0 ? `${l.retryCount} retries` : 'No retry'}</span>
                   </div>
-                  {l.retryCount > 0 && <p className="mt-2 text-[11px] font-bold text-amber-600">{l.retryCount} retried</p>}
+                  {l.retryCount > 0 && <p className="mt-2 text-xs font-bold text-amber-600">{l.retryCount} retried</p>}
                 </button>
                 {isExpanded && (
                   <div className="mt-4 grid gap-3 border-t border-slate-100 pt-3 ">
-                    <div className="rounded-lg bg-slate-900 p-3 font-mono text-[10px] text-slate-200">
+                    <div className="rounded-lg bg-slate-900 p-3 font-mono text-xs text-slate-200">
                       <p className="mb-2 font-bold uppercase tracking-wider text-indigo-400">Data Sent</p>
                       <pre tabIndex={0} aria-label={`Request body for API log ${l.id}`} className="max-h-52 overflow-auto whitespace-pre-wrap break-all outline-none focus:ring-2 focus:ring-indigo-400">{l.requestBody}</pre>
                     </div>
-                    <div className="rounded-lg bg-slate-900 p-3 font-mono text-[10px] text-slate-200">
+                    <div className="rounded-lg bg-slate-900 p-3 font-mono text-xs text-slate-200">
                       <p className="mb-2 font-bold uppercase tracking-wider text-emerald-400">Reply From Platform</p>
                       <pre tabIndex={0} aria-label={`Response body for API log ${l.id}`} className="max-h-52 overflow-auto whitespace-pre-wrap break-all outline-none focus:ring-2 focus:ring-indigo-400">{l.responseBody}</pre>
                     </div>
@@ -136,7 +136,7 @@ export function ApiLogsView({
 
         <div tabIndex={0} aria-label="Scrollable API logs table" className="hidden overflow-x-auto overflow-y-auto max-h-[calc(100vh-320px)] min-h-[300px] outline-none focus:ring-2 focus:ring-indigo-400 md:block">
           <table className="w-full text-left text-xs divide-y divide-slate-100  min-w-[850px]">
-            <thead className="bg-slate-50  text-[10px] font-bold uppercase tracking-wider text-slate-500  sticky top-0 z-10">
+            <thead className="bg-slate-50  text-xs font-bold uppercase tracking-wider text-slate-500  sticky top-0 z-10">
               <tr>
                 <th className="px-6 py-3">Timestamp</th>
                 <th className="px-6 py-3">Platform</th>
@@ -182,7 +182,7 @@ export function ApiLogsView({
                           {l.endpoint}
                         </td>
                         <td className="px-6 py-3.5">
-                          <span className="px-1.5 py-0.5 rounded text-[10px] bg-slate-100 text-slate-700 font-mono font-semibold  ">
+                          <span className="px-1.5 py-0.5 rounded text-xs bg-slate-100 text-slate-700 font-mono font-semibold  ">
                             {l.method}
                           </span>
                         </td>
@@ -209,13 +209,13 @@ export function ApiLogsView({
                         <tr>
                           <td colSpan={6} className="bg-slate-50  border-t border-slate-100  px-6 py-4">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                              <div tabIndex={0} aria-label={`Expanded request body for API log ${l.id}`} className="bg-slate-900 text-slate-200 text-[11px] font-mono p-4 rounded-lg overflow-auto max-h-60 outline-none focus:ring-2 focus:ring-indigo-400">
-                                <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-wider mb-2">Data Sent</p>
+                              <div tabIndex={0} aria-label={`Expanded request body for API log ${l.id}`} className="bg-slate-900 text-slate-200 text-xs font-mono p-4 rounded-lg overflow-auto max-h-60 outline-none focus:ring-2 focus:ring-indigo-400">
+                                <p className="text-xs font-bold text-indigo-400 uppercase tracking-wider mb-2">Data Sent</p>
                                 <pre className="whitespace-pre-wrap break-all">{l.requestBody}</pre>
                               </div>
 
-                              <div tabIndex={0} aria-label={`Expanded response body for API log ${l.id}`} className="bg-slate-900 text-slate-300 text-[11px] font-mono p-4 rounded-lg overflow-auto max-h-60 outline-none focus:ring-2 focus:ring-indigo-400">
-                                <p className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider mb-2">Reply from platform</p>
+                              <div tabIndex={0} aria-label={`Expanded response body for API log ${l.id}`} className="bg-slate-900 text-slate-300 text-xs font-mono p-4 rounded-lg overflow-auto max-h-60 outline-none focus:ring-2 focus:ring-indigo-400">
+                                <p className="text-xs font-bold text-emerald-400 uppercase tracking-wider mb-2">Reply from platform</p>
                                 <pre className="whitespace-pre-wrap break-all">{l.responseBody}</pre>
                               </div>
                             </div>

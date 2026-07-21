@@ -52,7 +52,7 @@ export function SuggestionsView({
 
         {/* Optimization score badge widget */}
         <div className="text-right shrink-0">
-          <span className="block text-[10px] font-bold text-[#5b59fd] uppercase tracking-widest leading-none">Tracking Score</span>
+          <span className="block text-xs font-bold text-[#5b59fd] uppercase tracking-widest leading-none">Tracking Score</span>
           <span className="text-4xl font-extrabold text-slate-800  font-mono inline-block mt-1">{optScore}%</span>
           <div className="mt-1.5 h-1.5 w-24 bg-slate-200  rounded-full overflow-hidden ml-auto">
             <div className="h-full bg-indigo-600 rounded-full" style={{ width: `${optScore}%` }} />
@@ -75,7 +75,7 @@ export function SuggestionsView({
         <button
           disabled={aiReviewing}
           onClick={handleAiReview}
-          className="w-full sm:w-auto px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white text-xs font-bold rounded-lg transition-colors flex items-center gap-2 justify-center shadow-sm shrink-0 cursor-pointer"
+          className="flex min-h-10 w-full shrink-0 cursor-pointer items-center justify-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-xs font-bold text-white shadow-sm transition-colors hover:bg-indigo-700 disabled:bg-indigo-400 sm:w-auto"
         >
           {aiReviewing ? (
             <>
@@ -104,13 +104,13 @@ export function SuggestionsView({
             </div>
             <div className="mx-auto grid max-w-2xl grid-cols-1 gap-2 text-left sm:grid-cols-3">
               {['Meta CAPI connected', 'TikTok Events active', 'GA4 route checked'].map((item) => (
-                <div key={item} className="flex items-center gap-2 rounded-lg border border-emerald-100 bg-emerald-50/70 px-3 py-2 text-[11px] font-semibold text-emerald-700   ">
+                <div key={item} className="flex items-center gap-2 rounded-lg border border-emerald-100 bg-emerald-50/70 px-3 py-2 text-xs font-semibold text-emerald-700   ">
                   <CheckCircle className="h-3.5 w-3.5 shrink-0" />
                   {item}
                 </div>
               ))}
             </div>
-            <p className="text-[11px] text-slate-400">This result uses the latest data on this page. Check again after changing Settings or updating the WordPress plugin.</p>
+            <p className="text-xs text-slate-400">This result uses the latest data on this page. Check again after changing Settings or updating the WordPress plugin.</p>
           </div>
         )}
 
@@ -129,7 +129,7 @@ export function SuggestionsView({
               <div className="flex justify-between items-start">
                 <div>
                   <div className="flex items-center gap-2">
-                    <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider ${
+                    <span className={`px-2 py-0.5 rounded text-xs font-bold uppercase tracking-wider ${
                       s.severity === 'Critical' ? 'bg-rose-50 text-rose-700 border border-rose-200   ' : 
                       s.severity === 'Warning' ? 'bg-amber-50 text-amber-700 border border-amber-200   ' : 
                       'bg-indigo-50 text-indigo-700 border border-indigo-200   '
@@ -137,7 +137,7 @@ export function SuggestionsView({
                       {s.severity}
                     </span>
                     {s.platform && (
-                      <span className="text-[10px] text-slate-400  font-mono font-semibold">{s.platform} module</span>
+                      <span className="text-xs text-slate-400  font-mono font-semibold">{s.platform} module</span>
                     )}
                   </div>
                   <h3 className="font-bold text-slate-800  text-sm mt-1.5">{s.title}</h3>
@@ -146,7 +146,7 @@ export function SuggestionsView({
                 <div className="flex gap-1">
                   <button 
                     onClick={() => toggleResolveSuggestion(s.id, !s.resolved)}
-                    className={`px-2.5 py-1 text-xs rounded font-semibold border cursor-pointer ${
+                    className={`min-h-10 cursor-pointer rounded border px-2.5 py-1 text-xs font-semibold ${
                       s.resolved 
                         ? 'bg-green-50 border-green-200 text-green-700 hover:bg-green-100   ' 
                         : 'bg-indigo-50 border-indigo-100 text-indigo-700 hover:bg-indigo-100   '
@@ -156,8 +156,10 @@ export function SuggestionsView({
                   </button>
                   
                   <button 
+                    type="button"
                     onClick={() => dismissSuggestion(s.id)}
-                    className="p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-50  rounded cursor-pointer"
+                    className="inline-flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded text-slate-400 hover:bg-slate-50 hover:text-slate-600"
+                    aria-label={`Dismiss ${s.title}`}
                   >
                     <XCircle className="w-4 h-4" />
                   </button>
@@ -167,7 +169,7 @@ export function SuggestionsView({
               <p className="text-xs text-slate-500  leading-relaxed max-w-4xl">{s.explanation}</p>
 
               <div className="p-3 bg-slate-50  border border-slate-200  rounded text-xs text-slate-600 ">
-                <span className="font-bold text-[10px] text-indigo-700  uppercase tracking-wider block mb-1">How to fix</span>
+                <span className="font-bold text-xs text-indigo-700  uppercase tracking-wider block mb-1">How to fix</span>
                 <p className="whitespace-pre-line leading-relaxed">{s.fixAction}</p>
               </div>
             </div>

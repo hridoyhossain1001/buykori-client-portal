@@ -15,6 +15,8 @@ import {
   X,
 } from 'lucide-react';
 import { ClientConnection, Suggestion } from '../types';
+import { Button } from './common/Button';
+import { Modal } from './common/Modal';
 
 interface HeaderProps {
   title: string;
@@ -59,6 +61,8 @@ export function Header({
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const notificationsRef = useRef<HTMLDivElement>(null);
+  const mobileSearchInputRef = useRef<HTMLInputElement>(null);
+  const mobileSearchTriggerRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -132,7 +136,7 @@ export function Header({
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75"></span>
               <span className="relative inline-flex h-2 w-2 rounded-full bg-green-500"></span>
             </span>
-            <span className="text-[10px] font-bold tracking-wider text-green-700 uppercase">Connected</span>
+            <span className="text-xs font-bold tracking-wider text-green-700 uppercase">Connected</span>
           </div>
         );
       case 'Degraded':
@@ -142,7 +146,7 @@ export function Header({
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-75"></span>
               <span className="relative inline-flex h-2 w-2 rounded-full bg-amber-500"></span>
             </span>
-            <span className="text-[10px] font-bold tracking-wider text-amber-700 uppercase">Slow Connection</span>
+            <span className="text-xs font-bold tracking-wider text-amber-700 uppercase">Slow Connection</span>
           </div>
         );
       case 'Disconnected':
@@ -152,7 +156,7 @@ export function Header({
             <span className="relative flex h-1.5 w-1.5">
               <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-rose-500"></span>
             </span>
-            <span className="text-[10px] font-bold tracking-wider text-rose-700 uppercase">Disconnected</span>
+            <span className="text-xs font-bold tracking-wider text-rose-700 uppercase">Disconnected</span>
           </div>
         );
     }
@@ -194,7 +198,7 @@ export function Header({
           {/* Quick-navigation suggestions dropdown */}
           {isSearchFocused && matchingPages.length > 0 && setActivePage && (
             <div className="absolute left-1/2 top-full z-50 mt-2 w-full max-w-[360px] -translate-x-1/2 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xl animate-slide-up">
-              <div className="select-none border-b border-slate-100 bg-slate-50 px-3 py-2 text-[10px] font-semibold text-slate-500">
+              <div className="select-none border-b border-slate-100 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-500">
                 Quick navigation
               </div>
               <div className="py-1 divide-y divide-slate-100 ">
@@ -210,7 +214,7 @@ export function Header({
                     role="button"
                   >
                     <span>{page.name}</span>
-                    <span className="text-[9px] text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity">Open</span>
+                    <span className="text-xs text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity">Open</span>
                   </div>
                 ))}
               </div>
@@ -222,6 +226,7 @@ export function Header({
         <div className="flex items-center gap-2 md:gap-4 shrink-0">
           {/* Mobile Search Button (Visible only on <1024px screens / lg:hidden) */}
           <button
+            ref={mobileSearchTriggerRef}
             type="button"
             onClick={() => setIsSearchOpen(true)}
             data-guide="top-search-mobile"
@@ -268,8 +273,8 @@ export function Header({
                 <div className="absolute right-0 z-50 mt-2 w-80 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xl animate-slide-up sm:w-96">
                   {/* Dropdown Header */}
                   <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100  bg-slate-50 ">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Issues Found</span>
-                    <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-indigo-100  text-indigo-600  font-mono">
+                    <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Issues Found</span>
+                    <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-indigo-100  text-indigo-600  font-mono">
                       {unresolvedSuggestions.length} Pending
                     </span>
                   </div>
@@ -280,7 +285,7 @@ export function Header({
                       <div className="p-6 text-center text-slate-400 font-medium">
                         <CheckCircle2 className="w-6 h-6 mx-auto text-emerald-500 mb-2" />
                         <p className="text-xs">Your tracking is healthy!</p>
-                        <p className="text-[10px] text-slate-400 mt-0.5">Your tracking looks healthy.</p>
+                        <p className="text-xs text-slate-400 mt-0.5">Your tracking looks healthy.</p>
                       </div>
                     ) : (
                       unresolvedSuggestions.map((s) => (
@@ -295,14 +300,14 @@ export function Header({
                           className="p-3.5 hover:bg-slate-50  cursor-pointer transition-colors"
                         >
                           <div className="flex justify-between items-start gap-2">
-                            <span className={`px-1.5 py-0.5 rounded text-[8px] font-extrabold uppercase tracking-wider shrink-0 ${
+                            <span className={`px-1.5 py-0.5 rounded text-xs font-extrabold uppercase tracking-wider shrink-0 ${
                               s.severity === 'Critical' ? 'bg-rose-50 text-rose-600 border border-rose-100   ' : 
                               s.severity === 'Warning' ? 'bg-amber-50 text-amber-600 border border-amber-100   ' : 
                               'bg-indigo-50 text-indigo-600 border border-indigo-100   '
                             }`}>
                               {s.severity}
                             </span>
-                            {s.platform && <span className="text-[9px] font-mono text-slate-400 ">{s.platform}</span>}
+                            {s.platform && <span className="text-xs font-mono text-slate-400 ">{s.platform}</span>}
                           </div>
                           <h4 className="text-xs font-bold uppercase text-slate-800  tracking-wider">{s.title}</h4>
                           <p className="text-[10.5px] text-slate-400  leading-normal mt-0.5 truncate">{s.explanation}</p>
@@ -318,7 +323,7 @@ export function Header({
                         setActivePage('suggestions');
                         setIsNotificationsOpen(false);
                       }}
-                      className="block text-center py-2.5 bg-slate-50  border-t border-slate-100  text-[10px] font-bold text-indigo-600 hover:text-indigo-700   transition-colors uppercase tracking-wider cursor-pointer"
+                      className="block text-center py-2.5 bg-slate-50  border-t border-slate-100  text-xs font-bold text-indigo-600 hover:text-indigo-700   transition-colors uppercase tracking-wider cursor-pointer"
                     >
                       View all suggestions
                     </div>
@@ -358,29 +363,33 @@ export function Header({
 
       {/* Responsive dedicated trigger search modal for mobile views (<768px) */}
       {isSearchOpen && (
-        <div 
-          className="fixed inset-0 z-50 flex items-start justify-center pt-12 px-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in" 
-          onClick={() => setIsSearchOpen(false)}
+        <Modal
+          onClose={() => setIsSearchOpen(false)}
+          labelledBy="mobile-search-title"
+          initialFocusRef={mobileSearchInputRef}
+          returnFocusRef={mobileSearchTriggerRef}
+          closeOnBackdrop
+          overlayClassName="fixed inset-0 z-50 flex items-start justify-center bg-slate-900/60 px-4 pt-12 backdrop-blur-sm animate-fade-in"
+          panelClassName="w-full max-w-md overflow-hidden rounded-xl border border-slate-200 bg-white shadow-2xl animate-slide-up"
         >
-          <div 
-            className="w-full max-w-md bg-white  rounded-xl border border-slate-200  shadow-2xl overflow-hidden animate-slide-up"
-            onClick={(e) => e.stopPropagation()}
-          >
             {/* Modal Header */}
             <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100  bg-slate-50 ">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Search</span>
-              <button 
+              <span id="mobile-search-title" className="text-xs font-bold text-slate-400 uppercase tracking-widest">Search</span>
+              <Button
+                variant="icon"
+                size="lg"
                 onClick={() => setIsSearchOpen(false)}
-                className="p-1 rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-100  transition-colors"
+                aria-label="Close search dialog"
               >
                 <X className="w-4 h-4" />
-              </button>
+              </Button>
             </div>
 
             {/* Modal Content */}
             <div className="p-4 space-y-4">
               <div className="relative">
                 <input
+                  ref={mobileSearchInputRef}
                   type="text"
                   placeholder="Search by event name, ID, or customer data..."
                   value={searchVal}
@@ -392,7 +401,7 @@ export function Header({
                 {searchVal && (
                   <button
                     onClick={() => setSearchVal('')}
-                    className="absolute right-3 top-2.5 px-2 py-0.5 rounded text-[10px] font-semibold text-slate-400 hover:bg-slate-200  hover:text-slate-700 "
+                    className="absolute right-3 top-2.5 px-2 py-0.5 rounded text-xs font-semibold text-slate-400 hover:bg-slate-200  hover:text-slate-700 "
                   >
                     Clear
                   </button>
@@ -400,10 +409,10 @@ export function Header({
               </div>
 
               {/* Instant Highlight Feature Info */}
-              <div className="text-[10px] text-slate-400 flex items-center justify-between">
+              <div className="text-xs text-slate-400 flex items-center justify-between">
                 <span>Results update as you type</span>
                 {searchVal && (
-                  <span className="text-indigo-600  font-mono text-[9px] bg-indigo-50  px-1.5 py-0.5 rounded">
+                  <span className="text-indigo-600  font-mono text-xs bg-indigo-50  px-1.5 py-0.5 rounded">
                     "{searchVal}"
                   </span>
                 )}
@@ -411,27 +420,29 @@ export function Header({
 
               {/* Action Buttons */}
               <div className="flex justify-end gap-2 pt-2 border-t border-slate-100 ">
-                <button
+                <Button
+                  variant="secondary"
+                  size="sm"
                   type="button"
                   onClick={() => {
                     setSearchVal('');
                     setIsSearchOpen(false);
                   }}
-                  className="px-3 py-1.5 bg-slate-50 hover:bg-slate-100   text-slate-600  rounded-lg text-xs font-bold transition-all border border-slate-200 "
+                  className="bg-slate-50 text-slate-600"
                 >
                   Reset
-                </button>
-                <button
+                </Button>
+                <Button
+                  variant="primary"
+                  size="sm"
                   type="button"
                   onClick={() => setIsSearchOpen(false)}
-                  className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold transition-all shadow-sm"
                 >
                   Apply Filter
-                </button>
+                </Button>
               </div>
             </div>
-          </div>
-        </div>
+        </Modal>
       )}
     </>
   );

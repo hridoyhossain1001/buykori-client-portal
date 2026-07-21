@@ -1,6 +1,6 @@
 import React from 'react';
 import { Tooltip } from './common/Tooltip';
-import { 
+import {
   ShieldAlert, 
   AlertTriangle, 
   CheckCircle, 
@@ -15,12 +15,20 @@ import {
   YAxis, 
   Tooltip as ReChartsTooltip
 } from 'recharts';
+import type {
+  AdPerformanceMeta,
+  AdPerformanceRow,
+  AnalyticsAudience,
+  AnalyticsCampaigns,
+  AnalyticsOverview,
+  SignalDoctor,
+} from '../types';
 
 interface AnalyticsViewProps {
-  analyticsOverview: any;
-  analyticsCampaigns: any;
-  analyticsAudience: any;
-  signalDoctor: any;
+  analyticsOverview: AnalyticsOverview | null;
+  analyticsCampaigns: AnalyticsCampaigns | null;
+  analyticsAudience: AnalyticsAudience | null;
+  signalDoctor: SignalDoctor | null;
   analyticsError?: string | null;
   analyticsDays: number;
   setAnalyticsDays: (days: number) => void;
@@ -42,9 +50,9 @@ export function AnalyticsView({
     { id: 'customers', label: 'Customers', sectionId: 'analytics-audience' },
   ];
   const [activeInsightTab, setActiveInsightTab] = React.useState('summary');
-  const asArray = (value: any) => Array.isArray(value) ? value : [];
-  const numberText = (value: any) => Number(value || 0).toLocaleString();
-  const percentText = (value: any) => {
+  const asArray = <T,>(value: T[] | null | undefined): T[] => Array.isArray(value) ? value : [];
+  const numberText = (value: unknown) => Number(value || 0).toLocaleString();
+  const percentText = (value: unknown) => {
     const numeric = Number(value);
     return Number.isFinite(numeric) ? `${numeric}%` : '0%';
   };
@@ -61,8 +69,8 @@ export function AnalyticsView({
     ? signalDoctor.signal_rates
     : null;
 
-  const [adPerformance, setAdPerformance] = React.useState<any[]>([]);
-  const [adPerformanceMeta, setAdPerformanceMeta] = React.useState<any | null>(null);
+  const [adPerformance, setAdPerformance] = React.useState<AdPerformanceRow[]>([]);
+  const [adPerformanceMeta, setAdPerformanceMeta] = React.useState<AdPerformanceMeta | null>(null);
   const [loadingAdPerformance, setLoadingAdPerformance] = React.useState<boolean>(false);
   const [adPerformanceError, setAdPerformanceError] = React.useState<string | null>(null);
   const [adSearch, setAdSearch] = React.useState('');
@@ -127,7 +135,7 @@ export function AnalyticsView({
     };
   }, [adPerformance]);
 
-  const getAdStatus = React.useCallback((row: any) => {
+  const getAdStatus = React.useCallback((row: AdPerformanceRow) => {
     const spend = Number(row.spend || 0);
     const confirmedRevenue = Number(row.confirmed_revenue || 0);
     const confirmedPurchases = Number(row.confirmed_purchases || 0);
@@ -158,7 +166,7 @@ export function AnalyticsView({
       ].some(value => String(value || '').toLowerCase().includes(query));
     });
 
-    const valueForSort = (row: any) => {
+    const valueForSort = (row: AdPerformanceRow) => {
       if (adSort === 'return') return Number(row.confirmed_roas || 0);
       if (adSort === 'cost_per_order') {
         const value = Number(row.confirmed_cpa || 0);
@@ -197,8 +205,8 @@ export function AnalyticsView({
       'Confirmed Cost Per Order',
       'Extra Tracking',
     ];
-    const escapeCsv = (value: any) => `"${String(value ?? '').replace(/"/g, '""')}"`;
-    const rows = filteredAdPerformance.map((row: any) => {
+    const escapeCsv = (value: unknown) => `"${String(value ?? '').replace(/"/g, '""')}"`;
+    const rows = filteredAdPerformance.map((row) => {
       const status = getAdStatus(row);
       return [
         row.platform,
@@ -387,7 +395,7 @@ export function AnalyticsView({
               tabIndex={activeInsightTab === tab.id ? 0 : -1}
               onClick={() => selectInsightTab(tab.id)}
               onKeyDown={(event) => handleInsightTabKeyDown(event, tab.id)}
-              className={`min-w-fit rounded-lg px-3 py-2 text-xs font-bold transition-colors ${
+              className={`min-h-10 min-w-fit rounded-lg px-3 py-2 text-xs font-bold transition-colors ${
                 activeInsightTab === tab.id
                   ? 'bg-indigo-600 text-white shadow-sm'
                   : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
@@ -490,28 +498,28 @@ export function AnalyticsView({
         )}
         <div className="mt-4 grid grid-cols-2 gap-3 lg:grid-cols-5">
           <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
-            <p className="text-[10px] font-bold uppercase tracking-wide text-slate-500">Ad Cost</p>
+            <p className="text-xs font-bold uppercase tracking-wide text-slate-500">Ad Cost</p>
             <p className="mt-2 text-lg font-black text-slate-900">{formatMoney(adSummary.spend, adSummary.spendCurrency)}</p>
           </div>
           <div className="rounded-lg border border-indigo-100 bg-indigo-50 p-3">
-            <p className="text-[10px] font-bold uppercase tracking-wide text-indigo-700">New Orders</p>
+            <p className="text-xs font-bold uppercase tracking-wide text-indigo-700">New Orders</p>
             <p className="mt-2 text-lg font-black text-slate-900">{numberText(adSummary.placedPurchases)}</p>
-            <p className="mt-1 text-[10px] font-semibold text-indigo-700">COD pending included</p>
+            <p className="mt-1 text-xs font-semibold text-indigo-700">COD pending included</p>
           </div>
           <div className="rounded-lg border border-emerald-100 bg-emerald-50 p-3">
-            <p className="text-[10px] font-bold uppercase tracking-wide text-emerald-700">Confirmed Sales</p>
+            <p className="text-xs font-bold uppercase tracking-wide text-emerald-700">Confirmed Sales</p>
             <p className="mt-2 text-lg font-black text-slate-900">{formatMoney(adSummary.confirmedRevenue, adSummary.revenueCurrency)}</p>
-            <p className="mt-1 text-[10px] font-semibold text-emerald-700">{numberText(adSummary.confirmedPurchases)} confirmed</p>
+            <p className="mt-1 text-xs font-semibold text-emerald-700">{numberText(adSummary.confirmedPurchases)} confirmed</p>
           </div>
           <div className="rounded-lg border border-violet-100 bg-violet-50 p-3">
-            <p className="text-[10px] font-bold uppercase tracking-wide text-violet-700">Return</p>
+            <p className="text-xs font-bold uppercase tracking-wide text-violet-700">Return</p>
             <p className="mt-2 text-lg font-black text-slate-900">{adSummary.returnRate.toFixed(2)}x</p>
-            <p className="mt-1 text-[10px] font-semibold text-violet-700">confirmed only</p>
+            <p className="mt-1 text-xs font-semibold text-violet-700">confirmed only</p>
           </div>
           <div className="rounded-lg border border-amber-100 bg-amber-50 p-3">
-            <p className="text-[10px] font-bold uppercase tracking-wide text-amber-700">Cost/order</p>
+            <p className="text-xs font-bold uppercase tracking-wide text-amber-700">Cost/order</p>
             <p className="mt-2 text-lg font-black text-slate-900">{formatMoney(adSummary.costPerOrder, adSummary.spendCurrency)}</p>
-            <p className="mt-1 text-[10px] font-semibold text-amber-700">confirmed orders</p>
+            <p className="mt-1 text-xs font-semibold text-amber-700">confirmed orders</p>
           </div>
         </div>
       </div>
@@ -522,7 +530,7 @@ export function AnalyticsView({
       >
         {customerInsights.map((item) => (
           <div key={item.title} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-            <p className="text-[10px] font-bold uppercase tracking-wide text-slate-500">{item.title}</p>
+            <p className="text-xs font-bold uppercase tracking-wide text-slate-500">{item.title}</p>
             <p className="mt-2 text-lg font-black text-slate-900">{item.value}</p>
             <p className="mt-1 text-xs leading-normal text-slate-500">{item.note}</p>
           </div>
@@ -540,7 +548,7 @@ export function AnalyticsView({
             <MapPin className="h-5 w-5 text-indigo-500" />
           </div>
           <div className="space-y-3">
-            {topDistricts.length ? topDistricts.map((row: any) => (
+            {topDistricts.length ? topDistricts.map((row) => (
               <div key={row.label} className="space-y-1.5">
                 <div className="flex items-center justify-between text-xs">
                   <span className="font-bold text-slate-700 ">{row.label}</span>
@@ -554,7 +562,7 @@ export function AnalyticsView({
               <div className="py-10 text-center text-xs text-slate-400">Location data will appear after visitors start browsing your store.</div>
             )}
           </div>
-          <div className="mt-5 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[10px] leading-relaxed text-amber-800   ">
+          <div className="mt-5 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-relaxed text-amber-800   ">
             {analyticsAudience?.notice || 'City and district data is approximate and not 100% accurate.'}
           </div>
         </div>
@@ -568,7 +576,7 @@ export function AnalyticsView({
             <Smartphone className="h-5 w-5 text-emerald-500" />
           </div>
           <div className="space-y-3">
-            {deviceMix.length ? deviceMix.map((row: any) => (
+            {deviceMix.length ? deviceMix.map((row) => (
               <div key={row.label} className="space-y-1.5">
                 <div className="flex items-center justify-between text-xs">
                   <span className="font-bold text-slate-700 ">{row.label}</span>
@@ -590,7 +598,7 @@ export function AnalyticsView({
             <p className="text-xs text-slate-400 ">Browsers used by unique visitors.</p>
           </div>
           <div className="space-y-3">
-            {asArray(analyticsAudience?.browser_mix).length ? asArray(analyticsAudience?.browser_mix).map((row: any) => (
+            {asArray(analyticsAudience?.browser_mix).length ? asArray(analyticsAudience?.browser_mix).map((row) => (
               <div key={row.label} className="flex items-center justify-between border-b border-slate-100 pb-2 text-xs last:border-0 ">
                 <span className="font-bold text-slate-700 ">{row.label}</span>
                 <span className="font-mono text-slate-500 ">{numberText(row.count)} visitors - {Number(row.percentage || 0)}%</span>
@@ -618,7 +626,7 @@ export function AnalyticsView({
                 : 'Customer actions from product view to order, grouped by area.'}
             </p>
           </div>
-          <div className="inline-flex h-9 w-fit items-center rounded-lg border border-slate-200 bg-slate-50 p-1 text-[11px] font-bold  ">
+          <div className="inline-flex h-9 w-fit items-center rounded-lg border border-slate-200 bg-slate-50 p-1 text-xs font-bold  ">
             <button
               type="button"
               onClick={() => setDistrictFunnelMode('events')}
@@ -640,18 +648,18 @@ export function AnalyticsView({
             <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center text-xs text-slate-400">
               Location funnel data will appear after tracking starts.
             </div>
-          ) : districtFunnel.slice(0, 6).map((row: any) => (
+          ) : districtFunnel.slice(0, 6).map((row) => (
             <div key={row.district} className="rounded-lg border border-slate-200 bg-white p-3">
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <p className="font-bold text-indigo-700">{row.district}</p>
-                  <p className="mt-1 text-[11px] text-slate-400">
+                  <p className="mt-1 text-xs text-slate-400">
                     Seen {numberText(row.page_view)} | Cart {numberText(row.add_to_cart)} | Checkout {numberText(row.initiate_checkout)}
                   </p>
                 </div>
                 <div className="text-right">
                   <p className="text-sm font-bold text-slate-900">{numberText(row.purchase)}</p>
-                  <p className="text-[10px] font-semibold uppercase text-slate-400">Orders</p>
+                  <p className="text-xs font-semibold uppercase text-slate-400">Orders</p>
                 </div>
               </div>
               <p className="mt-2 text-right text-xs font-bold text-indigo-600">{formatMoney(row.revenue, row.currency)}</p>
@@ -660,7 +668,7 @@ export function AnalyticsView({
         </div>
         <div className="hidden overflow-x-auto md:block">
           <table className="w-full text-left text-xs text-slate-600 divide-y divide-slate-100 min-w-[680px]  ">
-            <thead className="bg-slate-50 text-[10px] font-bold uppercase tracking-wider text-slate-500  ">
+            <thead className="bg-slate-50 text-xs font-bold uppercase tracking-wider text-slate-500  ">
               <tr>
                 <th className="px-6 py-3">Area</th>
                 <th className="px-6 py-3">Product Seen</th>
@@ -677,7 +685,7 @@ export function AnalyticsView({
                     Location funnel data will appear after tracking starts.
                   </td>
                 </tr>
-              ) : districtFunnel.map((row: any) => (
+              ) : districtFunnel.map((row) => (
                 <tr key={row.district} className="hover:bg-slate-50/50  transition-colors">
                   <td className="px-6 py-3.5 font-bold text-indigo-700 ">{row.district}</td>
                   <td className="px-6 py-3.5 font-semibold">{numberText(row.page_view)}</td>
@@ -690,7 +698,7 @@ export function AnalyticsView({
             </tbody>
           </table>
         </div>
-        <p className="text-[10px] leading-relaxed text-slate-400 ">
+        <p className="text-xs leading-relaxed text-slate-400 ">
           Showing {districtFunnelUnit}. Repeated actions are removed.
         </p>
       </div>
@@ -718,9 +726,9 @@ export function AnalyticsView({
               {asArray(analyticsOverview?.funnel).length ? (
                 (() => {
                   const funnel = asArray(analyticsOverview?.funnel);
-                  const maxCount = Math.max(...funnel.map((f: any) => Number(f.count || 0)), 1);
+                  const maxCount = Math.max(...funnel.map((f) => Number(f.count || 0)), 1);
                   const funnelColors = ['bg-purple-500', 'bg-blue-500', 'bg-green-500', 'bg-amber-500', 'bg-emerald-500'];
-                  return funnel.map((step: any, i: number) => {
+                  return funnel.map((step, i: number) => {
                     const pctWidth = Math.max((Number(step.count || 0) / maxCount) * 100, 5);
                     return (
                       <div key={step.step} className="space-y-1.5">
@@ -728,7 +736,7 @@ export function AnalyticsView({
                           <span className="text-slate-500 flex items-center gap-1  font-mono">
                             {stepLabel(step.step)}
                             {i > 0 && step.drop_off > 0 && (
-                              <span className="text-rose-600 text-[10px] font-bold">
+                              <span className="text-rose-600 text-xs font-bold">
                                 Down {step.drop_off}%
                               </span>
                             )}
@@ -760,7 +768,7 @@ export function AnalyticsView({
               </div>
               {signalDoctor?.score !== undefined && (
                 <div className="px-3 py-1.5 rounded-xl border border-indigo-100 bg-indigo-50/50   text-right">
-                  <span className="block text-[8px] font-bold text-[#5e5bfe] uppercase tracking-widest leading-none">Quality Score</span>
+                  <span className="block text-xs font-bold text-[#5e5bfe] uppercase tracking-widest leading-none">Quality Score</span>
                   <span className="text-lg font-black text-slate-800  font-mono leading-none">{signalDoctor.score}%</span>
                 </div>
               )}
@@ -814,7 +822,7 @@ export function AnalyticsView({
 
           <div className="mt-4 space-y-3 overflow-y-auto max-h-96 pr-1">
               {asArray(signalDoctor?.issues).length ? (
-              asArray(signalDoctor?.issues).map((issue: any, idx: number) => (
+              asArray(signalDoctor?.issues).map((issue, idx: number) => (
                 <div key={idx} className={`p-3 rounded-lg border text-xs ${
                   issue.severity === 'critical' || issue.severity === 'high' ? 'bg-rose-50/50 border-rose-200 text-rose-800   ' :
                   issue.severity === 'medium' ? 'bg-amber-50/50 border-amber-200 text-amber-800   ' :
@@ -827,21 +835,21 @@ export function AnalyticsView({
                      <CheckCircle className="w-4 h-4 shrink-0 text-emerald-500 mt-0.5" />}
                     <div className="min-w-0 flex-1 space-y-2">
                       <div className="flex flex-wrap items-center gap-2">
-                        <h4 className="font-bold text-[11px] leading-tight">{issue.title}</h4>
-                        <span className="rounded bg-white/60 px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wide">
+                        <h4 className="font-bold text-xs leading-tight">{issue.title}</h4>
+                        <span className="rounded bg-white/60 px-1.5 py-0.5 text-xs font-bold uppercase tracking-wide">
                           {issueLevel(issue.severity)}
                         </span>
                       </div>
                       <div className="space-y-1">
-                        <p className="text-[9px] font-bold uppercase tracking-wide opacity-70">Why it matters</p>
-                        <p className="text-[10px] leading-normal opacity-90">{issue.impact}</p>
+                        <p className="text-xs font-bold uppercase tracking-wide opacity-70">Why it matters</p>
+                        <p className="text-xs leading-normal opacity-90">{issue.impact}</p>
                       </div>
                       <div className="rounded border border-black/5 bg-white/50 p-2">
-                        <p className="text-[9px] font-bold uppercase tracking-wide opacity-70">Fix</p>
-                        <p className="mt-1 text-[10px] leading-normal">{issue.fix}</p>
+                        <p className="text-xs font-bold uppercase tracking-wide opacity-70">Fix</p>
+                        <p className="mt-1 text-xs leading-normal">{issue.fix}</p>
                       </div>
                       {issue.metric && (
-                        <p className="font-mono text-[9px] opacity-60">Check: {issue.metric}</p>
+                        <p className="font-mono text-xs opacity-60">Check: {issue.metric}</p>
                       )}
                     </div>
                   </div>
@@ -864,7 +872,7 @@ export function AnalyticsView({
             <h3 className="text-lg font-bold text-slate-900">Ad Results</h3>
             <p className="text-xs text-slate-500">See ad cost, new orders, confirmed sales, and return in one place.</p>
             {adPerformanceMeta?.last_synced_at && (
-              <p className="mt-1 text-[10px] font-semibold text-slate-400">
+              <p className="mt-1 text-xs font-semibold text-slate-400">
                 Last synced: {new Date(adPerformanceMeta.last_synced_at).toLocaleString()}
               </p>
             )}
@@ -894,7 +902,7 @@ export function AnalyticsView({
 
         <div className="grid grid-cols-1 gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3 md:grid-cols-[minmax(0,1fr)_220px_auto] md:items-end">
           <div>
-            <label htmlFor="ad-results-search" className="mb-1 block text-[10px] font-bold uppercase tracking-wide text-slate-500">Find campaign</label>
+            <label htmlFor="ad-results-search" className="mb-1 block text-xs font-bold uppercase tracking-wide text-slate-500">Find campaign</label>
             <input
               id="ad-results-search"
               type="search"
@@ -905,7 +913,7 @@ export function AnalyticsView({
             />
           </div>
           <div>
-            <label htmlFor="ad-results-sort" className="mb-1 block text-[10px] font-bold uppercase tracking-wide text-slate-500">Sort by</label>
+            <label htmlFor="ad-results-sort" className="mb-1 block text-xs font-bold uppercase tracking-wide text-slate-500">Sort by</label>
             <select
               id="ad-results-sort"
               value={adSort}
@@ -935,14 +943,14 @@ export function AnalyticsView({
           <div className="space-y-1">
             <div className="flex flex-wrap items-center gap-2">
               <p className="font-bold text-indigo-700">New Orders</p>
-              <span className="rounded bg-white px-1.5 py-0.5 text-[9px] font-bold uppercase text-indigo-700">COD pending included</span>
+              <span className="rounded bg-white px-1.5 py-0.5 text-xs font-bold uppercase text-indigo-700">COD pending included</span>
             </div>
             <p className="leading-normal">Results from all orders placed, including pending COD orders.</p>
           </div>
           <div className="space-y-1 border-t md:border-t-0 md:border-l border-slate-200/60 pt-3 md:pt-0 md:pl-4">
             <div className="flex flex-wrap items-center gap-2">
               <p className="font-bold text-indigo-700">Confirmed Sales</p>
-              <span className="rounded bg-white px-1.5 py-0.5 text-[9px] font-bold uppercase text-emerald-700">confirmed only</span>
+              <span className="rounded bg-white px-1.5 py-0.5 text-xs font-bold uppercase text-emerald-700">confirmed only</span>
             </div>
             <p className="leading-normal">Results from confirmed or delivered orders after cancelled orders are removed.</p>
           </div>
@@ -973,48 +981,48 @@ export function AnalyticsView({
             <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center text-xs text-slate-400">
               No campaign matched your search.
             </div>
-          ) : filteredAdPerformance.map((row: any, idx: number) => {
+          ) : filteredAdPerformance.map((row, idx: number) => {
             const status = getAdStatus(row);
             return (
             <div key={idx} className="rounded-lg border border-slate-200 bg-white p-3 space-y-2.5">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <div className="mb-1 flex flex-wrap gap-1">
-                    <span className={`inline-flex px-1.5 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider ${
+                    <span className={`inline-flex px-1.5 py-0.5 rounded text-xs font-bold uppercase tracking-wider ${
                       row.platform === 'meta' ? 'bg-blue-50 text-blue-700 border border-blue-200' : 'bg-slate-900 text-white'
                     }`}>
                       {row.platform}
                     </span>
-                    <span className={`inline-flex rounded border px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider ${status.className}`}>
+                    <span className={`inline-flex rounded border px-1.5 py-0.5 text-xs font-bold uppercase tracking-wider ${status.className}`}>
                       {status.label}
                     </span>
                   </div>
                   <p className="font-bold text-slate-800 text-xs truncate">{row.campaign_name}</p>
-                  <p className="font-mono text-[9px] text-slate-400 truncate">ID: {row.campaign_id}</p>
+                  <p className="font-mono text-xs text-slate-400 truncate">ID: {row.campaign_id}</p>
                 </div>
                 <div className="text-right shrink-0">
                   <p className="text-xs font-black text-slate-900">{formatMoney(row.spend, row.spend_currency)}</p>
-                  <p className="text-[9px] uppercase tracking-wider text-slate-400 font-bold">Spend</p>
+                  <p className="text-xs uppercase tracking-wider text-slate-400 font-bold">Spend</p>
                 </div>
               </div>
               
-              <div className="grid grid-cols-2 gap-2 bg-slate-50 p-2 rounded text-[11px] font-semibold text-slate-600">
+              <div className="grid grid-cols-2 gap-2 bg-slate-50 p-2 rounded text-xs font-semibold text-slate-600">
                 <div>
-                  <span className="block text-[8px] uppercase tracking-wider text-slate-400 font-bold">New Orders</span>
+                  <span className="block text-xs uppercase tracking-wider text-slate-400 font-bold">New Orders</span>
                   <span className="text-indigo-600 font-black">{row.placed_roas}x return</span> | {formatMoney(row.placed_cpa, row.spend_currency)} per order
-                  <span className="mt-0.5 block text-[9px] text-slate-400">
+                  <span className="mt-0.5 block text-xs text-slate-400">
                     {numberText(row.pending_purchases)} pending, {numberText(row.cancelled_purchases)} cancelled/expired
                   </span>
                 </div>
                 <div>
-                  <span className="block text-[8px] uppercase tracking-wider text-slate-400 font-bold">Confirmed Sales</span>
+                  <span className="block text-xs uppercase tracking-wider text-slate-400 font-bold">Confirmed Sales</span>
                   <span className="text-emerald-600 font-black">{row.confirmed_roas}x return</span> | {formatMoney(row.confirmed_cpa, row.spend_currency)} per order
                 </div>
               </div>
 
-              <div className="flex items-center justify-between text-[10px] text-slate-500 pt-1">
+              <div className="flex items-center justify-between text-xs text-slate-500 pt-1">
                 <span>Clicks: {row.clicks} (click rate: {row.ctr}%)</span>
-                <span className="bg-emerald-50 text-emerald-700 border border-emerald-100 rounded px-1.5 py-0.5 font-bold uppercase text-[8px]">
+                <span className="bg-emerald-50 text-emerald-700 border border-emerald-100 rounded px-1.5 py-0.5 font-bold uppercase text-xs">
                   Extra Tracking: +{row.tracking_bypass_rate}%
                 </span>
               </div>
@@ -1025,7 +1033,7 @@ export function AnalyticsView({
         {/* Desktop View */}
         <div className="hidden max-h-[620px] overflow-auto rounded-lg border border-slate-200 md:block">
           <table className="w-full min-w-[1100px] divide-y divide-slate-100 text-left text-sm text-slate-600">
-            <thead className="sticky top-0 z-20 bg-slate-50 text-[10px] font-bold uppercase tracking-wider text-slate-500 border-b border-slate-200">
+            <thead className="sticky top-0 z-20 bg-slate-50 text-xs font-bold uppercase tracking-wider text-slate-500 border-b border-slate-200">
               <tr>
                 <th className="sticky left-0 z-30 bg-slate-50 px-4 py-3">Campaign</th>
                 <th className="px-4 py-3">Cost & Clicks</th>
@@ -1064,26 +1072,26 @@ export function AnalyticsView({
                   </td>
                 </tr>
               ) : (
-                filteredAdPerformance.map((row: any, idx: number) => {
+                filteredAdPerformance.map((row, idx: number) => {
                   const status = getAdStatus(row);
                   return (
                   <tr key={idx} className="hover:bg-slate-50/50 transition-colors">
                     <td className="sticky left-0 z-10 max-w-[280px] bg-white px-4 py-3.5 align-middle shadow-[1px_0_0_0_rgba(226,232,240,1)]">
                       <div className="flex flex-col gap-1 min-w-0">
                         <div className="flex flex-wrap gap-1">
-                          <span className={`w-fit px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider ${
+                          <span className={`w-fit px-1.5 py-0.5 rounded text-xs font-black uppercase tracking-wider ${
                             row.platform === 'meta' ? 'bg-blue-50 text-blue-700 border border-blue-200' : 'bg-slate-900 text-white'
                           }`}>
                             {row.platform}
                           </span>
-                          <span className={`w-fit rounded border px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wider ${status.className}`}>
+                          <span className={`w-fit rounded border px-1.5 py-0.5 text-xs font-black uppercase tracking-wider ${status.className}`}>
                             {status.label}
                           </span>
                         </div>
                         <span className="font-bold text-slate-800 truncate" title={row.campaign_name}>
                           {row.campaign_name}
                         </span>
-                        <span className="font-mono text-[9px] text-slate-400 truncate">
+                        <span className="font-mono text-xs text-slate-400 truncate">
                           ID: {row.campaign_id}
                         </span>
                       </div>
@@ -1091,34 +1099,34 @@ export function AnalyticsView({
                     <td className="px-4 py-3.5 align-middle">
                       <div className="flex flex-col">
                         <span className="font-black text-slate-800">{formatMoney(row.spend, row.spend_currency)}</span>
-                        <span className="text-slate-500 text-[10px]">{numberText(row.clicks)} clicks | {numberText(row.impressions)} views</span>
+                        <span className="text-slate-500 text-xs">{numberText(row.clicks)} clicks | {numberText(row.impressions)} views</span>
                       </div>
                     </td>
                     <td className="px-4 py-3.5 align-middle">
                       <div className="flex flex-col">
                         <span className="font-bold text-slate-800">{row.ctr}% click rate</span>
-                        <span className="text-slate-400 text-[10px]">{formatMoney(row.cpc, row.spend_currency)} per click</span>
+                        <span className="text-slate-400 text-xs">{formatMoney(row.cpc, row.spend_currency)} per click</span>
                       </div>
                     </td>
                     <td className="px-4 py-3.5 align-middle bg-slate-50/30">
                       <div className="flex flex-col">
                         <span className="font-black text-indigo-600">{row.placed_roas}x return</span>
-                        <span className="text-slate-600 text-[10px]">{row.placed_purchases} Orders ({formatMoney(row.placed_revenue, row.revenue_currency)})</span>
-                        <span className="text-slate-400 text-[9px]">{numberText(row.pending_purchases)} pending, {numberText(row.cancelled_purchases)} cancelled/expired</span>
-                        <span className="text-slate-400 text-[9px]">Cost/order: {formatMoney(row.placed_cpa, row.spend_currency)}</span>
+                        <span className="text-slate-600 text-xs">{row.placed_purchases} Orders ({formatMoney(row.placed_revenue, row.revenue_currency)})</span>
+                        <span className="text-slate-400 text-xs">{numberText(row.pending_purchases)} pending, {numberText(row.cancelled_purchases)} cancelled/expired</span>
+                        <span className="text-slate-400 text-xs">Cost/order: {formatMoney(row.placed_cpa, row.spend_currency)}</span>
                       </div>
                     </td>
                     <td className="px-4 py-3.5 align-middle bg-emerald-50/10">
                       <div className="flex flex-col">
                         <span className="font-black text-emerald-600">{row.confirmed_roas}x return</span>
-                        <span className="text-slate-600 text-[10px]">{row.confirmed_purchases} Confirmed ({formatMoney(row.confirmed_revenue, row.revenue_currency)})</span>
-                        <span className="text-slate-400 text-[9px]">Cost/order: {formatMoney(row.confirmed_cpa, row.spend_currency)}</span>
+                        <span className="text-slate-600 text-xs">{row.confirmed_purchases} Confirmed ({formatMoney(row.confirmed_revenue, row.revenue_currency)})</span>
+                        <span className="text-slate-400 text-xs">Cost/order: {formatMoney(row.confirmed_cpa, row.spend_currency)}</span>
                       </div>
                     </td>
                     <td className="px-4 py-3.5 align-middle text-right">
                       <div className="flex flex-col items-end gap-1">
                         <span className="font-black text-slate-800">+{row.tracking_bypass_rate}%</span>
-                        <span className="rounded bg-emerald-50 px-1 py-0.5 text-[9px] font-bold uppercase text-emerald-700 tracking-wider">
+                        <span className="rounded bg-emerald-50 px-1 py-0.5 text-xs font-bold uppercase text-emerald-700 tracking-wider">
                           data found
                         </span>
                       </div>
@@ -1143,19 +1151,19 @@ export function AnalyticsView({
             <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center text-xs text-slate-400">
               No sales source data yet. Create a sales link below to start tracking.
             </div>
-          ) : analyticsCampaigns.campaigns.slice(0, 6).map((row: any, idx: number) => (
+          ) : analyticsCampaigns.campaigns.slice(0, 6).map((row, idx: number) => (
             <div key={idx} className="rounded-lg border border-slate-200 bg-white p-3">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <p className="font-bold text-indigo-700">{row.source}</p>
-                  <p className="mt-1 truncate font-mono text-[11px] text-slate-500">{row.campaign}</p>
+                  <p className="mt-1 truncate font-mono text-xs text-slate-500">{row.campaign}</p>
                 </div>
                 <div className="text-right">
                   <p className="text-sm font-bold text-slate-900">{numberText(row.purchase)}</p>
-                  <p className="text-[10px] font-semibold uppercase text-slate-400">Purchases</p>
+                  <p className="text-xs font-semibold uppercase text-slate-400">Purchases</p>
                 </div>
               </div>
-              <p className="mt-2 text-[11px] text-slate-400">
+              <p className="mt-2 text-xs text-slate-400">
                 Seen {numberText(row.view_content)} | Cart {numberText(row.add_to_cart)} | Checkout {numberText(row.initiate_checkout)}
               </p>
               <p className="mt-2 text-right text-xs font-bold text-indigo-600">BDT {numberText(row.revenue)}</p>
@@ -1164,7 +1172,7 @@ export function AnalyticsView({
         </div>
         <div className="hidden overflow-x-auto md:block">
           <table className="w-full text-left text-xs text-slate-600 divide-y divide-slate-100 min-w-[700px]  ">
-            <thead className="bg-slate-50 text-[10px] font-bold uppercase tracking-wider text-slate-500  ">
+            <thead className="bg-slate-50 text-xs font-bold uppercase tracking-wider text-slate-500  ">
               <tr>
                 <th className="px-6 py-3">Ad Place</th>
                 <th className="px-6 py-3">Campaign Name</th>
@@ -1183,7 +1191,7 @@ export function AnalyticsView({
                   </td>
                 </tr>
               ) : (
-                analyticsCampaigns.campaigns.map((row: any, idx: number) => (
+                analyticsCampaigns.campaigns.map((row, idx: number) => (
                   <tr key={idx} className="hover:bg-slate-50/50  transition-colors">
                     <td className="px-6 py-3.5 font-bold text-indigo-700 ">{row.source}</td>
                     <td className="px-6 py-3.5 font-mono text-slate-800 ">{row.campaign}</td>
