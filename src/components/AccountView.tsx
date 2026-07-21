@@ -817,7 +817,7 @@ export function AccountView({
                     আপনার রেফারেন্স আইডিটি ৫ মিনিটের মধ্যে অটোমেটিক খুঁজে পাওয়া যায়নি। আপনি যদি পেমেন্ট সম্পন্ন করে থাকেন, তবে নিচে আপনার ট্রান্সেকশন হ্যাশ (TrxID / TxID) বসিয়ে <strong>Continue (কন্টিনিউ)</strong> চাপুন।
                   </p>
                   <div className="mx-auto mt-4 max-w-sm rounded-xl border bg-white px-4 py-3 text-xs text-slate-500" style={{ borderColor: `${paymentBrand.primary}33` }}>
-                    রেফারেন্স আইডি (Refer ID): <span className="font-mono font-bold text-slate-700">{paymentIntent.paymentReference || paymentIntent.reference}</span>
+                    রেফারেন্স আইডি (Refer ID): <span className="font-mono font-bold text-slate-700">{paymentIntent.paymentReference || 'N/A'}</span>
                   </div>
                   <div className="mx-auto mt-4 max-w-sm text-left">
                     <label htmlFor="expired-payment-trxid" className="mb-2 block text-xs font-bold uppercase tracking-wide text-slate-600">Transaction Hash / TrxID</label>
@@ -858,9 +858,9 @@ export function AccountView({
                         <p className="relative mt-3 font-mono text-2xl font-black tracking-[0.07em] text-white sm:mt-5 sm:text-4xl sm:tracking-[0.09em]">{paymentIntent.receivingPhone}</p>
                         <div className="relative mt-3 rounded-lg border border-white/30 bg-white/20 px-3.5 py-2.5 text-xs leading-relaxed text-white sm:mt-4">
                           <span className="block text-[11px] font-bold uppercase tracking-wider text-white/80">রেফারেন্স আইডি (Refer ID)</span>
-                          <span className="font-mono text-xl font-black tracking-wider text-white">{paymentIntent.paymentReference || paymentIntent.reference}</span>
+                          <span className="font-mono text-2xl font-black tracking-wider text-white">{paymentIntent.paymentReference || 'N/A'}</span>
                           <p className="mt-1 text-[11px] text-white/90">
-                            <strong>জরুরি নির্দেশাবলি:</strong> {paymentBrand.name} দিয়ে সেন্ড মানি/পেমেন্ট করার সময় <strong>Reference</strong> ফিল্ডে অবশ্যই এই রেফার আইডিটি বসাবেন।
+                            <strong>জরুরি নির্দেশাবলি:</strong> {paymentBrand.name} দিয়ে সেন্ড মানি/পেমেন্ট করার সময় <strong>Reference</strong> ফিল্ডে অবশ্যই এই ১-১০০ এর রেফার আইডিটি বসাবেন।
                           </p>
                         </div>
                         <div className="relative mt-3 grid grid-cols-3 items-start rounded-lg border border-white/30 bg-white px-2 py-2 text-center text-xs font-bold uppercase tracking-wide shadow-sm sm:mt-5 sm:rounded-xl sm:px-3 sm:py-3 sm:text-xs" style={{ color: paymentBrand.text }}>
@@ -899,7 +899,7 @@ export function AccountView({
                     </div>
                   </div>
                   <div className="flex items-center justify-center gap-2 text-xs text-slate-400">
-                    <span>Reference code: {paymentIntent.paymentReference || paymentIntent.reference}</span>
+                    <span>Reference code: {paymentIntent.paymentReference || 'N/A'}</span>
                     <button type="button" onClick={() => navigator.clipboard.writeText(paymentIntent.paymentReference || paymentIntent.reference)} className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700" aria-label="Copy payment reference"><Copy className="h-3 w-3" /></button>
                   </div>
                 </>
