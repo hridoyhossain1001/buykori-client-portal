@@ -34,7 +34,7 @@
       "destination": "/index.html"
     },
     {
-      "source": "/order-success/:orderId",
+      "source": "/order-success/:path*",
       "destination": "/index.html"
     },
     {

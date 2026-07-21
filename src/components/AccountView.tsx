@@ -170,11 +170,7 @@ export function AccountView({
           ? `Your ${PLAN_PRICING[intent.planTier as 'growth' | 'scale']?.label || 'paid plan'} is now active.`
           : 'Your payment matched successfully. We will activate your plan after a quick review.',
     });
-    if (autoRedirect) {
-      window.setTimeout(() => {
-        window.location.assign(`/order-success/${encodeURIComponent(intent.reference)}`);
-      }, 1400);
-    }
+    setPaymentIntent(null);
   };
 
   const applyPaymentStatus = (intent: PaymentIntent, showStatusToast = false, autoRedirect = false) => {
