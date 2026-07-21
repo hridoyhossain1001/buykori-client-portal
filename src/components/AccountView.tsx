@@ -11,6 +11,7 @@ const PLAN_PRICING = Object.freeze({
 
 type PaymentIntent = {
   reference: string;
+  paymentReference?: string | null;
   planTier: string;
   baseAmount: string;
   feeRatePercent: string;
@@ -128,7 +129,6 @@ export function AccountView({
     ? { name: 'bKash', primary: '#E2136E', secondary: '#A90052', soft: '#FFF1F7', text: '#9D174D' }
     : { name: 'Nagad', primary: '#D8292F', secondary: '#F37021', soft: '#FFF4ED', text: '#9A3412' };
   const paymentExpired = !!paymentIntent && new Date(paymentIntent.expiresAt).getTime() <= Date.now();
-  const paymentAmountMismatch = paymentIntent?.status === 'underpaid';
   const currentPlanLower = String(profile.plan || '').toLowerCase();
   const isGrowth = currentPlanLower.includes('growth');
   const isScale = currentPlanLower.includes('scale');
@@ -165,7 +165,7 @@ export function AccountView({
         : isOverpaid
         ? `${isTest ? 'Your payment test passed' : `Your ${PLAN_PRICING[intent.planTier as 'growth' | 'scale']?.label || 'paid plan'} is now active`}. BDT ${intent.refundAmount || '0.00'} extra can be requested as a refund.`
         : isTest
-        ? 'The SMS, sender number, amount, and TrxID matched correctly. Your current plan was not changed.'
+        ? 'The payment reference, sender number, and amount matched correctly. Your current plan was not changed.'
         : isApproved
           ? `Your ${PLAN_PRICING[intent.planTier as 'growth' | 'scale']?.label || 'paid plan'} is now active.`
           : 'Your payment matched successfully. We will activate your plan after a quick review.',
@@ -183,10 +183,8 @@ export function AccountView({
       return;
     }
     setPaymentIntent(intent);
-    if (['underpaid', 'overpaid'].includes(intent.status)) {
-      setPaymentFeedback(intent.statusMessage || 'The received amount does not match the exact payment amount. Start a new payment and send the exact amount.');
-    } else if (intent.status === 'pending') {
-      setPaymentFeedback('TrxID received. Waiting for the payment SMS to reach our server...');
+    if (intent.status === 'pending') {
+      setPaymentFeedback('Waiting for your payment SMS. We will verify it automatically.');
     } else {
       setPaymentFeedback(`Payment status: ${intent.status.replaceAll('_', ' ')}.`);
     }
@@ -278,25 +276,6 @@ export function AccountView({
     }
   };
 
-  const submitPayment = async () => {
-    if (!paymentIntent) return;
-    setPaymentBusy(true);
-    try {
-      const response = await fetch(`/api/payments/intents/${encodeURIComponent(paymentIntent.reference)}/submit`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ trxId: paymentTrxId }),
-      });
-      if (!response.ok) throw new Error(await readApiError(response));
-      const payload = await response.json();
-      applyPaymentStatus(payload.payment);
-    } catch (error) {
-      showToast(error instanceof Error ? error.message : 'Could not submit transaction.', true);
-    } finally {
-      setPaymentBusy(false);
-    }
-  };
-
   const submitExpiredPaymentForReview = async () => {
     if (!paymentIntent || paymentTrxId.trim().length < 6) return;
     setPaymentBusy(true);
@@ -311,17 +290,6 @@ export function AccountView({
       applyPaymentStatus(payload.payment, true);
     } catch (error) {
       showToast(error instanceof Error ? error.message : 'Could not submit the payment for review.', true);
-    } finally {
-      setPaymentBusy(false);
-    }
-  };
-
-  const checkPayment = async () => {
-    setPaymentBusy(true);
-    try {
-      await loadPaymentStatus(true);
-    } catch (error) {
-      showToast(error instanceof Error ? error.message : 'Could not check payment status.', true);
     } finally {
       setPaymentBusy(false);
     }
@@ -770,7 +738,7 @@ export function AccountView({
                 {paymentIntent && (
                   <div
                     className="flex h-12 w-12 items-center justify-center rounded-full p-1 shadow-[0_0_24px_rgba(139,92,246,.35)] sm:h-16 sm:w-16"
-                    style={{ background: paymentExpired ? '#e2e8f0' : `conic-gradient(${paymentBrand.primary} ${Math.min(100, (paymentSecondsLeft / 600) * 100)}%, #e2e8f0 0)`, boxShadow: `0 0 22px ${paymentBrand.soft}` }}
+                    style={{ background: paymentExpired ? '#e2e8f0' : `conic-gradient(${paymentBrand.primary} ${Math.min(100, (paymentSecondsLeft / 300) * 100)}%, #e2e8f0 0)`, boxShadow: `0 0 22px ${paymentBrand.soft}` }}
                   >
                     <div className={`flex h-full w-full items-center justify-center rounded-full border border-slate-200 bg-white font-mono font-black ${paymentExpired ? 'text-xs uppercase tracking-wide text-rose-600 sm:text-xs' : 'text-xs text-slate-900 sm:text-base'}`}>
                       {paymentExpired ? 'Expired' : `${String(Math.floor(paymentSecondsLeft / 60)).padStart(2, '0')}:${String(paymentSecondsLeft % 60).padStart(2, '0')}`}
@@ -844,16 +812,18 @@ export function AccountView({
                     <Clock3 className="h-8 w-8" />
                   </div>
                   <p className="mt-4 text-xs font-black uppercase tracking-[0.18em] text-rose-600">Payment session expired</p>
-                  <h4 className="mt-2 text-xl font-black text-slate-900">Your 10-minute payment time has ended</h4>
-                  <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-slate-600">This automatic payment window has ended. Enter your TrxID below to send the payment for manual review, or start a new payment.</p>
+                  <h4 className="mt-2 text-xl font-black text-slate-900">Your 5-minute payment window ended</h4>
+                  <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-slate-600">
+                    আপনার রেফারেন্স আইডিটি ৫ মিনিটের মধ্যে অটোমেটিক খুঁজে পাওয়া যায়নি। আপনি যদি পেমেন্ট সম্পন্ন করে থাকেন, তবে নিচে আপনার ট্রান্সেকশন হ্যাশ (TrxID / TxID) বসিয়ে <strong>Continue (কন্টিনিউ)</strong> চাপুন।
+                  </p>
                   <div className="mx-auto mt-4 max-w-sm rounded-xl border bg-white px-4 py-3 text-xs text-slate-500" style={{ borderColor: `${paymentBrand.primary}33` }}>
-                    Expired reference: <span className="font-mono font-bold text-slate-700">{paymentIntent.reference}</span>
+                    রেফারেন্স আইডি (Refer ID): <span className="font-mono font-bold text-slate-700">{paymentIntent.paymentReference || paymentIntent.reference}</span>
                   </div>
                   <div className="mx-auto mt-4 max-w-sm text-left">
-                    <label htmlFor="expired-payment-trxid" className="mb-2 block text-xs font-bold uppercase tracking-wide text-slate-600">Transaction ID (TrxID)</label>
+                    <label htmlFor="expired-payment-trxid" className="mb-2 block text-xs font-bold uppercase tracking-wide text-slate-600">Transaction Hash / TrxID</label>
                     <input id="expired-payment-trxid" value={paymentTrxId} onChange={(event) => setPaymentTrxId(event.target.value.toUpperCase())} placeholder="Example: DG765H4K9Q" className="w-full rounded-xl border bg-white px-4 py-3 font-mono text-sm uppercase text-slate-900 outline-none placeholder:text-slate-400 focus:ring-2" style={{ borderColor: `${paymentBrand.primary}66` }} />
                     <button type="button" disabled={paymentBusy || paymentTrxId.trim().length < 6} onClick={submitExpiredPaymentForReview} className="mt-3 w-full rounded-xl px-4 py-3 text-sm font-bold text-white transition disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400" style={paymentBusy || paymentTrxId.trim().length < 6 ? undefined : { background: `linear-gradient(90deg, ${paymentBrand.primary}, ${paymentBrand.secondary})` }}>
-                      {paymentBusy ? 'Sending for review...' : 'Submit TrxID for review'}
+                      {paymentBusy ? 'Submitting...' : 'Continue / কন্টিনিউ'}
                     </button>
                   </div>
                   <button
@@ -886,8 +856,12 @@ export function AccountView({
                           <button type="button" onClick={() => navigator.clipboard.writeText(paymentIntent.receivingPhone)} className="relative flex items-center gap-1 rounded-lg border border-white/60 bg-white px-2.5 py-2 text-xs font-bold shadow-sm transition hover:-translate-y-0.5 hover:bg-slate-50 sm:rounded-xl sm:px-3.5 sm:py-2.5 sm:text-xs" style={{ color: paymentBrand.text }}><Copy className="h-3.5 w-3.5" /> Copy</button>
                         </div>
                         <p className="relative mt-3 font-mono text-2xl font-black tracking-[0.07em] text-white sm:mt-5 sm:text-4xl sm:tracking-[0.09em]">{paymentIntent.receivingPhone}</p>
-                        <div className="relative mt-3 rounded-lg border border-white/30 bg-white/15 px-3 py-2 text-xs leading-relaxed text-white/90 sm:mt-4">
-                          Enter this payment reference in the bKash/Nagad <strong>Reference</strong> field: <span className="font-mono font-black tracking-wide">{paymentIntent.reference}</span>
+                        <div className="relative mt-3 rounded-lg border border-white/30 bg-white/20 px-3.5 py-2.5 text-xs leading-relaxed text-white sm:mt-4">
+                          <span className="block text-[11px] font-bold uppercase tracking-wider text-white/80">রেফারেন্স আইডি (Refer ID)</span>
+                          <span className="font-mono text-xl font-black tracking-wider text-white">{paymentIntent.paymentReference || paymentIntent.reference}</span>
+                          <p className="mt-1 text-[11px] text-white/90">
+                            <strong>জরুরি নির্দেশাবলি:</strong> {paymentBrand.name} দিয়ে সেন্ড মানি/পেমেন্ট করার সময় <strong>Reference</strong> ফিল্ডে অবশ্যই এই রেফার আইডিটি বসাবেন।
+                          </p>
                         </div>
                         <div className="relative mt-3 grid grid-cols-3 items-start rounded-lg border border-white/30 bg-white px-2 py-2 text-center text-xs font-bold uppercase tracking-wide shadow-sm sm:mt-5 sm:rounded-xl sm:px-3 sm:py-3 sm:text-xs" style={{ color: paymentBrand.text }}>
                           <span className="absolute left-[17%] right-[17%] top-[14px] h-0.5 rounded-full sm:top-[18px]" style={{ background: paymentBrand.primary }} />
@@ -906,39 +880,27 @@ export function AccountView({
                       </div>
 
                     <div className="flex flex-col rounded-xl border border-slate-200 bg-white p-3.5 shadow-sm sm:p-4">
-                      <label className="block">
-                        <span className="mb-2 block text-xs font-bold uppercase tracking-wide text-slate-600">Transaction ID (TrxID)</span>
-                        <input value={paymentTrxId} onChange={(event) => setPaymentTrxId(event.target.value.toUpperCase())} placeholder="Example: DG765H4K9Q" className="w-full rounded-xl border bg-white px-4 py-3 font-mono text-sm uppercase text-slate-900 outline-none placeholder:text-slate-400 focus:ring-2" style={{ borderColor: `${paymentBrand.primary}66`, boxShadow: paymentTrxId ? `0 0 0 2px ${paymentBrand.soft}` : undefined }} />
-                      </label>
+                      <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-600">Automatic verification</p>
+                      <p className="mt-2 text-sm font-semibold leading-relaxed text-slate-800">Send the exact amount from your entered number and include the reference above. No TrxID is needed right now.</p>
                       <div className="mt-3 flex items-center gap-2 rounded-lg border px-3 py-2 text-xs leading-relaxed" style={{ borderColor: `${paymentBrand.primary}33`, background: paymentBrand.soft, color: paymentBrand.text }}>
                         <Clock3 className={`h-4 w-4 shrink-0 ${paymentSecondsLeft <= 120 ? 'text-rose-600' : ''}`} style={paymentSecondsLeft > 120 ? { color: paymentBrand.primary } : undefined} />
-                        Finish within the timer. Cash In payments need a quick manual review.
+                        We check automatically every 3 seconds for up to 5 minutes.
                       </div>
                       {paymentFeedback && (
-                        <div className={`mt-3 flex items-start gap-2 rounded-lg border px-3 py-2.5 text-xs font-semibold leading-relaxed ${paymentAmountMismatch ? 'border-rose-300 bg-rose-50 text-rose-700 shadow-sm' : 'border-blue-200 bg-blue-50 text-blue-700'}`}>
-                          {paymentAmountMismatch
-                            ? <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0" />
-                            : <Loader2 className="mt-0.5 h-4 w-4 shrink-0 animate-spin" />}
-                          <span>{paymentFeedback}{paymentIntent.status === 'pending' ? ' We will check automatically.' : ''}</span>
+                        <div className="mt-3 flex items-start gap-2 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2.5 text-xs font-semibold leading-relaxed text-blue-700">
+                          <Loader2 className="mt-0.5 h-4 w-4 shrink-0 animate-spin" />
+                          <span>{paymentFeedback}</span>
                         </div>
                       )}
                       <div className="mt-auto pt-4">
-                        <button type="button" disabled={paymentBusy || (!paymentAmountMismatch && paymentTrxId.trim().length < 6)} onClick={paymentAmountMismatch ? () => { setPaymentTrxId(''); setPaymentFeedback(''); void createPayment(); } : submitPayment} className="w-full rounded-xl border px-4 py-3 text-sm font-bold text-white disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400" style={paymentBusy || (!paymentAmountMismatch && paymentTrxId.trim().length < 6) ? undefined : { borderColor: paymentBrand.primary, background: `linear-gradient(90deg, ${paymentBrand.primary}, ${paymentBrand.secondary})`, boxShadow: `0 8px 22px ${paymentBrand.primary}33` }}>
-                          {paymentBusy ? 'Checking payment...' : paymentAmountMismatch ? 'Start a new payment' : paymentIntent.trxId ? 'Check payment again' : paymentTrxId.trim().length < 6 ? 'Enter TrxID to continue' : 'I have paid - check payment'}
-                        </button>
                         <button type="button" onClick={() => setPaymentIntent(null)} className="mt-2 w-full rounded-xl border border-slate-200 px-4 py-2.5 text-xs font-bold text-slate-600 hover:bg-slate-50 hover:text-slate-900">Change payment details</button>
                       </div>
                     </div>
                     </div>
                   </div>
-                  {paymentIntent.trxId && (
-                    <button type="button" disabled={paymentBusy} onClick={checkPayment} className={`w-full rounded-xl border px-4 py-2.5 text-xs font-bold disabled:opacity-50 ${paymentIntent.status === 'approved_overpaid' ? 'border-emerald-300 bg-emerald-50 text-emerald-700 hover:bg-emerald-100' : 'bg-white hover:bg-slate-50'}`} style={paymentIntent.status === 'approved_overpaid' ? undefined : { borderColor: `${paymentBrand.primary}44`, color: paymentBrand.text }}>
-                      {paymentIntent.status === 'approved_overpaid' ? '✓ Payment received · refund available' : `Check payment status · ${paymentIntent.status.replaceAll('_', ' ')}`}
-                    </button>
-                  )}
                   <div className="flex items-center justify-center gap-2 text-xs text-slate-400">
-                    <span>Reference: {paymentIntent.reference}</span>
-                    <button type="button" onClick={() => navigator.clipboard.writeText(paymentIntent.reference)} className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700" aria-label="Copy payment reference"><Copy className="h-3 w-3" /></button>
+                    <span>Reference code: {paymentIntent.paymentReference || paymentIntent.reference}</span>
+                    <button type="button" onClick={() => navigator.clipboard.writeText(paymentIntent.paymentReference || paymentIntent.reference)} className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700" aria-label="Copy payment reference"><Copy className="h-3 w-3" /></button>
                   </div>
                 </>
               )}
