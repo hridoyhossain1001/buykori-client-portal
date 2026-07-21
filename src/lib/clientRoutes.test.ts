@@ -26,6 +26,14 @@ test('keeps legacy dashboard entry points compatible', () => {
   assert.equal(resolveClientRoute('/app/event-logs')?.canonicalPath, '/event-logs');
 });
 
+test('resolves a payment success route with its reference', () => {
+  assert.deepEqual(resolveClientRoute('/order-success/BKP-TEST-123'), {
+    pageId: 'order-success',
+    sectionId: null,
+    canonicalPath: '/order-success/BKP-TEST-123',
+  });
+});
+
 test('resolves settings section deep links', () => {
   assert.deepEqual(resolveClientRoute('/settings/conversions-api'), {
     pageId: 'settings',

@@ -88,6 +88,7 @@ const SetupGuideView = lazyWithReload(() => import('./components/SetupGuideView'
 const SuggestionsView = lazyWithReload(() => import('./components/SuggestionsView').then(m => ({ default: m.SuggestionsView })));
 const CampaignBuilderView = lazyWithReload(() => import('./components/CampaignBuilderView').then(m => ({ default: m.CampaignBuilderView })));
 const AccountView = lazyWithReload(() => import('./components/AccountView').then(m => ({ default: m.AccountView })));
+const OrderSuccessView = lazyWithReload(() => import('./components/OrderSuccessView').then(m => ({ default: m.OrderSuccessView })));
 const OrdersView = lazyWithReload(() => import('./components/OrdersView').then(m => ({ default: m.OrdersView })));
 const IncompleteCheckoutsView = lazyWithReload(() => import('./components/IncompleteCheckoutsView').then(m => ({ default: m.IncompleteCheckoutsView })));
 
@@ -1856,6 +1857,11 @@ export default function App() {
             )}
 
             {/* PAGE 10: ACCOUNT */}
+            {activePage === 'order-success' && (
+              <OrderSuccessView />
+            )}
+
+            {/* PAGE 11: ACCOUNT */}
             {activePage === 'account' && profile && (
               <AccountView 
                 profile={profile}

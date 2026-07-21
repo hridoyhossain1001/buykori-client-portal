@@ -17,6 +17,7 @@ const PAGE_PATHS: Record<string, string> = {
   settings: '/settings/store-connection',
   'setup-guide': '/setup-guide',
   account: '/account',
+  'order-success': '/order-success',
 };
 
 const SETTINGS_SECTION_PATHS: Record<string, string> = {
@@ -57,6 +58,10 @@ export const resolveClientRoute = (pathname: string): ClientRouteMatch | null =>
   }
 
   const routePath = path.startsWith('/app/') ? path.slice('/app'.length) : path;
+
+  if (/^\/order-success\/[^/]+$/.test(routePath)) {
+    return { pageId: 'order-success', sectionId: null, canonicalPath: path };
+  }
 
   if (routePath === '/settings') {
     return {

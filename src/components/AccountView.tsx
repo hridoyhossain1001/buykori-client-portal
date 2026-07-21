@@ -150,7 +150,7 @@ export function AccountView({
     setPaymentSuccess(null);
   };
 
-  const finishMatchedPayment = (intent: PaymentIntent) => {
+  const finishMatchedPayment = (intent: PaymentIntent, autoRedirect = false) => {
     const isTest = intent.planTier === 'test';
     const isApproved = ['approved', 'approved_overpaid'].includes(intent.status);
     const isOverpaid = intent.status === 'approved_overpaid';
@@ -170,11 +170,16 @@ export function AccountView({
           ? `Your ${PLAN_PRICING[intent.planTier as 'growth' | 'scale']?.label || 'paid plan'} is now active.`
           : 'Your payment matched successfully. We will activate your plan after a quick review.',
     });
+    if (autoRedirect) {
+      window.setTimeout(() => {
+        window.location.assign(`/order-success/${encodeURIComponent(intent.reference)}`);
+      }, 1400);
+    }
   };
 
-  const applyPaymentStatus = (intent: PaymentIntent, showStatusToast = false) => {
+  const applyPaymentStatus = (intent: PaymentIntent, showStatusToast = false, autoRedirect = false) => {
     if (['matched', 'needs_review', 'approved', 'approved_overpaid'].includes(intent.status)) {
-      finishMatchedPayment(intent);
+      finishMatchedPayment(intent, autoRedirect);
       return;
     }
     setPaymentIntent(intent);
@@ -188,11 +193,11 @@ export function AccountView({
     if (showStatusToast) showToast(`Payment status: ${intent.status.replaceAll('_', ' ')}`);
   };
 
-  const loadPaymentStatus = async (showStatusToast = false) => {
+  const loadPaymentStatus = async (showStatusToast = false, autoRedirect = false) => {
     const response = await fetch('/api/payments/intents/latest');
     if (!response.ok) throw new Error(await readApiError(response));
     const payload = await response.json();
-    if (payload.payment) applyPaymentStatus(payload.payment, showStatusToast);
+    if (payload.payment) applyPaymentStatus(payload.payment, showStatusToast, autoRedirect);
   };
 
   useEffect(() => {
@@ -210,12 +215,32 @@ export function AccountView({
   }, [paymentIntent?.expiresAt]);
 
   useEffect(() => {
-    if (!paymentIntent?.trxId || paymentIntent.status !== 'pending') return;
-    const timer = window.setInterval(() => {
-      void loadPaymentStatus(false).catch(() => undefined);
-    }, 3000);
-    return () => window.clearInterval(timer);
-  }, [paymentIntent?.reference, paymentIntent?.status, paymentIntent?.trxId]);
+    if (!paymentIntent?.reference || paymentIntent.status !== 'pending') return;
+    let stopped = false;
+    let timer: number | undefined;
+    const poll = async () => {
+      if (stopped || Date.now() >= new Date(paymentIntent.expiresAt).getTime()) {
+        stopped = true;
+        setPaymentSecondsLeft(0);
+        if (timer !== undefined) window.clearInterval(timer);
+        return;
+      }
+      try {
+        const response = await fetch(`/api/orders/${encodeURIComponent(paymentIntent.reference)}/status`);
+        if (!response.ok) return;
+        const payload = await response.json();
+        if (payload.isPaid) await loadPaymentStatus(false, true);
+      } catch {
+        // The next poll retries transient network failures.
+      }
+    };
+    timer = window.setInterval(() => { void poll(); }, 3000);
+    void poll();
+    return () => {
+      stopped = true;
+      if (timer !== undefined) window.clearInterval(timer);
+    };
+  }, [paymentIntent?.reference, paymentIntent?.status, paymentIntent?.expiresAt]);
 
   useEffect(() => {
     if (accountSection !== 'payments' || paymentHistoryLoaded || paymentHistoryLoading) return;
@@ -267,6 +292,25 @@ export function AccountView({
       applyPaymentStatus(payload.payment);
     } catch (error) {
       showToast(error instanceof Error ? error.message : 'Could not submit transaction.', true);
+    } finally {
+      setPaymentBusy(false);
+    }
+  };
+
+  const submitExpiredPaymentForReview = async () => {
+    if (!paymentIntent || paymentTrxId.trim().length < 6) return;
+    setPaymentBusy(true);
+    try {
+      const response = await fetch(`/api/payments/intents/${encodeURIComponent(paymentIntent.reference)}/manual-review`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ trxId: paymentTrxId }),
+      });
+      if (!response.ok) throw new Error(await readApiError(response));
+      const payload = await response.json();
+      applyPaymentStatus(payload.payment, true);
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'Could not submit the payment for review.', true);
     } finally {
       setPaymentBusy(false);
     }
@@ -801,9 +845,16 @@ export function AccountView({
                   </div>
                   <p className="mt-4 text-xs font-black uppercase tracking-[0.18em] text-rose-600">Payment session expired</p>
                   <h4 className="mt-2 text-xl font-black text-slate-900">Your 10-minute payment time has ended</h4>
-                  <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-slate-600">For your safety, this payment reference can no longer be used. Start again to get a fresh amount, timer, and reference.</p>
+                  <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-slate-600">This automatic payment window has ended. Enter your TrxID below to send the payment for manual review, or start a new payment.</p>
                   <div className="mx-auto mt-4 max-w-sm rounded-xl border bg-white px-4 py-3 text-xs text-slate-500" style={{ borderColor: `${paymentBrand.primary}33` }}>
                     Expired reference: <span className="font-mono font-bold text-slate-700">{paymentIntent.reference}</span>
+                  </div>
+                  <div className="mx-auto mt-4 max-w-sm text-left">
+                    <label htmlFor="expired-payment-trxid" className="mb-2 block text-xs font-bold uppercase tracking-wide text-slate-600">Transaction ID (TrxID)</label>
+                    <input id="expired-payment-trxid" value={paymentTrxId} onChange={(event) => setPaymentTrxId(event.target.value.toUpperCase())} placeholder="Example: DG765H4K9Q" className="w-full rounded-xl border bg-white px-4 py-3 font-mono text-sm uppercase text-slate-900 outline-none placeholder:text-slate-400 focus:ring-2" style={{ borderColor: `${paymentBrand.primary}66` }} />
+                    <button type="button" disabled={paymentBusy || paymentTrxId.trim().length < 6} onClick={submitExpiredPaymentForReview} className="mt-3 w-full rounded-xl px-4 py-3 text-sm font-bold text-white transition disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400" style={paymentBusy || paymentTrxId.trim().length < 6 ? undefined : { background: `linear-gradient(90deg, ${paymentBrand.primary}, ${paymentBrand.secondary})` }}>
+                      {paymentBusy ? 'Sending for review...' : 'Submit TrxID for review'}
+                    </button>
                   </div>
                   <button
                     type="button"
@@ -835,6 +886,9 @@ export function AccountView({
                           <button type="button" onClick={() => navigator.clipboard.writeText(paymentIntent.receivingPhone)} className="relative flex items-center gap-1 rounded-lg border border-white/60 bg-white px-2.5 py-2 text-xs font-bold shadow-sm transition hover:-translate-y-0.5 hover:bg-slate-50 sm:rounded-xl sm:px-3.5 sm:py-2.5 sm:text-xs" style={{ color: paymentBrand.text }}><Copy className="h-3.5 w-3.5" /> Copy</button>
                         </div>
                         <p className="relative mt-3 font-mono text-2xl font-black tracking-[0.07em] text-white sm:mt-5 sm:text-4xl sm:tracking-[0.09em]">{paymentIntent.receivingPhone}</p>
+                        <div className="relative mt-3 rounded-lg border border-white/30 bg-white/15 px-3 py-2 text-xs leading-relaxed text-white/90 sm:mt-4">
+                          Enter this payment reference in the bKash/Nagad <strong>Reference</strong> field: <span className="font-mono font-black tracking-wide">{paymentIntent.reference}</span>
+                        </div>
                         <div className="relative mt-3 grid grid-cols-3 items-start rounded-lg border border-white/30 bg-white px-2 py-2 text-center text-xs font-bold uppercase tracking-wide shadow-sm sm:mt-5 sm:rounded-xl sm:px-3 sm:py-3 sm:text-xs" style={{ color: paymentBrand.text }}>
                           <span className="absolute left-[17%] right-[17%] top-[14px] h-0.5 rounded-full sm:top-[18px]" style={{ background: paymentBrand.primary }} />
                           <div className="relative"><span className="mx-auto mb-1.5 block h-3 w-3 rounded-full border-2" style={{ borderColor: paymentBrand.primary, background: paymentBrand.primary }} />Initiated</div>
