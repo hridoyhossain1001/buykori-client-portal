@@ -34,6 +34,10 @@
       "destination": "/index.html"
     },
     {
+      "source": "/order-success/:orderId",
+      "destination": "/index.html"
+    },
+    {
       "source": "/client",
       "destination": "https://api.buykori.app/client"
     },

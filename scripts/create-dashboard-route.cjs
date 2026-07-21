@@ -30,6 +30,7 @@ const routes = [
   ["settings", "alerts-notifications"],
   ["setup-guide"],
   ["account"],
+  ["order-success"],
   ["app"],
   ["app", "dashboard"],
   ["app", "ad-insights"],
