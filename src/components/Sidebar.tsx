@@ -258,7 +258,7 @@ export function Sidebar({
         collapsed ? 'justify-center px-2 gap-1' : 'justify-between px-5'
       }`}>
         <div className="flex items-center gap-2.5 overflow-hidden">
-          <img src="/brand-logo.png" alt="Buykori Logo" className="h-8 w-8 object-contain shrink-0 drop-shadow-sm" />
+          <img src="/brand-logo.svg" alt="Buykori Logo" className="h-8 w-8 object-contain shrink-0 drop-shadow-sm" />
           {!collapsed && (
             <span className="truncate font-sans text-[18px] font-bold tracking-tight text-white">
               Buykori AdSync
