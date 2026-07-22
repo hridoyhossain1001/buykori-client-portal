@@ -1491,8 +1491,8 @@ export function SettingsView({
         <section id="settings-courier" aria-labelledby="settings-courier-title" className="scroll-mt-28 rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-6">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
-              <h2 id="settings-courier-title" className="font-black text-slate-900 text-base tracking-tight">কুরিয়ার ও লজিস্টিকস কনফিগারেশন (Courier & Logistics Config)</h2>
-              <p className="mt-1 text-xs text-slate-500">আপনার প্রয়োজনীয় কুরিয়ার অন করুন এবং নিচে এপিআই সংক্রান্ত তথ্য বসান।</p>
+              <h2 id="settings-courier-title" className="font-black text-slate-900 text-base tracking-tight">Courier &amp; Logistics Config</h2>
+              <p className="mt-1 text-xs text-slate-500">Enable your active courier partners and configure API credentials below.</p>
             </div>
             
             <div className="flex items-center gap-2">
@@ -1504,8 +1504,8 @@ export function SettingsView({
 
           {/* Integrated Courier Partners Selection Grid */}
           <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-4 sm:p-5 shadow-xs">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">ইন্টিগ্রেটেড কুরিয়ার পার্টনার্স (Integrated Courier Partners)</h3>
-            <p className="text-xs text-slate-500 mb-4">আপনার পছন্দ অনুযায়ী যেকটি কুরিয়ার ব্যবহার করতে চান সেগুলোর টগল সুইচ অন করুন। টগল অন করলেই নিচে এপিআই সংক্রান্ত সেটিংস অপশন দৃশ্যমান হবে।</p>
+            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">Integrated Courier Partners</h3>
+            <p className="text-xs text-slate-500 mb-4">Toggle ON the courier partners you want to integrate. Active couriers will expand their credential form below.</p>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               {/* SteadFast Toggle Box */}
@@ -1589,7 +1589,7 @@ export function SettingsView({
                       </div>
                       <span className="text-[11px] font-semibold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-200">Active Form</span>
                     </div>
-                    <p className="text-xs leading-relaxed text-slate-600">SteadFast মার্চেন্ট প্যানেলের <strong>API Settings</strong> থেকে API Key এবং Secret Key সংগ্রহ করে নিচের ফিল্ডগুলোতে বসান।</p>
+                    <p className="text-xs leading-relaxed text-slate-600">Copy the API Key and Secret Key from your SteadFast Merchant Panel &gt; API Settings.</p>
                     
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
@@ -1620,7 +1620,7 @@ export function SettingsView({
                     </div>
                     <div className="rounded-lg border border-indigo-200 bg-indigo-50/80 p-3">
                       <p className="text-xs font-bold uppercase tracking-wider text-indigo-900">SteadFast Webhook Setup</p>
-                      <p className="mt-1 text-xs text-slate-600">SteadFast প্যানেলে রিয়েলটাইম স্ট্যাটাস আপডেটের জন্য Webhook Callback URL কপি করুন।</p>
+                      <p className="mt-1 text-xs text-slate-600">Copy the Webhook Callback URL to receive realtime shipment status updates from SteadFast.</p>
                       <button type="button" onClick={() => handleCopyCourierWebhookSetup('steadfast')} disabled={copyingCourierSecret === 'steadfast'} className="mt-3 inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-3.5 py-2 text-xs font-bold text-white hover:bg-indigo-700 disabled:opacity-50 shadow-xs">
                         <Copy className="h-3.5 w-3.5" />
                         {copyingCourierSecret === 'steadfast' ? 'Preparing...' : courierSettings.steadfast_webhook_token_configured ? 'Copy Setup Again' : 'Copy Setup Secret'}
@@ -1641,7 +1641,7 @@ export function SettingsView({
                       </div>
                       <span className="text-[11px] font-semibold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-200">Active Form</span>
                     </div>
-                    <p className="text-xs leading-relaxed text-slate-600">Pathao ডেভলপার/মার্চেন্ট প্যানেল থেকে Client ID, Client Secret, Store ID এবং রেজিস্টার্ড অ্যাকাউন্ট ক্ৰেডেনশিয়াল বসান।</p>
+                    <p className="text-xs leading-relaxed text-slate-600">Enter your Client ID, Client Secret, Store ID, and registered account credentials from Pathao Merchant Panel.</p>
                     
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
@@ -1726,7 +1726,7 @@ export function SettingsView({
                       <div className="flex flex-wrap items-center justify-between gap-2">
                         <div>
                           <p className="text-xs font-bold uppercase tracking-wider text-indigo-900">Pathao Webhook Setup Secret</p>
-                          <p className="mt-1 text-xs leading-relaxed text-slate-600">Generated secret টি কপি করে Pathao Merchant Panel Webhook Integration এ পেস্ট করুন।</p>
+                          <p className="mt-1 text-xs leading-relaxed text-slate-600">Copy the generated secret and paste it into your Pathao Merchant Panel Webhook Integration.</p>
                         </div>
                         <span className={`rounded-full px-2 py-1 text-xs font-bold uppercase ${
                           courierSettings.pathao_webhook_verified_at
@@ -1767,7 +1767,7 @@ export function SettingsView({
                       </div>
                       <span className="text-[11px] font-semibold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-200">Active Form</span>
                     </div>
-                    <p className="text-xs leading-relaxed text-slate-600">RedX মার্চেন্ট প্যানেলের <strong>API Settings</strong> থেকে OpenAPI Access Token সংগ্রহ করে বসান।</p>
+                    <p className="text-xs leading-relaxed text-slate-600">Copy your OpenAPI Access Token from your RedX Merchant Panel &gt; API Settings.</p>
                     
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
@@ -1815,7 +1815,7 @@ export function SettingsView({
                     </div>
                     <div className="rounded-lg border border-indigo-200 bg-indigo-50/80 p-3">
                       <p className="text-xs font-bold uppercase tracking-wider text-indigo-900">RedX Webhook Setup</p>
-                      <p className="mt-1 text-xs text-slate-600">RedX প্যানেলে বসাতে Dedicated Token সহ Callback URL টি কপি করুন।</p>
+                      <p className="mt-1 text-xs text-slate-600">Copy the Callback URL with dedicated token to paste into your RedX merchant portal.</p>
                       <button type="button" onClick={() => handleCopyCourierWebhookSetup('redx')} disabled={copyingCourierSecret === 'redx'} className="mt-3 inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-3.5 py-2 text-xs font-bold text-white hover:bg-indigo-700 disabled:opacity-50 shadow-xs">
                         <Copy className="h-3.5 w-3.5" />
                         {copyingCourierSecret === 'redx' ? 'Preparing...' : courierSettings.redx_webhook_secret_configured ? 'Copy Callback URL Again' : 'Copy Callback URL'}
@@ -1828,9 +1828,9 @@ export function SettingsView({
               {/* Primary Preferred Courier Provider Selection */}
               <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/60">
                 <label htmlFor="default-courier-provider" className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-                  প্রাথমিক পছন্দের কুরিয়ার (Primary Preferred Courier)
+                  Primary Preferred Courier
                 </label>
-                <p className="text-xs text-slate-500 mb-3">১-ক্লিকে কুরিয়ার বুকিং করার সময় কোন কুরিয়ার পার্টনারকে সিলেক্ট রাখা হবে তা নির্বাচন করুন।</p>
+                <p className="text-xs text-slate-500 mb-3">Select which courier partner will be pre-selected by default when booking shipments in 1-click.</p>
                 <select 
                   id="default-courier-provider"
                   value={courierSettings.default_courier || 'steadfast'}
@@ -1850,7 +1850,7 @@ export function SettingsView({
                   disabled={savingCourier}
                   className="w-full py-3 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 disabled:opacity-50 text-white text-xs font-bold uppercase tracking-wider rounded-xl shadow-lg transition-all cursor-pointer text-center"
                 >
-                  {savingCourier ? 'Updating settings...' : 'Save Courier Configurations / সেটিংস সেভ করুন'}
+                  {savingCourier ? 'Updating settings...' : 'Save Courier Configurations'}
                 </button>
               </div>
             </form>
