@@ -172,7 +172,6 @@ export function AccountView({
           ? `Your ${PLAN_PRICING[intent.planTier as 'growth' | 'scale']?.label || 'paid plan'} is now active.`
           : 'Your payment matched successfully. We will activate your plan after a quick review.',
     });
-    setPaymentIntent(null);
   };
 
   const applyPaymentStatus = (intent: PaymentIntent, showStatusToast = false, autoRedirect = false) => {
@@ -775,8 +774,8 @@ export function AccountView({
                     </div>
                     <div className="grid grid-cols-2 gap-3">
                     {([
-                      { id: 'bkash' as const, name: 'bKash', color: '#E2136E', soft: '#FFF1F7' },
-                      { id: 'nagad' as const, name: 'Nagad', color: '#D8292F', soft: '#FFF4ED' },
+                      { id: 'bkash' as const, name: 'bKash', color: '#E2136E', soft: '#FFF1F7', logo: '/payment-providers/bkash.svg' },
+                      { id: 'nagad' as const, name: 'Nagad', color: '#D8292F', soft: '#FFF4ED', logo: '/payment-providers/nagad.svg' },
                     ]).map((provider) => {
                       const selected = paymentProvider === provider.id;
                       return (
@@ -789,7 +788,7 @@ export function AccountView({
                         >
                           <span className="flex items-center justify-between gap-3">
                             <span className="flex items-center gap-3">
-                              <span className="flex h-10 w-10 items-center justify-center rounded-xl text-sm font-black text-white shadow-sm" style={{ background: provider.color }}>{provider.name === 'bKash' ? 'bK' : 'N'}</span>
+                              <span className="flex h-11 w-16 items-center justify-center rounded-xl border border-slate-100 bg-white px-2 shadow-sm"><img src={provider.logo} alt={`${provider.name} logo`} className="max-h-8 w-full object-contain" /></span>
                               <span><span className="block text-[10px] font-bold uppercase tracking-wider text-slate-400">Pay with</span><span className="mt-0.5 block text-sm font-black" style={{ color: provider.color }}>{provider.name}</span></span>
                             </span>
                             <span className="flex h-5 w-5 items-center justify-center rounded-full border" style={{ borderColor: selected ? '#2563eb' : '#cbd5e1', background: selected ? '#2563eb' : '#ffffff' }}>
@@ -815,8 +814,8 @@ export function AccountView({
                   <div className="flex items-center justify-center gap-4 text-[10px] font-bold uppercase tracking-wider text-slate-400"><span className="flex items-center gap-1"><LockKeyhole className="h-3 w-3" /> Encrypted</span><span>•</span><span>Auto verified</span><span>•</span><span>5 min session</span></div>
                 </>
               ) : paymentExpired ? (
-                <div className="py-3 text-center">
-                  <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full border-4 border-white shadow-lg" style={{ background: paymentBrand.soft, color: paymentBrand.primary, boxShadow: `0 12px 30px ${paymentBrand.primary}22` }}>
+                <div className="rounded-2xl border border-amber-200 bg-gradient-to-b from-amber-50/80 to-white p-5 text-center">
+                  <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full border-4 border-white bg-amber-100 text-amber-700 shadow-lg">
                     <Clock3 className="h-8 w-8" />
                   </div>
                   <p className="mt-4 text-xs font-black uppercase tracking-[0.18em] text-rose-600">Payment session expired</p>
@@ -824,14 +823,16 @@ export function AccountView({
                   <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-slate-600">
                     আপনি যদি পেমেন্ট করে থাকেন আর রেফার আইডি দিতে ভুল করে থাকেন বা মিস করে থাকেন, তবে নিচে আপনার ট্রানজেকশন আইডি (TrxID) বসিয়ে <strong>Continue (কন্টিনিউ)</strong> চাপুন।
                   </p>
-                  <div className="mx-auto mt-4 max-w-sm rounded-xl border bg-white px-4 py-3 text-xs text-slate-500" style={{ borderColor: `${paymentBrand.primary}33` }}>
-                    রেফারেন্স আইডি (Refer ID): <span className="font-mono font-bold text-slate-700">{paymentIntent.paymentReference || 'N/A'}</span>
+                  <div className="mx-auto mt-4 flex max-w-sm items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3 text-left shadow-sm">
+                    <span><span className="block text-[10px] font-black uppercase tracking-wider text-slate-400">Expected reference</span><span className="mt-1 block font-mono text-lg font-black text-slate-900">{paymentIntent.paymentReference || 'N/A'}</span></span>
+                    <img src={`/payment-providers/${paymentProvider}.svg`} alt={`${paymentBrand.name} logo`} className="h-10 w-20 object-contain" />
                   </div>
                   <div className="mx-auto mt-4 max-w-sm text-left">
-                    <label htmlFor="expired-payment-trxid" className="mb-2 block text-xs font-bold uppercase tracking-wide text-slate-600">Transaction Hash / TrxID</label>
-                    <input id="expired-payment-trxid" value={paymentTrxId} onChange={(event) => setPaymentTrxId(event.target.value.toUpperCase())} placeholder="Example: DG765H4K9Q" className="w-full rounded-xl border bg-white px-4 py-3 font-mono text-sm uppercase text-slate-900 outline-none placeholder:text-slate-400 focus:ring-2" style={{ borderColor: `${paymentBrand.primary}66` }} />
-                    <button type="button" disabled={paymentBusy || paymentTrxId.trim().length < 6} onClick={submitExpiredPaymentForReview} className="mt-3 w-full rounded-xl px-4 py-3 text-sm font-bold text-white transition disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400" style={paymentBusy || paymentTrxId.trim().length < 6 ? undefined : { background: `linear-gradient(90deg, ${paymentBrand.primary}, ${paymentBrand.secondary})` }}>
-                      {paymentBusy ? 'Submitting...' : 'Continue / কন্টিনিউ'}
+                    <label htmlFor="expired-payment-trxid" className="mb-2 block text-xs font-black uppercase tracking-wide text-slate-600">Submit your transaction ID</label>
+                    <input id="expired-payment-trxid" value={paymentTrxId} maxLength={24} onChange={(event) => setPaymentTrxId(event.target.value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase())} placeholder="Example: DG765H4K9Q" className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3.5 font-mono text-sm font-bold uppercase text-slate-900 outline-none placeholder:font-normal placeholder:text-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100" />
+                    <p className="mt-2 text-xs leading-relaxed text-slate-500">We will match this TrxID with your sender number and payment amount. Your plan changes only after verification.</p>
+                    <button type="button" disabled={paymentBusy || paymentTrxId.trim().length < 6} onClick={submitExpiredPaymentForReview} className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-700 to-emerald-600 px-4 py-3.5 text-sm font-black text-white transition disabled:cursor-not-allowed disabled:from-slate-200 disabled:to-slate-200 disabled:text-slate-400">
+                      {paymentBusy ? <><Loader2 className="h-4 w-4 animate-spin" /> Submitting...</> : <>Submit for verification <ArrowRight className="h-4 w-4" /></>}
                     </button>
                   </div>
                   <button
@@ -858,7 +859,7 @@ export function AccountView({
                         <div className="pointer-events-none absolute -bottom-20 left-1/3 h-40 w-40 rounded-full bg-white/5 blur-xl" />
                         <div className="flex items-start justify-between gap-3">
                           <div className="relative">
-                            <span className="rounded-full border border-white/40 bg-white/15 px-3 py-1 text-xs font-black uppercase tracking-[0.16em] text-white">{paymentBrand.name} payment number</span>
+                            <span className="inline-flex items-center rounded-xl bg-white px-3 py-1.5 shadow-sm"><img src={`/payment-providers/${paymentProvider}.svg`} alt={`${paymentBrand.name} logo`} className="h-7 w-20 object-contain" /></span>
                             <p className="mt-1.5 text-xs font-semibold text-white/80 sm:mt-2">Send the exact payment to this number</p>
                             <p className="relative mt-2 font-mono text-2xl font-black tracking-[0.07em] text-white sm:mt-3 sm:text-3xl">{paymentIntent.receivingPhone}</p>
                           </div>
@@ -932,7 +933,7 @@ export function AccountView({
 
       {paymentSuccess && (
         <Modal
-          onClose={() => setPaymentSuccess(null)}
+          onClose={() => { setPaymentSuccess(null); setPaymentIntent(null); }}
           ariaLabel="Payment successful"
           overlayClassName="fixed inset-0 z-[110] flex items-center justify-center bg-slate-950/55 p-4 backdrop-blur-sm"
           panelClassName="relative w-full max-w-md overflow-hidden rounded-2xl border bg-white text-center shadow-2xl"
@@ -940,7 +941,8 @@ export function AccountView({
         >
             <div className="h-1.5" style={{ background: `linear-gradient(90deg, ${paymentBrand.primary}, ${paymentBrand.secondary})` }} />
             <div className="relative p-7" style={{ background: `radial-gradient(circle at 50% 0%, ${paymentBrand.soft}, #ffffff 54%)` }}>
-              <div className="relative mx-auto flex h-16 w-16 animate-[pulse_1.4s_ease-in-out_2] items-center justify-center rounded-full border-4 border-white text-white shadow-lg" style={{ background: `linear-gradient(135deg, ${paymentBrand.primary}, ${paymentBrand.secondary})`, boxShadow: `0 12px 28px ${paymentBrand.primary}35` }}>
+              <img src={`/payment-providers/${paymentProvider}.svg`} alt={`${paymentBrand.name} logo`} className="mx-auto mb-3 h-9 w-24 object-contain" />
+              <div className="relative mx-auto flex h-16 w-16 animate-[pulse_1.4s_ease-in-out_2] items-center justify-center rounded-full border-4 border-white bg-gradient-to-br from-blue-700 to-emerald-600 text-white shadow-lg shadow-emerald-700/20">
                 <CheckCircle2 className="h-9 w-9 animate-[bounce_.7s_ease-out_1]" />
                 <Sparkles className="absolute -right-2 -top-2 h-5 w-5 animate-pulse" style={{ color: paymentBrand.primary }} />
               </div>
@@ -957,7 +959,7 @@ export function AccountView({
                   {paymentIntent.refundStatus === 'requested' ? 'Refund request sent' : `Request BDT ${paymentIntent.refundAmount || '0.00'} refund`}
                 </button>
               )}
-              <button type="button" onClick={() => setPaymentSuccess(null)} className={`${paymentIntent?.status === 'approved_overpaid' ? 'mt-2' : 'mt-6'} w-full rounded-xl px-4 py-3 text-sm font-bold text-white transition hover:-translate-y-0.5`} style={{ background: `linear-gradient(90deg, ${paymentBrand.primary}, ${paymentBrand.secondary})`, boxShadow: `0 10px 24px ${paymentBrand.primary}30` }}>
+              <button type="button" onClick={() => { setPaymentSuccess(null); setPaymentIntent(null); }} className={`${paymentIntent?.status === 'approved_overpaid' ? 'mt-2' : 'mt-6'} w-full rounded-xl bg-gradient-to-r from-blue-700 to-emerald-600 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-blue-900/15 transition hover:-translate-y-0.5`}>
                 Continue
               </button>
             </div>
