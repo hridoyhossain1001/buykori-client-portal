@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { CheckCircle2, Clock3, Copy, CreditCard, KeyRound, Loader2, QrCode, ReceiptText, RotateCcw, ShieldAlert, Sparkles, UserRound, WalletCards, X } from 'lucide-react';
+import { ArrowRight, CheckCircle2, Clock3, Copy, CreditCard, KeyRound, Loader2, LockKeyhole, QrCode, ReceiptText, RotateCcw, ShieldAlert, Smartphone, Sparkles, UserRound, WalletCards, X } from 'lucide-react';
 import QRCode from 'qrcode';
 import { UserProfile } from '../types';
 import { Modal } from './common/Modal';
@@ -130,6 +130,7 @@ export function AccountView({
     ? { name: 'bKash', primary: '#E2136E', secondary: '#A90052', soft: '#FFF1F7', text: '#9D174D' }
     : { name: 'Nagad', primary: '#D8292F', secondary: '#F37021', soft: '#FFF4ED', text: '#9A3412' };
   const paymentExpired = !!paymentIntent && new Date(paymentIntent.expiresAt).getTime() <= Date.now();
+  const paymentSenderValid = /^01[3-9]\d{8}$/.test(paymentSender.replace(/\D/g, ''));
   const currentPlanLower = String(profile.plan || '').toLowerCase();
   const isGrowth = currentPlanLower.includes('growth');
   const isScale = currentPlanLower.includes('scale');
@@ -747,27 +748,33 @@ export function AccountView({
               </div>
             </div>
 
-            <div className="relative space-y-3 p-3 pb-[max(1rem,env(safe-area-inset-bottom))] sm:space-y-4 sm:p-5">
+            <div className="relative space-y-4 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:p-6">
               {!paymentIntent ? (
                 <>
-                  <div className="overflow-hidden rounded-xl border bg-white shadow-sm" style={{ borderColor: `${paymentBrand.primary}33` }}>
-                    <div className="h-1" style={{ background: `linear-gradient(90deg, ${paymentBrand.primary}, ${paymentBrand.secondary})` }} />
-                    <div className="p-4" style={{ background: `linear-gradient(135deg, #ffffff, ${paymentBrand.soft})` }}>
-                      <p className="text-xs font-black uppercase tracking-[0.16em]" style={{ color: paymentBrand.text }}>Start your secure payment</p>
-                      <p className="mt-1 text-sm font-semibold text-slate-800">Choose where you will pay from, then enter that account's phone number.</p>
-                      <div className="mt-4 grid grid-cols-3 items-start text-center text-xs font-bold uppercase tracking-wide text-slate-500">
-                        {['Choose', 'Phone', 'Amount'].map((label, index) => (
-                          <div key={label} className="relative">
-                            {index < 2 && <span className="absolute left-[58%] top-2 h-px w-[84%] bg-slate-200" />}
-                            <span className="relative mx-auto mb-1.5 flex h-4 w-4 items-center justify-center rounded-full text-xs text-white" style={{ background: index === 0 ? paymentBrand.primary : '#cbd5e1' }}>{index + 1}</span>
-                            {label}
-                          </div>
-                        ))}
+                  <div className="overflow-hidden rounded-2xl border border-blue-100 bg-gradient-to-br from-blue-50 via-white to-emerald-50/60 p-4 shadow-sm">
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-white px-2.5 py-1 text-[10px] font-black uppercase tracking-[.14em] text-emerald-700"><LockKeyhole className="h-3 w-3" /> Secure checkout</span>
+                        <h4 className="mt-3 text-xl font-black text-slate-950">{PLAN_PRICING[paymentPlan].label}</h4>
+                        <p className="mt-1 text-xs font-semibold text-slate-500">{PLAN_PRICING[paymentPlan].events} · Cancel anytime</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">Plan total</p>
+                        <p className="mt-1 text-lg font-black text-blue-700">{PLAN_PRICING[paymentPlan].price}</p>
                       </div>
                     </div>
+                    <div className="mt-4 flex items-center gap-2 border-t border-blue-100/80 pt-3 text-xs font-semibold text-slate-600">
+                      <ShieldAlert className="h-4 w-4 text-emerald-600" /> Your plan changes only after payment verification.
+                    </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    {([
+
+                  <div>
+                    <div className="mb-2 flex items-center justify-between">
+                      <p className="text-xs font-black uppercase tracking-[.13em] text-slate-600">1. Select payment method</p>
+                      <span className="text-[11px] font-semibold text-slate-400">Personal account</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                    {([ 
                       { id: 'bkash' as const, name: 'bKash', color: '#E2136E', soft: '#FFF1F7' },
                       { id: 'nagad' as const, name: 'Nagad', color: '#D8292F', soft: '#FFF4ED' },
                     ]).map((provider) => {
@@ -777,30 +784,35 @@ export function AccountView({
                           key={provider.id}
                           type="button"
                           onClick={() => setPaymentProvider(provider.id)}
-                          className="relative overflow-hidden rounded-xl border px-4 py-3.5 text-left transition hover:-translate-y-0.5 hover:shadow-md"
-                          style={{ borderColor: selected ? provider.color : '#e2e8f0', background: selected ? provider.soft : '#ffffff', boxShadow: selected ? `0 8px 20px ${provider.color}20` : undefined }}
+                          className="relative overflow-hidden rounded-2xl border-2 px-4 py-4 text-left transition hover:-translate-y-0.5 hover:shadow-md"
+                          style={{ borderColor: selected ? '#2563eb' : '#e2e8f0', background: selected ? '#eff6ff' : '#ffffff', boxShadow: selected ? '0 8px 24px rgba(37,99,235,.12)' : undefined }}
                         >
                           <span className="flex items-center justify-between gap-3">
-                            <span>
-                              <span className="block text-xs font-bold uppercase tracking-wider text-slate-400">Pay with</span>
-                              <span className="mt-0.5 block text-sm font-black" style={{ color: selected ? provider.color : '#475569' }}>{provider.name}</span>
+                            <span className="flex items-center gap-3">
+                              <span className="flex h-10 w-10 items-center justify-center rounded-xl text-sm font-black text-white shadow-sm" style={{ background: provider.color }}>{provider.name === 'bKash' ? 'bK' : 'N'}</span>
+                              <span><span className="block text-[10px] font-bold uppercase tracking-wider text-slate-400">Pay with</span><span className="mt-0.5 block text-sm font-black" style={{ color: provider.color }}>{provider.name}</span></span>
                             </span>
-                            <span className="flex h-5 w-5 items-center justify-center rounded-full border" style={{ borderColor: selected ? provider.color : '#cbd5e1', background: selected ? provider.color : '#ffffff' }}>
+                            <span className="flex h-5 w-5 items-center justify-center rounded-full border" style={{ borderColor: selected ? '#2563eb' : '#cbd5e1', background: selected ? '#2563eb' : '#ffffff' }}>
                               {selected && <CheckCircle2 className="h-3.5 w-3.5 text-white" />}
                             </span>
                           </span>
                         </button>
                       );
                     })}
+                    </div>
                   </div>
-                  <label className="block">
-                    <span className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500">Your {paymentBrand.name} phone number</span>
-                    <input value={paymentSender} onChange={(event) => setPaymentSender(event.target.value)} inputMode="tel" placeholder="01XXXXXXXXX" className="w-full rounded-xl border bg-white px-4 py-3 text-sm font-semibold text-slate-900 outline-none transition placeholder:font-normal placeholder:text-slate-400 focus:ring-2" style={{ borderColor: `${paymentBrand.primary}55`, boxShadow: paymentSender ? `0 0 0 2px ${paymentBrand.soft}` : undefined }} />
-                    <span className="mt-1.5 block text-xs leading-relaxed text-slate-500">Use the same number that will appear in the payment SMS.</span>
+                  <label className="block rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
+                    <span className="mb-2 block text-xs font-black uppercase tracking-[.13em] text-slate-600">2. Your {paymentBrand.name} number</span>
+                    <span className="relative block">
+                      <Smartphone className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                      <input value={paymentSender} maxLength={11} onChange={(event) => setPaymentSender(event.target.value.replace(/\D/g, '').slice(0, 11))} inputMode="numeric" autoComplete="tel" placeholder="01XXXXXXXXX" className={`w-full rounded-xl border bg-white py-3.5 pl-10 pr-4 text-sm font-bold text-slate-900 outline-none transition placeholder:font-normal placeholder:text-slate-400 focus:ring-2 ${paymentSender && !paymentSenderValid ? 'border-rose-300 focus:ring-rose-100' : 'border-slate-200 focus:border-blue-500 focus:ring-blue-100'}`} />
+                    </span>
+                    <span className={`mt-2 block text-xs leading-relaxed ${paymentSender && !paymentSenderValid ? 'font-semibold text-rose-600' : 'text-slate-500'}`}>{paymentSender && !paymentSenderValid ? 'Enter a valid 11-digit Bangladesh mobile number.' : 'Use the number that will appear in the payment SMS.'}</span>
                   </label>
-                  <button type="button" disabled={paymentBusy} onClick={createPayment} className="w-full rounded-xl px-4 py-3 text-sm font-bold text-white transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60" style={{ background: `linear-gradient(90deg, ${paymentBrand.primary}, ${paymentBrand.secondary})`, boxShadow: `0 10px 24px ${paymentBrand.primary}30` }}>
-                    {paymentBusy ? 'Creating payment...' : 'Show payment amount'}
+                  <button type="button" disabled={paymentBusy || !paymentSenderValid} onClick={createPayment} className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-700 to-emerald-600 px-4 py-3.5 text-sm font-black text-white shadow-lg shadow-blue-900/15 transition hover:-translate-y-0.5 hover:shadow-xl disabled:cursor-not-allowed disabled:from-slate-300 disabled:to-slate-300 disabled:shadow-none">
+                    {paymentBusy ? <><Loader2 className="h-4 w-4 animate-spin" /> Preparing checkout...</> : <>Continue to payment <ArrowRight className="h-4 w-4" /></>}
                   </button>
+                  <div className="flex items-center justify-center gap-4 text-[10px] font-bold uppercase tracking-wider text-slate-400"><span className="flex items-center gap-1"><LockKeyhole className="h-3 w-3" /> Encrypted</span><span>•</span><span>Auto verified</span><span>•</span><span>5 min session</span></div>
                 </>
               ) : paymentExpired ? (
                 <div className="py-3 text-center">
