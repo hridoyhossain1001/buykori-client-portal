@@ -340,7 +340,7 @@ capi('track', 'Purchase', {
           </div>
         </div>
       </section>
-      
+
       {/* Tab Selector */}
       <div role="tablist" aria-label="Setup platform" className="grid grid-cols-1 gap-1 border-b border-slate-200 bg-white rounded-xl p-1.5 shadow-sm sm:grid-cols-3">
         <button
@@ -496,7 +496,7 @@ capi('track', 'Purchase', {
                   Open Event Tester and send one test event. Then check it in <b>Event Logs</b>. If it fails, check the platform ID and access token.
                 </p>
                 <div className="flex flex-wrap gap-2">
-                <button 
+                <button
                   onClick={() => openPortalSection('campaign-builder', 'campaign-event-tester')}
                   className="inline-flex min-h-10 items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white border border-indigo-700 rounded text-xs font-semibold shrink-0 cursor-pointer"
                 >
