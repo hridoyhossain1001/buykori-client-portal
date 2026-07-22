@@ -258,11 +258,11 @@ export function Sidebar({
         collapsed ? 'justify-center px-2 gap-1' : 'justify-between px-5'
       }`}>
         <div className="flex items-center gap-2.5 overflow-hidden">
-          <div className="bk-console-logo flex h-8 w-8 shrink-0 items-center justify-center text-sm font-bold text-white">
+          <div className="bk-console-logo flex h-8 w-8 shrink-0 items-center justify-center text-sm font-bold text-white shadow-sm">
             B
           </div>
           {!collapsed && (
-            <span className="truncate font-sans text-[18px] font-semibold tracking-tight text-slate-900">
+            <span className="truncate font-sans text-[18px] font-bold tracking-tight text-white">
               Buykori AdSync
             </span>
           )}
@@ -275,7 +275,7 @@ export function Sidebar({
               setCollapsed(!collapsed);
             }
           }}
-          className="rounded-full p-1.5 text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900"
+          className="rounded-full p-1.5 text-slate-400 transition-colors hover:bg-slate-800 hover:text-white"
           title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         >
           <span className="md:hidden"><X className="w-4 h-4" /></span>
@@ -288,21 +288,21 @@ export function Sidebar({
       {/* Store Switcher (expanded mode) */}
       {!collapsed && stores.length > 0 && (
         <div className="px-3 pt-3 pb-1" ref={storeSwitcherRef}>
-          <p className="bk-console-group-label mb-1.5 px-1">Active store</p>
+          <p className="bk-console-group-label mb-1.5 px-1 text-[11px] font-bold uppercase tracking-wider text-slate-400">Active store</p>
           <div className="relative">
             <button
               onClick={() => setStoreSwitcherOpen(prev => !prev)}
               data-guide="active-store"
-              className="flex w-full cursor-pointer items-center gap-2.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-left transition-colors hover:bg-slate-50"
+              className="flex w-full cursor-pointer items-center gap-2.5 rounded-lg border border-slate-800 bg-slate-800/80 px-3 py-2 text-left transition-colors hover:bg-slate-800 hover:border-slate-700"
             >
-              <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-blue-50">
-                <Store className="h-3.5 w-3.5 text-blue-700" />
+              <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-indigo-950/80 border border-indigo-500/30">
+                <Store className="h-3.5 w-3.5 text-indigo-400" />
               </div>
               <div className="flex-1 min-w-0 text-left">
-                <p className="text-xs font-bold text-slate-800  truncate leading-tight">
+                <p className="text-xs font-bold text-white truncate leading-tight">
                   {currentStore?.name || profile.name}
                 </p>
-                <p className="text-xs text-slate-400  truncate leading-tight">
+                <p className="text-xs text-slate-400 truncate leading-tight">
                   {currentStore?.domain || 'No domain set'}
                 </p>
               </div>
@@ -310,7 +310,7 @@ export function Sidebar({
             </button>
 
             {storeSwitcherOpen && (
-              <div className="absolute left-0 right-0 top-full z-50 mt-1.5 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xl">
+              <div className="absolute left-0 right-0 top-full z-50 mt-1.5 overflow-hidden rounded-lg border border-slate-800 bg-slate-900 shadow-2xl">
                 <div className="py-1 max-h-48 overflow-y-auto">
                   {stores.map(store => (
                     <button
@@ -319,34 +319,34 @@ export function Sidebar({
                       disabled={store.is_current || switchingStore === store.client_id}
                       className={`w-full flex items-center gap-2.5 px-3 py-2 text-left transition-colors cursor-pointer ${
                         store.is_current
-                          ? 'bg-indigo-50  cursor-default'
-                          : 'hover:bg-slate-50 '
+                          ? 'bg-indigo-950/70 border-l-2 border-indigo-500 cursor-default'
+                          : 'hover:bg-slate-800/80'
                       }`}
                     >
                       <div className={`flex items-center justify-center w-6 h-6 rounded-md shrink-0 ${
-                        store.is_current ? 'bg-indigo-100 ' : 'bg-slate-100 '
+                        store.is_current ? 'bg-indigo-900/60' : 'bg-slate-800'
                       }`}>
-                        <Store className={`w-3.5 h-3.5 ${store.is_current ? 'text-indigo-600 ' : 'text-slate-400'}`} />
+                        <Store className={`w-3.5 h-3.5 ${store.is_current ? 'text-indigo-400' : 'text-slate-400'}`} />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className={`text-xs font-semibold truncate leading-tight ${store.is_current ? 'text-indigo-700 ' : 'text-slate-700 '}`}>
+                        <p className={`text-xs font-semibold truncate leading-tight ${store.is_current ? 'text-indigo-300 font-bold' : 'text-slate-300'}`}>
                           {store.name}
                         </p>
-                        <p className="text-xs text-slate-400  truncate leading-tight">
+                        <p className="text-xs text-slate-400 truncate leading-tight">
                           {store.domain || 'No domain'}
                         </p>
                       </div>
-                      {store.is_current && <Check className="w-3.5 h-3.5 text-indigo-500 shrink-0" />}
+                      {store.is_current && <Check className="w-3.5 h-3.5 text-indigo-400 shrink-0" />}
                       {switchingStore === store.client_id && (
-                        <div className="w-3.5 h-3.5 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin shrink-0" />
+                        <div className="w-3.5 h-3.5 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin shrink-0" />
                       )}
                     </button>
                   ))}
                 </div>
-                <div className="border-t border-slate-100 ">
+                <div className="border-t border-slate-800">
                   <button
                     onClick={() => { setStoreSwitcherOpen(false); onCreateStore?.(); }}
-                    className="flex w-full cursor-pointer items-center gap-2 px-3 py-2.5 text-xs font-semibold text-blue-700 transition-colors hover:bg-blue-50"
+                    className="flex w-full cursor-pointer items-center gap-2 px-3 py-2.5 text-xs font-semibold text-indigo-400 transition-colors hover:bg-slate-800"
                   >
                     <Plus className="w-4 h-4" />
                     Add New Store
@@ -363,10 +363,10 @@ export function Sidebar({
         <div className="flex justify-center pt-2">
           <button
             onClick={() => { setCollapsed(false); setTimeout(() => setStoreSwitcherOpen(true), 310); }}
-            className="group relative cursor-pointer rounded-full p-2 transition-colors hover:bg-slate-100"
+            className="group relative cursor-pointer rounded-full p-2 transition-colors hover:bg-slate-800"
             title="Switch Store"
           >
-            <Store className="w-4 h-4 text-indigo-500" />
+            <Store className="w-4 h-4 text-indigo-400" />
             <div className="pointer-events-none absolute left-full z-50 ml-3 whitespace-nowrap rounded-md bg-slate-900 px-2 py-1 text-xs text-white opacity-0 shadow-md transition-opacity duration-150 group-hover:opacity-100">
               Switch Store
             </div>
@@ -533,40 +533,40 @@ export function Sidebar({
       </nav>
 
       {/* Usage Indicator */}
-      <div className={`shrink-0 border-t border-slate-200 bg-white px-3 pt-3 ${collapsed ? 'hidden pb-3 md:block' : 'pb-2'}`}>
+      <div className={`shrink-0 border-t border-slate-800 bg-slate-900 px-3 pt-3 ${collapsed ? 'hidden pb-3 md:block' : 'pb-2'}`}>
         {collapsed ? (
-          <div className={`flex flex-col items-center gap-1.5 rounded-xl border px-1.5 py-2 shadow-sm ${usageCardColor}`} title="Monthly Event Usage">
+          <div className="flex flex-col items-center gap-1.5 rounded-xl border border-slate-800 bg-slate-800/60 px-1.5 py-2 shadow-sm" title="Monthly Event Usage">
             <span className={`text-xs font-mono font-bold leading-none ${textQuotaColor}`}>
               {formatQuota(profile.eventsUsed)}
             </span>
-            <div className="h-1.5 w-10 overflow-hidden rounded-full bg-white/80 ring-1 ring-black/5">
+            <div className="h-1.5 w-10 overflow-hidden rounded-full bg-slate-900 ring-1 ring-white/10">
               <div className={`h-full rounded-full ${quotaColor}`} style={{ width: `${usagePercent}%` }} />
             </div>
           </div>
         ) : (
-          <div className={`rounded-xl border px-3 py-2.5 shadow-sm ${usageCardColor}`}>
+          <div className="rounded-xl border border-slate-800 bg-slate-800/60 px-3 py-2.5 shadow-sm">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <p className={`text-xs font-bold uppercase tracking-[0.12em] ${textQuotaColor}`}>Events usage</p>
-                <p className="mt-0.5 text-xs text-slate-500">
+                <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-emerald-400">Events usage</p>
+                <p className="mt-0.5 text-xs text-slate-300">
                   {formatQuota(profile.eventsUsed)} of {formatQuota(profile.eventsQuota)} events
                 </p>
               </div>
-              <span className={`rounded-full bg-white/80 px-2 py-1 text-xs font-black shadow-sm ring-1 ring-black/5 ${textQuotaColor}`}>
+              <span className="rounded-full bg-emerald-500/20 px-2 py-0.5 text-xs font-black text-emerald-300 ring-1 ring-emerald-500/40">
                 {usagePercent.toFixed(1)}%
               </span>
             </div>
-            <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-white/80 shadow-inner ring-1 ring-black/5">
+            <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-slate-900 shadow-inner ring-1 ring-white/10">
               <div className={`h-full rounded-full transition-all duration-500 ${quotaColor}`} style={{ width: `${usagePercent}%` }} />
             </div>
-            <div className="mt-2 flex justify-end text-xs leading-none text-slate-500">
+            <div className="mt-2 flex justify-end text-xs leading-none text-slate-400">
               {profile.renewalDate ? (() => {
                 const resetDate = new Date(profile.renewalDate);
                 const today = new Date();
                 const daysLeft = Math.ceil((resetDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
                 const label = resetDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
                 return (
-                  <span className={daysLeft <= 5 ? 'font-bold text-rose-600' : ''}>
+                  <span className={daysLeft <= 5 ? 'font-bold text-rose-400' : ''}>
                     Resets {label} · {daysLeft}d left
                   </span>
                 );
@@ -577,12 +577,12 @@ export function Sidebar({
       </div>
 
       {/* User Profile & Logout */}
-      <div className="shrink-0 bg-white p-3 pt-1">
+      <div className="shrink-0 bg-slate-900 p-3 pt-1 border-t border-slate-800/60">
         {collapsed ? (
           <div className="flex flex-col items-center gap-2">
             <button
               onClick={() => setActivePage('account')}
-              className="flex h-9 w-9 cursor-pointer select-none items-center justify-center rounded-full border border-indigo-200 bg-indigo-100 text-base font-black text-indigo-700 shadow-sm transition-colors hover:bg-indigo-200"
+              className="flex h-9 w-9 cursor-pointer select-none items-center justify-center rounded-full border border-indigo-500/40 bg-gradient-to-br from-indigo-600 to-purple-600 text-base font-black text-white shadow-sm transition-transform hover:scale-105"
               title="Account Settings"
             >
               {profileInitial}
@@ -590,25 +590,25 @@ export function Sidebar({
             <button
               ref={logoutTriggerRef}
               onClick={() => setShowLogoutConfirm(true)}
-              className="group flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-rose-50 hover:text-rose-600"
+              className="group flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-rose-950/60 hover:text-rose-400"
               title="Log Out"
             >
               <LogOut className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-[minmax(0,1fr)_88px] items-stretch gap-2">
+          <div className="grid grid-cols-[minmax(0,1fr)_84px] items-stretch gap-2">
             <button
               onClick={() => setActivePage('account')}
-              className="flex min-w-0 cursor-pointer items-center gap-2.5 rounded-xl border border-slate-200 bg-slate-50 px-2.5 py-2 text-left transition-all hover:border-indigo-200 hover:bg-indigo-50/60"
+              className="flex min-w-0 cursor-pointer items-center gap-2.5 rounded-xl border border-slate-800 bg-slate-800/70 px-2.5 py-2 text-left transition-all hover:border-indigo-500/60 hover:bg-slate-800"
               title="Account Settings"
             >
-              <div className="flex h-9 w-9 shrink-0 select-none items-center justify-center rounded-full border border-indigo-200 bg-gradient-to-br from-indigo-100 to-violet-100 text-base font-black text-indigo-700 shadow-sm">
+              <div className="flex h-8 w-8 shrink-0 select-none items-center justify-center rounded-full border border-indigo-500/40 bg-gradient-to-br from-indigo-600 to-purple-600 text-sm font-black text-white shadow-sm">
                 {profileInitial}
               </div>
               <div className="min-w-0 flex-1 leading-tight">
-                <span className="block truncate text-xs font-bold text-slate-800">{displayProfileName}</span>
-                <span className="mt-1 inline-flex max-w-full truncate rounded-full bg-gradient-to-r from-indigo-100 to-violet-100 px-2 py-0.5 text-xs font-bold text-indigo-700 ring-1 ring-inset ring-indigo-200/70">
+                <span className="block truncate text-xs font-bold text-white">{displayProfileName}</span>
+                <span className="mt-0.5 inline-flex max-w-full truncate rounded-full bg-indigo-500/20 px-2 py-0.5 text-[10px] font-bold text-indigo-300 ring-1 ring-inset ring-indigo-500/40">
                   {profile.plan}
                 </span>
               </div>
@@ -617,10 +617,10 @@ export function Sidebar({
             <button
               ref={logoutTriggerRef}
               onClick={() => setShowLogoutConfirm(true)}
-              className="group flex items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-2 py-2 text-xs font-bold text-slate-500 transition-all hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600"
+              className="group flex items-center justify-center gap-1.5 rounded-xl border border-slate-800 bg-slate-800/70 px-2 py-2 text-xs font-bold text-slate-400 transition-all hover:border-rose-800 hover:bg-rose-950/60 hover:text-rose-400"
               title="Log Out"
             >
-              <LogOut className="h-4 w-4 shrink-0 transition-transform group-hover:translate-x-0.5" />
+              <LogOut className="h-3.5 w-3.5 shrink-0 transition-transform group-hover:translate-x-0.5" />
               <span>Log out</span>
             </button>
           </div>
