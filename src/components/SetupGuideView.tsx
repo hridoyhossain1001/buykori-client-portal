@@ -146,7 +146,7 @@ analytics.subscribe("product_added_to_cart", (event) => {
   const eventId = generateEventId();
   const cartLine = event.data?.cartLine;
   const merchandise = cartLine?.merchandise;
-  
+
   fetch(API_URL + "?key=" + API_KEY, {
     method: "POST",
     keepalive: true,
@@ -177,7 +177,7 @@ analytics.subscribe("product_added_to_cart", (event) => {
 analytics.subscribe("checkout_started", (event) => {
   const eventId = generateEventId();
   const checkout = event.data?.checkout;
-  
+
   fetch(API_URL + "?key=" + API_KEY, {
     method: "POST",
     keepalive: true,
