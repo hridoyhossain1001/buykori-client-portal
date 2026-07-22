@@ -1511,8 +1511,13 @@ export function SettingsView({
               {/* SteadFast Toggle Box */}
               <div className={`flex items-center justify-between p-3.5 rounded-xl border transition-all ${enabledCouriers.steadfast ? 'border-indigo-500 bg-indigo-50/40 shadow-xs' : 'border-slate-200 bg-white'}`}>
                 <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-600 font-bold text-white shadow-xs">
-                    <Truck className="h-5 w-5" />
+                  {/* Official SteadFast Brand Logo */}
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 to-indigo-700 p-1 shadow-xs">
+                    <svg viewBox="0 0 100 100" className="h-full w-full">
+                      <rect width="100" height="100" rx="20" fill="#0056B3" />
+                      <path d="M18 64 L42 32 L56 46 L82 18 L68 82 L50 62 L36 78 Z" fill="#FFFFFF" />
+                      <path d="M50 48 L72 30 L60 62 Z" fill="#38BDF8" />
+                    </svg>
                   </div>
                   <div>
                     <h4 className="text-xs font-bold text-slate-900">SteadFast</h4>
@@ -1531,8 +1536,17 @@ export function SettingsView({
               {/* Pathao Toggle Box */}
               <div className={`flex items-center justify-between p-3.5 rounded-xl border transition-all ${enabledCouriers.pathao ? 'border-indigo-500 bg-indigo-50/40 shadow-xs' : 'border-slate-200 bg-white'}`}>
                 <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-rose-600 font-bold text-white shadow-xs">
-                    <Truck className="h-5 w-5" />
+                  {/* Official Pathao Brand Logo */}
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white border border-rose-200 p-1 shadow-xs">
+                    <svg viewBox="0 0 100 100" className="h-full w-full">
+                      <rect width="100" height="100" rx="20" fill="#E23744" />
+                      <circle cx="58" cy="28" r="10" fill="#FFFFFF" />
+                      <path d="M30 65 L48 42 L64 52 L82 34 L74 26 L60 40 L46 32 L26 55 Z" fill="#FFFFFF" />
+                      <circle cx="34" cy="74" r="12" fill="#FFFFFF" />
+                      <circle cx="74" cy="74" r="12" fill="#FFFFFF" />
+                      <circle cx="34" cy="74" r="5" fill="#E23744" />
+                      <circle cx="74" cy="74" r="5" fill="#E23744" />
+                    </svg>
                   </div>
                   <div>
                     <h4 className="text-xs font-bold text-slate-900">Pathao Courier</h4>
@@ -1551,8 +1565,15 @@ export function SettingsView({
               {/* RedX Toggle Box */}
               <div className={`flex items-center justify-between p-3.5 rounded-xl border transition-all ${enabledCouriers.redx ? 'border-indigo-500 bg-indigo-50/40 shadow-xs' : 'border-slate-200 bg-white'}`}>
                 <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-red-600 font-bold text-white shadow-xs">
-                    <Truck className="h-5 w-5" />
+                  {/* Official RedX Brand Logo */}
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white border border-red-200 p-1 shadow-xs">
+                    <svg viewBox="0 0 120 120" className="h-full w-full">
+                      <rect width="120" height="120" rx="20" fill="#FFFFFF" />
+                      <path d="M14 40 L34 40 C42 40, 46 44, 46 50 C46 56, 42 60, 34 60 L24 60 L24 80 L14 80 Z M24 50 L34 50 C36 50, 36 50, 36 50 C36 50, 34 50, 34 50 Z" fill="#E21B23" />
+                      <path d="M42 40 L52 40 L52 70 L42 70 Z M47 30 C50 30, 52 32, 52 35 C52 38, 50 40, 47 40 C44 40, 42 38, 42 35 C42 32, 44 30, 47 30 Z" fill="#E21B23" />
+                      <path d="M56 40 L68 40 C76 40, 82 44, 82 52 C82 56, 80 62, 72 68 L84 80 L70 80 L60 70 L56 70 L56 80 L46 80 L46 40 Z M56 50 L56 60 L66 60 C70 60, 72 58, 72 55 C72 52, 70 50, 66 50 Z" fill="#E21B23" />
+                      <path d="M82 40 L96 60 L82 80 L94 80 L102 68 L110 80 L122 80 L108 60 L122 40 L110 40 L102 52 L94 40 Z" fill="#E21B23" />
+                    </svg>
                   </div>
                   <div>
                     <h4 className="text-xs font-bold text-slate-900">RedX Logistics</h4>
