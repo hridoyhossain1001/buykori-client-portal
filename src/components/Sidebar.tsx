@@ -505,7 +505,8 @@ export function Sidebar({
                       )}
 
                       {hasSubmenu && !collapsed && submenuOpen && (
-                        <div className="relative ml-8 mt-1 space-y-0.5 border-l border-slate-700/90 pb-2 pl-3">
+                        <div className="relative ml-8 mt-1 space-y-0.5 pl-3">
+                          <span aria-hidden="true" className="absolute bottom-4 left-0 top-4 w-px bg-slate-700/90" />
                           {subSections.map((section) => (
                             <button
                               key={section.id}
