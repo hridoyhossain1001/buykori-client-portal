@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Check, Copy, Download, Globe2, MessageCircle, Plus, RefreshCw, Save, Trash2, X } from 'lucide-react';
+import { Check, Copy, Download, Globe2, MessageCircle, Plus, RefreshCw, Save, Trash2, Truck, X } from 'lucide-react';
 import { Tooltip } from './common/Tooltip';
 import { AdAccount, Platform, PlatformConfig, EventRule, ClientConnection, PluginReleaseInfo, CustomEventAutomation, CustomEventTrigger, CourierSettings } from '../types';
 
