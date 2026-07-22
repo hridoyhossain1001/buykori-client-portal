@@ -774,7 +774,7 @@ export function AccountView({
                       <span className="text-[11px] font-semibold text-slate-400">Personal account</span>
                     </div>
                     <div className="grid grid-cols-2 gap-3">
-                    {([ 
+                    {([
                       { id: 'bkash' as const, name: 'bKash', color: '#E2136E', soft: '#FFF1F7' },
                       { id: 'nagad' as const, name: 'Nagad', color: '#D8292F', soft: '#FFF4ED' },
                     ]).map((provider) => {
