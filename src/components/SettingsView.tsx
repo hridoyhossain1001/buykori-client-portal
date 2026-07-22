@@ -458,12 +458,15 @@ export function SettingsView({
     courier_auto_send: false,
     default_courier: 'steadfast'
   });
+  const [enabledCouriers, setEnabledCouriers] = useState({
+    steadfast: true,
+    pathao: false,
+    redx: false,
+  });
   const [loadingCourier, setLoadingCourier] = useState<boolean>(false);
   const [savingCourier, setSavingCourier] = useState<boolean>(false);
   const [copyingPathaoSecret, setCopyingPathaoSecret] = useState<boolean>(false);
   const [copyingCourierSecret, setCopyingCourierSecret] = useState<string>('');
-
-  // Connected ad accounts states
   const [adAccounts, setAdAccounts] = useState<AdAccount[]>([]);
   const [loadingAdAccounts, setLoadingAdAccounts] = useState<boolean>(false);
   const [savingAdAccount, setSavingAdAccount] = useState<boolean>(false);
@@ -1484,23 +1487,87 @@ export function SettingsView({
           </div>
         </section>
 
-        {/* Courier Settings Panel */}
-        <section id="settings-courier" aria-labelledby="settings-courier-title" className="scroll-mt-28 rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-6  ">
+        {/* Masterwork Courier & Logistics Settings Panel */}
+        <section id="settings-courier" aria-labelledby="settings-courier-title" className="scroll-mt-28 rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-6">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
-              <h2 id="settings-courier-title" className="font-bold text-slate-800 text-sm uppercase tracking-wide ">Connect your couriers</h2>
-              <p className="text-xs text-slate-400 ">Add your Pathao, SteadFast, or RedX account details here.</p>
+              <h2 id="settings-courier-title" className="font-black text-slate-900 text-base tracking-tight">কুরিয়ার ও লজিস্টিকস কনফিগারেশন (Courier & Logistics Config)</h2>
+              <p className="mt-1 text-xs text-slate-500">আপনার প্রয়োজনীয় কুরিয়ার অন করুন এবং নিচে এপিআই সংক্রান্ত তথ্য বসান।</p>
             </div>
             
-            <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-bold uppercase tracking-wide text-slate-600">
-              Manual booking only
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700">
+                ● Live API Sync Active
+              </span>
+            </div>
           </div>
-          <p className="rounded-lg border border-indigo-100 bg-indigo-50 px-3 py-2 text-xs leading-relaxed text-indigo-700">
-            Courier booking is manual for launch. Verify the order first, then use Courier Shipping to book the courier when you are ready.
-          </p>
-          <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs leading-relaxed text-slate-600">
-            <strong>Where to find these details:</strong> open the courier merchant panel and find its API or Developer Settings page. Copy only the key made for this store. Never enter your login password here.
+
+          {/* Integrated Courier Partners Selection Grid */}
+          <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-4 sm:p-5 shadow-xs">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">ইন্টিগ্রেটেড কুরিয়ার পার্টনার্স (Integrated Courier Partners)</h3>
+            <p className="text-xs text-slate-500 mb-4">যে কুরিয়ারগুলো ব্যবহার করতে চান সেগুলোর টগল সুইচ অন করুন। টগল অন করলে নিচে এপিআই ফরম উন্মুক্ত হবে।</p>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {/* SteadFast Toggle Box */}
+              <div className={`flex items-center justify-between p-3.5 rounded-xl border transition-all ${enabledCouriers.steadfast ? 'border-indigo-500 bg-indigo-50/40 shadow-xs' : 'border-slate-200 bg-white'}`}>
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-600 font-bold text-white shadow-xs">
+                    <Truck className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-slate-900">SteadFast</h4>
+                    <span className="text-[10px] font-semibold text-slate-500">Express Courier</span>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setEnabledCouriers(prev => ({ ...prev, steadfast: !prev.steadfast }))}
+                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${enabledCouriers.steadfast ? 'bg-indigo-600' : 'bg-slate-300'}`}
+                >
+                  <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${enabledCouriers.steadfast ? 'translate-x-5' : 'translate-x-0'}`} />
+                </button>
+              </div>
+
+              {/* Pathao Toggle Box */}
+              <div className={`flex items-center justify-between p-3.5 rounded-xl border transition-all ${enabledCouriers.pathao ? 'border-indigo-500 bg-indigo-50/40 shadow-xs' : 'border-slate-200 bg-white'}`}>
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-rose-600 font-bold text-white shadow-xs">
+                    <Truck className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-slate-900">Pathao Courier</h4>
+                    <span className="text-[10px] font-semibold text-slate-500">Nationwide Shipping</span>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setEnabledCouriers(prev => ({ ...prev, pathao: !prev.pathao }))}
+                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${enabledCouriers.pathao ? 'bg-indigo-600' : 'bg-slate-300'}`}
+                >
+                  <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${enabledCouriers.pathao ? 'translate-x-5' : 'translate-x-0'}`} />
+                </button>
+              </div>
+
+              {/* RedX Toggle Box */}
+              <div className={`flex items-center justify-between p-3.5 rounded-xl border transition-all ${enabledCouriers.redx ? 'border-indigo-500 bg-indigo-50/40 shadow-xs' : 'border-slate-200 bg-white'}`}>
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-red-600 font-bold text-white shadow-xs">
+                    <Truck className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-slate-900">RedX Logistics</h4>
+                    <span className="text-[10px] font-semibold text-slate-500">Doorstep Delivery</span>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setEnabledCouriers(prev => ({ ...prev, redx: !prev.redx }))}
+                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${enabledCouriers.redx ? 'bg-indigo-600' : 'bg-slate-300'}`}
+                >
+                  <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${enabledCouriers.redx ? 'translate-x-5' : 'translate-x-0'}`} />
+                </button>
+              </div>
+            </div>
           </div>
 
           {loadingCourier ? (
@@ -1511,271 +1578,364 @@ export function SettingsView({
           ) : (
             <form onSubmit={handleSaveCourierSettings} autoComplete="off" className="space-y-6">
               
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* SteadFast section */}
-                <div className="p-4 rounded-lg border border-slate-200  bg-slate-50/50  space-y-4">
-                  <h4 className="font-bold text-xs text-indigo-600  uppercase tracking-wider pb-2 border-b border-slate-100 ">
-                    SteadFast Courier API
-                  </h4>
-                  <p className="text-xs leading-4 text-slate-500">In your SteadFast merchant panel, open API Settings. Copy this store's API Key and Secret Key into the fields below.</p>
-                  
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-500  uppercase mb-1">SteadFast API Key</label>
-                    <input 
-                      type="text"
-                      name="buykori-steadfast-api-key"
-                      autoComplete="off"
-                      value={courierSettings.steadfast_api_key || ''}
-                      onChange={(e) => setCourierSettings((prev) => ({ ...prev, steadfast_api_key: e.target.value }))}
-                      placeholder="Enter SteadFast Api-Key"
-                      className="w-full p-2 text-xs bg-white border border-slate-200 rounded font-mono text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500   "
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-500  uppercase mb-1">SteadFast Secret Key</label>
-                    <input 
-                      type="password"
-                      name="buykori-steadfast-secret-key"
-                      autoComplete="new-password"
-                      value={courierSettings.steadfast_secret_key || ''}
-                      onChange={(e) => setCourierSettings((prev) => ({ ...prev, steadfast_secret_key: e.target.value }))}
-                      placeholder="Paste SteadFast Secret Key"
-                      className="w-full p-2 text-xs bg-white border border-slate-200 rounded font-mono text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500   "
-                    />
-                  </div>
-                  <div className="rounded-lg border border-indigo-100 bg-indigo-50/50 p-3  ">
-                    <p className="text-xs font-semibold uppercase text-slate-500 ">SteadFast Webhook Setup</p>
-                    <p className="mt-1 text-xs text-slate-500 ">Copy callback URL and bearer auth token for the SteadFast panel.</p>
-                    <button type="button" onClick={() => handleCopyCourierWebhookSetup('steadfast')} disabled={copyingCourierSecret === 'steadfast'} className="mt-3 inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-3 py-2 text-xs font-bold text-white hover:bg-indigo-700 disabled:opacity-50">
-                      <Copy className="h-3.5 w-3.5" />
-                      {copyingCourierSecret === 'steadfast' ? 'Preparing...' : courierSettings.steadfast_webhook_token_configured ? 'Copy Setup Again' : 'Copy Setup Secret'}
-                    </button>
-                  </div>
-                </div>
-
-                {/* Pathao section */}
-                <div className="p-4 rounded-lg border border-slate-200  bg-slate-50/50  space-y-4">
-                  <h4 className="font-bold text-xs text-indigo-600  uppercase tracking-wider pb-2 border-b border-slate-100 ">
-                    Pathao Courier API
-                  </h4>
-                  <p className="text-xs leading-4 text-slate-500">In the Pathao merchant/developer panel, copy the Client ID, Client Secret, and Store ID. The owner email and password must belong to that same Pathao merchant account.</p>
-                  
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-500  uppercase mb-1">
-                        Pathao Client ID
-                      </label>
-                      <input
-                        type="text"
-                        name="buykori-pathao-client-id"
-                        autoComplete="off"
-                        value={courierSettings.pathao_client_id || ''}
-                        onChange={(e) => setCourierSettings((prev) => ({ ...prev, pathao_client_id: e.target.value }))}
-                        placeholder="Client ID"
-                        className="w-full p-2 text-xs bg-white border border-slate-200 rounded font-mono text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500   "
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-500  uppercase mb-1">
-                        Store Owner Email
-                      </label>
-                      <input
-                        type="email"
-                        name="buykori-pathao-owner-email"
-                        autoComplete="off"
-                        value={courierSettings.pathao_email || ''}
-                        onChange={(e) => setCourierSettings((prev) => ({ ...prev, pathao_email: e.target.value }))}
-                        placeholder="owner@example.com"
-                        className="w-full p-2 text-xs bg-white border border-slate-200 rounded font-mono text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500   "
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-500  uppercase mb-1">
-                        Pathao Client Secret
-                      </label>
-                      <input
-                        type="password"
-                        name="buykori-pathao-client-secret"
-                        autoComplete="new-password"
-                        value={courierSettings.pathao_client_secret || ''}
-                        onChange={(e) => setCourierSettings((prev) => ({ ...prev, pathao_client_secret: e.target.value }))}
-                        placeholder="Paste Pathao Client Secret"
-                        className="w-full p-2 text-xs bg-white border border-slate-200 rounded font-mono text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500   "
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-500  uppercase mb-1">
-                        Store Password
-                      </label>
-                      <input
-                        type="password"
-                        name="buykori-pathao-store-password"
-                        autoComplete="new-password"
-                        value={courierSettings.pathao_password || ''}
-                        onChange={(e) => setCourierSettings((prev) => ({ ...prev, pathao_password: e.target.value }))}
-                        placeholder="Paste Pathao Store Password"
-                        className="w-full p-2 text-xs bg-white border border-slate-200 rounded font-mono text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500   "
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div>
-                      <label htmlFor="pathao-environment" className="block text-xs font-semibold text-slate-500  uppercase mb-1">Pathao Environment</label>
-                      <select
-                        id="pathao-environment"
-                        value={courierSettings.pathao_environment || 'live'}
-                        onChange={(e) => setCourierSettings((prev) => ({ ...prev, pathao_environment: e.target.value as 'live' | 'sandbox' }))}
-                        className="w-full p-2 text-xs bg-white border border-slate-200 rounded text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500   "
-                      >
-                        <option value="live">Live</option>
-                        <option value="sandbox">Sandbox / Test</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-500  uppercase mb-1">Pathao Store ID</label>
-                      <input
-                        type="text"
-                        value={courierSettings.pathao_store_id || ''}
-                        onChange={(e) => setCourierSettings((prev) => ({ ...prev, pathao_store_id: e.target.value }))}
-                        placeholder="Store ID"
-                        className="w-full p-2 text-xs bg-white border border-slate-200 rounded font-mono text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500   "
-                      />
-                    </div>
-                  </div>
-
-                  <div className="rounded-lg border border-indigo-100 bg-indigo-50/50 p-3  ">
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <div>
-                        <p className="text-xs font-semibold uppercase text-slate-500 ">Pathao Webhook Setup Secret</p>
-                        <p className="mt-1 text-xs leading-relaxed text-slate-500 ">
-                          Copy this generated secret and paste it into Pathao Merchant Panel Webhook Integration.
-                        </p>
+              {/* Dynamic Accordion Forms for Enabled Couriers */}
+              <div className="space-y-5">
+                {/* SteadFast API Card */}
+                {enabledCouriers.steadfast && (
+                  <div className="p-4 sm:p-5 rounded-xl border border-indigo-200 bg-slate-50/70 space-y-4 shadow-xs">
+                    <div className="flex items-center justify-between pb-2 border-b border-indigo-100">
+                      <div className="flex items-center gap-2">
+                        <span className="flex h-6 w-6 items-center justify-center rounded-md bg-blue-600 text-xs font-bold text-white">S</span>
+                        <h4 className="font-bold text-xs text-indigo-700 uppercase tracking-wider">
+                          SteadFast Courier API Integration
+                        </h4>
                       </div>
-                      <span className={`rounded-full px-2 py-1 text-xs font-bold uppercase ${
-                        courierSettings.pathao_webhook_verified_at
-                          ? 'bg-emerald-100 text-emerald-700'
-                          : courierSettings.pathao_webhook_secret_configured
-                            ? 'bg-amber-100 text-amber-700'
-                            : 'bg-slate-200 text-slate-600'
-                      }`}>
-                        {courierSettings.pathao_webhook_verified_at
-                          ? 'Verified'
-                          : courierSettings.pathao_webhook_secret_configured
-                            ? 'Waiting for callback'
-                            : 'Not configured'}
-                      </span>
+                      <span className="text-[11px] font-semibold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-200">Active Form</span>
                     </div>
-                    <button
-                      type="button"
-                      onClick={handleCopyPathaoWebhookSecret}
-                      disabled={copyingPathaoSecret}
-                      className="mt-3 inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-3 py-2 text-xs font-bold text-white transition-colors hover:bg-indigo-700 disabled:opacity-50"
-                    >
-                      <Copy className="h-3.5 w-3.5" />
-                      {copyingPathaoSecret ? 'Preparing secret...' : 'Copy Setup Secret'}
-                    </button>
-                  </div>
-                </div>
+                    <p className="text-xs leading-relaxed text-slate-600">SteadFast মার্চেন্ট প্যানেলের <strong>API Settings</strong> থেকে API Key এবং Secret Key সংগ্রহ করে নিচের ফিল্ডগুলোতে বসান।</p>
+                    
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-600 uppercase mb-1">SteadFast API Key</label>
+                        <input 
+                          type="text"
+                          name="buykori-steadfast-api-key"
+                          autoComplete="off"
+                          value={courierSettings.steadfast_api_key || ''}
+                          onChange={(e) => setCourierSettings((prev) => ({ ...prev, steadfast_api_key: e.target.value }))}
+                          placeholder="Enter SteadFast Api-Key"
+                          className="w-full p-2.5 text-xs bg-white border border-slate-300 rounded-lg font-mono text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                        />
+                      </div>
 
-                {/* RedX section */}
-                <div className="p-4 rounded-lg border border-slate-200  bg-slate-50/50  space-y-4 md:col-span-2">
-                  <h4 className="font-bold text-xs text-indigo-600  uppercase tracking-wider pb-2 border-b border-slate-100 ">
-                    RedX Courier API
-                  </h4>
-                  <p className="text-xs leading-4 text-slate-500">In your RedX merchant panel, open API Settings and copy the OpenAPI token. The pickup store and delivery area below are optional.</p>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-500  uppercase mb-1">RedX Access Token</label>
-                      <input
-                        type="password"
-                        name="buykori-redx-access-token"
-                        autoComplete="new-password"
-                        value={courierSettings.redx_access_token || ''}
-                        onChange={(e) => setCourierSettings((prev) => ({ ...prev, redx_access_token: e.target.value }))}
-                        placeholder="Paste RedX OpenAPI token"
-                        className="w-full p-2 text-xs bg-white border border-slate-200 rounded font-mono text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500   "
-                      />
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-600 uppercase mb-1">SteadFast Secret Key</label>
+                        <input 
+                          type="password"
+                          name="buykori-steadfast-secret-key"
+                          autoComplete="new-password"
+                          value={courierSettings.steadfast_secret_key || ''}
+                          onChange={(e) => setCourierSettings((prev) => ({ ...prev, steadfast_secret_key: e.target.value }))}
+                          placeholder="Paste SteadFast Secret Key"
+                          className="w-full p-2.5 text-xs bg-white border border-slate-300 rounded-lg font-mono text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                        />
+                      </div>
                     </div>
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-500  uppercase mb-1">Default Pickup Store ID (Optional)</label>
-                      <input
-                        type="text"
-                        value={courierSettings.redx_pickup_store_id || ''}
-                        onChange={(e) => setCourierSettings((prev) => ({ ...prev, redx_pickup_store_id: e.target.value }))}
-                        placeholder="e.g. 1"
-                        className="w-full p-2 text-xs bg-white border border-slate-200 rounded font-mono text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500   "
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-500  uppercase mb-1">Default Delivery Area ID</label>
-                      <input
-                        type="text"
-                        value={courierSettings.redx_delivery_area_id || ''}
-                        onChange={(e) => setCourierSettings((prev) => ({ ...prev, redx_delivery_area_id: e.target.value }))}
-                        placeholder="e.g. 12"
-                        className="w-full p-2 text-xs bg-white border border-slate-200 rounded font-mono text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500   "
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-500  uppercase mb-1">Default Delivery Area Name</label>
-                      <input
-                        type="text"
-                        value={courierSettings.redx_delivery_area_name || ''}
-                        onChange={(e) => setCourierSettings((prev) => ({ ...prev, redx_delivery_area_name: e.target.value }))}
-                        placeholder="e.g. Mirpur DOHS"
-                        className="w-full p-2 text-xs bg-white border border-slate-200 rounded font-mono text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500   "
-                      />
+                    <div className="rounded-lg border border-indigo-200 bg-indigo-50/80 p-3">
+                      <p className="text-xs font-bold uppercase tracking-wider text-indigo-900">SteadFast Webhook Setup</p>
+                      <p className="mt-1 text-xs text-slate-600">SteadFast প্যানেলে রিয়েলটাইম স্ট্যাটাস আপডেটের জন্য Webhook Callback URL কপি করুন।</p>
+                      <button type="button" onClick={() => handleCopyCourierWebhookSetup('steadfast')} disabled={copyingCourierSecret === 'steadfast'} className="mt-3 inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-3.5 py-2 text-xs font-bold text-white hover:bg-indigo-700 disabled:opacity-50 shadow-xs">
+                        <Copy className="h-3.5 w-3.5" />
+                        {copyingCourierSecret === 'steadfast' ? 'Preparing...' : courierSettings.steadfast_webhook_token_configured ? 'Copy Setup Again' : 'Copy Setup Secret'}
+                      </button>
                     </div>
                   </div>
-                  <div className="rounded-lg border border-indigo-100 bg-indigo-50/50 p-3  ">
-                    <p className="text-xs font-semibold uppercase text-slate-500 ">RedX Webhook Setup</p>
-                    <p className="mt-1 text-xs text-slate-500 ">Copy the callback URL with its dedicated token and paste it into RedX.</p>
-                    <button type="button" onClick={() => handleCopyCourierWebhookSetup('redx')} disabled={copyingCourierSecret === 'redx'} className="mt-3 inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-3 py-2 text-xs font-bold text-white hover:bg-indigo-700 disabled:opacity-50">
-                      <Copy className="h-3.5 w-3.5" />
-                      {copyingCourierSecret === 'redx' ? 'Preparing...' : courierSettings.redx_webhook_secret_configured ? 'Copy Callback URL Again' : 'Copy Callback URL'}
-                    </button>
+                )}
+
+                {/* Pathao API Card */}
+                {enabledCouriers.pathao && (
+                  <div className="p-4 sm:p-5 rounded-xl border border-indigo-200 bg-slate-50/70 space-y-4 shadow-xs">
+                    <div className="flex items-center justify-between pb-2 border-b border-indigo-100">
+                      <div className="flex items-center gap-2">
+                        <span className="flex h-6 w-6 items-center justify-center rounded-md bg-rose-600 text-xs font-bold text-white">P</span>
+                        <h4 className="font-bold text-xs text-indigo-700 uppercase tracking-wider">
+                          Pathao Courier API Integration
+                        </h4>
+                      </div>
+                      <span className="text-[11px] font-semibold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-200">Active Form</span>
+                    </div>
+                    <p className="text-xs leading-relaxed text-slate-600">Pathao ডেভলপার/মার্চেন্ট প্যানেল থেকে Client ID, Client Secret, Store ID এবং রেজিস্টার্ড অ্যাকাউন্ট ক্ৰেডেনশিয়াল বসান।</p>
+                    
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-600 uppercase mb-1">Pathao Client ID</label>
+                        <input
+                          type="text"
+                          name="buykori-pathao-client-id"
+                          autoComplete="off"
+                          value={courierSettings.pathao_client_id || ''}
+                          onChange={(e) => setCourierSettings((prev) => ({ ...prev, pathao_client_id: e.target.value }))}
+                          placeholder="Client ID"
+                          className="w-full p-2.5 text-xs bg-white border border-slate-300 rounded-lg font-mono text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-600 uppercase mb-1">Store Owner Email</label>
+                        <input
+                          type="email"
+                          name="buykori-pathao-owner-email"
+                          autoComplete="off"
+                          value={courierSettings.pathao_email || ''}
+                          onChange={(e) => setCourierSettings((prev) => ({ ...prev, pathao_email: e.target.value }))}
+                          placeholder="owner@example.com"
+                          className="w-full p-2.5 text-xs bg-white border border-slate-300 rounded-lg font-mono text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-600 uppercase mb-1">Pathao Client Secret</label>
+                        <input
+                          type="password"
+                          name="buykori-pathao-client-secret"
+                          autoComplete="new-password"
+                          value={courierSettings.pathao_client_secret || ''}
+                          onChange={(e) => setCourierSettings((prev) => ({ ...prev, pathao_client_secret: e.target.value }))}
+                          placeholder="Paste Pathao Client Secret"
+                          className="w-full p-2.5 text-xs bg-white border border-slate-300 rounded-lg font-mono text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-600 uppercase mb-1">Store Password</label>
+                        <input
+                          type="password"
+                          name="buykori-pathao-store-password"
+                          autoComplete="new-password"
+                          value={courierSettings.pathao_password || ''}
+                          onChange={(e) => setCourierSettings((prev) => ({ ...prev, pathao_password: e.target.value }))}
+                          placeholder="Paste Pathao Store Password"
+                          className="w-full p-2.5 text-xs bg-white border border-slate-300 rounded-lg font-mono text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label htmlFor="pathao-environment" className="block text-xs font-semibold text-slate-600 uppercase mb-1">Pathao Environment</label>
+                        <select
+                          id="pathao-environment"
+                          value={courierSettings.pathao_environment || 'live'}
+                          onChange={(e) => setCourierSettings((prev) => ({ ...prev, pathao_environment: e.target.value as 'live' | 'sandbox' }))}
+                          className="w-full p-2.5 text-xs bg-white border border-slate-300 rounded-lg text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 cursor-pointer"
+                        >
+                          <option value="live">Live Environment</option>
+                          <option value="sandbox">Sandbox / Test</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-600 uppercase mb-1">Pathao Store ID</label>
+                        <input
+                          type="text"
+                          value={courierSettings.pathao_store_id || ''}
+                          onChange={(e) => setCourierSettings((prev) => ({ ...prev, pathao_store_id: e.target.value }))}
+                          placeholder="Store ID"
+                          className="w-full p-2.5 text-xs bg-white border border-slate-300 rounded-lg font-mono text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="rounded-lg border border-indigo-200 bg-indigo-50/80 p-3">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div>
+                          <p className="text-xs font-bold uppercase tracking-wider text-indigo-900">Pathao Webhook Setup Secret</p>
+                          <p className="mt-1 text-xs leading-relaxed text-slate-600">Generated secret টি কপি করে Pathao Merchant Panel Webhook Integration এ পেস্ট করুন।</p>
+                        </div>
+                        <span className={`rounded-full px-2 py-1 text-xs font-bold uppercase ${
+                          courierSettings.pathao_webhook_verified_at
+                            ? 'bg-emerald-100 text-emerald-700'
+                            : courierSettings.pathao_webhook_secret_configured
+                              ? 'bg-amber-100 text-amber-700'
+                              : 'bg-slate-200 text-slate-600'
+                        }`}>
+                          {courierSettings.pathao_webhook_verified_at
+                            ? 'Verified'
+                            : courierSettings.pathao_webhook_secret_configured
+                              ? 'Waiting for callback'
+                              : 'Not configured'}
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleCopyPathaoWebhookSecret}
+                        disabled={copyingPathaoSecret}
+                        className="mt-3 inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-3.5 py-2 text-xs font-bold text-white hover:bg-indigo-700 disabled:opacity-50 shadow-xs"
+                      >
+                        <Copy className="h-3.5 w-3.5" />
+                        {copyingPathaoSecret ? 'Preparing secret...' : 'Copy Setup Secret'}
+                      </button>
+                    </div>
                   </div>
-                </div>
+                )}
+
+                {/* RedX API Card */}
+                {enabledCouriers.redx && (
+                  <div className="p-4 sm:p-5 rounded-xl border border-indigo-200 bg-slate-50/70 space-y-4 shadow-xs">
+                    <div className="flex items-center justify-between pb-2 border-b border-indigo-100">
+                      <div className="flex items-center gap-2">
+                        <span className="flex h-6 w-6 items-center justify-center rounded-md bg-red-600 text-xs font-bold text-white">R</span>
+                        <h4 className="font-bold text-xs text-indigo-700 uppercase tracking-wider">
+                          RedX Logistics API Integration
+                        </h4>
+                      </div>
+                      <span className="text-[11px] font-semibold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-200">Active Form</span>
+                    </div>
+                    <p className="text-xs leading-relaxed text-slate-600">RedX মার্চেন্ট প্যানেলের <strong>API Settings</strong> থেকে OpenAPI Access Token সংগ্রহ করে বসান।</p>
+                    
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-600 uppercase mb-1">RedX Access Token</label>
+                        <input
+                          type="password"
+                          name="buykori-redx-access-token"
+                          autoComplete="new-password"
+                          value={courierSettings.redx_access_token || ''}
+                          onChange={(e) => setCourierSettings((prev) => ({ ...prev, redx_access_token: e.target.value }))}
+                          placeholder="Paste RedX OpenAPI token"
+                          className="w-full p-2.5 text-xs bg-white border border-slate-300 rounded-lg font-mono text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-600 uppercase mb-1">Default Pickup Store ID (Optional)</label>
+                        <input
+                          type="text"
+                          value={courierSettings.redx_pickup_store_id || ''}
+                          onChange={(e) => setCourierSettings((prev) => ({ ...prev, redx_pickup_store_id: e.target.value }))}
+                          placeholder="e.g. 1"
+                          className="w-full p-2.5 text-xs bg-white border border-slate-300 rounded-lg font-mono text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-600 uppercase mb-1">Default Delivery Area ID</label>
+                        <input
+                          type="text"
+                          value={courierSettings.redx_delivery_area_id || ''}
+                          onChange={(e) => setCourierSettings((prev) => ({ ...prev, redx_delivery_area_id: e.target.value }))}
+                          placeholder="e.g. 12"
+                          className="w-full p-2.5 text-xs bg-white border border-slate-300 rounded-lg font-mono text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-600 uppercase mb-1">Default Delivery Area Name</label>
+                        <input
+                          type="text"
+                          value={courierSettings.redx_delivery_area_name || ''}
+                          onChange={(e) => setCourierSettings((prev) => ({ ...prev, redx_delivery_area_name: e.target.value }))}
+                          placeholder="e.g. Mirpur DOHS"
+                          className="w-full p-2.5 text-xs bg-white border border-slate-300 rounded-lg font-mono text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                        />
+                      </div>
+                    </div>
+                    <div className="rounded-lg border border-indigo-200 bg-indigo-50/80 p-3">
+                      <p className="text-xs font-bold uppercase tracking-wider text-indigo-900">RedX Webhook Setup</p>
+                      <p className="mt-1 text-xs text-slate-600">RedX প্যানেলে বসাতে Dedicated Token সহ Callback URL টি কপি করুন।</p>
+                      <button type="button" onClick={() => handleCopyCourierWebhookSetup('redx')} disabled={copyingCourierSecret === 'redx'} className="mt-3 inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-3.5 py-2 text-xs font-bold text-white hover:bg-indigo-700 disabled:opacity-50 shadow-xs">
+                        <Copy className="h-3.5 w-3.5" />
+                        {copyingCourierSecret === 'redx' ? 'Preparing...' : courierSettings.redx_webhook_secret_configured ? 'Copy Callback URL Again' : 'Copy Callback URL'}
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
 
-              {/* General courier choices */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Primary Preferred Courier Provider Selection */}
+              <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/60">
+                <label htmlFor="default-courier-provider" className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                  প্রাথমিক পছন্দের কুরিয়ার (Primary Preferred Courier)
+                </label>
+                <p className="text-xs text-slate-500 mb-3">১-ক্লিকে কুরিয়ার বুকিং করার সময় কোন কুরিয়ার পার্টনারকে প্রথম অগ্রাধিকার হিসেবে সিলেক্ট রাখা হবে তা নির্বাচন করুন।</p>
+                <select 
+                  id="default-courier-provider"
+                  value={courierSettings.default_courier || 'steadfast'}
+                  onChange={(e) => setCourierSettings((prev) => ({ ...prev, default_courier: e.target.value }))}
+                  className="w-full sm:w-80 p-2.5 text-xs bg-white border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 cursor-pointer font-semibold text-slate-800"
+                >
+                  <option value="steadfast">SteadFast Courier (Priority 1)</option>
+                  <option value="pathao">Pathao Courier (Priority 1)</option>
+                  <option value="redx">RedX Courier (Priority 1)</option>
+                </select>
+              </div>
+
+              {/* Weight-Based Shipping Rates Card (From Left Design) */}
+              <div className="rounded-xl border border-slate-200 bg-white p-4 sm:p-5 shadow-xs space-y-4">
                 <div>
-                  <label htmlFor="default-courier-provider" className="block text-xs font-bold text-slate-500  uppercase tracking-wider mb-1.5">Courier Used First</label>
-                  <select 
-                    id="default-courier-provider"
-                    value={courierSettings.default_courier || 'steadfast'}
-                    onChange={(e) => setCourierSettings((prev) => ({ ...prev, default_courier: e.target.value }))}
-                    className="w-full p-2 text-xs bg-white border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500    cursor-pointer"
-                  >
-                    <option value="steadfast">SteadFast Courier</option>
-                  <option value="pathao">Pathao Courier</option>
-                  <option value="redx">RedX Courier</option>
-                  </select>
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800">ওজন ভিত্তিক ডেলিভারি চার্জ (Weight-Based Shipping Rates)</h3>
+                  <p className="text-xs text-slate-500">পার্সেলের ওজন অনুযায়ী বেস রেট এবং অতিরিক্ত ওজনের চার্জ সেট করুন।</p>
                 </div>
-                
-                <div className="flex items-end">
-                  <button
-                    type="submit"
-                    disabled={savingCourier}
-                    className="w-full py-2.5 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 disabled:opacity-50 text-white text-xs font-bold rounded-lg shadow-md transition-all cursor-pointer text-center"
-                  >
-                    {savingCourier ? 'Updating settings...' : 'Save Courier Settings'}
-                  </button>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-600 mb-1">Base Rate (up to 1kg)</label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-2.5 text-xs font-bold text-slate-400">৳</span>
+                      <input type="text" defaultValue="60.00" className="w-full p-2 pl-7 text-xs bg-white border border-slate-300 rounded-lg font-mono text-slate-800" />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-600 mb-1">Additional Rate per kg</label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-2.5 text-xs font-bold text-slate-400">৳</span>
+                      <input type="text" defaultValue="15.00" className="w-full p-2 pl-7 text-xs bg-white border border-slate-300 rounded-lg font-mono text-slate-800" />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-600 mb-1">Max Weight Limit</label>
+                    <input type="text" defaultValue="10 KG" className="w-full p-2 text-xs bg-white border border-slate-300 rounded-lg font-mono text-slate-800" />
+                  </div>
                 </div>
+                <button type="button" className="rounded-lg border border-slate-300 bg-slate-50 px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-100">
+                  + Add Weight Tier
+                </button>
               </div>
 
+              {/* Zone-Wise Delivery Settings Card (From Left Design) */}
+              <div className="rounded-xl border border-slate-200 bg-white p-4 sm:p-5 shadow-xs space-y-4">
+                <div>
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800">জোন ভিত্তিক ডেলিভারি চার্জ (Zone-Wise Delivery Settings)</h3>
+                  <p className="text-xs text-slate-500">ঢাকার ভেতরে, সাব-ঢাকা এবং ঢাকার বাইরের জন্য আলাদা ডেলিভারি ফি নির্ধারণ করুন।</p>
+                </div>
+                <div className="overflow-x-auto border border-slate-200 rounded-lg">
+                  <table className="w-full text-xs text-slate-700 text-left min-w-[500px]">
+                    <thead className="bg-slate-50 text-[11px] font-bold uppercase tracking-wider text-slate-500 border-b border-slate-200">
+                      <tr>
+                        <th className="px-3.5 py-2.5">Zone Name</th>
+                        <th className="px-3.5 py-2.5">Delivery Time (Days)</th>
+                        <th className="px-3.5 py-2.5">Standard Cost</th>
+                        <th className="px-3.5 py-2.5">Express Cost</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 font-medium">
+                      <tr>
+                        <td className="px-3.5 py-2.5 font-bold text-slate-900">Dhaka City (ঢাকার ভিতরে)</td>
+                        <td className="px-3.5 py-2.5">1-2 Days</td>
+                        <td className="px-3.5 py-2.5 font-mono text-indigo-700 font-bold">৳60.00</td>
+                        <td className="px-3.5 py-2.5 font-mono text-indigo-700 font-bold">৳100.00</td>
+                      </tr>
+                      <tr>
+                        <td className="px-3.5 py-2.5 font-bold text-slate-900">Sub-Dhaka (সাভার, গাজীপুর, কেরানীগঞ্জ)</td>
+                        <td className="px-3.5 py-2.5">2-3 Days</td>
+                        <td className="px-3.5 py-2.5 font-mono text-indigo-700 font-bold">৳100.00</td>
+                        <td className="px-3.5 py-2.5 font-mono text-indigo-700 font-bold">৳150.00</td>
+                      </tr>
+                      <tr>
+                        <td className="px-3.5 py-2.5 font-bold text-slate-900">Outside Dhaka (ঢাকার বাইরে জেলা সদর)</td>
+                        <td className="px-3.5 py-2.5">3-5 Days</td>
+                        <td className="px-3.5 py-2.5 font-mono text-indigo-700 font-bold">৳130.00</td>
+                        <td className="px-3.5 py-2.5 font-mono text-indigo-700 font-bold">৳200.00</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+                <button type="button" className="rounded-lg border border-slate-300 bg-slate-50 px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-100">
+                  + Add New Zone
+                </button>
+              </div>
+
+              {/* Submit Button */}
+              <div className="pt-2">
+                <button
+                  type="submit"
+                  disabled={savingCourier}
+                  className="w-full py-3 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 disabled:opacity-50 text-white text-xs font-bold uppercase tracking-wider rounded-xl shadow-lg transition-all cursor-pointer text-center"
+                >
+                  {savingCourier ? 'Updating settings...' : 'Save All Courier Configurations / সেটিংস সেভ করুন'}
+                </button>
+              </div>
             </form>
           )}
         </section>
 
         {/* WordPress Custom tracking rules */}
-        <section id="settings-cod" aria-labelledby="settings-cod-title" className="scroll-mt-28 rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-4  ">
+        <section id="settings-cod" aria-labelledby="settings-cod-title" className="scroll-mt-28 rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">
           <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
             <div>
               <h2 id="settings-cod-title" className="font-bold text-slate-800 text-sm uppercase tracking-wide ">COD Purchase Timing</h2>
