@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Check, Copy, Download, Globe2, MessageCircle, Plus, RefreshCw, Save, Trash2, Truck, X } from 'lucide-react';
 import { Tooltip } from './common/Tooltip';
+import { PlatformBadge, PlatformLogo } from './common/PlatformLogo';
 import { AdAccount, Platform, PlatformConfig, EventRule, ClientConnection, PluginReleaseInfo, CustomEventAutomation, CustomEventTrigger, CourierSettings } from '../types';
 
 interface SettingsViewProps {
@@ -1012,10 +1013,10 @@ export function SettingsView({
             const missingCredentials = platformMissingCredentials(plat, config);
             const enabledButMissingCredentials = Boolean(config.enabled && missingCredentials.length);
             return (
-              <div key={plat} className="p-4 rounded-lg border border-slate-200  bg-slate-50/50  space-y-3">
+              <div key={plat} className="bk-brand-panel space-y-3 rounded-lg border p-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <span className="font-semibold text-xs text-slate-800  uppercase tracking-wider">{plat}</span>
+                    <PlatformBadge platform={plat} label={plat} active={config.enabled} />
                     <span className={`inline-flex px-1.5 py-0.5 rounded text-xs font-bold uppercase tracking-wider ${
                       config.status === 'Valid' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200   ' : 
                       config.status === 'Invalid' ? 'bg-rose-50 text-rose-700 border border-rose-200   ' : 
@@ -1033,7 +1034,7 @@ export function SettingsView({
                       onChange={(e) => handleUpdatePlatform(plat, { enabled: e.target.checked })} 
                       className="sr-only peer"
                     />
-                    <div className="w-9 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600" />
+                    <div className="w-9 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#285ac7]" />
                     <span className="ml-2 text-xs font-semibold text-slate-500 uppercase ">
                       {config.enabled ? 'On' : 'Off'}
                     </span>
@@ -2018,17 +2019,17 @@ export function SettingsView({
                   )}
                 </div>
                 <div className="mt-4 grid grid-cols-3 gap-2 text-center text-xs font-bold uppercase tracking-wider text-slate-500">
-                  <label className="rounded-lg bg-slate-50 p-2 ">
-                    <span className="block">Meta</span>
-                    <input type="checkbox" checked={rule.metaEnabled} onChange={() => handleToggleRule(idx, 'metaEnabled')} className="mt-2 h-4 w-4 rounded accent-indigo-600" />
+                  <label className="rounded-lg border border-slate-100 bg-slate-50 p-2 ">
+                    <span className="flex items-center justify-center gap-1"><PlatformLogo platform="Meta CAPI" className="h-4 w-4" />Meta</span>
+                    <input type="checkbox" checked={rule.metaEnabled} onChange={() => handleToggleRule(idx, 'metaEnabled')} className="mt-2 h-4 w-4 rounded accent-[#285ac7]" />
                   </label>
-                  <label className="rounded-lg bg-slate-50 p-2 ">
-                    <span className="block">TikTok</span>
-                    <input type="checkbox" checked={rule.tiktokEnabled} onChange={() => handleToggleRule(idx, 'tiktokEnabled')} className="mt-2 h-4 w-4 rounded accent-indigo-600" />
+                  <label className="rounded-lg border border-slate-100 bg-slate-50 p-2 ">
+                    <span className="flex items-center justify-center gap-1"><PlatformLogo platform="TikTok Events API" className="h-4 w-4" />TikTok</span>
+                    <input type="checkbox" checked={rule.tiktokEnabled} onChange={() => handleToggleRule(idx, 'tiktokEnabled')} className="mt-2 h-4 w-4 rounded accent-[#285ac7]" />
                   </label>
-                  <label className="rounded-lg bg-slate-50 p-2 ">
-                    <span className="block">GA4</span>
-                    <input type="checkbox" checked={rule.ga4Enabled} onChange={() => handleToggleRule(idx, 'ga4Enabled')} className="mt-2 h-4 w-4 rounded accent-indigo-600" />
+                  <label className="rounded-lg border border-slate-100 bg-slate-50 p-2 ">
+                    <span className="flex items-center justify-center gap-1"><PlatformLogo platform="GA4" className="h-4 w-4" />GA4</span>
+                    <input type="checkbox" checked={rule.ga4Enabled} onChange={() => handleToggleRule(idx, 'ga4Enabled')} className="mt-2 h-4 w-4 rounded accent-[#285ac7]" />
                   </label>
                 </div>
               </div>

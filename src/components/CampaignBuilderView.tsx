@@ -1,6 +1,7 @@
 import React from 'react';
 import { Plus, Trash2, Send, Terminal, Link, Copy, Check, Info } from 'lucide-react';
 import { Tooltip } from './common/Tooltip';
+import { PlatformBadge } from './common/PlatformLogo';
 import { CampaignDispatchResponse, Platform, SyncedAdCampaign } from '../types';
 
 interface CampaignBuilderViewProps {
@@ -242,6 +243,9 @@ export function CampaignBuilderView({
                   <option value="meta">Meta</option>
                   <option value="tiktok">TikTok</option>
                 </select>
+                <div className="mt-2">
+                  <PlatformBadge platform={urlBuilderSource} label={urlBuilderSource === 'facebook' ? 'Facebook Ads' : urlBuilderSource === 'tiktok' ? 'TikTok Ads' : urlBuilderSource === 'google' ? 'Google Ads' : urlBuilderSource} active />
+                </div>
               </div>
               <div>
                 <label htmlFor="campaign-url-exact-campaign" className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5 ">Choose Ad Campaign</label>
@@ -369,6 +373,9 @@ export function CampaignBuilderView({
                 <option value="TikTok Events API">TikTok Events API</option>
                 <option value="GA4">Google Analytics 4</option>
               </select>
+              <div className="mt-2">
+                <PlatformBadge platform={builderPlatform} label={builderPlatform} active />
+              </div>
             </div>
 
             <div>

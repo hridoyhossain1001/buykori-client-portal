@@ -1,5 +1,6 @@
 import React from 'react';
 import { Tooltip } from './common/Tooltip';
+import { PlatformBadge } from './common/PlatformLogo';
 import {
   ShieldAlert, 
   AlertTriangle, 
@@ -988,11 +989,7 @@ export function AnalyticsView({
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <div className="mb-1 flex flex-wrap gap-1">
-                    <span className={`inline-flex px-1.5 py-0.5 rounded text-xs font-bold uppercase tracking-wider ${
-                      row.platform === 'meta' ? 'bg-blue-50 text-blue-700 border border-blue-200' : 'bg-slate-900 text-white'
-                    }`}>
-                      {row.platform}
-                    </span>
+                    <PlatformBadge platform={row.platform} label={row.platform} />
                     <span className={`inline-flex rounded border px-1.5 py-0.5 text-xs font-bold uppercase tracking-wider ${status.className}`}>
                       {status.label}
                     </span>
@@ -1079,11 +1076,7 @@ export function AnalyticsView({
                     <td className="sticky left-0 z-10 max-w-[280px] bg-white px-4 py-3.5 align-middle shadow-[1px_0_0_0_rgba(226,232,240,1)]">
                       <div className="flex flex-col gap-1 min-w-0">
                         <div className="flex flex-wrap gap-1">
-                          <span className={`w-fit px-1.5 py-0.5 rounded text-xs font-black uppercase tracking-wider ${
-                            row.platform === 'meta' ? 'bg-blue-50 text-blue-700 border border-blue-200' : 'bg-slate-900 text-white'
-                          }`}>
-                            {row.platform}
-                          </span>
+                          <PlatformBadge platform={row.platform} label={row.platform} />
                           <span className={`w-fit rounded border px-1.5 py-0.5 text-xs font-black uppercase tracking-wider ${status.className}`}>
                             {status.label}
                           </span>

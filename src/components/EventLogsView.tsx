@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { CAPIEvent, OutboxItem } from '../types';
 import { JsonViewer } from './common/JsonViewer';
+import { PlatformLogo } from './common/PlatformLogo';
 
 // Helper function to safely escape regular expressions
 function escapeRegExp(str: string): string {
@@ -228,12 +229,13 @@ export function EventLogsView({
                 onClick={() => {
                   setPlatformFilters(prev => active ? prev.filter(x => x !== p) : [...prev, p]);
                 }}
-                className={`min-h-10 px-2.5 py-1 rounded-full text-xs font-medium cursor-pointer border transition-colors ${
+                className={`inline-flex min-h-10 items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium cursor-pointer border transition-colors ${
                   active 
-                    ? 'bg-indigo-600 border-indigo-600 text-white  ' 
+                    ? 'border-[#285ac7] bg-[#eaf1ff] text-[#173d91]'
                     : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50    '
                 }`}
               >
+                <PlatformLogo platform={p} className="h-4 w-4" />
                 {p}
               </button>
             );
@@ -353,11 +355,7 @@ export function EventLogsView({
                     </div>
                     <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-slate-500">
                       <span className="flex items-center gap-1.5">
-                        <span className={`h-1.5 w-1.5 rounded-full ${
-                          e.platform === 'Meta CAPI' ? 'bg-indigo-500' :
-                          e.platform === 'TikTok Events API' ? 'bg-cyan-500' :
-                          e.platform === 'TikTok Browser Pixel' ? 'bg-violet-500' : 'bg-orange-500'
-                        }`} />
+                        <PlatformLogo platform={e.platform} className="h-4 w-4" />
                         {highlightText(e.platform, searchFilter)}
                       </span>
                       <span className="text-right">{highlightText(e.contextLabel || 'Website event', searchFilter)}</span>
@@ -424,11 +422,7 @@ export function EventLogsView({
                         </td>
                         <td className="px-6 py-4">
                           <span className="flex items-center gap-1.5 font-medium text-slate-700 ">
-                            <span className={`w-1.5 h-1.5 rounded-full ${
-                              e.platform === 'Meta CAPI' ? 'bg-indigo-500' : 
-                              e.platform === 'TikTok Events API' ? 'bg-cyan-500' :
-                              e.platform === 'TikTok Browser Pixel' ? 'bg-violet-500' : 'bg-orange-500'
-                            }`} />
+                            <PlatformLogo platform={e.platform} className="h-4 w-4" />
                             {highlightText(e.platform, searchFilter)}
                           </span>
                         </td>

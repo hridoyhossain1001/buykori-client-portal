@@ -1,6 +1,7 @@
 ﻿import React from 'react';
 import { Download, AlertTriangle, Activity, CheckCircle2, Clock3 } from 'lucide-react';
 import { APILog } from '../types';
+import { PlatformBadge, PlatformLogo } from './common/PlatformLogo';
 
 interface ApiLogsViewProps {
   filteredApiLogsForTable: APILog[];
@@ -53,7 +54,7 @@ export function ApiLogsView({
               <div key={item.platform} className={`rounded-xl border p-4 shadow-sm ${needsAction ? 'border-rose-200 bg-rose-50' : retrying ? 'border-amber-200 bg-amber-50' : noData && item.configured ? 'border-indigo-200 bg-indigo-50/50' : 'border-slate-200 bg-white'}`}>
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="text-xs font-bold text-slate-900">{item.platform}</p>
+                    <PlatformBadge platform={item.platform} label={item.platform} />
                     <p className="mt-1 text-xs text-slate-500">{item.configured ? 'Configured' : 'Not configured'}</p>
                   </div>
                   {needsAction ? <AlertTriangle className="h-4 w-4 text-rose-600" /> : retrying ? <Clock3 className="h-4 w-4 text-amber-600" /> : noData ? <Activity className="h-4 w-4 text-slate-400" /> : <CheckCircle2 className="h-4 w-4 text-emerald-600" />}
@@ -102,7 +103,7 @@ export function ApiLogsView({
                 <button type="button" onClick={() => setExpandedApiLogId(isExpanded ? null : l.id)} className="w-full text-left">
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <p className="text-sm font-bold text-slate-900 ">{l.platform}</p>
+                      <span className="flex items-center gap-1.5 text-sm font-bold text-slate-900"><PlatformLogo platform={l.platform} className="h-4 w-4" />{l.platform}</span>
                       <p className="mt-1 font-mono text-xs text-slate-500">{endpointHost}</p>
                     </div>
                     <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-mono text-xs font-bold ${hasErr ? 'bg-rose-50 text-rose-700' : 'bg-emerald-50 text-emerald-700'}`}>
@@ -176,7 +177,7 @@ export function ApiLogsView({
                           {new Date(l.timestamp).toLocaleTimeString()}
                         </td>
                         <td className="px-6 py-3.5 font-medium text-slate-800 ">
-                          {l.platform}
+                          <span className="flex items-center gap-1.5"><PlatformLogo platform={l.platform} className="h-4 w-4" />{l.platform}</span>
                         </td>
                         <td className="px-6 py-3.5 font-mono text-xs max-w-xs truncate text-slate-500 " title={l.endpoint}>
                           {l.endpoint}

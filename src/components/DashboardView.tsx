@@ -10,6 +10,7 @@ import {
   Legend
 } from 'recharts';
 import { Tooltip } from './common/Tooltip';
+import { PlatformBadge, PlatformLogo } from './common/PlatformLogo';
 import { 
   TrendingUp, 
   ArrowUpRight, 
@@ -77,24 +78,21 @@ export function DashboardView({
       rate: metaStats.rate,
       total: metaStats.total,
       lastTime: metaStats.lastTime,
-      dotClass: 'bg-[#f97316]',
-      badgeClass: 'border-orange-200 bg-orange-50 text-orange-700',
+      platform: 'Meta CAPI',
     },
     {
       label: 'TikTok',
       rate: tiktokStats.rate,
       total: tiktokStats.total,
       lastTime: tiktokStats.lastTime,
-      dotClass: 'bg-[#2563eb]',
-      badgeClass: 'border-blue-200 bg-blue-50 text-blue-700',
+      platform: 'TikTok Events API',
     },
     {
       label: 'GA4',
       rate: ga4Stats.rate,
       total: ga4Stats.total,
       lastTime: ga4Stats.lastTime,
-      dotClass: 'bg-[#34a853]',
-      badgeClass: 'border-green-200 bg-green-50 text-green-700',
+      platform: 'GA4',
     },
   ];
   const platformEmptyCopy: Record<string, string> = {
@@ -210,7 +208,7 @@ export function DashboardView({
           >
             {platformCards.map(card => (
               <span key={card.label} className="flex h-7 w-7 items-center justify-center rounded-full border border-slate-200 bg-slate-50">
-                <span className={`h-2 w-2 rounded-full ${card.dotClass}`} />
+                <PlatformLogo platform={card.platform} className="h-4 w-4" />
               </span>
             ))}
           </button>
@@ -225,7 +223,7 @@ export function DashboardView({
                   <div key={card.label} className="flex items-center justify-between gap-3 px-3 py-2.5">
                     <div className="min-w-0">
                       <p className="flex items-center gap-1.5 text-xs font-bold text-slate-800">
-                        <span className={`h-1.5 w-1.5 rounded-full ${card.dotClass}`} />
+                        <PlatformLogo platform={card.platform} className="h-4 w-4" />
                         {card.label}
                       </p>
                       <p className="mt-0.5 truncate font-mono text-xs text-slate-400">
@@ -367,12 +365,9 @@ export function DashboardView({
         </div>
 
         {platformCards.map(card => (
-          <div key={card.label} className="hidden rounded-lg border border-slate-200 bg-white p-4 shadow-sm md:block">
+          <div key={card.label} className="bk-brand-panel hidden rounded-lg border bg-white p-4 shadow-sm md:block">
             <div className="flex items-center justify-between gap-2">
-              <span className={`inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-xs font-bold ${card.badgeClass}`}>
-                <span className={`h-1.5 w-1.5 rounded-full ${card.dotClass}`} />
-                {card.label}
-              </span>
+              <PlatformBadge platform={card.platform} label={card.label} />
               <span className="text-xs font-bold uppercase text-slate-400">{card.total} events</span>
             </div>
             <p className={`mt-4 font-bold tracking-tight text-slate-950 ${card.total > 0 ? 'text-2xl' : 'text-lg leading-tight'}`}>
@@ -405,16 +400,16 @@ export function DashboardView({
               <AreaChart width={chartSize.width} height={chartSize.height} data={trendData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
                 <defs>
                   <linearGradient id="metaGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#4f46e5" stopOpacity={0.2}/>
-                    <stop offset="95%" stopColor="#4f46e5" stopOpacity={0}/>
+                    <stop offset="5%" stopColor="#0866ff" stopOpacity={0.2}/>
+                    <stop offset="95%" stopColor="#0866ff" stopOpacity={0}/>
                   </linearGradient>
                   <linearGradient id="tiktokGrad" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#06b6d4" stopOpacity={0.2}/>
                     <stop offset="95%" stopColor="#06b6d4" stopOpacity={0}/>
                   </linearGradient>
                   <linearGradient id="ga4Grad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#34a853" stopOpacity={0.18}/>
-                    <stop offset="95%" stopColor="#34a853" stopOpacity={0}/>
+                    <stop offset="5%" stopColor="#e37400" stopOpacity={0.18}/>
+                    <stop offset="95%" stopColor="#e37400" stopOpacity={0}/>
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
@@ -434,9 +429,9 @@ export function DashboardView({
                   contentStyle={{ backgroundColor: '#ffffff', borderColor: '#e2e8f0', color: '#1e293b', borderRadius: '8px', fontSize: '12px', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.05)' }}
                 />
                 <Legend wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }} />
-                <Area type="monotone" dataKey="Meta CAPI" stroke="#4f46e5" strokeWidth={2} fillOpacity={1} fill="url(#metaGrad)" />
-                <Area type="monotone" dataKey="TikTok Events" stroke="#06b6d4" strokeWidth={2} fillOpacity={1} fill="url(#tiktokGrad)" />
-                <Area type="monotone" dataKey="GA4" stroke="#34a853" strokeWidth={2} fillOpacity={1} fill="url(#ga4Grad)" />
+                <Area type="monotone" dataKey="Meta CAPI" stroke="#0866ff" strokeWidth={2} fillOpacity={1} fill="url(#metaGrad)" />
+                <Area type="monotone" dataKey="TikTok Events" stroke="#111827" strokeWidth={2} fillOpacity={1} fill="url(#tiktokGrad)" />
+                <Area type="monotone" dataKey="GA4" stroke="#e37400" strokeWidth={2} fillOpacity={1} fill="url(#ga4Grad)" />
               </AreaChart>
           </div>
         </div>
@@ -565,10 +560,7 @@ export function DashboardView({
                 <div>
                   <p className="text-sm font-bold text-slate-900">{e.name}</p>
                   <p className="mt-1 flex items-center gap-1.5 text-xs font-medium text-slate-500">
-                    <span className={`h-1.5 w-1.5 rounded-full ${
-                      e.platform === 'Meta CAPI' ? 'bg-indigo-500' :
-                      e.platform === 'TikTok Events API' ? 'bg-cyan-500' : 'bg-orange-500'
-                    }`} />
+                    <PlatformLogo platform={e.platform} className="h-4 w-4" />
                     {e.platform}
                   </p>
                 </div>
@@ -642,10 +634,7 @@ export function DashboardView({
                         </td>
                         <td className="px-6 py-3.5">
                           <span className="flex items-center gap-1.5 font-medium text-slate-700 ">
-                            <span className={`w-1.5 h-1.5 rounded-full ${
-                              e.platform === 'Meta CAPI' ? 'bg-indigo-500' : 
-                              e.platform === 'TikTok Events API' ? 'bg-cyan-500' : 'bg-orange-500'
-                            }`} />
+                            <PlatformLogo platform={e.platform} className="h-4 w-4" />
                             {e.platform}
                           </span>
                         </td>
