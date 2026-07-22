@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 60" width="200" height="60">
+  <rect width="200" height="60" rx="12" fill="#FFFFFF"/>
+  <rect x="6" y="6" width="48" height="48" rx="10" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="2"/>
+  <path d="M14 20 L24 20 C28 20, 30 22, 30 25 C30 28, 28 30, 24 30 L19 30 L19 40 L14 40 Z M19 25 L24 25 C25 25, 25 25, 25 25 Z" fill="#E21B23"/>
+  <path d="M27 20 L32 20 L32 35 L27 35 Z M30 15 C31 15, 32 16, 32 17 C32 19, 31 20, 30 20 C29 20, 28 19, 28 17 C28 16, 29 15, 30 15 Z" fill="#E21B23"/>
+  <path d="M34 20 L40 20 C44 20, 47 22, 47 26 C47 28, 46 31, 42 34 L48 40 L41 40 L36 35 L34 35 L34 40 L29 40 L29 20 Z M34 25 L34 30 L39 30 C41 30, 42 29, 42 28 C42 26, 41 25, 39 25 Z" fill="#E21B23"/>
+  <path d="M44 20 L51 30 L44 40 L50 40 L54 34 L58 40 L64 40 L57 30 L64 20 L58 20 L54 26 L50 20 Z" fill="#E21B23"/>
+  <path d="M47 20 L53 28 L59 20 Z" fill="#1E293B"/>
+  <text x="64" y="38" font-family="'Outfit', 'Inter', sans-serif" font-weight="900" font-size="22" fill="#E21B23">Red<tspan fill="#1E293B">X</tspan></text>
+</svg>

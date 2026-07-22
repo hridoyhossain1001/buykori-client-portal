@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 60" width="200" height="60">
+  <rect width="200" height="60" rx="12" fill="#FFFFFF"/>
+  <rect x="6" y="6" width="48" height="48" rx="10" fill="#02366B"/>
+  <path d="M16 35 L28 18 L35 26 L46 12 L38 46 L29 35 L22 43 Z" fill="#FFFFFF"/>
+  <path d="M29 27 L40 18 L34 35 Z" fill="#38BDF8"/>
+  <text x="64" y="38" font-family="'Outfit', 'Inter', sans-serif" font-weight="800" font-size="20" fill="#02366B">SteadFast</text>
+</svg>

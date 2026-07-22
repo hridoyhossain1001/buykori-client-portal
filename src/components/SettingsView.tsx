@@ -1505,20 +1505,14 @@ export function SettingsView({
           {/* Integrated Courier Partners Selection Grid */}
           <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-4 sm:p-5 shadow-xs">
             <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">ইন্টিগ্রেটেড কুরিয়ার পার্টনার্স (Integrated Courier Partners)</h3>
-            <p className="text-xs text-slate-500 mb-4">যে কুরিয়ারগুলো ব্যবহার করতে চান সেগুলোর টগল সুইচ অন করুন। টগল অন করলে নিচে এপিআই ফরম উন্মুক্ত হবে।</p>
+            <p className="text-xs text-slate-500 mb-4">আপনার পছন্দ অনুযায়ী যেকটি কুরিয়ার ব্যবহার করতে চান সেগুলোর টগল সুইচ অন করুন। টগল অন করলেই নিচে এপিআই সংক্রান্ত সেটিংস অপশন দৃশ্যমান হবে।</p>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               {/* SteadFast Toggle Box */}
               <div className={`flex items-center justify-between p-3.5 rounded-xl border transition-all ${enabledCouriers.steadfast ? 'border-indigo-500 bg-indigo-50/40 shadow-xs' : 'border-slate-200 bg-white'}`}>
                 <div className="flex items-center gap-3">
-                  {/* Official SteadFast Brand Logo */}
-                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 to-indigo-700 p-1 shadow-xs">
-                    <svg viewBox="0 0 100 100" className="h-full w-full">
-                      <rect width="100" height="100" rx="20" fill="#0056B3" />
-                      <path d="M18 64 L42 32 L56 46 L82 18 L68 82 L50 62 L36 78 Z" fill="#FFFFFF" />
-                      <path d="M50 48 L72 30 L60 62 Z" fill="#38BDF8" />
-                    </svg>
-                  </div>
+                  {/* Real SteadFast Brand Logo */}
+                  <img src="/couriers/steadfast.svg" alt="SteadFast Courier" className="h-10 w-auto object-contain shrink-0" />
                   <div>
                     <h4 className="text-xs font-bold text-slate-900">SteadFast</h4>
                     <span className="text-[10px] font-semibold text-slate-500">Express Courier</span>
@@ -1536,18 +1530,8 @@ export function SettingsView({
               {/* Pathao Toggle Box */}
               <div className={`flex items-center justify-between p-3.5 rounded-xl border transition-all ${enabledCouriers.pathao ? 'border-indigo-500 bg-indigo-50/40 shadow-xs' : 'border-slate-200 bg-white'}`}>
                 <div className="flex items-center gap-3">
-                  {/* Official Pathao Brand Logo */}
-                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white border border-rose-200 p-1 shadow-xs">
-                    <svg viewBox="0 0 100 100" className="h-full w-full">
-                      <rect width="100" height="100" rx="20" fill="#E23744" />
-                      <circle cx="58" cy="28" r="10" fill="#FFFFFF" />
-                      <path d="M30 65 L48 42 L64 52 L82 34 L74 26 L60 40 L46 32 L26 55 Z" fill="#FFFFFF" />
-                      <circle cx="34" cy="74" r="12" fill="#FFFFFF" />
-                      <circle cx="74" cy="74" r="12" fill="#FFFFFF" />
-                      <circle cx="34" cy="74" r="5" fill="#E23744" />
-                      <circle cx="74" cy="74" r="5" fill="#E23744" />
-                    </svg>
-                  </div>
+                  {/* Real Pathao Brand Logo */}
+                  <img src="/couriers/pathao.svg" alt="Pathao Courier" className="h-10 w-auto object-contain shrink-0" />
                   <div>
                     <h4 className="text-xs font-bold text-slate-900">Pathao Courier</h4>
                     <span className="text-[10px] font-semibold text-slate-500">Nationwide Shipping</span>
@@ -1565,16 +1549,8 @@ export function SettingsView({
               {/* RedX Toggle Box */}
               <div className={`flex items-center justify-between p-3.5 rounded-xl border transition-all ${enabledCouriers.redx ? 'border-indigo-500 bg-indigo-50/40 shadow-xs' : 'border-slate-200 bg-white'}`}>
                 <div className="flex items-center gap-3">
-                  {/* Official RedX Brand Logo */}
-                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white border border-red-200 p-1 shadow-xs">
-                    <svg viewBox="0 0 120 120" className="h-full w-full">
-                      <rect width="120" height="120" rx="20" fill="#FFFFFF" />
-                      <path d="M14 40 L34 40 C42 40, 46 44, 46 50 C46 56, 42 60, 34 60 L24 60 L24 80 L14 80 Z M24 50 L34 50 C36 50, 36 50, 36 50 C36 50, 34 50, 34 50 Z" fill="#E21B23" />
-                      <path d="M42 40 L52 40 L52 70 L42 70 Z M47 30 C50 30, 52 32, 52 35 C52 38, 50 40, 47 40 C44 40, 42 38, 42 35 C42 32, 44 30, 47 30 Z" fill="#E21B23" />
-                      <path d="M56 40 L68 40 C76 40, 82 44, 82 52 C82 56, 80 62, 72 68 L84 80 L70 80 L60 70 L56 70 L56 80 L46 80 L46 40 Z M56 50 L56 60 L66 60 C70 60, 72 58, 72 55 C72 52, 70 50, 66 50 Z" fill="#E21B23" />
-                      <path d="M82 40 L96 60 L82 80 L94 80 L102 68 L110 80 L122 80 L108 60 L122 40 L110 40 L102 52 L94 40 Z" fill="#E21B23" />
-                    </svg>
-                  </div>
+                  {/* Real RedX Brand Logo */}
+                  <img src="/couriers/redx.svg" alt="RedX Logistics" className="h-10 w-auto object-contain shrink-0" />
                   <div>
                     <h4 className="text-xs font-bold text-slate-900">RedX Logistics</h4>
                     <span className="text-[10px] font-semibold text-slate-500">Doorstep Delivery</span>
@@ -1854,91 +1830,17 @@ export function SettingsView({
                 <label htmlFor="default-courier-provider" className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
                   প্রাথমিক পছন্দের কুরিয়ার (Primary Preferred Courier)
                 </label>
-                <p className="text-xs text-slate-500 mb-3">১-ক্লিকে কুরিয়ার বুকিং করার সময় কোন কুরিয়ার পার্টনারকে প্রথম অগ্রাধিকার হিসেবে সিলেক্ট রাখা হবে তা নির্বাচন করুন।</p>
+                <p className="text-xs text-slate-500 mb-3">১-ক্লিকে কুরিয়ার বুকিং করার সময় কোন কুরিয়ার পার্টনারকে সিলেক্ট রাখা হবে তা নির্বাচন করুন।</p>
                 <select 
                   id="default-courier-provider"
                   value={courierSettings.default_courier || 'steadfast'}
                   onChange={(e) => setCourierSettings((prev) => ({ ...prev, default_courier: e.target.value }))}
                   className="w-full sm:w-80 p-2.5 text-xs bg-white border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 cursor-pointer font-semibold text-slate-800"
                 >
-                  <option value="steadfast">SteadFast Courier (Priority 1)</option>
-                  <option value="pathao">Pathao Courier (Priority 1)</option>
-                  <option value="redx">RedX Courier (Priority 1)</option>
+                  <option value="steadfast">SteadFast Courier</option>
+                  <option value="pathao">Pathao Courier</option>
+                  <option value="redx">RedX Courier</option>
                 </select>
-              </div>
-
-              {/* Weight-Based Shipping Rates Card (From Left Design) */}
-              <div className="rounded-xl border border-slate-200 bg-white p-4 sm:p-5 shadow-xs space-y-4">
-                <div>
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800">ওজন ভিত্তিক ডেলিভারি চার্জ (Weight-Based Shipping Rates)</h3>
-                  <p className="text-xs text-slate-500">পার্সেলের ওজন অনুযায়ী বেস রেট এবং অতিরিক্ত ওজনের চার্জ সেট করুন।</p>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-600 mb-1">Base Rate (up to 1kg)</label>
-                    <div className="relative">
-                      <span className="absolute left-3 top-2.5 text-xs font-bold text-slate-400">৳</span>
-                      <input type="text" defaultValue="60.00" className="w-full p-2 pl-7 text-xs bg-white border border-slate-300 rounded-lg font-mono text-slate-800" />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-600 mb-1">Additional Rate per kg</label>
-                    <div className="relative">
-                      <span className="absolute left-3 top-2.5 text-xs font-bold text-slate-400">৳</span>
-                      <input type="text" defaultValue="15.00" className="w-full p-2 pl-7 text-xs bg-white border border-slate-300 rounded-lg font-mono text-slate-800" />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-600 mb-1">Max Weight Limit</label>
-                    <input type="text" defaultValue="10 KG" className="w-full p-2 text-xs bg-white border border-slate-300 rounded-lg font-mono text-slate-800" />
-                  </div>
-                </div>
-                <button type="button" className="rounded-lg border border-slate-300 bg-slate-50 px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-100">
-                  + Add Weight Tier
-                </button>
-              </div>
-
-              {/* Zone-Wise Delivery Settings Card (From Left Design) */}
-              <div className="rounded-xl border border-slate-200 bg-white p-4 sm:p-5 shadow-xs space-y-4">
-                <div>
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800">জোন ভিত্তিক ডেলিভারি চার্জ (Zone-Wise Delivery Settings)</h3>
-                  <p className="text-xs text-slate-500">ঢাকার ভেতরে, সাব-ঢাকা এবং ঢাকার বাইরের জন্য আলাদা ডেলিভারি ফি নির্ধারণ করুন।</p>
-                </div>
-                <div className="overflow-x-auto border border-slate-200 rounded-lg">
-                  <table className="w-full text-xs text-slate-700 text-left min-w-[500px]">
-                    <thead className="bg-slate-50 text-[11px] font-bold uppercase tracking-wider text-slate-500 border-b border-slate-200">
-                      <tr>
-                        <th className="px-3.5 py-2.5">Zone Name</th>
-                        <th className="px-3.5 py-2.5">Delivery Time (Days)</th>
-                        <th className="px-3.5 py-2.5">Standard Cost</th>
-                        <th className="px-3.5 py-2.5">Express Cost</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100 font-medium">
-                      <tr>
-                        <td className="px-3.5 py-2.5 font-bold text-slate-900">Dhaka City (ঢাকার ভিতরে)</td>
-                        <td className="px-3.5 py-2.5">1-2 Days</td>
-                        <td className="px-3.5 py-2.5 font-mono text-indigo-700 font-bold">৳60.00</td>
-                        <td className="px-3.5 py-2.5 font-mono text-indigo-700 font-bold">৳100.00</td>
-                      </tr>
-                      <tr>
-                        <td className="px-3.5 py-2.5 font-bold text-slate-900">Sub-Dhaka (সাভার, গাজীপুর, কেরানীগঞ্জ)</td>
-                        <td className="px-3.5 py-2.5">2-3 Days</td>
-                        <td className="px-3.5 py-2.5 font-mono text-indigo-700 font-bold">৳100.00</td>
-                        <td className="px-3.5 py-2.5 font-mono text-indigo-700 font-bold">৳150.00</td>
-                      </tr>
-                      <tr>
-                        <td className="px-3.5 py-2.5 font-bold text-slate-900">Outside Dhaka (ঢাকার বাইরে জেলা সদর)</td>
-                        <td className="px-3.5 py-2.5">3-5 Days</td>
-                        <td className="px-3.5 py-2.5 font-mono text-indigo-700 font-bold">৳130.00</td>
-                        <td className="px-3.5 py-2.5 font-mono text-indigo-700 font-bold">৳200.00</td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-                <button type="button" className="rounded-lg border border-slate-300 bg-slate-50 px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-100">
-                  + Add New Zone
-                </button>
               </div>
 
               {/* Submit Button */}
@@ -1948,7 +1850,7 @@ export function SettingsView({
                   disabled={savingCourier}
                   className="w-full py-3 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 disabled:opacity-50 text-white text-xs font-bold uppercase tracking-wider rounded-xl shadow-lg transition-all cursor-pointer text-center"
                 >
-                  {savingCourier ? 'Updating settings...' : 'Save All Courier Configurations / সেটিংস সেভ করুন'}
+                  {savingCourier ? 'Updating settings...' : 'Save Courier Configurations / সেটিংস সেভ করুন'}
                 </button>
               </div>
             </form>

@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 60" width="200" height="60">
+  <rect width="200" height="60" rx="12" fill="#FFFFFF"/>
+  <rect x="6" y="6" width="48" height="48" rx="10" fill="#E23744"/>
+  <path d="M22 36 C20 36, 18 38, 18 40 C18 44, 23 48, 29 48 C35 48, 40 44, 40 40 C40 38, 38 36, 36 36 Z M30 16 C34 16, 37 19, 37 23 C37 27, 34 30, 30 30 C26 30, 23 27, 23 23 C23 19, 26 16, 30 16 Z M20 30 L32 20 L40 28 L48 18" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  <text x="64" y="38" font-family="'Outfit', 'Inter', sans-serif" font-weight="800" font-size="22" fill="#1E293B">Pathao</text>
+</svg>
