@@ -5,7 +5,6 @@ import { UserProfile } from '../types';
 import { Modal } from './common/Modal';
 
 const PLAN_PRICING = Object.freeze({
-  test: { label: 'Test Payment', events: 'Checks SMS payment only', price: 'BDT 10' },
   growth: { label: 'Growth Plan', events: '500k Events / mo', price: 'BDT 899 / mo' },
   scale: { label: 'Scale Plan', events: '1M Events / mo', price: 'BDT 2,499 / mo' }
 });
@@ -113,7 +112,7 @@ export function AccountView({
   handleDemoReset,
   showToast
 }: AccountViewProps) {
-  const [paymentPlan, setPaymentPlan] = useState<'test' | 'growth' | 'scale' | null>(null);
+  const [paymentPlan, setPaymentPlan] = useState<'growth' | 'scale' | null>(null);
   const [paymentProvider, setPaymentProvider] = useState<'bkash' | 'nagad'>('bkash');
   const [paymentSender, setPaymentSender] = useState('');
   const [paymentTrxId, setPaymentTrxId] = useState('');
@@ -144,7 +143,7 @@ export function AccountView({
     return typeof payload?.detail === 'string' ? payload.detail : 'Payment request failed. Please try again.';
   };
 
-  const openPayment = (plan: 'test' | 'growth' | 'scale') => {
+  const openPayment = (plan: 'growth' | 'scale') => {
     setPaymentPlan(plan);
     setPaymentIntent(null);
     setPaymentTrxId('');
@@ -730,7 +729,6 @@ export function AccountView({
               <div>
                 <p className="text-xs font-bold uppercase tracking-[0.2em]" style={{ color: paymentIntent ? paymentBrand.primary : '#4f46e5' }}>Secure manual payment</p>
                 <h3 className="mt-1 text-lg font-bold text-slate-900">Pay for {PLAN_PRICING[paymentPlan].label}</h3>
-                {paymentPlan === 'test' && <p className="mt-1 text-xs font-medium text-amber-600">Test only. Your active plan will not change.</p>}
               </div>
               <div className="flex items-start gap-3">
                 {paymentIntent && (
