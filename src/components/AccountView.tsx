@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { CheckCircle2, Clock3, Copy, CreditCard, KeyRound, Loader2, ReceiptText, RotateCcw, ShieldAlert, Sparkles, UserRound, WalletCards, X } from 'lucide-react';
+import { CheckCircle2, Clock3, Copy, CreditCard, KeyRound, Loader2, QrCode, ReceiptText, RotateCcw, ShieldAlert, Sparkles, UserRound, WalletCards, X } from 'lucide-react';
+import QRCode from 'qrcode';
 import { UserProfile } from '../types';
 import { Modal } from './common/Modal';
 
@@ -117,6 +118,7 @@ export function AccountView({
   const [paymentSender, setPaymentSender] = useState('');
   const [paymentTrxId, setPaymentTrxId] = useState('');
   const [paymentIntent, setPaymentIntent] = useState<PaymentIntent | null>(null);
+  const [paymentQrUrl, setPaymentQrUrl] = useState<string | null>(null);
   const [paymentBusy, setPaymentBusy] = useState(false);
   const [paymentSecondsLeft, setPaymentSecondsLeft] = useState(0);
   const [paymentFeedback, setPaymentFeedback] = useState('');
@@ -193,6 +195,16 @@ export function AccountView({
     const payload = await response.json();
     if (payload.payment) applyPaymentStatus(payload.payment, showStatusToast, autoRedirect);
   };
+
+  useEffect(() => {
+    if (!paymentIntent?.receivingPhone) {
+      setPaymentQrUrl(null);
+      return;
+    }
+    QRCode.toDataURL(paymentIntent.receivingPhone, { errorCorrectionLevel: 'M', margin: 1, width: 140 })
+      .then((url) => setPaymentQrUrl(url))
+      .catch(() => setPaymentQrUrl(null));
+  }, [paymentIntent?.receivingPhone]);
 
   useEffect(() => {
     if (!paymentIntent?.expiresAt) {
@@ -810,7 +822,7 @@ export function AccountView({
                   <p className="mt-4 text-xs font-black uppercase tracking-[0.18em] text-rose-600">Payment session expired</p>
                   <h4 className="mt-2 text-xl font-black text-slate-900">Your 5-minute payment window ended</h4>
                   <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-slate-600">
-                    আপনার রেফারেন্স আইডিটি ৫ মিনিটের মধ্যে অটোমেটিক খুঁজে পাওয়া যায়নি। আপনি যদি পেমেন্ট সম্পন্ন করে থাকেন, তবে নিচে আপনার ট্রান্সেকশন হ্যাশ (TrxID / TxID) বসিয়ে <strong>Continue (কন্টিনিউ)</strong> চাপুন।
+                    আপনি যদি পেমেন্ট করে থাকেন আর রেফার আইডি দিতে ভুল করে থাকেন বা মিস করে থাকেন, তবে নিচে আপনার ট্রানজেকশন আইডি (TrxID) বসিয়ে <strong>Continue (কন্টিনিউ)</strong> চাপুন।
                   </p>
                   <div className="mx-auto mt-4 max-w-sm rounded-xl border bg-white px-4 py-3 text-xs text-slate-500" style={{ borderColor: `${paymentBrand.primary}33` }}>
                     রেফারেন্স আইডি (Refer ID): <span className="font-mono font-bold text-slate-700">{paymentIntent.paymentReference || 'N/A'}</span>
@@ -841,25 +853,33 @@ export function AccountView({
               ) : (
                 <>
                   <div className="space-y-4">
-                    <div className="relative overflow-hidden rounded-xl border p-3.5 text-white shadow-lg sm:rounded-2xl sm:p-6" style={{ borderColor: `${paymentBrand.primary}55`, background: `linear-gradient(135deg, ${paymentBrand.primary}, ${paymentBrand.secondary})` }}>
+                    <div className="relative overflow-hidden rounded-xl border p-3.5 text-white shadow-lg sm:rounded-2xl sm:p-5" style={{ borderColor: `${paymentBrand.primary}55`, background: `linear-gradient(135deg, ${paymentBrand.primary}, ${paymentBrand.secondary})` }}>
                         <div className="pointer-events-none absolute -right-14 -top-16 h-44 w-44 rounded-full border border-white/15 bg-white/10" />
                         <div className="pointer-events-none absolute -bottom-20 left-1/3 h-40 w-40 rounded-full bg-white/5 blur-xl" />
-                        <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-start justify-between gap-3">
                           <div className="relative">
                             <span className="rounded-full border border-white/40 bg-white/15 px-3 py-1 text-xs font-black uppercase tracking-[0.16em] text-white">{paymentBrand.name} payment number</span>
-                          <p className="mt-1.5 text-xs font-semibold text-white/80 sm:mt-2 sm:text-xs">Send the exact payment to this number</p>
+                            <p className="mt-1.5 text-xs font-semibold text-white/80 sm:mt-2">Send the exact payment to this number</p>
+                            <p className="relative mt-2 font-mono text-2xl font-black tracking-[0.07em] text-white sm:mt-3 sm:text-3xl">{paymentIntent.receivingPhone}</p>
                           </div>
-                          <button type="button" onClick={() => navigator.clipboard.writeText(paymentIntent.receivingPhone)} className="relative flex items-center gap-1 rounded-lg border border-white/60 bg-white px-2.5 py-2 text-xs font-bold shadow-sm transition hover:-translate-y-0.5 hover:bg-slate-50 sm:rounded-xl sm:px-3.5 sm:py-2.5 sm:text-xs" style={{ color: paymentBrand.text }}><Copy className="h-3.5 w-3.5" /> Copy</button>
+                          <div className="flex flex-col items-end gap-1.5 shrink-0">
+                            <button type="button" onClick={() => navigator.clipboard.writeText(paymentIntent.receivingPhone)} className="relative flex items-center gap-1 rounded-lg border border-white/60 bg-white px-2.5 py-1.5 text-xs font-bold shadow-sm transition hover:-translate-y-0.5 hover:bg-slate-50" style={{ color: paymentBrand.text }}><Copy className="h-3.5 w-3.5" /> Copy</button>
+                            {paymentQrUrl && (
+                              <div className="flex flex-col items-center rounded-xl border border-white/30 bg-white p-1 shadow-md">
+                                <img src={paymentQrUrl} alt="Payment Number QR Code" className="h-16 w-16 rounded-md object-contain sm:h-20 sm:w-20" />
+                                <span className="mt-0.5 text-[9px] font-black uppercase tracking-wider text-slate-700">Scan Number</span>
+                              </div>
+                            )}
+                          </div>
                         </div>
-                        <p className="relative mt-3 font-mono text-2xl font-black tracking-[0.07em] text-white sm:mt-5 sm:text-4xl sm:tracking-[0.09em]">{paymentIntent.receivingPhone}</p>
                         <div className="relative mt-3 rounded-lg border border-white/30 bg-white/20 px-3.5 py-2.5 text-xs leading-relaxed text-white sm:mt-4">
                           <span className="block text-[11px] font-bold uppercase tracking-wider text-white/80">রেফারেন্স আইডি (Refer ID)</span>
                           <span className="font-mono text-2xl font-black tracking-wider text-white">{paymentIntent.paymentReference || 'N/A'}</span>
-                          <p className="mt-1 text-[11px] text-white/90">
-                            <strong>জরুরি নির্দেশাবলি:</strong> {paymentBrand.name} দিয়ে সেন্ড মানি/পেমেন্ট করার সময় <strong>Reference</strong> ফিল্ডে অবশ্যই এই ১-১০০ এর রেফার আইডিটি বসাবেন।
+                          <p className="mt-1 text-[11px] leading-relaxed text-white/95">
+                            <strong>জরুরি নির্দেশাবলি:</strong> {paymentBrand.name} দিয়ে সেন্ড মানি/পেমেন্ট করার সময় <strong>Reference</strong> ফিল্ডে অবশ্যই <span className="rounded bg-white/30 px-1.5 py-0.5 font-mono text-xs font-black tracking-wide text-white underline">{paymentIntent.paymentReference || '1'}</span> এই রেফার আইডিটি বসাবেন।
                           </p>
                         </div>
-                        <div className="relative mt-3 grid grid-cols-3 items-start rounded-lg border border-white/30 bg-white px-2 py-2 text-center text-xs font-bold uppercase tracking-wide shadow-sm sm:mt-5 sm:rounded-xl sm:px-3 sm:py-3 sm:text-xs" style={{ color: paymentBrand.text }}>
+                        <div className="relative mt-3 grid grid-cols-3 items-start rounded-lg border border-white/30 bg-white px-2 py-2 text-center text-xs font-bold uppercase tracking-wide shadow-sm sm:mt-4 sm:rounded-xl sm:px-3 sm:py-2.5 sm:text-xs" style={{ color: paymentBrand.text }}>
                           <span className="absolute left-[17%] right-[17%] top-[14px] h-0.5 rounded-full sm:top-[18px]" style={{ background: paymentBrand.primary }} />
                           <div className="relative"><span className="mx-auto mb-1.5 block h-3 w-3 rounded-full border-2" style={{ borderColor: paymentBrand.primary, background: paymentBrand.primary }} />Initiated</div>
                           <div className="relative"><span className="mx-auto mb-1.5 block h-3 w-3 rounded-full border-2 shadow-sm" style={{ borderColor: paymentBrand.primary, background: paymentBrand.primary, boxShadow: `0 0 10px ${paymentBrand.primary}66` }} />Send money</div>
@@ -876,11 +896,17 @@ export function AccountView({
                       </div>
 
                     <div className="flex flex-col rounded-xl border border-slate-200 bg-white p-3.5 shadow-sm sm:p-4">
-                      <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-600">Automatic verification</p>
-                      <p className="mt-2 text-sm font-semibold leading-relaxed text-slate-800">Send the exact amount from your entered number and include the reference above. No TrxID is needed right now.</p>
-                      <div className="mt-3 flex items-center gap-2 rounded-lg border px-3 py-2 text-xs leading-relaxed" style={{ borderColor: `${paymentBrand.primary}33`, background: paymentBrand.soft, color: paymentBrand.text }}>
-                        <Clock3 className={`h-4 w-4 shrink-0 ${paymentSecondsLeft <= 120 ? 'text-rose-600' : ''}`} style={paymentSecondsLeft > 120 ? { color: paymentBrand.primary } : undefined} />
-                        We check automatically every 3 seconds for up to 5 minutes.
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-700">Automatic Verification Detection</p>
+                        <span className="relative flex h-2.5 w-2.5 shrink-0">
+                          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>
+                          <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500"></span>
+                        </span>
+                      </div>
+                      <p className="mt-2 text-xs font-semibold leading-relaxed text-slate-600">Send the exact amount and include reference <span className="font-mono font-bold text-slate-900">{paymentIntent.paymentReference || '1'}</span> above. No TrxID is needed right now.</p>
+                      <div className="mt-3 flex items-center gap-2.5 rounded-xl border border-emerald-300 bg-emerald-50/90 px-3 py-2.5 text-xs font-semibold leading-relaxed text-emerald-800 shadow-xs">
+                        <Loader2 className="h-4 w-4 shrink-0 animate-spin text-emerald-600" />
+                        <span>লাইভ ডিটেকশন চালু রয়েছে — প্রতি ৩ সেকেন্ড পরপর অটোমেটিক পেমেন্ট ভেরিফাই করা হচ্ছে...</span>
                       </div>
                       {paymentFeedback && (
                         <div className="mt-3 flex items-start gap-2 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2.5 text-xs font-semibold leading-relaxed text-blue-700">
