@@ -1772,12 +1772,6 @@ export default function App() {
                 storeDomain={currentStore?.domain || ''}
                 onSaveStoreDomain={handleSaveStoreDomain}
                 onOpenPage={setActivePage}
-                profNotifyWhatsapp={profNotifyWhatsapp}
-                setProfNotifyWhatsapp={setProfNotifyWhatsapp}
-                profWhatsappNumber={profWhatsappNumber}
-                setProfWhatsappNumber={setProfWhatsappNumber}
-                profUpdating={profUpdating}
-                submitProfileSave={submitProfileSave}
               />
             )}
 

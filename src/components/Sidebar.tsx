@@ -90,11 +90,12 @@ export function Sidebar({
   const [storeSwitcherOpen, setStoreSwitcherOpen] = useState(false);
   const [switchingStore, setSwitchingStore] = useState<number | null>(null);
   const [openSubmenus, setOpenSubmenus] = useState<Record<string, boolean>>({});
+  const [activeSubsection, setActiveSubsection] = useState<string | null>(null);
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({
     'YOUR STORE': true,
     'YOUR ORDERS': true,
-    GROW: true,
-    SYSTEM: true,
+    GROW: false,
+    SYSTEM: false,
   });
   const storeSwitcherRef = useRef<HTMLDivElement>(null);
 
@@ -142,12 +143,50 @@ export function Sidebar({
   useEffect(() => {
     if (subNavSections[activePage]) {
       setOpenSubmenus(prev => ({ ...prev, [activePage]: true }));
+      setActiveSubsection(subNavSections[activePage][0]?.id || null);
+    } else {
+      setActiveSubsection(null);
     }
+  }, [activePage]);
+
+  useEffect(() => {
+    const sections = subNavSections[activePage];
+    if (!sections?.length || typeof IntersectionObserver === 'undefined') return;
+
+    let observer: IntersectionObserver | null = null;
+    const connectObserver = () => {
+      const elements = sections
+        .map(section => document.getElementById(section.id))
+        .filter((element): element is HTMLElement => Boolean(element));
+      if (!elements.length) return;
+
+      observer = new IntersectionObserver(entries => {
+        const visible = entries
+          .filter(entry => entry.isIntersecting)
+          .sort((a, b) => {
+            const ratioDifference = b.intersectionRatio - a.intersectionRatio;
+            return ratioDifference || Math.abs(a.boundingClientRect.top) - Math.abs(b.boundingClientRect.top);
+          });
+        if (visible[0]) setActiveSubsection(visible[0].target.id);
+      }, {
+        root: null,
+        rootMargin: '-96px 0px -55% 0px',
+        threshold: [0.05, 0.25, 0.6],
+      });
+      elements.forEach(element => observer?.observe(element));
+    };
+
+    const timer = window.setTimeout(connectObserver, 120);
+    return () => {
+      window.clearTimeout(timer);
+      observer?.disconnect();
+    };
   }, [activePage]);
 
   const jumpToPageSection = (pageId: string, sectionId: string) => {
     setActivePage(pageId);
     setOpenSubmenus(prev => ({ ...prev, [pageId]: true }));
+    setActiveSubsection(sectionId);
     window.setTimeout(() => {
       window.dispatchEvent(new CustomEvent('buykori:page-section', { detail: { pageId, sectionId } }));
     }, 80);
@@ -386,6 +425,8 @@ export function Sidebar({
                 <button
                   type="button"
                   onClick={() => setOpenGroups(prev => ({ ...prev, [group.label]: !prev[group.label] }))}
+                  aria-expanded={Boolean(openGroups[group.label])}
+                  aria-controls={`sidebar-group-${groupIndex}`}
                   className="mb-1 flex w-full items-center gap-2 rounded-full px-5 py-1.5 text-left transition-colors hover:bg-slate-800/80"
                 >
                   <span className="bk-console-group-label">
@@ -396,7 +437,7 @@ export function Sidebar({
                 </button>
               )}
 
-              <div className={`space-y-1 ${!collapsed && !openGroups[group.label] ? 'hidden' : ''}`}>
+              <div id={`sidebar-group-${groupIndex}`} className={`space-y-1 ${!collapsed && !openGroups[group.label] ? 'hidden' : ''}`}>
                 {visibleItems.map((item) => {
                   const Icon = item.icon;
                   const isActive = activePage === item.id;
@@ -405,9 +446,9 @@ export function Sidebar({
                   const submenuOpen = Boolean(openSubmenus[item.id]);
                   return (
                     <div key={item.id} className="group/nav relative">
+                      <div className="flex items-stretch">
                       <button
                         aria-current={isActive ? 'page' : undefined}
-                        aria-expanded={hasSubmenu && !collapsed ? submenuOpen : undefined}
                         data-guide={`nav-${item.id}`}
                         onClick={() => {
                           if (item.locked) {
@@ -418,7 +459,7 @@ export function Sidebar({
                           setActivePage(item.id);
                           setMobileOpen(false);
                         }}
-                        className={`bk-console-nav-item group relative flex w-full overflow-visible text-sm transition-colors duration-150 ${
+                        className={`bk-console-nav-item group relative flex min-w-0 flex-1 overflow-visible text-sm transition-colors duration-150 ${
                           isActive
                             ? 'is-active sidebar-active-glow'
                             : 'font-medium'
@@ -444,28 +485,6 @@ export function Sidebar({
                           </span>
                         )}
 
-                        {hasSubmenu && !collapsed && (
-                          <span
-                            role="button"
-                            tabIndex={0}
-                            aria-label={`${submenuOpen ? 'Collapse' : 'Expand'} ${item.name} sections`}
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              setOpenSubmenus(prev => ({ ...prev, [item.id]: !prev[item.id] }));
-                            }}
-                            onKeyDown={(event) => {
-                              if (event.key === 'Enter' || event.key === ' ') {
-                                event.preventDefault();
-                                event.stopPropagation();
-                                setOpenSubmenus(prev => ({ ...prev, [item.id]: !prev[item.id] }));
-                              }
-                            }}
-                            className="rounded p-1 text-slate-400 hover:bg-slate-700 hover:text-white"
-                          >
-                            <ChevronDown className={`h-3.5 w-3.5 transition-transform ${submenuOpen ? 'rotate-180' : ''}`} />
-                          </span>
-                        )}
-
                         {Boolean(item.count) && !collapsed && !hasSubmenu && (
                           <span className="bk-console-chip ml-auto rounded-full px-1.5 py-0.5 text-xs font-bold">
                             {item.count}
@@ -482,9 +501,22 @@ export function Sidebar({
                           </div>
                         )}
                       </button>
+                      {hasSubmenu && !collapsed && (
+                        <button
+                          type="button"
+                          aria-expanded={submenuOpen}
+                          aria-controls={`sidebar-submenu-${item.id}`}
+                          aria-label={`${submenuOpen ? 'Collapse' : 'Expand'} ${item.name} sections`}
+                          onClick={() => setOpenSubmenus(prev => ({ ...prev, [item.id]: !prev[item.id] }))}
+                          className="mr-2 flex w-8 shrink-0 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-700 hover:text-white focus-visible:bg-slate-700 focus-visible:text-white"
+                        >
+                          <ChevronDown className={`h-3.5 w-3.5 transition-transform ${submenuOpen ? 'rotate-180' : ''}`} />
+                        </button>
+                      )}
+                      </div>
 
                       {hasSubmenu && collapsed && (
-                        <div className="pointer-events-none absolute left-full top-0 z-50 ml-3 w-52 rounded-lg border border-slate-200 bg-white p-2 opacity-0 shadow-xl shadow-slate-900/15 transition-opacity duration-150 group-hover/nav:pointer-events-auto group-hover/nav:opacity-100">
+                        <div className="pointer-events-none absolute left-full top-0 z-50 ml-3 w-52 rounded-lg border border-slate-200 bg-white p-2 opacity-0 shadow-xl shadow-slate-900/15 transition-opacity duration-150 group-hover/nav:pointer-events-auto group-hover/nav:opacity-100 group-focus-within/nav:pointer-events-auto group-focus-within/nav:opacity-100">
                           <p className="px-2 py-1 text-xs font-black uppercase tracking-wide text-slate-400">{item.name}</p>
                           <div className="mt-1 space-y-0.5">
                             {subSections.map((section) => (
@@ -495,7 +527,8 @@ export function Sidebar({
                                   jumpToPageSection(item.id, section.id);
                                   setMobileOpen(false);
                                 }}
-                                className="block w-full rounded-md px-2 py-1.5 text-left text-xs font-semibold text-slate-600 hover:bg-indigo-50 hover:text-indigo-700"
+                                aria-current={activeSubsection === section.id ? 'location' : undefined}
+                                className={`block w-full rounded-md px-2 py-1.5 text-left text-xs font-semibold transition-colors ${activeSubsection === section.id ? 'bg-[#eaf1ff] text-[#285ac7]' : 'text-slate-600 hover:bg-[#f3f7ff] hover:text-[#285ac7]'}`}
                               >
                                 {section.label}
                               </button>
@@ -505,7 +538,7 @@ export function Sidebar({
                       )}
 
                       {hasSubmenu && !collapsed && submenuOpen && (
-                        <div className="relative ml-8 mt-1 space-y-0.5 pl-3">
+                        <div id={`sidebar-submenu-${item.id}`} className="relative ml-8 mt-1 space-y-0.5 pl-3">
                           <span aria-hidden="true" className="absolute bottom-4 left-0 top-4 w-px bg-slate-700/90" />
                           {subSections.map((section) => (
                             <button
@@ -515,9 +548,10 @@ export function Sidebar({
                                 jumpToPageSection(item.id, section.id);
                                 setMobileOpen(false);
                               }}
-                              className="group/sub relative flex min-h-8 w-full items-center rounded-md px-3 py-1.5 text-left text-[13px] font-semibold leading-5 text-slate-300 transition-colors hover:bg-slate-800 hover:text-white focus-visible:bg-slate-800 focus-visible:text-white"
+                              aria-current={activeSubsection === section.id ? 'location' : undefined}
+                              className={`group/sub relative flex min-h-8 w-full items-center rounded-md px-3 py-1.5 text-left text-[13px] font-semibold leading-5 transition-colors ${activeSubsection === section.id ? 'bg-[#18345f] text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white focus-visible:bg-slate-800 focus-visible:text-white'}`}
                             >
-                              <span className="absolute -left-[17px] h-1.5 w-1.5 rounded-full bg-slate-600 ring-2 ring-slate-900 transition-colors group-hover/sub:bg-[#6790df] group-focus-visible/sub:bg-[#6790df]" />
+                              <span className={`absolute -left-[17px] h-1.5 w-1.5 rounded-full ring-2 ring-slate-900 transition-colors ${activeSubsection === section.id ? 'bg-[#6790df]' : 'bg-slate-600 group-hover/sub:bg-[#6790df] group-focus-visible/sub:bg-[#6790df]'}`} />
                               {section.label}
                             </button>
                           ))}

@@ -1173,6 +1173,10 @@ async function startServer() {
     res.json({ success: true });
   });
 
+  app.get('/static/client-portal/assets/brand-logo.png', (_req, res) => {
+    res.sendFile(path.join(process.cwd(), 'public', 'brand-logo.png'));
+  });
+
   // Mount Vite development middleware after API endpoints the template suggests
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({

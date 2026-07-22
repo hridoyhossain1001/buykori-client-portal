@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Check, Copy, Download, Globe2, MessageCircle, Plus, RefreshCw, Save, Trash2, Truck, X } from 'lucide-react';
+import { Check, Copy, Globe2, MessageCircle, Plus, RefreshCw, Save, Trash2, Truck } from 'lucide-react';
 import { Tooltip } from './common/Tooltip';
 import { PlatformBadge, PlatformLogo } from './common/PlatformLogo';
 import { AdAccount, Platform, PlatformConfig, EventRule, ClientConnection, PluginReleaseInfo, CustomEventAutomation, CustomEventTrigger, CourierSettings } from '../types';
@@ -28,22 +28,6 @@ interface SettingsViewProps {
   storeDomain?: string;
   onSaveStoreDomain?: (domain: string) => Promise<void>;
   onOpenPage?: (pageId: string) => void;
-  profNotifyWhatsapp: boolean;
-  setProfNotifyWhatsapp: (v: boolean) => void;
-  profWhatsappNumber: string;
-  setProfWhatsappNumber: (v: string) => void;
-  profUpdating: boolean;
-  submitProfileSave: (e: React.FormEvent) => Promise<boolean>;
-}
-
-interface WhatsAppSenderRecommendation {
-  instanceId: number;
-  instanceName: string;
-  phoneNumber: string;
-  assignedClients: number;
-  capacity: number;
-  availableSlots: number;
-  currentAssignment: boolean;
 }
 
 interface TelegramNotificationStatus {
@@ -87,13 +71,7 @@ export function SettingsView({
   pluginReleaseInfo,
   storeDomain = '',
   onSaveStoreDomain,
-  onOpenPage,
-  profNotifyWhatsapp,
-  setProfNotifyWhatsapp,
-  profWhatsappNumber,
-  setProfWhatsappNumber,
-  profUpdating,
-  submitProfileSave
+  onOpenPage
 }: SettingsViewProps) {
   // Local state for inputs to prevent key-stroke POST spamming
   const [localPixelIds, setLocalPixelIds] = useState<Record<Platform, string>>({
@@ -120,8 +98,6 @@ export function SettingsView({
   const [eventPresets, setEventPresets] = useState<Array<{ id: string; name: string; description: string; events: string[] }>>([]);
   const [selectedPreset, setSelectedPreset] = useState('');
   const [applyingPreset, setApplyingPreset] = useState(false);
-  const [whatsappRecommendation, setWhatsappRecommendation] = useState<WhatsAppSenderRecommendation | null>(null);
-  const [loadingWhatsappRecommendation, setLoadingWhatsappRecommendation] = useState(false);
   const [telegramStatus, setTelegramStatus] = useState<TelegramNotificationStatus | null>(null);
   const [telegramLinkCode, setTelegramLinkCode] = useState<TelegramLinkCode | null>(null);
   const [telegramBusy, setTelegramBusy] = useState(false);
@@ -195,63 +171,6 @@ export function SettingsView({
   ];
   const coreEventRoutes = new Set(['PageView', 'AddToCart', 'InitiateCheckout', 'Purchase']);
 
-  const submitEvent = () => ({ preventDefault: () => undefined } as React.FormEvent);
-
-  const requestWhatsappSettingsSave = async () => {
-    if (!profNotifyWhatsapp) {
-      await submitProfileSave(submitEvent());
-      return;
-    }
-    if (!profWhatsappNumber.trim()) {
-      showToast('Enter the WhatsApp number that will receive your alerts.', true);
-      return;
-    }
-
-    setLoadingWhatsappRecommendation(true);
-    try {
-      const response = await fetch('/api/client/notification-settings/recommendation');
-      const data = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(data.detail || 'Could not find an available WhatsApp sender.');
-      if (!data.available || !data.sender) {
-        throw new Error(data.message || 'No WhatsApp sender currently has an available slot.');
-      }
-      setWhatsappRecommendation(data.sender);
-    } catch (error) {
-      showToast(error instanceof Error ? error.message : 'Could not prepare WhatsApp alerts.', true);
-    } finally {
-      setLoadingWhatsappRecommendation(false);
-    }
-  };
-
-  const downloadWhatsappContact = () => {
-    if (!whatsappRecommendation) return;
-    const cleanPhone = whatsappRecommendation.phoneNumber.replace(/[^0-9+]/g, '');
-    const vcard = [
-      'BEGIN:VCARD',
-      'VERSION:3.0',
-      'FN:Buykori Order Alerts',
-      'ORG:Buykori AdSync',
-      `TEL;TYPE=CELL:+${cleanPhone.replace(/^\+/, '')}`,
-      'END:VCARD',
-    ].join('\r\n');
-    const url = URL.createObjectURL(new Blob([vcard], { type: 'text/vcard;charset=utf-8' }));
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = 'Buykori-Order-Alerts.vcf';
-    link.click();
-    URL.revokeObjectURL(url);
-  };
-
-  const openWhatsappGreeting = () => {
-    if (!whatsappRecommendation) return;
-    const phone = whatsappRecommendation.phoneNumber.replace(/\D/g, '');
-    window.open(`https://wa.me/${phone}?text=${encodeURIComponent('Hi Buykori')}`, '_blank', 'noopener,noreferrer');
-  };
-
-  const confirmWhatsappSettingsSave = async () => {
-    const saved = await submitProfileSave(submitEvent());
-    if (saved) setWhatsappRecommendation(null);
-  };
   const settingsTabs = [
     {
       id: 'store',
@@ -2468,173 +2387,9 @@ export function SettingsView({
           )}
         </section>
 
-        {/* Legacy WhatsApp settings are retained for a future official Cloud API migration. */}
-        {false && (
-        <section id="settings-whatsapp" aria-labelledby="settings-whatsapp-title" className="scroll-mt-28 rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-4  ">
-          <div>
-            <h2 id="settings-whatsapp-title" className="font-bold text-slate-800 text-sm uppercase tracking-wide ">WhatsApp Notifications</h2>
-            <p className="text-xs text-slate-400  leading-normal">Receive purchase alerts and incomplete checkout recovery details on your WhatsApp number. Sender accounts are managed by Buykori admin.</p>
-          </div>
-
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <span className="block text-xs font-semibold text-slate-700">Enable WhatsApp Alerts</span>
-                <span className="block text-xs text-slate-400">Send automatic alerts to WhatsApp number.</span>
-              </div>
-              <label className="relative inline-flex items-center cursor-pointer select-none">
-                <input 
-                  type="checkbox" 
-                  checked={profNotifyWhatsapp}
-                  onChange={(e) => setProfNotifyWhatsapp(e.target.checked)}
-                  className="sr-only peer"
-                />
-                <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600"></div>
-              </label>
-            </div>
-
-            <div className="rounded-lg border border-sky-200 bg-sky-50 p-3 text-xs text-sky-950">
-              <p className="font-bold">For smooth WhatsApp notifications</p>
-              <ol className="mt-2 list-decimal space-y-1 pl-4 text-xs leading-relaxed text-sky-900">
-                <li>Save the Buykori WhatsApp number that sends your notifications to your contacts using any name.</li>
-                <li>Open that contact in WhatsApp and send one message such as "Hi", "Hello", or "Start".</li>
-              </ol>
-              <p className="mt-2 text-xs leading-relaxed text-sky-700">
-                These steps help WhatsApp recognize the conversation and improve reliable notification delivery.
-              </p>
-            </div>
-
-            {profNotifyWhatsapp && (
-              <div className="animate-fadeIn transition-all space-y-3">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">WhatsApp Number (with Country Code)</label>
-                  <input 
-                    type="text" 
-                    placeholder="e.g. 88017XXXXXXXX"
-                    value={profWhatsappNumber}
-                    onChange={(e) => setProfWhatsappNumber(e.target.value)}
-                    className="w-full p-2 text-xs bg-slate-50 border border-slate-200 rounded text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500 font-mono"
-                  />
-                </div>
-                <div className="hidden rounded-lg border border-sky-200 bg-sky-50 p-3 text-xs text-sky-950">
-                  <p className="font-bold">For smooth WhatsApp notifications</p>
-                  <ol className="mt-2 list-decimal space-y-1 pl-4 text-xs leading-relaxed text-sky-900">
-                    <li>Save the Buykori WhatsApp number that sends your notifications to your contacts using any name.</li>
-                    <li>Open that contact in WhatsApp and send one message such as “Hi”, “Hello”, or “Start”.</li>
-                  </ol>
-                  <p className="mt-2 text-xs leading-relaxed text-sky-700">
-                    These steps help WhatsApp recognize the conversation and improve reliable notification delivery.
-                  </p>
-                </div>
-              </div>
-            )}
-
-            <div className="pt-2 text-right">
-              <button 
-                type="button"
-                onClick={requestWhatsappSettingsSave}
-                disabled={profUpdating || loadingWhatsappRecommendation}
-                className="w-full px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white text-xs font-bold rounded-lg transition-colors shadow-sm cursor-pointer"
-              >
-                {profUpdating
-                  ? 'Saving...'
-                  : loadingWhatsappRecommendation
-                    ? 'Finding an available sender...'
-                    : 'Save WhatsApp Settings'}
-              </button>
-            </div>
-          </div>
-        </section>
-        )}
-
       </div>
       </div>
 
-      {false && whatsappRecommendation && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/55 p-4 backdrop-blur-sm">
-          <div
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="whatsapp-sender-dialog-title"
-            className="w-full max-w-lg overflow-hidden rounded-2xl border border-white/70 bg-white shadow-2xl"
-          >
-            <div className="flex items-start justify-between border-b border-slate-100 px-5 py-4">
-              <div className="flex items-start gap-3">
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
-                  <MessageCircle className="h-5 w-5" />
-                </span>
-                <div>
-                  <h2 id="whatsapp-sender-dialog-title" className="text-base font-black text-slate-900">
-                    Save your Buykori alert number
-                  </h2>
-                  <p className="mt-1 text-xs leading-relaxed text-slate-500">
-                    We selected an available sender for fast order and incomplete checkout alerts.
-                  </p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setWhatsappRecommendation(null)}
-                className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
-                aria-label="Close sender setup"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-
-            <div className="space-y-4 p-5">
-              <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-center">
-                <p className="text-xs font-bold uppercase tracking-[0.16em] text-emerald-700">Buykori WhatsApp sender</p>
-                <p className="mt-2 font-mono text-2xl font-black tracking-wide text-slate-950">
-                  +{whatsappRecommendation.phoneNumber.replace(/^\+/, '')}
-                </p>
-                <p className="mt-1 text-xs font-semibold text-emerald-800">
-                  {whatsappRecommendation.currentAssignment
-                    ? 'Your existing sender remains assigned.'
-                    : `${whatsappRecommendation.availableSlots} client slot${whatsappRecommendation.availableSlots === 1 ? '' : 's'} available.`}
-                </p>
-              </div>
-
-              <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                <ol className="space-y-3 text-xs leading-relaxed text-slate-700">
-                  <li className="flex gap-3"><b className="text-indigo-600">1.</b><span>Save this number as <b>Buykori Order Alerts</b>.</span></li>
-                  <li className="flex gap-3"><b className="text-indigo-600">2.</b><span>Open WhatsApp and send <b>Hi</b> or <b>Hello</b> once.</span></li>
-                  <li className="flex gap-3"><b className="text-indigo-600">3.</b><span>Return here and enable the alerts. This helps reduce first-message delays.</span></li>
-                </ol>
-              </div>
-
-              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                <button
-                  type="button"
-                  onClick={downloadWhatsappContact}
-                  className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50"
-                >
-                  <Download className="h-4 w-4" /> Save contact
-                </button>
-                <button
-                  type="button"
-                  onClick={openWhatsappGreeting}
-                  className="inline-flex items-center justify-center gap-2 rounded-xl border border-emerald-600 bg-emerald-600 px-4 py-2.5 text-xs font-bold text-white hover:bg-emerald-700"
-                >
-                  <MessageCircle className="h-4 w-4" /> Send Hi on WhatsApp
-                </button>
-              </div>
-
-              <button
-                type="button"
-                onClick={confirmWhatsappSettingsSave}
-                disabled={profUpdating}
-                className="w-full rounded-xl bg-indigo-600 px-4 py-3 text-sm font-black text-white shadow-sm hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {profUpdating ? 'Enabling alerts...' : 'I saved it - Enable WhatsApp alerts'}
-              </button>
-              <p className="text-center text-xs leading-relaxed text-slate-400">
-                Buykori will re-check sender availability when you confirm.
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
