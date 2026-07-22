@@ -721,7 +721,7 @@ export function AccountView({
           onClose={() => setPaymentPlan(null)}
           ariaLabel="Plan payment"
           overlayClassName="fixed inset-0 z-[100] flex items-end justify-center bg-slate-950/55 p-0 backdrop-blur-sm sm:items-center sm:p-4"
-          panelClassName={`relative max-h-[100dvh] w-full overflow-y-auto overscroll-contain rounded-t-2xl shadow-2xl sm:max-h-[calc(100dvh-2rem)] sm:rounded-2xl ${paymentIntent ? 'max-w-2xl border border-slate-200 bg-white text-slate-900' : 'max-w-lg border border-slate-200 bg-white'}`}
+          panelClassName="relative max-h-[100dvh] w-full max-w-lg overflow-y-auto overscroll-contain rounded-t-2xl border border-slate-200 bg-white shadow-2xl sm:h-[min(660px,calc(100dvh-2rem))] sm:rounded-2xl"
           panelStyle={paymentIntent ? { background: `linear-gradient(145deg, #ffffff 0%, ${paymentBrand.soft} 100%)` } : undefined}
         >
             {paymentIntent && <div className="pointer-events-none absolute inset-0 opacity-50" style={{ background: `radial-gradient(circle at 12% 12%, ${paymentBrand.soft}, transparent 30%), radial-gradient(circle at 88% 86%, ${paymentBrand.soft}, transparent 34%)` }} />}
@@ -733,10 +733,10 @@ export function AccountView({
               <div className="flex items-start gap-3">
                 {paymentIntent && (
                   <div
-                    className="flex h-12 w-12 items-center justify-center rounded-full p-1 shadow-[0_0_24px_rgba(139,92,246,.35)] sm:h-16 sm:w-16"
+                    className="flex h-12 w-12 items-center justify-center rounded-full p-1 shadow-[0_0_20px_rgba(139,92,246,.25)]"
                     style={{ background: paymentExpired ? '#e2e8f0' : `conic-gradient(${paymentBrand.primary} ${Math.min(100, (paymentSecondsLeft / 300) * 100)}%, #e2e8f0 0)`, boxShadow: `0 0 22px ${paymentBrand.soft}` }}
                   >
-                    <div className={`flex h-full w-full items-center justify-center rounded-full border border-slate-200 bg-white font-mono font-black ${paymentExpired ? 'text-xs uppercase tracking-wide text-rose-600 sm:text-xs' : 'text-xs text-slate-900 sm:text-base'}`}>
+                    <div className={`flex h-full w-full items-center justify-center rounded-full border border-slate-200 bg-white font-mono font-black ${paymentExpired ? 'text-[9px] uppercase tracking-wide text-rose-600' : 'text-xs text-slate-900'}`}>
                       {paymentExpired ? 'Expired' : `${String(Math.floor(paymentSecondsLeft / 60)).padStart(2, '0')}:${String(paymentSecondsLeft % 60).padStart(2, '0')}`}
                     </div>
                   </div>
@@ -853,34 +853,34 @@ export function AccountView({
                 </div>
               ) : (
                 <>
-                  <div className="space-y-4">
-                    <div className="relative overflow-hidden rounded-xl border p-3.5 text-white shadow-lg sm:rounded-2xl sm:p-5" style={{ borderColor: `${paymentBrand.primary}55`, background: `linear-gradient(135deg, ${paymentBrand.primary}, ${paymentBrand.secondary})` }}>
+                  <div className="space-y-3">
+                    <div className="relative overflow-hidden rounded-2xl border p-4 text-white shadow-lg" style={{ borderColor: `${paymentBrand.primary}55`, background: `linear-gradient(135deg, ${paymentBrand.primary}, ${paymentBrand.secondary})` }}>
                         <div className="pointer-events-none absolute -right-14 -top-16 h-44 w-44 rounded-full border border-white/15 bg-white/10" />
                         <div className="pointer-events-none absolute -bottom-20 left-1/3 h-40 w-40 rounded-full bg-white/5 blur-xl" />
                         <div className="flex items-start justify-between gap-3">
                           <div className="relative">
                             <span className="inline-flex items-center rounded-xl bg-white px-3 py-1.5 shadow-sm"><img src={`/payment-providers/${paymentProvider}.svg`} alt={`${paymentBrand.name} logo`} className="h-7 w-20 object-contain" /></span>
                             <p className="mt-1.5 text-xs font-semibold text-white/80 sm:mt-2">Send the exact payment to this number</p>
-                            <p className="relative mt-2 font-mono text-2xl font-black tracking-[0.07em] text-white sm:mt-3 sm:text-3xl">{paymentIntent.receivingPhone}</p>
+                            <p className="relative mt-2 font-mono text-2xl font-black tracking-[0.05em] text-white">{paymentIntent.receivingPhone}</p>
                           </div>
                           <div className="flex flex-col items-end gap-1.5 shrink-0">
                             <button type="button" onClick={() => navigator.clipboard.writeText(paymentIntent.receivingPhone)} className="relative flex items-center gap-1 rounded-lg border border-white/60 bg-white px-2.5 py-1.5 text-xs font-bold shadow-sm transition hover:-translate-y-0.5 hover:bg-slate-50" style={{ color: paymentBrand.text }}><Copy className="h-3.5 w-3.5" /> Copy</button>
                             {paymentQrUrl && (
                               <div className="flex flex-col items-center rounded-xl border border-white/30 bg-white p-1 shadow-md">
-                                <img src={paymentQrUrl} alt="Payment Number QR Code" className="h-16 w-16 rounded-md object-contain sm:h-20 sm:w-20" />
+                                <img src={paymentQrUrl} alt="Payment Number QR Code" className="h-14 w-14 rounded-md object-contain" />
                                 <span className="mt-0.5 text-[9px] font-black uppercase tracking-wider text-slate-700">Scan Number</span>
                               </div>
                             )}
                           </div>
                         </div>
-                        <div className="relative mt-3 rounded-lg border border-white/30 bg-white/20 px-3.5 py-2.5 text-xs leading-relaxed text-white sm:mt-4">
+                        <div className="relative mt-3 rounded-lg border border-white/30 bg-white/20 px-3 py-2 text-xs leading-relaxed text-white">
                           <span className="block text-[11px] font-bold uppercase tracking-wider text-white/80">রেফারেন্স আইডি (Refer ID)</span>
-                          <span className="font-mono text-2xl font-black tracking-wider text-white">{paymentIntent.paymentReference || 'N/A'}</span>
+                          <span className="font-mono text-xl font-black tracking-wider text-white">{paymentIntent.paymentReference || 'N/A'}</span>
                           <p className="mt-1 text-[11px] leading-relaxed text-white/95">
                             <strong>জরুরি নির্দেশাবলি:</strong> {paymentBrand.name} দিয়ে সেন্ড মানি/পেমেন্ট করার সময় <strong>Reference</strong> ফিল্ডে অবশ্যই <span className="rounded bg-white/30 px-1.5 py-0.5 font-mono text-xs font-black tracking-wide text-white underline">{paymentIntent.paymentReference || '1'}</span> এই রেফার আইডিটি বসাবেন।
                           </p>
                         </div>
-                        <div className="relative mt-3 grid grid-cols-3 items-start rounded-lg border border-white/30 bg-white px-2 py-2 text-center text-xs font-bold uppercase tracking-wide shadow-sm sm:mt-4 sm:rounded-xl sm:px-3 sm:py-2.5 sm:text-xs" style={{ color: paymentBrand.text }}>
+                        <div className="relative mt-3 grid grid-cols-3 items-start rounded-lg border border-white/30 bg-white px-2 py-2 text-center text-[10px] font-bold uppercase tracking-wide shadow-sm" style={{ color: paymentBrand.text }}>
                           <span className="absolute left-[17%] right-[17%] top-[14px] h-0.5 rounded-full sm:top-[18px]" style={{ background: paymentBrand.primary }} />
                           <div className="relative"><span className="mx-auto mb-1.5 block h-3 w-3 rounded-full border-2" style={{ borderColor: paymentBrand.primary, background: paymentBrand.primary }} />Initiated</div>
                           <div className="relative"><span className="mx-auto mb-1.5 block h-3 w-3 rounded-full border-2 shadow-sm" style={{ borderColor: paymentBrand.primary, background: paymentBrand.primary, boxShadow: `0 0 10px ${paymentBrand.primary}66` }} />Send money</div>
@@ -888,26 +888,26 @@ export function AccountView({
                         </div>
                     </div>
 
-                    <div className="grid gap-4 md:grid-cols-[.88fr_1.12fr]">
-                      <div className="flex min-h-[145px] flex-col items-center justify-center overflow-hidden rounded-xl border px-4 py-4 text-center shadow-sm sm:px-5 sm:py-6 md:min-h-[220px]" style={{ borderColor: `${paymentBrand.primary}33`, background: `linear-gradient(145deg, #ffffff, ${paymentBrand.soft})` }}>
+                    <div className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-[.82fr_1.18fr]">
+                      <div className="flex min-h-[150px] flex-col items-center justify-center overflow-hidden rounded-xl border px-3 py-4 text-center shadow-sm" style={{ borderColor: `${paymentBrand.primary}33`, background: `linear-gradient(145deg, #ffffff, ${paymentBrand.soft})` }}>
                         <p className="text-xs font-black uppercase tracking-[0.2em]" style={{ color: paymentBrand.text }}>Pay exactly</p>
-                        <p className="mt-1.5 text-3xl font-black tracking-tight sm:mt-2 sm:text-5xl" style={{ color: paymentBrand.primary }}>৳{paymentIntent.totalAmount}</p>
+                        <p className="mt-1.5 text-3xl font-black tracking-tight" style={{ color: paymentBrand.primary }}>৳{paymentIntent.totalAmount}</p>
                         <div className="mt-2.5 h-px w-14 sm:mt-4 sm:w-16" style={{ background: `${paymentBrand.primary}55` }} />
-                        <p className="mt-2.5 max-w-xs text-xs font-semibold leading-relaxed sm:mt-4 sm:text-xs" style={{ color: paymentBrand.text }}>Send this exact amount. Paying less or more will stop automatic verification.</p>
+                        <p className="mt-2.5 max-w-xs text-[10px] font-semibold leading-relaxed" style={{ color: paymentBrand.text }}>Send this exact amount for automatic verification.</p>
                       </div>
 
-                    <div className="flex flex-col rounded-xl border border-slate-200 bg-white p-3.5 shadow-sm sm:p-4">
+                    <div className="flex flex-col rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
                       <div className="flex items-center justify-between gap-2">
-                        <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-700">Automatic Verification Detection</p>
+                        <p className="text-[10px] font-black uppercase tracking-[0.13em] text-slate-700">Automatic verification</p>
                         <span className="relative flex h-2.5 w-2.5 shrink-0">
                           <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>
                           <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500"></span>
                         </span>
                       </div>
-                      <p className="mt-2 text-xs font-semibold leading-relaxed text-slate-600">Send the exact amount and include reference <span className="font-mono font-bold text-slate-900">{paymentIntent.paymentReference || '1'}</span> above. No TrxID is needed right now.</p>
-                      <div className="mt-3 flex items-center gap-2.5 rounded-xl border border-emerald-300 bg-emerald-50/90 px-3 py-2.5 text-xs font-semibold leading-relaxed text-emerald-800 shadow-xs">
+                      <p className="mt-1.5 text-[10px] font-semibold leading-relaxed text-slate-600">Include reference <span className="font-mono font-bold text-slate-900">{paymentIntent.paymentReference || '1'}</span>. No TrxID is needed now.</p>
+                      <div className="mt-2 flex items-center gap-2 rounded-lg border border-emerald-300 bg-emerald-50/90 px-2.5 py-2 text-[10px] font-semibold leading-relaxed text-emerald-800 shadow-xs">
                         <Loader2 className="h-4 w-4 shrink-0 animate-spin text-emerald-600" />
-                        <span>লাইভ ডিটেকশন চালু রয়েছে — প্রতি ৩ সেকেন্ড পরপর অটোমেটিক পেমেন্ট ভেরিফাই করা হচ্ছে...</span>
+                        <span>লাইভ ডিটেকশন চালু—প্রতি ৩ সেকেন্ডে পেমেন্ট যাচাই হচ্ছে...</span>
                       </div>
                       {paymentFeedback && (
                         <div className="mt-3 flex items-start gap-2 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2.5 text-xs font-semibold leading-relaxed text-blue-700">
@@ -915,8 +915,8 @@ export function AccountView({
                           <span>{paymentFeedback}</span>
                         </div>
                       )}
-                      <div className="mt-auto pt-4">
-                        <button type="button" onClick={() => setPaymentIntent(null)} className="mt-2 w-full rounded-xl border border-slate-200 px-4 py-2.5 text-xs font-bold text-slate-600 hover:bg-slate-50 hover:text-slate-900">Change payment details</button>
+                      <div className="mt-auto pt-2">
+                        <button type="button" onClick={() => setPaymentIntent(null)} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-[10px] font-bold text-slate-600 hover:bg-slate-50 hover:text-slate-900">Change details</button>
                       </div>
                     </div>
                     </div>
