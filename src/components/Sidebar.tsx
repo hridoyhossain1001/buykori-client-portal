@@ -386,13 +386,13 @@ export function Sidebar({
                 <button
                   type="button"
                   onClick={() => setOpenGroups(prev => ({ ...prev, [group.label]: !prev[group.label] }))}
-                  className="mb-1 flex w-full items-center gap-2 rounded-full px-5 py-1 text-left transition-colors hover:bg-slate-100"
+                  className="mb-1 flex w-full items-center gap-2 rounded-full px-5 py-1.5 text-left transition-colors hover:bg-slate-800/80"
                 >
                   <span className="bk-console-group-label">
                     {group.label}
                   </span>
-                  <span className="h-px flex-1 bg-slate-200/70" />
-                  <ChevronDown className={`h-3.5 w-3.5 text-slate-500 transition-transform ${openGroups[group.label] ? 'rotate-180' : ''}`} />
+                  <span className="h-px flex-1 bg-slate-700" />
+                  <ChevronDown className={`h-3.5 w-3.5 text-slate-400 transition-transform ${openGroups[group.label] ? 'rotate-180' : ''}`} />
                 </button>
               )}
 
@@ -460,7 +460,7 @@ export function Sidebar({
                                 setOpenSubmenus(prev => ({ ...prev, [item.id]: !prev[item.id] }));
                               }
                             }}
-                            className="rounded p-1 text-slate-500 hover:bg-slate-100 hover:text-slate-800"
+                            className="rounded p-1 text-slate-400 hover:bg-slate-700 hover:text-white"
                           >
                             <ChevronDown className={`h-3.5 w-3.5 transition-transform ${submenuOpen ? 'rotate-180' : ''}`} />
                           </span>
@@ -505,7 +505,7 @@ export function Sidebar({
                       )}
 
                       {hasSubmenu && !collapsed && submenuOpen && (
-                        <div className="ml-11 mt-1 space-y-0.5 pb-1">
+                        <div className="relative ml-8 mt-1 space-y-0.5 border-l border-slate-700/90 pb-2 pl-3">
                           {subSections.map((section) => (
                             <button
                               key={section.id}
@@ -514,8 +514,9 @@ export function Sidebar({
                                 jumpToPageSection(item.id, section.id);
                                 setMobileOpen(false);
                               }}
-                              className="block w-full rounded-lg px-3 py-1.5 text-left text-xs font-medium text-slate-500 transition-colors hover:bg-blue-50 hover:text-blue-700"
+                              className="group/sub relative flex min-h-8 w-full items-center rounded-md px-3 py-1.5 text-left text-[13px] font-semibold leading-5 text-slate-300 transition-colors hover:bg-slate-800 hover:text-white focus-visible:bg-slate-800 focus-visible:text-white"
                             >
+                              <span className="absolute -left-[17px] h-1.5 w-1.5 rounded-full bg-slate-600 ring-2 ring-slate-900 transition-colors group-hover/sub:bg-[#6790df] group-focus-visible/sub:bg-[#6790df]" />
                               {section.label}
                             </button>
                           ))}

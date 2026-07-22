@@ -146,7 +146,7 @@
   }
 
   .bk-console-group-label {
-    color: #94a3b8;
+    color: #a8b4c5;
     font-size: 11px;
     font-weight: 700;
     letter-spacing: 0.05em;
@@ -156,7 +156,7 @@
   .bk-console-nav-item {
     min-height: 40px;
     border-radius: 8px;
-    color: #94a3b8;
+    color: #b6c2d2;
   }
 
   .bk-console-nav-item:hover {
@@ -172,7 +172,7 @@
   }
 
   .bk-console-nav-icon {
-    color: #64748b;
+    color: #8291a8;
   }
 
   .bk-console-nav-item:hover .bk-console-nav-icon {
