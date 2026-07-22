@@ -692,17 +692,7 @@ export function AccountView({
             </div>
           </div>
 
-          <div className="rounded-lg border border-dashed border-amber-300 bg-amber-50/70 p-3 text-center">
-            <span className="block text-xs font-bold uppercase tracking-wide text-amber-700">Payment system check</span>
-            <p className="mt-1 text-xs leading-relaxed text-amber-800">Make a small payment to test SMS matching. This will not change your plan.</p>
-            <button
-              type="button"
-              onClick={() => openPayment('test')}
-              className="mt-2 w-full rounded-lg bg-amber-500 px-3 py-2 text-xs font-bold text-white hover:bg-amber-600"
-            >
-              Test with BDT 10
-            </button>
-          </div>
+
         </div>
 
         {/* Reset demo sandbox context values widget */}
