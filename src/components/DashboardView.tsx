@@ -53,13 +53,20 @@ function compactNumber(value: number) {
   return value.toLocaleString();
 }
 
-function eventValue(event: CAPIEvent) {
-  const customData = event.payload?.custom_data as Record<string, unknown> | undefined;
-  const raw = customData?.value ?? event.payload?.value;
-  const value = Number(raw);
-  if (!Number.isFinite(value) || value <= 0) return '—';
-  const currency = String(customData?.currency ?? event.payload?.currency ?? 'BDT');
-  return `${currency} ${value.toLocaleString()}`;
+function eventContext(event: CAPIEvent) {
+  if (event.contentName?.trim()) return event.contentName.trim();
+  if (event.pageTitle?.trim()) return event.pageTitle.trim();
+  if (event.orderId?.trim()) return `Order #${event.orderId.trim()}`;
+  if (event.contextLabel?.trim() && event.contextLabel !== 'Website event') return event.contextLabel.trim();
+  if (event.pageUrl) {
+    try {
+      const path = new URL(event.pageUrl).pathname.replace(/^\/|\/$/g, '').replace(/[-_]+/g, ' ');
+      if (path) return decodeURIComponent(path);
+    } catch {
+      // Fall through to the generic label for malformed or relative URLs.
+    }
+  }
+  return 'Website event';
 }
 
 export function DashboardView({
@@ -336,16 +343,16 @@ export function DashboardView({
           <div className="overflow-x-auto">
             <table className="w-full min-w-[720px] text-left">
               <thead className="bg-slate-50/80 text-[10px] font-bold uppercase tracking-[0.08em] text-slate-400">
-                <tr><th className="px-5 py-3">Time</th><th className="px-5 py-3">Event</th><th className="px-5 py-3">Platform</th><th className="px-5 py-3">Status</th><th className="px-5 py-3 text-right">Value</th></tr>
+                <tr><th className="px-5 py-3">Time</th><th className="px-5 py-3">Event</th><th className="px-5 py-3">Product / Page</th><th className="px-5 py-3">Platform</th><th className="px-5 py-3">Status</th></tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {recentEvents.map(event => (
                   <tr key={event.id} className="cursor-pointer hover:bg-slate-50/70" onClick={() => setActivePage('event-logs')}>
                     <td className="px-5 py-3 text-xs text-slate-500">{new Date(event.timestamp).toLocaleString()}</td>
                     <td className="px-5 py-3 text-sm font-semibold text-slate-900">{event.name}</td>
+                    <td className="max-w-[260px] px-5 py-3 text-xs font-semibold text-slate-700"><span className="block truncate" title={eventContext(event)}>{eventContext(event)}</span></td>
                     <td className="px-5 py-3"><span className="flex items-center gap-2 text-xs font-semibold text-slate-700"><PlatformLogo platform={event.platform} className="h-4 w-4" />{event.platform}</span></td>
                     <td className="px-5 py-3"><span className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-[10px] font-bold ${event.status === 'Success' ? 'bg-emerald-50 text-emerald-700' : event.status === 'Retry' ? 'bg-amber-50 text-amber-700' : 'bg-rose-50 text-rose-700'}`}><CheckCircle2 className="h-3 w-3" />{event.status}</span></td>
-                    <td className="px-5 py-3 text-right text-xs font-bold text-slate-800">{eventValue(event)}</td>
                   </tr>
                 ))}
               </tbody>
