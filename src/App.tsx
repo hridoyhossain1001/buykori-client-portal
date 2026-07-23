@@ -756,7 +756,9 @@ export default function App() {
       if (activePage === 'analytics') {
         loadAnalyticsData(analyticsDays);
       } else if (activePage === 'dashboard') {
-        fetchTrendData(analyticsDays);
+        Promise.all([fetchTrendData(analyticsDays), fetchEvents()]).catch(err => {
+          console.error('Failed to load dashboard activity', err);
+        });
       }
     }
   }, [analyticsDays, profile, activePage]);

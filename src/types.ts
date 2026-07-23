@@ -467,6 +467,8 @@ export interface TrendPoint {
   name?: string;
   date?: string;
   total?: number;
+  received?: number;
+  delivered?: number;
   success?: number;
   failed?: number;
   value?: number;

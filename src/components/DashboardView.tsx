@@ -98,11 +98,14 @@ export function DashboardView({
     () => trendData.map(point => ({
       ...point,
       name: point.name || point.date || '',
-      events: Number(point.total ?? 0)
+      events: Number(point.received ?? point.total ?? 0)
         || Number(point['Meta CAPI'] ?? 0)
           + Number(point['TikTok Events'] ?? 0)
           + Number(point.GA4 ?? 0),
-      delivered: Number(point.success ?? 0),
+      delivered: Number(point.delivered ?? point.success ?? point.total ?? 0)
+        || Number(point['Meta CAPI'] ?? 0)
+          + Number(point['TikTok Events'] ?? 0)
+          + Number(point.GA4 ?? 0),
     })),
     [trendData],
   );
