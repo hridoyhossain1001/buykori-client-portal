@@ -1,30 +1,28 @@
-import React from 'react';
-import { useEffect, useRef, useState } from 'react';
-import { 
-  AreaChart, 
-  Area, 
-  CartesianGrid, 
-  XAxis, 
-  YAxis, 
-  Tooltip as ReChartsTooltip, 
-  Legend
+import { useEffect, useMemo, useRef, useState } from 'react';
+import {
+  Area,
+  AreaChart,
+  CartesianGrid,
+  Line,
+  Tooltip as RechartsTooltip,
+  XAxis,
+  YAxis,
 } from 'recharts';
-import { Tooltip } from './common/Tooltip';
-import { PlatformBadge, PlatformLogo } from './common/PlatformLogo';
-import { 
-  TrendingUp, 
-  ArrowUpRight, 
-  Check, 
-  Copy, 
-  CheckCircle2, 
-  RefreshCw,
-  ListChecks,
+import {
+  AlertTriangle,
+  ArrowRight,
   BookOpen,
+  CheckCircle2,
+  ChevronRight,
+  CircleGauge,
+  PackageCheck,
   Send,
   Settings2,
-  AlertTriangle
+  ShieldCheck,
+  ShoppingBag,
 } from 'lucide-react';
-import { CAPIEvent, UserProfile, Platform, RecoverySummary, TrendPoint } from '../types';
+import { CAPIEvent, RecoverySummary, TrendPoint, UserProfile } from '../types';
+import { PlatformLogo } from './common/PlatformLogo';
 
 interface DashboardViewProps {
   profile: UserProfile;
@@ -37,13 +35,31 @@ interface DashboardViewProps {
   optScore: number;
   resolvedCount: number;
   totalSuggCount: number;
-  setActivePage: (p: string) => void;
+  setActivePage: (page: string) => void;
   expandedEventId: string | null;
   setExpandedEventId: (id: string | null) => void;
   copiedStates: Record<string, boolean>;
   handleCopy: (text: string, labelId: string) => void;
   analyticsDays: number;
   setAnalyticsDays: (days: number) => void;
+  pendingOrderCount?: number;
+}
+
+const panelClass = 'rounded-2xl border border-slate-200/90 bg-white shadow-[0_8px_30px_rgba(15,23,42,0.04)]';
+
+function compactNumber(value: number) {
+  if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1).replace(/\.0$/, '')}M`;
+  if (value >= 1_000) return `${(value / 1_000).toFixed(1).replace(/\.0$/, '')}K`;
+  return value.toLocaleString();
+}
+
+function eventValue(event: CAPIEvent) {
+  const customData = event.payload?.custom_data as Record<string, unknown> | undefined;
+  const raw = customData?.value ?? event.payload?.value;
+  const value = Number(raw);
+  if (!Number.isFinite(value) || value <= 0) return '—';
+  const currency = String(customData?.currency ?? event.payload?.currency ?? 'BDT');
+  return `${currency} ${value.toLocaleString()}`;
 }
 
 export function DashboardView({
@@ -58,648 +74,288 @@ export function DashboardView({
   resolvedCount,
   totalSuggCount,
   setActivePage,
-  expandedEventId,
-  setExpandedEventId,
-  copiedStates,
-  handleCopy,
   analyticsDays,
-  setAnalyticsDays
+  setAnalyticsDays,
+  pendingOrderCount = 0,
 }: DashboardViewProps) {
-  const showGettingStarted = events.length === 0 && profile.eventsUsed === 0;
-  const [railOpen, setRailOpen] = useState(false);
-  const [railVisible, setRailVisible] = useState(true);
-  const lastScrollYRef = useRef(0);
   const chartHostRef = useRef<HTMLDivElement | null>(null);
-  const [chartSize, setChartSize] = useState({ width: 640, height: 256 });
-  const quotaPercent = profile.eventsQuota > 0 ? Math.round((profile.eventsUsed / profile.eventsQuota) * 100) : 0;
-  const platformCards = [
-    {
-      label: 'Meta',
-      rate: metaStats.rate,
-      total: metaStats.total,
-      lastTime: metaStats.lastTime,
-      platform: 'Meta CAPI',
-    },
-    {
-      label: 'TikTok',
-      rate: tiktokStats.rate,
-      total: tiktokStats.total,
-      lastTime: tiktokStats.lastTime,
-      platform: 'TikTok Events API',
-    },
-    {
-      label: 'GA4',
-      rate: ga4Stats.rate,
-      total: ga4Stats.total,
-      lastTime: ga4Stats.lastTime,
-      platform: 'GA4',
-    },
-  ];
-  const platformEmptyCopy: Record<string, string> = {
-    Meta: 'No Meta events yet',
-    TikTok: 'No TikTok events yet',
-    GA4: 'No GA4 events yet',
-  };
-  const platformHintCopy: Record<string, string> = {
-    Meta: 'If this stays empty, open Settings and check your Meta Pixel ID and token.',
-    TikTok: 'Connect TikTok in Settings when you are ready to send events.',
-    GA4: 'Connect GA4 in Settings when you are ready to measure analytics.',
-  };
-  const browserEventCount = Number(recoverySummary?.browser_events || 0);
-  const serverEventCount = Number(recoverySummary?.server_events || 0);
-  const serverAttemptCount = Number(recoverySummary?.server_attempt_events ?? serverEventCount);
-  const serverFailedCount = Number(recoverySummary?.server_failed_events || 0);
-  const serverFilteredCount = Number(recoverySummary?.server_filtered_events || 0);
-  const serverMissingEventIdCount = Number(recoverySummary?.server_missing_event_id_events || 0);
-  const diagnosticReasons = Array.isArray(recoverySummary?.diagnostic_reasons)
-    ? recoverySummary.diagnostic_reasons.slice(0, 3)
-    : [];
-  const matchedEventCount = Number(recoverySummary?.matched_events || 0);
-  const recoveredEventCount = Number(recoverySummary?.recovered_events || 0);
-  const serverRecoveryRate = Number(recoverySummary?.recovery_rate || 0);
-  const hasServerCoverage = serverEventCount > 0;
-  const hasServerAttempts = serverAttemptCount > 0 || serverFailedCount > 0 || serverFilteredCount > 0;
-  const hasServerIssueOnly = !hasServerCoverage && hasServerAttempts;
-  const hasBrowserOnlyActivity = browserEventCount > 0 && !hasServerCoverage && !hasServerAttempts;
-  const coverageLabel = hasServerCoverage
-    ? `${serverRecoveryRate}%`
-    : hasServerIssueOnly
-      ? 'Delivery issue'
-    : hasBrowserOnlyActivity
-      ? 'Needs setup'
-      : 'Waiting';
-  const coverageDescription = hasServerCoverage
-    ? 'These events reached the server even when the browser copy was missing. A very high number may mean the browser and server event IDs do not match.'
-    : hasServerIssueOnly
-      ? 'Buykori tried to send events, but none were delivered. Check the platform ID and token in Settings, then open Event Logs.'
-    : hasBrowserOnlyActivity
-      ? 'Browser events are arriving, but the server is not sending them yet. Check the platform ID, token, and event choices in Settings.'
-      : 'No tracking events arrived during this time. Send a test event after setup.';
-  const coverageWarningTone = hasBrowserOnlyActivity || hasServerIssueOnly;
-  const serverDetailLabel = hasServerIssueOnly ? 'Attempted / failed delivery' : 'Server matched / only';
-  const serverDetailValue = hasServerIssueOnly
-    ? `${serverAttemptCount.toLocaleString()} / ${serverFailedCount.toLocaleString()}`
-    : `${matchedEventCount.toLocaleString()} / ${recoveredEventCount.toLocaleString()}`;
-  const serverDetailHint = serverMissingEventIdCount > 0
-    ? `${serverMissingEventIdCount.toLocaleString()} missing event ID`
-    : serverFilteredCount > 0
-      ? `${serverFilteredCount.toLocaleString()} filtered`
-      : '';
-
-  const openConversionSettings = () => {
-    setActivePage('settings');
-    window.setTimeout(() => {
-      window.dispatchEvent(new CustomEvent('buykori:page-section', {
-        detail: { pageId: 'settings', sectionId: 'settings-platforms' }
-      }));
-    }, 80);
-  };
-
-  useEffect(() => {
-    lastScrollYRef.current = window.scrollY;
-
-    const handleScroll = () => {
-      const currentY = window.scrollY;
-      const scrollingUp = currentY < lastScrollYRef.current;
-      const nearTop = currentY < 80;
-
-      setRailVisible(nearTop || scrollingUp);
-      if (!nearTop && currentY > lastScrollYRef.current + 8) {
-        setRailOpen(false);
-      }
-      lastScrollYRef.current = currentY;
-    };
-
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+  const [chartSize, setChartSize] = useState({ width: 720, height: 280 });
 
   useEffect(() => {
     const host = chartHostRef.current;
     if (!host) return;
-
-    const updateSize = () => {
+    const resize = () => {
       const rect = host.getBoundingClientRect();
-      const nextWidth = Math.max(1, Math.floor(rect.width));
-      const nextHeight = Math.max(1, Math.floor(rect.height));
-      setChartSize(prev => (
-        prev.width === nextWidth && prev.height === nextHeight
-          ? prev
-          : { width: nextWidth, height: nextHeight }
-      ));
+      setChartSize({ width: Math.max(1, Math.floor(rect.width)), height: Math.max(1, Math.floor(rect.height)) });
     };
-
-    updateSize();
-    const observer = new ResizeObserver(updateSize);
+    resize();
+    const observer = new ResizeObserver(resize);
     observer.observe(host);
     return () => observer.disconnect();
   }, []);
 
+  const chartData = useMemo(
+    () => trendData.map(point => ({
+      ...point,
+      name: point.name || point.date || '',
+      events: Number(point.total ?? 0)
+        || Number(point['Meta CAPI'] ?? 0)
+          + Number(point['TikTok Events'] ?? 0)
+          + Number(point.GA4 ?? 0),
+      delivered: Number(point.success ?? 0),
+    })),
+    [trendData],
+  );
+
+  const platformRows = [
+    { label: 'Meta', platform: 'Meta CAPI', ...metaStats },
+    { label: 'TikTok', platform: 'TikTok Events API', ...tiktokStats },
+    { label: 'GA4', platform: 'GA4', ...ga4Stats },
+  ];
+  const openSuggestions = Math.max(0, totalSuggCount - resolvedCount);
+  const serverAttempts = Number(recoverySummary?.server_attempt_events ?? recoverySummary?.server_events ?? 0);
+  const serverFailures = Number(recoverySummary?.server_failed_events ?? 0);
+  const hasDeliveryIssue = serverAttempts > 0 && Number(recoverySummary?.server_events ?? 0) === 0;
+  const usagePercent = profile.eventsQuota > 0
+    ? Math.min(100, (profile.eventsUsed / profile.eventsQuota) * 100)
+    : 0;
+  const observedOrders = new Set(
+    events
+      .filter(event => event.name.toLowerCase() === 'purchase')
+      .map(event => event.orderId || event.deduplicationKey || event.id),
+  ).size;
+  const orderQuota = Number(profile.ordersQuota || 0);
+  const orderPercent = orderQuota > 0 ? Math.min(100, (observedOrders / orderQuota) * 100) : 0;
+  const recentEvents = events.slice(0, 5);
+  const showGettingStarted = events.length === 0 && profile.eventsUsed === 0;
+
   return (
-    <div className="space-y-4 md:space-y-6">
-      <div className={`fixed right-2 top-24 z-30 transition-all duration-200 md:hidden ${railVisible ? 'translate-x-0 opacity-100' : 'translate-x-16 opacity-0 pointer-events-none'}`}>
-        <div className="relative">
-          <button
-            type="button"
-            onClick={() => setRailOpen(open => !open)}
-            className="flex flex-col items-center gap-2 rounded-full border border-slate-200 bg-white/95 px-2 py-2 shadow-lg shadow-slate-900/10 backdrop-blur"
-            aria-expanded={railOpen}
-            aria-label="Open platform stats"
-          >
-            {platformCards.map(card => (
-              <span key={card.label} className="flex h-7 w-7 items-center justify-center rounded-full border border-slate-200 bg-slate-50">
-                <PlatformLogo platform={card.platform} className="h-4 w-4" />
-              </span>
-            ))}
-          </button>
-
-          {railOpen && (
-            <div className="absolute right-10 top-0 w-52 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xl shadow-slate-900/15">
-              <div className="border-b border-slate-100 px-3 py-2">
-                <p className="text-xs font-bold uppercase tracking-wider text-slate-500">Platform health</p>
-              </div>
-              <div className="divide-y divide-slate-100">
-                {platformCards.map(card => (
-                  <div key={card.label} className="flex items-center justify-between gap-3 px-3 py-2.5">
-                    <div className="min-w-0">
-                      <p className="flex items-center gap-1.5 text-xs font-bold text-slate-800">
-                        <PlatformLogo platform={card.platform} className="h-4 w-4" />
-                        {card.label}
-                      </p>
-                      <p className="mt-0.5 truncate font-mono text-xs text-slate-400">
-                        {card.total > 0 ? `Last: ${card.lastTime}` : 'No events in selected timeframe'}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-sm font-bold text-slate-950">{card.total > 0 ? `${card.rate}%` : 'No events'}</p>
-                      <p className="text-xs font-bold uppercase text-slate-400">{card.total} events</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Dashboard summary and timeframe selector */}
-      <div className="flex flex-row items-start justify-between gap-3">
-        <div>
-          <h2 className="text-lg font-bold text-slate-900 md:text-xl">Tracking overview</h2>
-          <p className="text-xs text-slate-400 ">Your store's tracking summary</p>
-        </div>
-        <div className="flex shrink-0 items-center gap-2">
-          <span className="hidden text-xs font-semibold text-slate-500 sm:inline">Timeframe:</span>
-          <select 
-            value={analyticsDays} 
-            onChange={(e) => setAnalyticsDays(Number(e.target.value))}
-            aria-label="Select dashboard timeframe"
-            className="h-10 rounded-lg border border-slate-200 bg-white px-2.5 text-xs font-semibold text-slate-700 shadow-sm outline-none focus:ring-1 focus:ring-blue-500 sm:px-3"
-          >
-            <option value="7">Last 7 Days</option>
-            <option value="14">Last 14 Days</option>
-            <option value="30">Last 30 Days</option>
-            <option value="90">Last 90 Days</option>
-          </select>
-        </div>
-      </div>
-
-      {hasServerIssueOnly && (
-        <section className="flex flex-col gap-4 rounded-xl border border-amber-200 bg-amber-50 p-4 sm:flex-row sm:items-center sm:justify-between" role="alert">
-          <div className="flex min-w-0 items-start gap-3">
-            <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-700">
-              <AlertTriangle className="h-4 w-4" />
+    <div className="space-y-5">
+      {hasDeliveryIssue && (
+        <section className="flex flex-col gap-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 sm:flex-row sm:items-center sm:justify-between" role="alert">
+          <div className="flex items-start gap-3">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-700">
+              <AlertTriangle className="h-5 w-5" />
             </span>
             <div>
-              <h3 className="text-sm font-bold text-amber-950">Some events were not delivered</h3>
-              <p className="mt-1 max-w-2xl text-xs leading-relaxed text-amber-800">
-                Buykori tried to send {serverAttemptCount.toLocaleString()} events, but none succeeded. First check the platform ID and token, then open the failed events.
+              <h2 className="text-sm font-bold text-amber-950">Some events need attention</h2>
+              <p className="mt-1 text-xs leading-5 text-amber-800">
+                Buykori attempted {serverAttempts.toLocaleString()} deliveries and recorded {serverFailures.toLocaleString()} failures.
               </p>
             </div>
           </div>
-          <div className="flex shrink-0 flex-wrap gap-2 sm:justify-end">
-            <button
-              type="button"
-              onClick={openConversionSettings}
-              className="rounded-lg bg-amber-700 px-3 py-2 text-xs font-bold text-white transition-colors hover:bg-amber-800 focus:outline-none focus:ring-2 focus:ring-amber-600 focus:ring-offset-2"
-            >
-              Check platform setup
-            </button>
-            <button
-              type="button"
-              onClick={() => setActivePage('event-logs')}
-              className="rounded-lg border border-amber-300 bg-white px-3 py-2 text-xs font-bold text-amber-900 transition-colors hover:bg-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-600 focus:ring-offset-2"
-            >
-              View failed events
-            </button>
-          </div>
+          <button onClick={() => setActivePage('event-logs')} className="rounded-lg bg-amber-700 px-4 py-2 text-xs font-bold text-white hover:bg-amber-800">
+            Review failed events
+          </button>
         </section>
       )}
 
       {showGettingStarted && (
-        <section className="rounded-xl border border-indigo-100 bg-white p-5 shadow-sm  ">
+        <section className={`${panelClass} border-blue-100 bg-gradient-to-r from-blue-50 via-white to-emerald-50 p-5`}>
           <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
-            <div className="space-y-1.5">
-              <p className="text-xs font-bold uppercase tracking-wider text-indigo-600 ">Welcome to Buykori</p>
-              <h3 className="text-base font-bold text-slate-900 ">Start tracking your first store</h3>
-              <p className="max-w-2xl text-xs leading-relaxed text-slate-500 ">
-                Complete these steps to start sending purchase and visitor events to your ad platforms.
-              </p>
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[0.14em] text-blue-700">Welcome to Buykori</p>
+              <h2 className="mt-1 text-lg font-bold text-slate-950">Connect your store and send the first event</h2>
+              <p className="mt-1 text-sm text-slate-500">The dashboard will fill with real performance data as soon as tracking starts.</p>
             </div>
-
-            <div className="grid grid-cols-1 gap-2 sm:grid-cols-3 lg:min-w-[520px]">
-              <button
-                type="button"
-                onClick={() => setActivePage('setup-guide')}
-                className="flex min-h-10 items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-left text-xs font-semibold text-slate-700 transition-colors hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700"
-              >
-                <BookOpen className="h-4 w-4 shrink-0 text-indigo-500" />
-                Setup Guide
-              </button>
-              <button
-                type="button"
-                onClick={() => setActivePage('settings')}
-                className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-left text-xs font-semibold text-slate-700 transition-colors hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700      "
-              >
-                <Settings2 className="h-4 w-4 shrink-0 text-indigo-500" />
-                Connect Store
-              </button>
-              <button
-                type="button"
-                onClick={() => setActivePage('campaign-builder')}
-                className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-left text-xs font-semibold text-slate-700 transition-colors hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700      "
-              >
-                <Send className="h-4 w-4 shrink-0 text-indigo-500" />
-                Send Test Event
-              </button>
+            <div className="grid gap-2 sm:grid-cols-3">
+              {[
+                { label: 'Setup guide', icon: BookOpen, page: 'setup-guide' },
+                { label: 'Connect store', icon: Settings2, page: 'settings' },
+                { label: 'Send test event', icon: Send, page: 'campaign-builder' },
+              ].map(item => (
+                <button key={item.label} onClick={() => setActivePage(item.page)} className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-xs font-bold text-slate-700 hover:border-blue-300 hover:text-blue-700">
+                  <item.icon className="h-4 w-4" /> {item.label}
+                </button>
+              ))}
             </div>
           </div>
         </section>
       )}
 
-      {/* 4 KPI Top metrics grid */}
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <div className="col-span-2 rounded-lg border border-slate-200 bg-white p-4 shadow-sm lg:col-span-1">
-          <div className="flex items-center justify-between gap-2">
-            <p className="flex items-center text-xs font-bold text-slate-700">
-              Monthly Usage
-              <Tooltip content="Quota-counted events processed this billing month. Recent logs can include browser, debug, or failed attempts that do not increase monthly usage." />
-            </p>
-            <span className="inline-flex items-center gap-1 rounded-full bg-green-50 px-2 py-0.5 text-xs font-bold text-green-700">
-              <TrendingUp className="h-3 w-3" />
-              {quotaPercent}%
-            </span>
-          </div>
-          <div className="mt-4 flex items-end justify-between gap-3">
+      <div className="grid grid-cols-1 gap-5 xl:grid-cols-12">
+        <section className={`${panelClass} min-w-0 p-5 xl:col-span-8`}>
+          <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
-              <p className="text-2xl font-bold tracking-tight text-slate-950">{profile.eventsUsed.toLocaleString()}</p>
-              <p className="mt-0.5 text-xs font-semibold text-slate-400">of {profile.eventsQuota.toLocaleString()} quota-counted</p>
+              <h2 className="text-base font-bold text-slate-950">Event activity</h2>
+              <p className="mt-1 text-xs text-slate-500">Tracked and successfully delivered server events</p>
             </div>
-            <div className="h-1.5 w-24 overflow-hidden rounded-full bg-slate-100">
-              <div
-                className="h-full rounded-full bg-[#1a73e8] transition-all duration-500"
-                style={{ width: `${quotaPercent}%` }}
-              />
-            </div>
+            <select
+              value={analyticsDays}
+              onChange={event => setAnalyticsDays(Number(event.target.value))}
+              aria-label="Select dashboard timeframe"
+              className="h-9 rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+            >
+              <option value="7">Last 7 days</option>
+              <option value="14">Last 14 days</option>
+              <option value="30">Last 30 days</option>
+              <option value="90">Last 90 days</option>
+            </select>
           </div>
-        </div>
-
-        {platformCards.map(card => (
-          <div key={card.label} className="bk-brand-panel hidden rounded-lg border bg-white p-4 shadow-sm md:block">
-            <div className="flex items-center justify-between gap-2">
-              <PlatformBadge platform={card.platform} label={card.label} />
-              <span className="text-xs font-bold uppercase text-slate-400">{card.total} events</span>
-            </div>
-            <p className={`mt-4 font-bold tracking-tight text-slate-950 ${card.total > 0 ? 'text-2xl' : 'text-lg leading-tight'}`}>
-              {card.total > 0 ? `${card.rate}%` : platformEmptyCopy[card.label]}
-            </p>
-            <p className={`mt-1 text-xs leading-4 text-slate-400 ${card.total > 0 ? 'truncate font-mono' : 'line-clamp-2'}`}>
-              {card.total > 0 ? `Last: ${card.lastTime}` : platformHintCopy[card.label]}
-            </p>
+          <div className="mt-5 flex items-center gap-5 text-xs font-semibold text-slate-500">
+            <span className="flex items-center gap-2"><i className="h-2 w-2 rounded-full bg-[#285ac7]" />Events received</span>
+            <span className="flex items-center gap-2"><i className="h-2 w-2 rounded-full bg-[#12b886]" />Delivered</span>
           </div>
-        ))}
-      </div>
-
-      {/* Main visualization split section (Trend chart & Deduplication index) */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3 lg:gap-6">
-        
-        {/* Event Volume charts */}
-        <div className="col-span-2 flex flex-col rounded-lg border border-slate-200 bg-white p-4 shadow-sm md:p-5">
-          <div className="mb-3 flex items-center justify-between md:mb-5">
-            <div>
-              <h2 className="text-xs font-bold uppercase tracking-wide text-slate-800 md:text-sm">Event Activity</h2>
-              <p className="text-xs text-slate-400 ">Successful server events over time</p>
-            </div>
-            <div className="flex items-center gap-2 rounded border border-slate-200 bg-slate-50 px-2 py-1 font-mono text-xs text-slate-400">
-              <span className="w-1.5 h-1.5 bg-indigo-500 rounded-full" />
-              Live
-            </div>
-          </div>
-
-          <div ref={chartHostRef} className="mt-auto h-44 min-w-0 md:h-64">
-              <AreaChart width={chartSize.width} height={chartSize.height} data={trendData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+          <div ref={chartHostRef} className="mt-3 h-[270px] min-w-0">
+            {chartData.length > 0 ? (
+              <AreaChart width={chartSize.width} height={chartSize.height} data={chartData} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
                 <defs>
-                  <linearGradient id="metaGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#0866ff" stopOpacity={0.2}/>
-                    <stop offset="95%" stopColor="#0866ff" stopOpacity={0}/>
-                  </linearGradient>
-                  <linearGradient id="tiktokGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#06b6d4" stopOpacity={0.2}/>
-                    <stop offset="95%" stopColor="#06b6d4" stopOpacity={0}/>
-                  </linearGradient>
-                  <linearGradient id="ga4Grad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#e37400" stopOpacity={0.18}/>
-                    <stop offset="95%" stopColor="#e37400" stopOpacity={0}/>
+                  <linearGradient id="eventsGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#285ac7" stopOpacity={0.22} />
+                    <stop offset="95%" stopColor="#285ac7" stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                <XAxis dataKey="name" stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} />
-                <YAxis 
-                  stroke="#94a3b8" 
-                  fontSize={12}
-                  tickLine={false} 
-                  axisLine={false} 
-                  tickFormatter={(value) => {
-                    if (value >= 1000000) return `${(value / 1000000).toFixed(1).replace(/\.0$/, '')}M`;
-                    if (value >= 1000) return `${(value / 1000).toFixed(1).replace(/\.0$/, '')}k`;
-                    return value;
-                  }}
-                />
-                <ReChartsTooltip 
-                  contentStyle={{ backgroundColor: '#ffffff', borderColor: '#e2e8f0', color: '#1e293b', borderRadius: '8px', fontSize: '12px', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.05)' }}
-                />
-                <Legend wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }} />
-                <Area type="monotone" dataKey="Meta CAPI" stroke="#0866ff" strokeWidth={2} fillOpacity={1} fill="url(#metaGrad)" />
-                <Area type="monotone" dataKey="TikTok Events" stroke="#111827" strokeWidth={2} fillOpacity={1} fill="url(#tiktokGrad)" />
-                <Area type="monotone" dataKey="GA4" stroke="#e37400" strokeWidth={2} fillOpacity={1} fill="url(#ga4Grad)" />
+                <CartesianGrid strokeDasharray="4 4" vertical={false} stroke="#e8edf5" />
+                <XAxis dataKey="name" axisLine={false} tickLine={false} fontSize={11} stroke="#94a3b8" />
+                <YAxis axisLine={false} tickLine={false} fontSize={11} stroke="#94a3b8" />
+                <RechartsTooltip contentStyle={{ borderRadius: 12, borderColor: '#dbe3ef', boxShadow: '0 12px 30px rgba(15,23,42,.08)', fontSize: 12 }} />
+                <Area type="monotone" dataKey="events" stroke="#285ac7" strokeWidth={2.5} fill="url(#eventsGradient)" />
+                <Line type="monotone" dataKey="delivered" stroke="#12b886" strokeWidth={2.25} dot={false} />
               </AreaChart>
-          </div>
-        </div>
-
-        {/* Deduplication & optimization indicator */}
-        <div className="flex flex-col justify-between rounded-lg border border-slate-200 bg-white p-4 shadow-sm md:p-5">
-          <div>
-            <h2 className="text-xs font-bold uppercase tracking-wide text-slate-800 md:text-sm">Setup check</h2>
-            <p className="mt-1 text-xs leading-normal text-slate-400">
-              {totalSuggCount === 0 ? 'Your tracking is ready' : 'See what still needs to be fixed'}
-            </p>
-          </div>
-
-          <div className="flex items-center gap-4 py-4 lg:flex-col lg:gap-0 lg:py-6">
-            <div className="relative h-20 w-20 shrink-0 md:h-28 md:w-28 lg:h-32 lg:w-32">
-              {/* Circular progress represent */}
-              <svg className="h-full w-full rotate-[-90deg]" viewBox="0 0 36 36">
-                <circle className="stroke-slate-100 " strokeWidth="4" fill="transparent" r="16" cx="18" cy="18" />
-                <circle 
-                  className="stroke-indigo-600 transition-all duration-1000" 
-                  strokeWidth="4" 
-                  strokeDasharray={`${optScore} 100`} 
-                  strokeLinecap="round" 
-                  fill="transparent" 
-                  r="16" 
-                  cx="18" 
-                  cy="18" 
-                />
-              </svg>
-              <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className="font-mono text-xl font-extrabold leading-none text-slate-800 md:text-2xl lg:text-3xl">{optScore}%</span>
-                <span className="mt-1 text-xs font-semibold uppercase tracking-wider text-slate-400">Score</span>
-              </div>
-            </div>
-            
-            <div className="text-left lg:mt-4 lg:text-center">
-              <p className="max-w-xs text-xs leading-normal text-slate-500">
-                {totalSuggCount === 0
-                  ? 'All important checks passed for the platforms you turned on.'
-                  : `${resolvedCount} of ${totalSuggCount} items fixed. ${totalSuggCount - resolvedCount} still need attention.`}
-              </p>
-            </div>
-          </div>
-
-          <button 
-            onClick={() => setActivePage('suggestions')}
-            className="min-h-10 w-full rounded-lg border border-slate-200 bg-white py-2 text-xs font-semibold text-slate-700 transition-colors hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700"
-          >
-            <span className="inline-flex items-center justify-center gap-1.5">
-              {totalSuggCount === 0 ? <RefreshCw className="h-3.5 w-3.5" /> : null}
-              {totalSuggCount === 0 ? 'Check setup again' : 'See what to fix'}
-            </span>
-          </button>
-
-          <div className={`mt-3 rounded-lg border p-3 ${coverageWarningTone ? 'border-amber-100 bg-amber-50/70' : 'border-emerald-100 bg-emerald-50/60'}`}>
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className={`text-xs font-black uppercase tracking-wide ${coverageWarningTone ? 'text-amber-700' : 'text-emerald-700'}`}>Browser / Server Coverage</p>
-                <p className={coverageWarningTone ? 'mt-1 text-xs text-amber-900' : 'mt-1 text-xs text-emerald-900'}>{coverageDescription}</p>
-              </div>
-              <span className={`font-mono text-lg font-black ${coverageWarningTone ? 'text-amber-700' : 'text-emerald-700'}`}>{coverageLabel}</span>
-            </div>
-            <div className="mt-3 grid grid-cols-2 gap-2 text-xs font-bold text-slate-600">
-              <div className={`rounded-md bg-white px-2 py-1.5 ring-1 ${coverageWarningTone ? 'ring-amber-100' : 'ring-emerald-100'}`}>
-                <span className="block text-slate-400">Browser seen</span>
-                <span className="font-mono text-slate-800">{browserEventCount.toLocaleString()}</span>
-              </div>
-              <div className={`rounded-md bg-white px-2 py-1.5 ring-1 ${coverageWarningTone ? 'ring-amber-100' : 'ring-emerald-100'}`}>
-                <span className="block text-slate-400">{serverDetailLabel}</span>
-                <span className="font-mono text-slate-800">{serverDetailValue}</span>
-                {serverDetailHint ? <span className="mt-0.5 block truncate text-xs text-slate-400">{serverDetailHint}</span> : null}
-              </div>
-            </div>
-            {diagnosticReasons.length > 0 ? (
-              <div className="mt-2 space-y-1.5">
-                {diagnosticReasons.map((item) => (
-                  <div key={`${item.status}-${item.reason}`} className="flex items-start justify-between gap-2 rounded-md bg-white/80 px-2 py-1.5 text-xs ring-1 ring-amber-100">
-                    <span className="min-w-0 leading-snug text-amber-950">{item.reason}</span>
-                    <span className="shrink-0 rounded-full bg-amber-100 px-1.5 py-0.5 font-mono font-black text-amber-800">
-                      {Number(item.count || 0).toLocaleString()}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            ) : null}
-          </div>
-        </div>
-      </div>
-
-      {/* Bottom Recent Activity table section */}
-      <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
-        <div className="flex items-center justify-between gap-4 border-b border-slate-100 px-4 py-3 md:px-6 md:py-4">
-          <div>
-            <h2 className="text-xs font-bold uppercase tracking-wider text-slate-800 md:text-sm">Recent Events</h2>
-            <p className="text-xs text-slate-400 ">Latest tracking events from your store.</p>
-          </div>
-          <button 
-            onClick={() => setActivePage('event-logs')}
-            className="flex min-h-10 shrink-0 items-center gap-1 px-2 text-xs font-semibold text-blue-600 hover:underline"
-          >
-            Logs <ArrowUpRight className="w-3.5 h-3.5" />
-          </button>
-        </div>
-
-        <div className="space-y-2 p-3 md:hidden">
-          {events.length === 0 ? (
-            <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-5 text-center  ">
-              <ListChecks className="mx-auto h-7 w-7 text-slate-300" />
-              <p className="mt-2 text-xs font-bold text-slate-600 ">No tracking events yet</p>
-              <button
-                type="button"
-                onClick={() => setActivePage('campaign-builder')}
-                className="mt-3 min-h-10 rounded-lg bg-indigo-600 px-3 py-2 text-xs font-bold text-white transition-colors hover:bg-indigo-700"
-              >
-                Send Test Event
-              </button>
-            </div>
-          ) : events.slice(0, 3).map(e => (
-            <button
-              key={e.id}
-              type="button"
-              onClick={() => setExpandedEventId(expandedEventId === e.id ? null : e.id)}
-              className="w-full rounded-lg border border-slate-200 bg-white p-3 text-left"
-            >
-              <div className="flex items-start justify-between gap-3">
+            ) : (
+              <div className="flex h-full items-center justify-center rounded-xl border border-dashed border-slate-200 bg-slate-50/60 text-center">
                 <div>
-                  <p className="text-sm font-bold text-slate-900">{e.name}</p>
-                  <p className="mt-1 flex items-center gap-1.5 text-xs font-medium text-slate-500">
-                    <PlatformLogo platform={e.platform} className="h-4 w-4" />
-                    {e.platform}
-                  </p>
+                  <CircleGauge className="mx-auto h-7 w-7 text-slate-300" />
+                  <p className="mt-2 text-sm font-bold text-slate-700">Waiting for trend data</p>
+                  <p className="mt-1 text-xs text-slate-400">Event activity will appear after tracking begins.</p>
                 </div>
-                <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-bold uppercase ${
-                  e.status === 'Success' ? 'border-slate-200 bg-green-50 text-green-700' :
-                  e.status === 'Retry' ? 'border-slate-200 bg-amber-50 text-amber-700' :
-                  'border-slate-200 bg-rose-50 text-rose-700'
-                }`}>
-                  {e.status}
-                </span>
               </div>
-              <div className="mt-2 grid grid-cols-2 gap-2 text-xs text-slate-500">
-                <span className="font-mono">{new Date(e.timestamp).toLocaleTimeString()}</span>
-                <span className="truncate text-right font-semibold">{e.contextLabel || 'Website event'}</span>
-              </div>
-              {e.pageUrl && <p className="mt-2 truncate text-xs text-slate-400">{e.pageUrl}</p>}
+            )}
+          </div>
+        </section>
+
+        <section className={`${panelClass} p-5 xl:col-span-4`}>
+          <div>
+            <h2 className="text-base font-bold text-slate-950">Action center</h2>
+            <p className="mt-1 text-xs text-slate-500">The next useful actions for your team</p>
+          </div>
+          <div className="mt-5 divide-y divide-slate-100 overflow-hidden rounded-xl border border-slate-200">
+            <button onClick={() => setActivePage('pending-purchases')} className="flex w-full items-center gap-3 p-4 text-left transition-colors hover:bg-slate-50">
+              <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${pendingOrderCount > 0 ? 'bg-amber-50 text-amber-600' : 'bg-emerald-50 text-emerald-600'}`}>
+                <ShoppingBag className="h-5 w-5" />
+              </span>
+              <span className="min-w-0 flex-1">
+                <strong className="block text-sm text-slate-900">{pendingOrderCount > 0 ? `${pendingOrderCount} COD orders need review` : 'COD review queue is clear'}</strong>
+                <span className="mt-0.5 block text-xs text-slate-500">Confirm or skip pending purchase events</span>
+              </span>
+              <ChevronRight className="h-4 w-4 text-slate-400" />
             </button>
-          ))}
-        </div>
-
-        <div className="hidden overflow-x-auto md:block">
-          <table className="w-full min-w-[900px] divide-y divide-slate-100 text-left text-xs text-slate-600">
-            <thead className="bg-slate-50 text-xs font-bold uppercase tracking-wider text-slate-500 ">
-              <tr>
-                <th className="px-6 py-3">Timestamp</th>
-                <th className="px-6 py-3">Event ID</th>
-                <th className="px-6 py-3">Event Name</th>
-                <th className="px-6 py-3">Platform</th>
-                <th className="px-6 py-3">Status</th>
-                <th className="px-6 py-3">Page / Product</th>
-                <th className="px-6 py-3 text-right">Details</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 ">
-              {events.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="px-6 py-8 text-center text-slate-400 font-medium">
-                    <div className="mx-auto flex max-w-sm flex-col items-center gap-3">
-                      <ListChecks className="w-8 h-8 text-slate-300" />
-                      <div>
-                        <p className="font-bold text-slate-600 ">No tracking events yet</p>
-                        <p className="mt-1 text-xs font-normal text-slate-400">Install the plugin or send a test event to confirm everything is working.</p>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => setActivePage('campaign-builder')}
-                        className="min-h-10 rounded-lg bg-indigo-600 px-3 py-2 text-xs font-bold text-white transition-colors hover:bg-indigo-700"
-                      >
-                        Send Test Event
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ) : (
-                events.slice(0, 5).map(e => {
-                  const isExpanded = expandedEventId === e.id;
-                  return (
-                    <React.Fragment key={e.id}>
-                      <tr 
-                        onClick={() => setExpandedEventId(isExpanded ? null : e.id)}
-                        className="hover:bg-slate-50/50  cursor-pointer transition-colors"
-                      >
-                        <td className="px-6 py-3.5 font-mono text-slate-400 ">
-                          {new Date(e.timestamp).toLocaleTimeString()}
-                        </td>
-                        <td className="px-6 py-3.5 font-mono font-bold text-indigo-600">
-                          {e.id}
-                        </td>
-                        <td className="px-6 py-3.5 font-semibold text-slate-800 ">
-                          {e.name}
-                        </td>
-                        <td className="px-6 py-3.5">
-                          <span className="flex items-center gap-1.5 font-medium text-slate-700 ">
-                            <PlatformLogo platform={e.platform} className="h-4 w-4" />
-                            {e.platform}
-                          </span>
-                        </td>
-                        <td className="px-6 py-3.5">
-                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider ${
-                            e.status === 'Success' ? 'bg-green-50 text-green-700 border border-slate-200   ' :
-                            e.status === 'Retry' ? 'bg-amber-50 text-amber-700 border border-slate-200   ' : 
-                            'bg-rose-50 text-rose-700 border border-slate-200   '
-                          }`}>
-                            {e.status}
-                          </span>
-                        </td>
-                        <td className="max-w-[260px] px-6 py-3.5 text-slate-700">
-                          <span className="block truncate font-semibold" title={e.contextLabel || 'Website event'}>{e.contextLabel || 'Website event'}</span>
-                          {e.pageUrl && <span className="mt-0.5 block truncate text-xs text-slate-400" title={e.pageUrl}>{e.pageUrl}</span>}
-                        </td>
-                        <td className="px-6 py-3.5 text-right text-indigo-600">
-                          <span className="text-xs font-bold">{isExpanded ? 'Hide' : 'View'}</span>
-                        </td>
-                      </tr>
-
-                      {/* Collapsible raw JSON details */}
-                      {isExpanded && (
-                        <tr>
-                          <td colSpan={7} className="bg-slate-50  border-t border-slate-100  px-6 py-4">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                              <div className="bg-slate-900 text-slate-200 text-xs font-mono p-4 rounded-lg overflow-auto max-h-60 relative group">
-                                <div className="absolute top-2 right-2 flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                                  <button 
-                                    onClick={(el) => { el.stopPropagation(); handleCopy(JSON.stringify(e.payload, null, 2), `c_det_p_${e.id}`) }}
-                                    className="p-1 rounded bg-slate-800 text-slate-400 hover:text-white"
-                                    title="Copy data sent"
-                                  >
-                                    {copiedStates[`c_det_p_${e.id}`] ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
-                                  </button>
-                                </div>
-                                <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-indigo-400 select-none">Data Sent</p>
-                                <pre>{JSON.stringify(e.payload, null, 2)}</pre>
-                              </div>
-
-                              <div className="bg-slate-900 text-slate-200 text-xs font-mono p-4 rounded-lg overflow-auto max-h-60 relative group">
-                                <div className="absolute top-2 right-2 flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                                  <button 
-                                    onClick={(el) => { el.stopPropagation(); handleCopy(JSON.stringify(e.responseBody, null, 2), `c_det_r_${e.id}`) }}
-                                    className="p-1 rounded bg-slate-800 text-slate-400 hover:text-white"
-                                    title="Copy Response body"
-                                  >
-                                    {copiedStates[`c_det_r_${e.id}`] ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
-                                  </button>
-                                </div>
-                                <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-emerald-400 select-none">Reply From Platform</p>
-                                <pre>{JSON.stringify(e.responseBody, null, 2)}</pre>
-                              </div>
-                            </div>
-                          </td>
-                        </tr>
-                      )}
-                    </React.Fragment>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
+            <button onClick={() => setActivePage('suggestions')} className="flex w-full items-center gap-3 p-4 text-left transition-colors hover:bg-slate-50">
+              <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${openSuggestions > 0 ? 'bg-blue-50 text-blue-700' : 'bg-emerald-50 text-emerald-600'}`}>
+                <PackageCheck className="h-5 w-5" />
+              </span>
+              <span className="min-w-0 flex-1">
+                <strong className="block text-sm text-slate-900">{openSuggestions > 0 ? `${openSuggestions} setup items need attention` : 'Setup checklist complete'}</strong>
+                <span className="mt-0.5 block text-xs text-slate-500">Review tracking recommendations</span>
+              </span>
+              <ChevronRight className="h-4 w-4 text-slate-400" />
+            </button>
+            <button onClick={() => setActivePage('settings')} className="flex w-full items-center gap-3 p-4 text-left transition-colors hover:bg-slate-50">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
+                <ShieldCheck className="h-5 w-5" />
+              </span>
+              <span className="min-w-0 flex-1">
+                <strong className="block text-sm text-slate-900">Tracking health {optScore}%</strong>
+                <span className="mt-0.5 block text-xs text-slate-500">Check platform connections and delivery</span>
+              </span>
+              <ChevronRight className="h-4 w-4 text-slate-400" />
+            </button>
+          </div>
+        </section>
       </div>
+
+      <div className="grid grid-cols-1 gap-5 xl:grid-cols-12">
+        <section className={`${panelClass} p-5 xl:col-span-7`}>
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-base font-bold text-slate-950">Tracking health</h2>
+              <p className="mt-1 text-xs text-slate-500">Platform delivery at a glance</p>
+            </div>
+            <button onClick={() => setActivePage('settings')} className="text-xs font-bold text-blue-700 hover:text-blue-800">Manage platforms</button>
+          </div>
+          <div className="mt-5 overflow-hidden rounded-xl border border-slate-200">
+            {platformRows.map((row, index) => (
+              <button key={row.label} onClick={() => setActivePage('event-logs')} className={`grid w-full grid-cols-[minmax(0,1.4fr)_70px_74px_24px] items-center gap-3 px-4 py-3 text-left hover:bg-slate-50 sm:grid-cols-[minmax(0,1.5fr)_90px_90px_minmax(100px,1fr)_24px] ${index > 0 ? 'border-t border-slate-100' : ''}`}>
+                <span className="flex min-w-0 items-center gap-3">
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-slate-50"><PlatformLogo platform={row.platform} className="h-5 w-5" /></span>
+                  <strong className="truncate text-sm text-slate-900">{row.label}</strong>
+                </span>
+                <span><strong className={`block text-sm ${row.total > 0 ? 'text-emerald-600' : 'text-slate-400'}`}>{row.total > 0 ? `${row.rate}%` : '—'}</strong><small className="text-[10px] text-slate-400">{row.total > 0 ? 'Healthy' : 'Waiting'}</small></span>
+                <span><strong className="block text-sm text-slate-800">{row.total.toLocaleString()}</strong><small className="text-[10px] text-slate-400">Events</small></span>
+                <span className="hidden text-xs text-slate-500 sm:block">Last sync<br /><span className="font-mono text-[10px] text-slate-400">{row.lastTime || 'Waiting'}</span></span>
+                <CheckCircle2 className={`h-4 w-4 ${row.total > 0 ? 'text-emerald-500' : 'text-slate-300'}`} />
+              </button>
+            ))}
+          </div>
+        </section>
+
+        <section className={`${panelClass} p-5 xl:col-span-5`}>
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <h2 className="text-base font-bold text-slate-950">Usage this month</h2>
+              <p className="mt-1 text-xs text-slate-500">Current plan allowance</p>
+            </div>
+            <span className="rounded-full bg-blue-50 px-2.5 py-1 text-[11px] font-bold text-blue-700">{profile.plan}</span>
+          </div>
+          <div className="mt-6 space-y-6">
+            <div>
+              <div className="flex items-end justify-between gap-3">
+                <div><span className="text-xs font-semibold text-slate-500">Events usage</span><p className="mt-1 text-xl font-bold text-slate-950">{compactNumber(profile.eventsUsed)} <span className="text-xs font-medium text-slate-400">/ {compactNumber(profile.eventsQuota)} events</span></p></div>
+                <strong className="text-sm text-emerald-600">{usagePercent.toFixed(1)}%</strong>
+              </div>
+              <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-100"><div className="h-full rounded-full bg-gradient-to-r from-[#285ac7] to-[#12b886]" style={{ width: `${usagePercent}%` }} /></div>
+            </div>
+            <div>
+              <div className="flex items-end justify-between gap-3">
+                <div><span className="text-xs font-semibold text-slate-500">Orders observed</span><p className="mt-1 text-xl font-bold text-slate-950">{observedOrders.toLocaleString()} <span className="text-xs font-medium text-slate-400">/ {orderQuota ? compactNumber(orderQuota) : 'Unlimited'} orders</span></p></div>
+                {orderQuota > 0 && <strong className="text-sm text-emerald-600">{orderPercent.toFixed(1)}%</strong>}
+              </div>
+              <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-100"><div className="h-full rounded-full bg-gradient-to-r from-[#285ac7] to-[#12b886]" style={{ width: `${orderPercent}%` }} /></div>
+            </div>
+          </div>
+          <div className="mt-6 flex items-center justify-between border-t border-slate-100 pt-4">
+            <span className="flex items-center gap-2 text-xs font-bold text-blue-700"><span className="text-amber-500">♛</span>{profile.plan}</span>
+            {profile.isTrial && <span className="text-xs font-bold text-blue-700">{profile.trialDaysRemaining || 0} days left</span>}
+          </div>
+        </section>
+      </div>
+
+      <section className={`${panelClass} overflow-hidden`}>
+        <div className="flex items-center justify-between gap-3 border-b border-slate-100 px-5 py-4">
+          <div>
+            <h2 className="text-base font-bold text-slate-950">Recent activity</h2>
+            <p className="mt-1 text-xs text-slate-500">Latest tracking events from your store</p>
+          </div>
+          <button onClick={() => setActivePage('event-logs')} className="flex items-center gap-1 text-xs font-bold text-blue-700 hover:text-blue-800">View all activity <ArrowRight className="h-3.5 w-3.5" /></button>
+        </div>
+        {recentEvents.length > 0 ? (
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[720px] text-left">
+              <thead className="bg-slate-50/80 text-[10px] font-bold uppercase tracking-[0.08em] text-slate-400">
+                <tr><th className="px-5 py-3">Time</th><th className="px-5 py-3">Event</th><th className="px-5 py-3">Platform</th><th className="px-5 py-3">Status</th><th className="px-5 py-3 text-right">Value</th></tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {recentEvents.map(event => (
+                  <tr key={event.id} className="cursor-pointer hover:bg-slate-50/70" onClick={() => setActivePage('event-logs')}>
+                    <td className="px-5 py-3 text-xs text-slate-500">{new Date(event.timestamp).toLocaleString()}</td>
+                    <td className="px-5 py-3 text-sm font-semibold text-slate-900">{event.name}</td>
+                    <td className="px-5 py-3"><span className="flex items-center gap-2 text-xs font-semibold text-slate-700"><PlatformLogo platform={event.platform} className="h-4 w-4" />{event.platform}</span></td>
+                    <td className="px-5 py-3"><span className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-[10px] font-bold ${event.status === 'Success' ? 'bg-emerald-50 text-emerald-700' : event.status === 'Retry' ? 'bg-amber-50 text-amber-700' : 'bg-rose-50 text-rose-700'}`}><CheckCircle2 className="h-3 w-3" />{event.status}</span></td>
+                    <td className="px-5 py-3 text-right text-xs font-bold text-slate-800">{eventValue(event)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="flex min-h-44 flex-col items-center justify-center p-8 text-center">
+            <PackageCheck className="h-8 w-8 text-slate-300" />
+            <p className="mt-3 text-sm font-bold text-slate-800">No tracking activity yet</p>
+            <p className="mt-1 max-w-sm text-xs leading-5 text-slate-400">Install the plugin or send a test event to confirm the connection.</p>
+            <button onClick={() => setActivePage('campaign-builder')} className="mt-4 rounded-lg bg-[#285ac7] px-4 py-2 text-xs font-bold text-white hover:bg-[#214fae]">Send test event</button>
+          </div>
+        )}
+      </section>
     </div>
   );
 }

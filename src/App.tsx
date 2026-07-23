@@ -1650,6 +1650,7 @@ export default function App() {
                 handleCopy={handleCopy}
                 analyticsDays={analyticsDays}
                 setAnalyticsDays={setAnalyticsDays}
+                pendingOrderCount={orderVerificationCount}
               />
               </>
             )}
