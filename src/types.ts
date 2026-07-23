@@ -123,6 +123,7 @@ export interface UserProfile {
   trialDaysRemaining?: number;
   eventsUsed: number;
   eventsQuota: number;
+  ordersUsed?: number;
   ordersQuota?: number;
   renewalDate: string;
   growthFeaturesEnabled?: boolean;

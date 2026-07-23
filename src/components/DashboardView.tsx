@@ -119,13 +119,14 @@ export function DashboardView({
   const usagePercent = profile.eventsQuota > 0
     ? Math.min(100, (profile.eventsUsed / profile.eventsQuota) * 100)
     : 0;
-  const observedOrders = new Set(
+  const locallyObservedOrders = new Set(
     events
       .filter(event => event.name.toLowerCase() === 'purchase')
       .map(event => event.orderId || event.deduplicationKey || event.id),
   ).size;
+  const ordersUsed = Number(profile.ordersUsed ?? locallyObservedOrders);
   const orderQuota = Number(profile.ordersQuota || 0);
-  const orderPercent = orderQuota > 0 ? Math.min(100, (observedOrders / orderQuota) * 100) : 0;
+  const orderPercent = orderQuota > 0 ? Math.min(100, (ordersUsed / orderQuota) * 100) : 0;
   const recentEvents = events.slice(0, 5);
   const showGettingStarted = events.length === 0 && profile.eventsUsed === 0;
 
@@ -307,7 +308,7 @@ export function DashboardView({
             </div>
             <div>
               <div className="flex items-end justify-between gap-3">
-                <div><span className="text-xs font-semibold text-slate-500">Orders observed</span><p className="mt-1 text-xl font-bold text-slate-950">{observedOrders.toLocaleString()} <span className="text-xs font-medium text-slate-400">/ {orderQuota ? compactNumber(orderQuota) : 'Unlimited'} orders</span></p></div>
+                <div><span className="text-xs font-semibold text-slate-500">Orders usage</span><p className="mt-1 text-xl font-bold text-slate-950">{ordersUsed.toLocaleString()} <span className="text-xs font-medium text-slate-400">/ {orderQuota ? compactNumber(orderQuota) : 'Unlimited'} orders</span></p></div>
                 {orderQuota > 0 && <strong className="text-sm text-emerald-600">{orderPercent.toFixed(1)}%</strong>}
               </div>
               <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-100"><div className="h-full rounded-full bg-gradient-to-r from-[#285ac7] to-[#12b886]" style={{ width: `${orderPercent}%` }} /></div>
@@ -348,11 +349,15 @@ export function DashboardView({
             </table>
           </div>
         ) : (
-          <div className="flex min-h-44 flex-col items-center justify-center p-8 text-center">
-            <PackageCheck className="h-8 w-8 text-slate-300" />
-            <p className="mt-3 text-sm font-bold text-slate-800">No tracking activity yet</p>
-            <p className="mt-1 max-w-sm text-xs leading-5 text-slate-400">Install the plugin or send a test event to confirm the connection.</p>
-            <button onClick={() => setActivePage('campaign-builder')} className="mt-4 rounded-lg bg-[#285ac7] px-4 py-2 text-xs font-bold text-white hover:bg-[#214fae]">Send test event</button>
+          <div className="flex flex-col gap-4 px-5 py-5 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-3">
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-400"><PackageCheck className="h-5 w-5" /></span>
+              <div className="text-left">
+                <p className="text-sm font-bold text-slate-800">No recent event logs</p>
+                <p className="mt-1 text-xs text-slate-500">Your aggregate tracking data is available above. Send a test event to create a fresh log entry.</p>
+              </div>
+            </div>
+            <button onClick={() => setActivePage('campaign-builder')} className="shrink-0 rounded-lg bg-[#285ac7] px-4 py-2.5 text-xs font-bold text-white hover:bg-[#214fae]">Send test event</button>
           </div>
         )}
       </section>
