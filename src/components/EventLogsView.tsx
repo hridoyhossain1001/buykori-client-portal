@@ -169,6 +169,7 @@ function DeliveryBadge({ event }: { event: CAPIEvent }) {
 }
 
 interface EventLogsViewProps {
+  allEvents: CAPIEvent[];
   filteredEventsForTable: CAPIEvent[];
   searchFilter: string;
   setSearchFilter: (value: string) => void;
@@ -193,6 +194,7 @@ interface EventLogsViewProps {
 }
 
 export function EventLogsView({
+  allEvents,
   filteredEventsForTable,
   searchFilter,
   setSearchFilter,
@@ -215,6 +217,7 @@ export function EventLogsView({
   lastFetchedAt,
   onRetry,
 }: EventLogsViewProps) {
+  const allGroupedEvents = useMemo(() => groupEvents(allEvents), [allEvents]);
   const groupedEvents = useMemo(
     () => groupEvents(filteredEventsForTable),
     [filteredEventsForTable],
@@ -234,6 +237,53 @@ export function EventLogsView({
   ).length;
   const failedGroups = groupedEvents.filter(group => group.failedCount > 0).length;
   const retryingGroups = groupedEvents.filter(group => group.retryingCount > 0).length;
+
+  const summary = useMemo(() => {
+    const now = new Date();
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+    const sevenDaysAgo = now.getTime() - 7 * 24 * 60 * 60 * 1000;
+    const eventsToday = allGroupedEvents.filter(
+      group => new Date(group.timestamp).getTime() >= todayStart,
+    ).length;
+    const recentDeliveries = allGroupedEvents
+      .flatMap(group => group.deliveries)
+      .filter(event => {
+        const timestamp = new Date(event.timestamp).getTime();
+        return (
+          timestamp >= sevenDaysAgo &&
+          event.platform !== 'Gateway Ingest' &&
+          event.status !== 'Fired' &&
+          event.status !== 'Filtered'
+        );
+      });
+    const successfulDeliveries = recentDeliveries.filter(
+      event => event.status === 'Success',
+    ).length;
+    const failedDeliveries = recentDeliveries.filter(
+      event => event.status === 'Failed',
+    ).length;
+    const retryingDeliveries = recentDeliveries.filter(
+      event => event.status === 'Retry',
+    ).length;
+    const deliveryAttempts = successfulDeliveries + failedDeliveries + retryingDeliveries;
+    const deliverySuccessRate = deliveryAttempts
+      ? (successfulDeliveries / deliveryAttempts) * 100
+      : null;
+    const queuedRetries = outboxItems.filter(
+      item => item.status === 'queued' || item.status === 'processing',
+    ).length;
+    const needsAttention = outboxItems.filter(item => item.status === 'dead').length;
+
+    return {
+      eventsToday,
+      latestEventAt: allGroupedEvents[0]?.timestamp || null,
+      deliveryAttempts,
+      deliverySuccessRate,
+      failedDeliveries,
+      retryingDeliveries: retryingDeliveries + queuedRetries,
+      needsAttention,
+    };
+  }, [allGroupedEvents, outboxItems]);
 
   const renderExpandedDetails = (group: GroupedEvent) => (
     <div className="space-y-4">
@@ -316,6 +366,70 @@ export function EventLogsView({
 
   return (
     <div className="space-y-5">
+      <section aria-labelledby="event-logs-heading" className="space-y-4">
+        <div>
+          <h1 id="event-logs-heading" className="text-xl font-bold tracking-tight text-slate-900">
+            Event Logs
+          </h1>
+          <p className="mt-1 text-xs text-slate-500">
+            Every tracking event sent from your store—grouped by event, with per-platform delivery status.
+          </p>
+        </div>
+
+        <div className="grid overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm sm:grid-cols-2 xl:grid-cols-4">
+          <article className="border-b border-slate-200 px-5 py-4 sm:border-r xl:border-b-0">
+            <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-400">
+              Events today
+            </p>
+            <p className="mt-1 text-lg font-bold text-slate-900">{summary.eventsToday}</p>
+            <p className="mt-0.5 text-[11px] text-slate-400">
+              {summary.latestEventAt
+                ? `Last event ${relativeTime(summary.latestEventAt)}`
+                : 'Waiting for the first event'}
+            </p>
+          </article>
+
+          <article className="border-b border-slate-200 px-5 py-4 xl:border-b-0 xl:border-r">
+            <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-400">
+              Delivery success
+            </p>
+            <p className="mt-1 text-lg font-bold text-emerald-700">
+              {summary.deliverySuccessRate === null
+                ? '—'
+                : `${summary.deliverySuccessRate.toFixed(1)}%`}
+            </p>
+            <p className="mt-0.5 text-[11px] text-slate-400">
+              Past 7 days · {summary.deliveryAttempts.toLocaleString()} deliveries
+            </p>
+          </article>
+
+          <article className="border-b border-slate-200 px-5 py-4 sm:border-r xl:border-b-0">
+            <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-400">
+              Failed deliveries
+            </p>
+            <p className={`mt-1 text-lg font-bold ${summary.failedDeliveries ? 'text-rose-600' : 'text-slate-900'}`}>
+              {summary.failedDeliveries}
+            </p>
+            <p className="mt-0.5 text-[11px] text-slate-400">
+              {summary.retryingDeliveries} retrying · {summary.needsAttention} needs attention
+            </p>
+          </article>
+
+          <article className="px-5 py-4">
+            <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-400">
+              Live mode
+            </p>
+            <p className={`mt-1 flex items-center gap-2 text-xs font-bold ${liveMode ? 'text-emerald-700' : 'text-slate-600'}`}>
+              <span className={`h-2 w-2 rounded-full ${liveMode ? 'bg-emerald-500' : 'bg-slate-400'}`} />
+              {liveMode ? 'Streaming' : 'Paused'}
+            </p>
+            <p className="mt-1.5 text-[11px] text-slate-400">
+              {liveMode ? 'New events appear automatically' : 'Turn on Live updates to watch events'}
+            </p>
+          </article>
+        </div>
+      </section>
+
       <section
         aria-label="Event log filters"
         className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm"
