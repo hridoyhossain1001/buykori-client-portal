@@ -188,6 +188,7 @@ interface EventLogsViewProps {
   handleRetryOutbox: (id: number) => void;
   loading: boolean;
   loadError: string | null;
+  lastFetchedAt: string | null;
   onRetry: () => Promise<void>;
 }
 
@@ -211,6 +212,7 @@ export function EventLogsView({
   handleRetryOutbox,
   loading,
   loadError,
+  lastFetchedAt,
   onRetry,
 }: EventLogsViewProps) {
   const groupedEvents = useMemo(
@@ -336,18 +338,22 @@ export function EventLogsView({
               type="button"
               onClick={() => setLiveMode(!liveMode)}
               aria-pressed={liveMode}
+              aria-label={`Turn live event updates ${liveMode ? 'off' : 'on'}`}
               className={`inline-flex min-h-10 items-center gap-2 rounded-lg border px-3 text-xs font-bold transition-colors ${
                 liveMode
-                  ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                  ? 'border-emerald-300 bg-emerald-50 text-emerald-800'
                   : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
               }`}
             >
               <span className={`h-2 w-2 rounded-full ${liveMode ? 'bg-emerald-500' : 'bg-slate-400'}`} />
-              Live
+              <span>Live updates</span>
+              <span className={liveMode ? 'text-emerald-700' : 'text-slate-500'}>
+                {liveMode ? 'ON' : 'OFF'}
+              </span>
               <span
                 aria-hidden="true"
                 className={`relative h-5 w-9 rounded-full transition-colors ${
-                  liveMode ? 'bg-indigo-600' : 'bg-slate-300'
+                  liveMode ? 'bg-emerald-600' : 'bg-slate-300'
                 }`}
               >
                 <span
@@ -375,6 +381,36 @@ export function EventLogsView({
           </div>
         </div>
 
+        {liveMode && (
+          <div
+            className="flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-emerald-100 bg-emerald-50/70 px-4 py-2.5 text-[11px]"
+            role="status"
+            aria-live="polite"
+          >
+            <span className="inline-flex items-center gap-2 font-bold text-emerald-800">
+              <span className="relative flex h-2.5 w-2.5">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60" />
+                <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500" />
+              </span>
+              Waiting for new events
+            </span>
+            <span className="text-emerald-700">
+              Real event history is checked every 5 seconds. Existing rows stay in place until new data arrives.
+            </span>
+            <span className="ml-auto text-emerald-700/70">
+              {loading && groupedEvents.length > 0
+                ? 'Checking now…'
+                : lastFetchedAt
+                  ? `Last checked ${new Date(lastFetchedAt).toLocaleTimeString([], {
+                      hour: 'numeric',
+                      minute: '2-digit',
+                      second: '2-digit',
+                    })}`
+                  : 'Starting…'}
+            </span>
+          </div>
+        )}
+
         <div className="flex flex-wrap items-center gap-2 border-t border-slate-100 px-4 py-3">
           <button
             type="button"
@@ -382,6 +418,7 @@ export function EventLogsView({
               setPlatformFilters([]);
               setStatusFilters([]);
             }}
+            aria-pressed={platformFilters.length === 0 && statusFilters.length === 0}
             className={`min-h-8 rounded-full border px-3 text-[11px] font-bold ${
               platformFilters.length === 0 && statusFilters.length === 0
                 ? 'border-slate-900 bg-slate-900 text-white'
@@ -407,6 +444,7 @@ export function EventLogsView({
                       : [...previous, platform],
                   )
                 }
+                aria-pressed={active}
                 className={`inline-flex min-h-8 items-center gap-1.5 rounded-full border px-3 text-[11px] font-bold ${
                   active
                     ? 'border-indigo-300 bg-indigo-50 text-indigo-700'
@@ -439,6 +477,7 @@ export function EventLogsView({
                       : [...previous, statusName],
                   )
                 }
+                aria-pressed={active}
                 className={`min-h-8 rounded-full border px-3 text-[11px] font-bold ${
                   active
                     ? statusName === 'Failed'

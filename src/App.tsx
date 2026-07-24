@@ -111,6 +111,7 @@ export default function App() {
   const [events, setEvents] = useState<CAPIEvent[]>([]);
   const [eventsLoading, setEventsLoading] = useState<boolean>(false);
   const [eventsLoadError, setEventsLoadError] = useState<string | null>(null);
+  const [eventsLastFetchedAt, setEventsLastFetchedAt] = useState<string | null>(null);
   const eventsRequestIdRef = useRef(0);
   const activePageRef = useRef(activePage);
   const [apiLogs, setApiLogs] = useState<APILog[]>([]);
@@ -163,7 +164,6 @@ export default function App() {
 
   // Live Mode Polling State
   const [liveMode, setLiveMode] = useState<boolean>(false);
-  const liveIntervalRef = useRef<ReturnType<typeof window.setInterval> | null>(null);
 
   // Filters State for Logs
   const [platformFilters, setPlatformFilters] = useState<string[]>([]);
@@ -558,6 +558,7 @@ export default function App() {
           .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
           .slice(0, 200)
       );
+      setEventsLastFetchedAt(new Date().toISOString());
     } catch (error) {
       if (requestId === eventsRequestIdRef.current) {
         setEventsLoadError(error instanceof Error ? error.message : 'Event history could not load.');
@@ -829,15 +830,17 @@ export default function App() {
   }, [activePage]);
 
   useEffect(() => {
-    if (activePage !== 'event-logs') return;
+    if (activePage !== 'event-logs' || !liveMode) return;
     const refreshEventHistory = () => {
+      if (document.hidden) return;
       Promise.all([fetchEvents(), fetchOutbox()]).catch(err => {
         console.error('Failed to refresh Event History', err);
       });
     };
+    refreshEventHistory();
     const intervalId = window.setInterval(refreshEventHistory, 5000);
     return () => window.clearInterval(intervalId);
-  }, [activePage]);
+  }, [activePage, liveMode]);
 
   // Periodic polling for Incomplete Checkouts and COD holds
   useEffect(() => {
@@ -862,38 +865,6 @@ export default function App() {
     const intervalId = window.setInterval(pollData, 15000);
     return () => window.clearInterval(intervalId);
   }, [activePage]);
-
-  // Live Tracking Mode Polling Simulator
-  useEffect(() => {
-    if (liveMode) {
-      // Trigger instant pulse on activate
-      const streamPulse = async () => {
-        try {
-          const res = await fetch('/api/events/live-stream');
-          const data = await res.json();
-          if (data.event) {
-            setEvents(prev => [data.event, ...prev]);
-          }
-        } catch (err) {
-          console.error("Live packet error: ", err);
-        }
-      };
-
-      liveIntervalRef.current = setInterval(streamPulse, 3000);
-      showToast("Live mode is on! Events update automatically.", false);
-    } else {
-      if (liveIntervalRef.current) {
-        clearInterval(liveIntervalRef.current);
-        liveIntervalRef.current = null;
-      }
-    }
-
-    return () => {
-      if (liveIntervalRef.current) {
-        clearInterval(liveIntervalRef.current);
-      }
-    };
-  }, [liveMode]);
 
   // Handle platform credential update
   const handleUpdatePlatform = async (platform: Platform, fields: Partial<PlatformConfig>) => {
@@ -1741,6 +1712,7 @@ export default function App() {
                 handleRetryOutbox={handleRetryOutbox}
                 loading={eventsLoading}
                 loadError={eventsLoadError}
+                lastFetchedAt={eventsLastFetchedAt}
                 onRetry={fetchEvents}
               />
             )}
