@@ -1693,7 +1693,6 @@ export default function App() {
             {/* PAGE 4: EVENT LOGS */}
             {activePage === 'event-logs' && (
               <EventLogsView 
-                allEvents={merchantVisibleEvents}
                 filteredEventsForTable={filteredEventsForTable}
                 searchFilter={searchFilter}
                 setSearchFilter={setSearchFilter}
