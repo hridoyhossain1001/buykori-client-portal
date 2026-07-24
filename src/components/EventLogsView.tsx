@@ -334,35 +334,54 @@ export function EventLogsView({
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setLiveMode(!liveMode)}
-              aria-pressed={liveMode}
-              aria-label={`Turn live event updates ${liveMode ? 'off' : 'on'}`}
-              className={`inline-flex min-h-10 items-center gap-2 rounded-lg border px-3 text-xs font-bold transition-colors ${
+            <div
+              className={`flex min-h-12 min-w-[190px] items-center justify-between gap-3 rounded-xl border px-3 py-2 transition-colors ${
                 liveMode
-                  ? 'border-emerald-300 bg-emerald-50 text-emerald-800'
-                  : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                  ? 'border-emerald-300 bg-emerald-50'
+                  : 'border-slate-200 bg-slate-50/70'
               }`}
             >
-              <span className={`h-2 w-2 rounded-full ${liveMode ? 'bg-emerald-500' : 'bg-slate-400'}`} />
-              <span>Live updates</span>
-              <span className={liveMode ? 'text-emerald-700' : 'text-slate-500'}>
-                {liveMode ? 'ON' : 'OFF'}
-              </span>
-              <span
-                aria-hidden="true"
-                className={`relative h-5 w-9 rounded-full transition-colors ${
-                  liveMode ? 'bg-emerald-600' : 'bg-slate-300'
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <span
+                    className={`h-2 w-2 shrink-0 rounded-full ${
+                      liveMode ? 'bg-emerald-500' : 'bg-slate-400'
+                    }`}
+                  />
+                  <span id="live-updates-label" className="whitespace-nowrap text-xs font-bold text-slate-800">
+                    Live updates
+                  </span>
+                </div>
+                <p
+                  id="live-updates-description"
+                  className={`mt-0.5 pl-4 text-[10px] font-semibold ${
+                    liveMode ? 'text-emerald-700' : 'text-slate-500'
+                  }`}
+                >
+                  {liveMode ? 'Checking every 5 seconds' : 'Updates paused'}
+                </p>
+              </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={liveMode}
+                aria-labelledby="live-updates-label"
+                aria-describedby="live-updates-description"
+                onClick={() => setLiveMode(!liveMode)}
+                className={`relative h-7 w-12 shrink-0 rounded-full border transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 ${
+                  liveMode
+                    ? 'border-emerald-600 bg-emerald-600'
+                    : 'border-slate-300 bg-slate-300 hover:bg-slate-400'
                 }`}
               >
                 <span
-                  className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform ${
-                    liveMode ? 'translate-x-[18px]' : 'translate-x-0.5'
+                  aria-hidden="true"
+                  className={`absolute left-1 top-1 h-[18px] w-[18px] rounded-full bg-white shadow-sm ring-1 ring-black/5 transition-transform duration-200 ${
+                    liveMode ? 'translate-x-5' : 'translate-x-0'
                   }`}
                 />
-              </span>
-            </button>
+              </button>
+            </div>
             <button
               type="button"
               onClick={() => handleExportData('json', 'events')}
