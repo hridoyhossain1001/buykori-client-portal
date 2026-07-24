@@ -1398,7 +1398,7 @@ export default function App() {
   // --- Calculations for metrics ---
   const merchantVisibleEvents = events.filter(e => e.status !== 'Filtered');
 
-  const filteredEventsForTable = merchantVisibleEvents.filter(e => {
+  const matchingEventGroupKeys = new Set(merchantVisibleEvents.filter(e => {
     const normalizedFilter = searchFilter.trim().toLowerCase();
     const matchesSearch = normalizedFilter
       ? (e.name.toLowerCase().includes(normalizedFilter) ||
@@ -1417,7 +1417,13 @@ export default function App() {
     const matchesStatus = statusFilters.length > 0 ? statusFilters.includes(e.status) : true;
 
     return matchesSearch && matchesPlatform && matchesStatus;
-  });
+  }).map(e => `${e.deduplicationKey || e.id}::${e.name}`));
+
+  // Filters select complete event groups so every platform delivery remains visible
+  // in the same row instead of reintroducing one row per platform.
+  const filteredEventsForTable = merchantVisibleEvents.filter(e =>
+    matchingEventGroupKeys.has(`${e.deduplicationKey || e.id}::${e.name}`)
+  );
 
   const filteredApiLogsForTable = apiLogs.filter(l => {
     // The header field is page navigation, not a data-table filter.

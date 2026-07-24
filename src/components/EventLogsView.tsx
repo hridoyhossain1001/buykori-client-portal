@@ -1,56 +1,179 @@
-﻿import React from 'react';
-import { 
-  Search, 
-  Download, 
-  RotateCcw, 
-  ListChecks, 
-  Check, 
+import React, { useMemo } from 'react';
+import {
+  AlertCircle,
+  Check,
+  CheckCircle2,
+  Clock3,
   Copy,
-  AlertTriangle,
-  Loader2
+  Download,
+  Loader2,
+  Radio,
+  RotateCcw,
+  Search,
+  XCircle,
 } from 'lucide-react';
 import { CAPIEvent, OutboxItem } from '../types';
 import { JsonViewer } from './common/JsonViewer';
 import { PlatformLogo } from './common/PlatformLogo';
 
-// Helper function to safely escape regular expressions
-function escapeRegExp(str: string): string {
-  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-// Helper to highlight matched keywords in search results
-function highlightText(text: string | number | undefined | null, search: string): React.ReactNode {
+function highlightText(
+  text: string | number | undefined | null,
+  search: string,
+): React.ReactNode {
   if (text === undefined || text === null) return '';
-  const textStr = String(text);
-  if (!search || !search.trim()) return textStr;
+  const textValue = String(text);
+  if (!search.trim()) return textValue;
 
   try {
-    const escapedSearch = escapeRegExp(search.trim());
-    const regex = new RegExp(`(${escapedSearch})`, 'gi');
-    const parts = textStr.split(regex);
-    
+    const regex = new RegExp(`(${escapeRegExp(search.trim())})`, 'gi');
     return (
       <>
-        {parts.map((part, index) => 
-          regex.test(part) ? (
-            <mark key={index} className="bg-amber-100  text-amber-900  p-0.5 rounded">{part}</mark>
+        {textValue.split(regex).map((part, index) =>
+          part.toLowerCase() === search.trim().toLowerCase() ? (
+            <mark key={index} className="rounded bg-amber-100 px-0.5 text-amber-900">
+              {part}
+            </mark>
           ) : (
             part
-          )
+          ),
         )}
       </>
     );
-  } catch (error) {
-    return textStr;
+  } catch {
+    return textValue;
   }
+}
+
+const platformOrder: CAPIEvent['platform'][] = [
+  'Meta CAPI',
+  'TikTok Events API',
+  'TikTok Browser Pixel',
+  'GA4',
+  'Gateway Ingest',
+];
+
+const platformShortName: Record<CAPIEvent['platform'], string> = {
+  'Meta CAPI': 'Meta',
+  'TikTok Events API': 'TikTok',
+  'TikTok Browser Pixel': 'TikTok Pixel',
+  GA4: 'GA4',
+  'Gateway Ingest': 'Gateway',
+};
+
+interface GroupedEvent {
+  key: string;
+  eventId: string;
+  name: string;
+  timestamp: string;
+  contextLabel: string;
+  pageUrl: string | null;
+  events: CAPIEvent[];
+  deliveries: CAPIEvent[];
+  failedCount: number;
+  retryingCount: number;
+}
+
+function groupEvents(events: CAPIEvent[]): GroupedEvent[] {
+  const groups = new Map<string, CAPIEvent[]>();
+
+  events.forEach(event => {
+    const sharedId = event.deduplicationKey || event.id;
+    const key = `${sharedId}::${event.name}`;
+    const current = groups.get(key) || [];
+    current.push(event);
+    groups.set(key, current);
+  });
+
+  return Array.from(groups.entries())
+    .map(([key, entries]) => {
+      const sortedEntries = [...entries].sort((a, b) => {
+        const platformDifference =
+          platformOrder.indexOf(a.platform) - platformOrder.indexOf(b.platform);
+        if (platformDifference !== 0) return platformDifference;
+        return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
+      });
+      const newest = [...entries].sort(
+        (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
+      )[0];
+      const latestByPlatform = new Map<CAPIEvent['platform'], CAPIEvent>();
+      [...entries]
+        .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+        .forEach(event => {
+          if (!latestByPlatform.has(event.platform)) latestByPlatform.set(event.platform, event);
+        });
+      const deliveries = platformOrder
+        .map(platform => latestByPlatform.get(platform))
+        .filter((event): event is CAPIEvent => Boolean(event));
+
+      return {
+        key,
+        eventId: newest.deduplicationKey || newest.id,
+        name: newest.name,
+        timestamp: newest.timestamp,
+        contextLabel: newest.contextLabel || newest.pageTitle || 'Website event',
+        pageUrl: newest.pageUrl || null,
+        events: sortedEntries,
+        deliveries,
+        failedCount: deliveries.filter(event => event.status === 'Failed').length,
+        retryingCount: deliveries.filter(event => event.status === 'Retry').length,
+      };
+    })
+    .sort(
+      (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
+    );
+}
+
+function relativeTime(timestamp: string): string {
+  const elapsedSeconds = Math.max(
+    0,
+    Math.floor((Date.now() - new Date(timestamp).getTime()) / 1000),
+  );
+  if (elapsedSeconds < 60) return 'Just now';
+  const minutes = Math.floor(elapsedSeconds / 60);
+  if (minutes < 60) return `${minutes} min${minutes === 1 ? '' : 's'} ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours} hr${hours === 1 ? '' : 's'} ago`;
+  const days = Math.floor(hours / 24);
+  return `${days} day${days === 1 ? '' : 's'} ago`;
+}
+
+function statusStyles(status: CAPIEvent['status']): string {
+  if (status === 'Success') return 'border-emerald-200 bg-emerald-50 text-emerald-700';
+  if (status === 'Failed') return 'border-rose-200 bg-rose-50 text-rose-700';
+  if (status === 'Retry') return 'border-amber-200 bg-amber-50 text-amber-700';
+  if (status === 'Fired') return 'border-violet-200 bg-violet-50 text-violet-700';
+  return 'border-sky-200 bg-sky-50 text-sky-700';
+}
+
+function StatusIcon({ status }: { status: CAPIEvent['status'] }) {
+  if (status === 'Success') return <CheckCircle2 className="h-3.5 w-3.5" />;
+  if (status === 'Failed') return <XCircle className="h-3.5 w-3.5" />;
+  if (status === 'Retry') return <Clock3 className="h-3.5 w-3.5" />;
+  return <Radio className="h-3.5 w-3.5" />;
+}
+
+function DeliveryBadge({ event }: { event: CAPIEvent }) {
+  return (
+    <span
+      className={`inline-flex min-h-7 items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-bold ${statusStyles(event.status)}`}
+      title={`${event.platform}: ${event.status}`}
+    >
+      <StatusIcon status={event.status} />
+      <span>{platformShortName[event.platform]}</span>
+    </span>
+  );
 }
 
 interface EventLogsViewProps {
   filteredEventsForTable: CAPIEvent[];
   searchFilter: string;
-  setSearchFilter: (v: string) => void;
+  setSearchFilter: (value: string) => void;
   liveMode: boolean;
-  setLiveMode: (v: boolean) => void;
+  setLiveMode: (value: boolean) => void;
   platformFilters: string[];
   setPlatformFilters: React.Dispatch<React.SetStateAction<string[]>>;
   statusFilters: string[];
@@ -88,416 +211,507 @@ export function EventLogsView({
   handleRetryOutbox,
   loading,
   loadError,
-  onRetry
+  onRetry,
 }: EventLogsViewProps) {
-  const failedOutboxItems = outboxItems.filter(item => item.status === 'dead');
+  const groupedEvents = useMemo(
+    () => groupEvents(filteredEventsForTable),
+    [filteredEventsForTable],
+  );
+
+  const retryByEventId = useMemo(() => {
+    const retryMap = new Map<string, OutboxItem>();
+    outboxItems.forEach(item => {
+      if (item.status !== 'dead') return;
+      item.eventIds.forEach(eventId => retryMap.set(eventId, item));
+    });
+    return retryMap;
+  }, [outboxItems]);
+
+  const successfulGroups = groupedEvents.filter(group =>
+    group.deliveries.some(event => event.status === 'Success'),
+  ).length;
+  const failedGroups = groupedEvents.filter(group => group.failedCount > 0).length;
+  const retryingGroups = groupedEvents.filter(group => group.retryingCount > 0).length;
+
+  const renderExpandedDetails = (group: GroupedEvent) => (
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <p className="text-xs font-bold uppercase tracking-widest text-slate-700">
+            Event details
+          </p>
+          <p className="mt-1 break-all font-mono text-[11px] text-slate-400">
+            Shared event key: {highlightText(group.eventId, searchFilter)}
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => handleCopy(group.eventId, `event_key_${group.key}`)}
+          className="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold text-slate-600 hover:bg-slate-50"
+        >
+          {copiedStates[`event_key_${group.key}`] ? (
+            <Check className="h-3.5 w-3.5 text-emerald-600" />
+          ) : (
+            <Copy className="h-3.5 w-3.5" />
+          )}
+          {copiedStates[`event_key_${group.key}`] ? 'Copied' : 'Copy key'}
+        </button>
+      </div>
+
+      <div className="grid gap-3 lg:grid-cols-3">
+        {group.events.map(event => (
+          <article
+            key={event.id}
+            className="min-w-0 overflow-hidden rounded-xl border border-slate-200 bg-white"
+          >
+            <div className="flex items-center justify-between gap-2 border-b border-slate-100 px-4 py-3">
+              <span className="flex min-w-0 items-center gap-2 text-xs font-bold text-slate-800">
+                <PlatformLogo platform={event.platform} className="h-4 w-4 shrink-0" />
+                <span className="truncate">{event.platform}</span>
+              </span>
+              <span
+                className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-bold ${statusStyles(event.status)}`}
+              >
+                <StatusIcon status={event.status} />
+                {event.status}
+              </span>
+            </div>
+            <div className="space-y-3 p-4">
+              <div className="grid grid-cols-2 gap-2 text-[11px]">
+                <span className="text-slate-400">HTTP status</span>
+                <span className="text-right font-mono font-bold text-slate-700">
+                  {event.httpCode || '—'}
+                </span>
+                <span className="text-slate-400">Event log ID</span>
+                <span className="truncate text-right font-mono text-slate-600">
+                  {event.id}
+                </span>
+              </div>
+              <div className="rounded-lg bg-slate-950 p-3 font-mono text-[11px] leading-relaxed text-slate-200">
+                <p className="mb-2 font-sans text-[10px] font-bold uppercase tracking-wider text-indigo-300">
+                  Payload
+                </p>
+                <JsonViewer value={event.payload} search={searchFilter} className="max-h-48" />
+              </div>
+              {(event.status === 'Failed' || event.status === 'Retry') && (
+                <div className="rounded-lg bg-slate-950 p-3 font-mono text-[11px] leading-relaxed text-slate-200">
+                  <p className="mb-2 font-sans text-[10px] font-bold uppercase tracking-wider text-rose-300">
+                    Platform reply
+                  </p>
+                  <JsonViewer
+                    value={event.responseBody}
+                    search={searchFilter}
+                    className="max-h-32"
+                  />
+                </div>
+              )}
+            </div>
+          </article>
+        ))}
+      </div>
+    </div>
+  );
 
   return (
-    <div className="space-y-6">
-      {failedOutboxItems.length > 0 && (
-        <div className="rounded-xl border border-amber-200 bg-amber-50/60 shadow-sm overflow-hidden  ">
-          <div className="px-4 sm:px-5 py-3 border-b border-amber-200/70  flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2 min-w-0">
-              <AlertTriangle className="w-4 h-4 text-amber-600  shrink-0" />
-              <div className="min-w-0">
-                <h3 className="text-xs font-bold uppercase tracking-widest text-amber-900 ">Events That Need Help</h3>
-                <p className="text-xs text-amber-800/70  truncate">{failedOutboxItems.length} event{failedOutboxItems.length === 1 ? '' : 's'} could not be sent</p>
-              </div>
-            </div>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs min-w-[820px]">
-              <thead className="text-xs font-bold uppercase tracking-wider text-amber-900/70 ">
-                <tr>
-                  <th className="px-5 py-2.5">Job</th>
-                  <th className="px-5 py-2.5">Events</th>
-                  <th className="px-5 py-2.5">Status</th>
-                  <th className="px-5 py-2.5">Attempts</th>
-                  <th className="px-5 py-2.5">Last Error</th>
-                  <th className="px-5 py-2.5 text-right">Action</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-amber-200/70  bg-white/60 ">
-                {failedOutboxItems.map(item => {
-                  const retrying = retryingOutboxIds.includes(item.id);
-                  const canRetry = item.status === 'dead';
-                  return (
-                    <tr key={item.id}>
-                      <td className="px-5 py-3 font-mono text-amber-950 ">
-                        #{item.id}<br />
-                        <span className="text-xs text-amber-800/60 ">{new Date(item.createdAt).toLocaleString()}</span>
-                      </td>
-                      <td className="px-5 py-3 text-amber-950 ">
-                        <span className="font-semibold">{item.eventNames.join(', ')}</span><br />
-                        <span className="text-xs text-amber-800/60 ">{item.eventCount} event{item.eventCount === 1 ? '' : 's'}</span>
-                      </td>
-                      <td className="px-5 py-3">
-                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider border ${
-                          item.status === 'dead' ? 'bg-rose-50 text-rose-700 border-rose-200   ' :
-                          item.status === 'processing' ? 'bg-indigo-50 text-indigo-700 border-indigo-200   ' :
-                          'bg-amber-100 text-amber-800 border-amber-200   '
-                        }`}>
-                          {item.status}
-                        </span>
-                      </td>
-                      <td className="px-5 py-3 font-mono text-amber-950 ">{item.attempts}/{item.maxAttempts}</td>
-                      <td className="px-5 py-3 text-amber-950  max-w-xs">
-                        <span className="block max-h-9 overflow-hidden">{item.lastError || (item.nextAttemptAt ? `Next attempt ${new Date(item.nextAttemptAt).toLocaleString()}` : 'Waiting in queue')}</span>
-                      </td>
-                      <td className="px-5 py-3 text-right">
-                        <button
-                          onClick={() => handleRetryOutbox(item.id)}
-                          disabled={!canRetry || retrying}
-                          className={`inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold border transition-colors ${
-                            canRetry && !retrying
-                              ? 'bg-amber-600 text-white border-amber-600 hover:bg-amber-700'
-                              : 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed  '
-                          }`}
-                        >
-                          {retrying ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RotateCcw className="w-3.5 h-3.5" />}
-                          Retry Now
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-      
-      {/* Search & filters controls panel */}
-      <section aria-label="Event log filters" className="rounded-xl border border-slate-200 bg-white p-4 sm:p-5 shadow-sm space-y-4  ">
-        <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between">
-          <div className="relative w-full lg:max-w-md">
-            <input 
-              type="text" 
-              aria-label="Filter event logs by keyword, event name, or details"
-              placeholder="Filter by keyword, event name, or details..."
+    <div className="space-y-5">
+      <section
+        aria-label="Event log filters"
+        className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm"
+      >
+        <div className="flex flex-col gap-3 p-4 lg:flex-row lg:items-center">
+          <div className="relative min-w-0 flex-1">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <input
+              type="search"
+              aria-label="Search event logs"
+              placeholder="Search by event name, ID, product or URL..."
               value={searchFilter}
-              onChange={(e) => setSearchFilter(e.target.value)}
-              className="w-full py-2 pl-9 pr-4 text-xs text-slate-800 placeholder-slate-400 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-indigo-500 font-mono   "
+              onChange={event => setSearchFilter(event.target.value)}
+              className="min-h-10 w-full rounded-lg border border-slate-200 bg-white py-2 pl-9 pr-4 text-xs text-slate-800 outline-none placeholder:text-slate-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
             />
-            <Search className="absolute w-4 h-4 text-slate-400 left-3 top-2.5" />
           </div>
 
-          <div className="flex items-center gap-3 w-full lg:w-auto shrink-0 justify-start lg:justify-end flex-wrap">
-            
-            {/* Live Mode Toggle control */}
-            <button 
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
               onClick={() => setLiveMode(!liveMode)}
-              className={`flex min-h-10 items-center gap-2 px-3 py-2 text-xs font-semibold rounded-lg border transition-all cursor-pointer ${
-                liveMode 
-                  ? 'bg-rose-50 text-rose-700 border-rose-200 focus:ring-1 focus:ring-rose-500/20   ' 
-                  : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50    '
+              aria-pressed={liveMode}
+              className={`inline-flex min-h-10 items-center gap-2 rounded-lg border px-3 text-xs font-bold transition-colors ${
+                liveMode
+                  ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                  : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
               }`}
             >
-              <span className={`w-2 h-2 rounded-full shrink-0 ${liveMode ? 'bg-rose-600 pulse-dot' : 'bg-slate-400'}`} />
-              <span className="whitespace-nowrap">{liveMode ? 'Live Mode Active' : 'Enable Live Mode'}</span>
+              <span className={`h-2 w-2 rounded-full ${liveMode ? 'bg-emerald-500' : 'bg-slate-400'}`} />
+              Live
+              <span
+                aria-hidden="true"
+                className={`relative h-5 w-9 rounded-full transition-colors ${
+                  liveMode ? 'bg-indigo-600' : 'bg-slate-300'
+                }`}
+              >
+                <span
+                  className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform ${
+                    liveMode ? 'translate-x-[18px]' : 'translate-x-0.5'
+                  }`}
+                />
+              </span>
             </button>
-
-            {/* Export triggers */}
-            <div className="flex items-center rounded-lg border border-slate-200 bg-white overflow-hidden shrink-0  ">
-              <button 
-                onClick={() => handleExportData('json', 'events')} 
-                className="flex min-h-10 items-center gap-1.5 border-r border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50 cursor-pointer"
-              >
-                <Download className="w-3.5 h-3.5 text-slate-400" />
-                JSON
-              </button>
-              <button 
-                onClick={() => handleExportData('csv', 'events')} 
-                className="flex min-h-10 items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50 cursor-pointer"
-              >
-                CSV
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={() => handleExportData('json', 'events')}
+              className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold text-slate-600 hover:bg-slate-50"
+            >
+              {'{ }'} JSON
+            </button>
+            <button
+              type="button"
+              onClick={() => handleExportData('csv', 'events')}
+              className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold text-slate-600 hover:bg-slate-50"
+            >
+              <Download className="h-3.5 w-3.5" />
+              Export CSV
+            </button>
           </div>
         </div>
 
-        {/* Multi-select filter pills */}
-        <div className="flex flex-wrap gap-2 pt-3 border-t border-slate-100  items-center">
-          <span className="text-xs text-slate-500 font-bold uppercase tracking-widest mr-2 shrink-0">Filters:</span>
-          
-          {/* Platforms lists */}
-          {['Meta CAPI', 'TikTok Events API', 'TikTok Browser Pixel', 'GA4'].map(p => {
-            const active = platformFilters.includes(p);
+        <div className="flex flex-wrap items-center gap-2 border-t border-slate-100 px-4 py-3">
+          <button
+            type="button"
+            onClick={() => {
+              setPlatformFilters([]);
+              setStatusFilters([]);
+            }}
+            className={`min-h-8 rounded-full border px-3 text-[11px] font-bold ${
+              platformFilters.length === 0 && statusFilters.length === 0
+                ? 'border-slate-900 bg-slate-900 text-white'
+                : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+            }`}
+          >
+            All events <span className="italic">{groupedEvents.length}</span>
+          </button>
+
+          {(['Meta CAPI', 'TikTok Events API', 'GA4'] as const).map(platform => {
+            const active = platformFilters.includes(platform);
+            const count = groupedEvents.filter(group =>
+              group.deliveries.some(event => event.platform === platform),
+            ).length;
             return (
               <button
-                key={p}
-                onClick={() => {
-                  setPlatformFilters(prev => active ? prev.filter(x => x !== p) : [...prev, p]);
-                }}
-                className={`inline-flex min-h-10 items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium cursor-pointer border transition-colors ${
-                  active 
-                    ? 'border-[#285ac7] bg-[#eaf1ff] text-[#173d91]'
-                    : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50    '
+                type="button"
+                key={platform}
+                onClick={() =>
+                  setPlatformFilters(previous =>
+                    active
+                      ? previous.filter(value => value !== platform)
+                      : [...previous, platform],
+                  )
+                }
+                className={`inline-flex min-h-8 items-center gap-1.5 rounded-full border px-3 text-[11px] font-bold ${
+                  active
+                    ? 'border-indigo-300 bg-indigo-50 text-indigo-700'
+                    : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
                 }`}
               >
-                <PlatformLogo platform={p} className="h-4 w-4" />
-                {p}
+                <PlatformLogo platform={platform} className="h-3.5 w-3.5" />
+                {platformShortName[platform]} <span className="italic">{count}</span>
               </button>
             );
           })}
 
-          <span className="h-4 w-px bg-slate-200  mx-2 self-center" />
+          <span className="hidden h-5 w-px bg-slate-200 sm:block" />
 
-          {/* Status lists */}
-          {['Success', 'Fired', 'Failed', 'Retry'].map(s => {
-            const active = statusFilters.includes(s);
+          {[
+            ['Success', successfulGroups],
+            ['Failed', failedGroups],
+            ['Retry', retryingGroups],
+          ].map(([status, count]) => {
+            const statusName = status as string;
+            const active = statusFilters.includes(statusName);
             return (
               <button
-                key={s}
-                onClick={() => {
-                  setStatusFilters(prev => active ? prev.filter(x => x !== s) : [...prev, s]);
-                }}
-                className={`min-h-10 px-2.5 py-1 rounded-full text-xs font-medium cursor-pointer border transition-colors ${
-                  active 
-                    ? 'bg-indigo-600 border-indigo-600 text-white  ' 
-                    : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50    '
+                type="button"
+                key={statusName}
+                onClick={() =>
+                  setStatusFilters(previous =>
+                    active
+                      ? previous.filter(value => value !== statusName)
+                      : [...previous, statusName],
+                  )
+                }
+                className={`min-h-8 rounded-full border px-3 text-[11px] font-bold ${
+                  active
+                    ? statusName === 'Failed'
+                      ? 'border-rose-300 bg-rose-50 text-rose-700'
+                      : statusName === 'Retry'
+                        ? 'border-amber-300 bg-amber-50 text-amber-700'
+                        : 'border-emerald-300 bg-emerald-50 text-emerald-700'
+                    : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
                 }`}
               >
-                {s}
+                {statusName} <span className="italic">{count}</span>
               </button>
             );
           })}
 
-          {/* Reset conditions */}
           {(platformFilters.length > 0 || statusFilters.length > 0 || searchFilter) && (
-            <button 
+            <button
+              type="button"
               onClick={() => {
                 setPlatformFilters([]);
                 setStatusFilters([]);
                 setSearchFilter('');
               }}
-              className="ml-auto flex min-h-10 shrink-0 items-center gap-1 self-center px-2 text-xs font-bold text-indigo-600 hover:text-indigo-800"
+              className="ml-auto inline-flex min-h-8 items-center gap-1.5 px-2 text-[11px] font-bold text-indigo-600 hover:text-indigo-800"
             >
-              <RotateCcw className="w-3 h-3" />
-              Clear Filter
+              <RotateCcw className="h-3 w-3" />
+              Clear
             </button>
           )}
         </div>
       </section>
 
-      {/* Big full-width searchable logs list */}
-      <section aria-labelledby="event-log-results-title" className="min-w-0 rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden flex flex-col  ">
-        {loadError && filteredEventsForTable.length > 0 && (
-          <div className="flex items-center justify-between gap-3 border-b border-amber-200 bg-amber-50 px-4 py-2.5 text-xs text-amber-800" role="alert">
+      <section
+        aria-labelledby="event-log-results-title"
+        className="min-w-0 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm"
+      >
+        {loadError && groupedEvents.length > 0 && (
+          <div
+            className="flex items-center justify-between gap-3 border-b border-amber-200 bg-amber-50 px-4 py-2.5 text-xs text-amber-800"
+            role="alert"
+          >
             <span>Refresh failed. Showing the last event history that loaded successfully.</span>
-            <button type="button" onClick={() => void onRetry()} className="shrink-0 font-bold underline">Try again</button>
+            <button type="button" onClick={() => void onRetry()} className="shrink-0 font-bold underline">
+              Try again
+            </button>
           </div>
         )}
-        <div className="p-4 bg-slate-50/50 border-b border-slate-100   flex justify-between items-center gap-3 text-xs">
-          <span className="font-semibold text-slate-500 ">{filteredEventsForTable.length} events matching your search</span>
-          <span id="event-log-results-title" className="text-xs text-slate-500 ">Showing latest 100 events</span>
-        </div>
 
-        {loading && filteredEventsForTable.length === 0 ? (
-          <div className="p-16 text-center space-y-3" role="status">
+        {loading && groupedEvents.length === 0 ? (
+          <div className="p-16 text-center" role="status">
             <Loader2 className="mx-auto h-7 w-7 animate-spin text-indigo-500" />
-            <div>
-              <h4 className="font-bold text-slate-700">Loading event history</h4>
-              <p className="mt-1 text-xs text-slate-400">Getting the latest events for this store.</p>
-            </div>
+            <p className="mt-3 text-sm font-bold text-slate-700">Loading event history</p>
           </div>
-        ) : loadError && filteredEventsForTable.length === 0 ? (
-          <div className="p-16 text-center space-y-4" role="alert">
-            <AlertTriangle className="mx-auto h-8 w-8 text-amber-500" />
-            <div>
-              <h4 className="font-bold text-slate-700">Event history could not load</h4>
-              <p className="mx-auto mt-1 max-w-sm text-xs text-slate-400">{loadError}</p>
-            </div>
+        ) : loadError && groupedEvents.length === 0 ? (
+          <div className="p-16 text-center" role="alert">
+            <AlertCircle className="mx-auto h-8 w-8 text-amber-500" />
+            <p className="mt-3 text-sm font-bold text-slate-700">Event history could not load</p>
+            <p className="mx-auto mt-1 max-w-sm text-xs text-slate-400">{loadError}</p>
             <button
               type="button"
               onClick={() => void onRetry()}
-              className="rounded-lg bg-indigo-600 px-4 py-2 text-xs font-bold text-white hover:bg-indigo-700"
+              className="mt-4 rounded-lg bg-indigo-600 px-4 py-2 text-xs font-bold text-white hover:bg-indigo-700"
             >
               Try again
             </button>
           </div>
-        ) : filteredEventsForTable.length === 0 ? (
-          <div className="p-16 text-center space-y-4">
-            <div className="w-12 h-12 rounded-full bg-slate-50  border border-slate-200  flex items-center justify-center mx-auto text-slate-400">
-              <ListChecks className="w-6 h-6 text-slate-300" />
-            </div>
-            <div>
-              <h4 className="font-bold text-slate-700 ">No events found</h4>
-              <p className="text-xs text-slate-400  max-w-sm mx-auto mt-1">No events match your filters. Try changing your search.</p>
-            </div>
+        ) : groupedEvents.length === 0 ? (
+          <div className="p-16 text-center">
+            <Search className="mx-auto h-8 w-8 text-slate-300" />
+            <p className="mt-3 text-sm font-bold text-slate-700">No events found</p>
+            <p className="mt-1 text-xs text-slate-400">Try changing your search or filters.</p>
           </div>
         ) : (
           <>
-          <div className="space-y-3 p-4 md:hidden">
-            {filteredEventsForTable.map(e => {
-              const isExpanded = expandedEventId === e.id;
-              return (
-                <div key={e.id} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm  ">
-                  <button
-                    type="button"
-                    onClick={() => setExpandedEventId(isExpanded ? null : e.id)}
-                    className="w-full text-left"
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <p className="truncate font-mono text-xs font-bold text-indigo-600 ">{highlightText(e.id, searchFilter)}</p>
-                        <p className="mt-1 text-sm font-bold text-slate-900 ">{highlightText(e.name, searchFilter)}</p>
+            <div className="space-y-3 p-3 md:hidden">
+              {groupedEvents.map(group => {
+                const expanded = expandedEventId === group.key;
+                const retryItem = retryByEventId.get(group.eventId);
+                const retrying = retryItem ? retryingOutboxIds.includes(retryItem.id) : false;
+                return (
+                  <article key={group.key} className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+                    <button
+                      type="button"
+                      onClick={() => setExpandedEventId(expanded ? null : group.key)}
+                      className="w-full p-4 text-left"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="text-sm font-bold text-slate-900">
+                            {highlightText(group.name, searchFilter)}
+                          </p>
+                          <p className="mt-0.5 truncate font-mono text-[11px] text-slate-400">
+                            {highlightText(group.eventId, searchFilter)}
+                          </p>
+                        </div>
+                        <span className="shrink-0 text-[11px] font-bold text-slate-700">
+                          {relativeTime(group.timestamp)}
+                        </span>
                       </div>
-                      <span className={`shrink-0 rounded-full border px-2 py-0.5 text-xs font-bold uppercase ${
-                        e.status === 'Success' ? 'border-slate-200 bg-green-50 text-green-700' :
-                        e.status === 'Fired' ? 'border-violet-200 bg-violet-50 text-violet-700' :
-                        e.status === 'Filtered' ? 'border-sky-200 bg-sky-50 text-sky-700' :
-                        e.status === 'Retry' ? 'border-slate-200 bg-amber-50 text-amber-700' :
-                        'border-slate-200 bg-rose-50 text-rose-700'
-                      }`}>
-                        {e.status}
+                      <p className="mt-3 truncate text-xs font-semibold text-slate-700">
+                        {highlightText(group.contextLabel, searchFilter)}
+                      </p>
+                      {group.pageUrl && (
+                        <p className="mt-0.5 truncate text-[11px] text-slate-400">{group.pageUrl}</p>
+                      )}
+                      <div className="mt-3 flex flex-wrap gap-1.5">
+                        {group.deliveries.map(event => (
+                          <React.Fragment key={event.id}>
+                            <DeliveryBadge event={event} />
+                          </React.Fragment>
+                        ))}
+                      </div>
+                    </button>
+                    <div className="flex items-center justify-between border-t border-slate-100 px-4 py-2.5">
+                      <span className="text-[11px] text-slate-400">
+                        {new Date(group.timestamp).toLocaleString()}
                       </span>
+                      {retryItem ? (
+                        <button
+                          type="button"
+                          disabled={retrying}
+                          onClick={() => handleRetryOutbox(retryItem.id)}
+                          className="inline-flex min-h-8 items-center gap-1.5 rounded-lg border border-slate-200 px-3 text-[11px] font-bold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          {retrying ? <Loader2 className="h-3 w-3 animate-spin" /> : <RotateCcw className="h-3 w-3" />}
+                          Retry
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setExpandedEventId(expanded ? null : group.key)}
+                          className="min-h-8 px-2 text-[11px] font-bold text-indigo-600"
+                        >
+                          {expanded ? 'Hide' : 'View'}
+                        </button>
+                      )}
                     </div>
-                    <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-slate-500">
-                      <span className="flex items-center gap-1.5">
-                        <PlatformLogo platform={e.platform} className="h-4 w-4" />
-                        {highlightText(e.platform, searchFilter)}
-                      </span>
-                      <span className="text-right">{highlightText(e.contextLabel || 'Website event', searchFilter)}</span>
-                      <span className="font-mono">{new Date(e.timestamp).toLocaleTimeString()}</span>
-                      <span className="text-right font-mono">{new Date(e.timestamp).toLocaleDateString()}</span>
-                    </div>
-                    <p className="mt-2 truncate text-xs text-slate-400">{e.pageUrl || 'Open for technical details'}</p>
-                  </button>
-
-                  {isExpanded && (
-                    <div className="mt-4 space-y-3 border-t border-slate-100 pt-3 ">
-                      <div className="rounded-lg bg-slate-50 p-3 text-xs text-slate-500">
-                        <p><span className="font-bold text-slate-700">HTTP:</span> {e.httpCode || '—'}</p>
-                        <p className="mt-1 break-all font-mono"><span className="font-sans font-bold text-slate-700">Event key:</span> {e.deduplicationKey}</p>
+                    {expanded && (
+                      <div className="border-t border-slate-100 bg-slate-50 p-4">
+                        {renderExpandedDetails(group)}
                       </div>
-                      <div className="rounded-lg bg-slate-900 p-3 font-mono text-xs text-slate-200">
-                        <p className="mb-2 font-bold uppercase tracking-wider text-indigo-400">Event Details</p>
-                        <JsonViewer value={e.payload} search={searchFilter} className="max-h-56" />
-                      </div>
-                      <div className="rounded-lg bg-slate-900 p-3 font-mono text-xs text-slate-200">
-                        <p className="mb-2 font-bold uppercase tracking-wider text-emerald-400">Reply From Platform</p>
-                        <JsonViewer value={e.responseBody} search={searchFilter} className="max-h-40" />
-                      </div>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
+                    )}
+                  </article>
+                );
+              })}
+            </div>
 
-          <div tabIndex={0} aria-label="Scrollable event log table" className="hidden max-w-full overflow-x-auto overflow-y-auto max-h-[calc(100vh-280px)] min-h-[400px] outline-none focus:ring-2 focus:ring-indigo-400 md:block">
-            <table className="w-full text-left text-xs text-slate-660 divide-y divide-slate-100   min-w-[900px]">
-              <thead className="bg-slate-50  text-xs font-bold uppercase tracking-wider text-slate-500  sticky top-0 z-10">
-                <tr>
-                  <th className="px-6 py-3">Timestamp / Age</th>
-                  <th className="px-6 py-3">Event ID</th>
-                  <th className="px-6 py-3">Event Name</th>
-                  <th className="px-6 py-3">Platform</th>
-                  <th className="px-6 py-3">Status</th>
-                  <th className="px-6 py-3">Page / Product</th>
-                  <th className="px-6 py-3 text-right">Details</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 ">
-                {filteredEventsForTable.map(e => {
-                  const isExpanded = expandedEventId === e.id;
-                  return (
-                    <React.Fragment key={e.id}>
-                      <tr 
-                        onClick={() => setExpandedEventId(isExpanded ? null : e.id)}
-                        className="hover:bg-indigo-50/20  cursor-pointer transition-colors"
-                      >
-                        <td className="px-6 py-4 font-mono text-slate-500 ">
-                          {new Date(e.timestamp).toLocaleTimeString()}<br/>
-                          <span className="text-xs text-slate-400 ">
-                            {new Date(e.timestamp).toLocaleDateString()}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 font-mono font-bold text-indigo-600 ">
-                          {highlightText(e.id, searchFilter)}
-                        </td>
-                        <td className="px-6 py-4 font-semibold text-slate-800 ">
-                          {highlightText(e.name, searchFilter)}
-                        </td>
-                        <td className="px-6 py-4">
-                          <span className="flex items-center gap-1.5 font-medium text-slate-700 ">
-                            <PlatformLogo platform={e.platform} className="h-4 w-4" />
-                            {highlightText(e.platform, searchFilter)}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4">
-                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider ${
-                            e.status === 'Success' ? 'bg-green-50 text-green-700 border border-slate-200   ' :
-                            e.status === 'Fired' ? 'bg-violet-50 text-violet-700 border border-violet-200   ' :
-                            e.status === 'Filtered' ? 'bg-sky-50 text-sky-700 border border-sky-200   ' :
-                            e.status === 'Retry' ? 'bg-amber-50 text-amber-700 border border-slate-200   ' : 
-                            'bg-rose-50 text-rose-700 border border-slate-200   '
-                          }`}>
-                            {highlightText(e.status, searchFilter)}
-                          </span>
-                        </td>
-                        <td className="max-w-[260px] px-6 py-4 text-slate-700 ">
-                          <span className="block truncate font-semibold" title={e.contextLabel || 'Website event'}>
-                            {highlightText(e.contextLabel || 'Website event', searchFilter)}
-                          </span>
-                          {e.pageUrl && <span className="mt-0.5 block truncate text-xs text-slate-400" title={e.pageUrl}>{e.pageUrl}</span>}
-                        </td>
-                        <td className="px-6 py-4 text-right text-indigo-600 ">
-                          <span className="text-xs font-bold">{isExpanded ? 'Hide' : 'View'}</span>
-                        </td>
-                      </tr>
-
-                      {isExpanded && (
-                        <tr>
-                          <td colSpan={7} className="bg-slate-50  border-t border-slate-100  px-6 py-4">
-                            {/* Expanded Panel Structure */}
-                            <div className="space-y-4">
-                              <div className="flex justify-between items-center">
-                                <h5 className="font-bold text-xs text-slate-700  uppercase tracking-widest">Event Details</h5>
-                                <span className="text-xs text-slate-400 font-mono">HTTP {e.httpCode || '—'} · Event key: {highlightText(e.deduplicationKey, searchFilter)}</span>
-                              </div>
-
-                              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                                
-                                {/* Req details */}
-                                <div className="bg-slate-900 leading-relaxed text-slate-200 text-xs font-mono p-4 rounded-lg overflow-auto max-h-80 relative group lg:col-span-2">
-                                  <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <button 
-                                      onClick={(el) => { el.stopPropagation(); handleCopy(JSON.stringify(e.payload, null, 2), `evt_payload_${e.id}`) }}
-                                      className="p-1 rounded bg-slate-800 text-slate-400 hover:text-white"
-                                    >
-                                      {copiedStates[`evt_payload_${e.id}`] ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3" />}
-                                    </button>
-                                  </div>
-                                  <p className="text-xs font-bold text-indigo-400 uppercase tracking-wider mb-2">Event Details</p>
-                                  <JsonViewer value={e.payload} search={searchFilter} className="max-h-80" />
-                                </div>
-
-                                {/* Headers / Response */}
-                                <div className="space-y-4">
-                                  <div className="bg-slate-900 leading-relaxed text-slate-300 text-xs font-mono p-4 rounded-lg overflow-auto max-h-40 relative group">
-                                    <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Request Headers</p>
-                                    <JsonViewer value={e.headers} search={searchFilter} className="max-h-64" />
-                                  </div>
-
-                                  <div className="bg-slate-900 leading-relaxed text-slate-300 text-xs font-mono p-4 rounded-lg overflow-auto max-h-40 relative group">
-                                    <p className="text-xs font-bold text-emerald-400 uppercase tracking-wider mb-2">Reply From Platform</p>
-                                    <JsonViewer value={e.responseBody} search={searchFilter} className="max-h-64" />
-                                  </div>
-                                </div>
-
-                              </div>
+            <div
+              tabIndex={0}
+              aria-label="Scrollable grouped event log table"
+              className="hidden max-h-[calc(100vh-250px)] min-h-[400px] max-w-full overflow-auto outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-400 md:block"
+            >
+              <table className="w-full min-w-[900px] table-fixed text-left text-xs">
+                <thead className="sticky top-0 z-10 bg-slate-50 text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                  <tr className="border-b border-slate-200">
+                    <th className="w-[132px] px-6 py-3">Time</th>
+                    <th className="w-[190px] px-6 py-3">Event</th>
+                    <th className="px-6 py-3">Page / Product</th>
+                    <th className="w-[310px] px-6 py-3">Delivery</th>
+                    <th className="w-[92px] px-6 py-3 text-right">Details</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {groupedEvents.map(group => {
+                    const expanded = expandedEventId === group.key;
+                    const retryItem = retryByEventId.get(group.eventId);
+                    const retrying = retryItem ? retryingOutboxIds.includes(retryItem.id) : false;
+                    return (
+                      <React.Fragment key={group.key}>
+                        <tr className="transition-colors hover:bg-indigo-50/20">
+                          <td className="px-6 py-4 align-top">
+                            <button
+                              type="button"
+                              onClick={() => setExpandedEventId(expanded ? null : group.key)}
+                              className="text-left"
+                            >
+                              <span className="block font-bold text-slate-800">
+                                {relativeTime(group.timestamp)}
+                              </span>
+                              <span className="mt-1 block text-[11px] text-slate-400">
+                                {new Date(group.timestamp).toLocaleTimeString([], {
+                                  hour: 'numeric',
+                                  minute: '2-digit',
+                                })}{' '}
+                                ·{' '}
+                                {new Date(group.timestamp).toLocaleDateString([], {
+                                  month: 'short',
+                                  day: 'numeric',
+                                })}
+                              </span>
+                            </button>
+                          </td>
+                          <td className="px-6 py-4 align-top">
+                            <button
+                              type="button"
+                              onClick={() => setExpandedEventId(expanded ? null : group.key)}
+                              className="max-w-full text-left"
+                            >
+                              <span className="block truncate font-bold text-slate-900">
+                                {highlightText(group.name, searchFilter)}
+                              </span>
+                              <span className="mt-1 block truncate font-mono text-[11px] text-slate-400">
+                                {highlightText(group.eventId, searchFilter)}
+                              </span>
+                            </button>
+                          </td>
+                          <td className="px-6 py-4 align-top">
+                            <button
+                              type="button"
+                              onClick={() => setExpandedEventId(expanded ? null : group.key)}
+                              className="block max-w-full text-left"
+                            >
+                              <span className="block truncate font-semibold text-slate-800" title={group.contextLabel}>
+                                {highlightText(group.contextLabel, searchFilter)}
+                              </span>
+                              {group.pageUrl && (
+                                <span className="mt-1 block truncate text-[11px] text-slate-400" title={group.pageUrl}>
+                                  {highlightText(group.pageUrl, searchFilter)}
+                                </span>
+                              )}
+                            </button>
+                          </td>
+                          <td className="px-6 py-4 align-top">
+                            <div className="flex flex-wrap gap-1.5">
+                              {group.deliveries.map(event => (
+                                <React.Fragment key={event.id}>
+                                  <DeliveryBadge event={event} />
+                                </React.Fragment>
+                              ))}
                             </div>
                           </td>
+                          <td className="px-6 py-4 text-right align-top">
+                            {retryItem ? (
+                              <button
+                                type="button"
+                                disabled={retrying}
+                                onClick={() => handleRetryOutbox(retryItem.id)}
+                                className="inline-flex min-h-8 items-center gap-1.5 rounded-lg border border-slate-200 px-3 text-[11px] font-bold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+                              >
+                                {retrying ? <Loader2 className="h-3 w-3 animate-spin" /> : <RotateCcw className="h-3 w-3" />}
+                                Retry
+                              </button>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => setExpandedEventId(expanded ? null : group.key)}
+                                className="min-h-8 text-[11px] font-bold text-indigo-600 hover:text-indigo-800"
+                              >
+                                {expanded ? 'Hide' : 'View'}
+                              </button>
+                            )}
+                          </td>
                         </tr>
-                      )}
-                    </React.Fragment>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                        {expanded && (
+                          <tr>
+                            <td colSpan={5} className="border-t border-slate-100 bg-slate-50 px-6 py-5">
+                              {renderExpandedDetails(group)}
+                            </td>
+                          </tr>
+                        )}
+                      </React.Fragment>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="flex items-center justify-between gap-3 border-t border-slate-100 px-5 py-3 text-[11px] text-slate-400">
+              <span>
+                Showing {groupedEvents.length} unique event{groupedEvents.length === 1 ? '' : 's'}
+              </span>
+              <span>One row per event · all platforms together</span>
+            </div>
           </>
         )}
       </section>
