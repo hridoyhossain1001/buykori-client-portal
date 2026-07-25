@@ -628,7 +628,16 @@ export function AnalyticsView({
                   const funnel = asArray(analyticsOverview?.funnel);
                   const maxCount = Math.max(...funnel.map((f) => Number(f.count || 0)), 1);
                   return funnel.map((step, i: number) => {
-                    const pctWidth = Math.max((Number(step.count || 0) / maxCount) * 100, 5);
+                    const currentCount = Number(step.count || 0);
+                    const previousCount = i > 0 ? Number(funnel[i - 1]?.count || 0) : currentCount;
+                    const hasTrackingGap = i > 0 && currentCount > previousCount;
+                    const conversionRate = i === 0
+                      ? 100
+                      : previousCount > 0
+                        ? (currentCount / previousCount) * 100
+                        : 0;
+                    const displayRate = Number(conversionRate.toFixed(1));
+                    const pctWidth = Math.max((currentCount / maxCount) * 100, 5);
                     return (
                       <div key={step.step} className="grid grid-cols-[140px_1fr_100px] items-center gap-4 border-b border-dashed border-slate-200 py-4 last:border-0">
                         <div>
@@ -639,8 +648,12 @@ export function AnalyticsView({
                           <div className="h-full rounded-md bg-gradient-to-r from-indigo-600 to-indigo-500" style={{ width: `${pctWidth}%` }} />
                         </div>
                         <div className="text-right">
-                          <p className={`text-xs font-bold ${i > 0 && step.drop_off > 75 ? 'text-amber-700' : 'text-slate-900'}`}>{i === 0 ? '100%' : `${Math.max(0, 100 - Number(step.drop_off || 0))}%`}</p>
-                          <p className="mt-1 text-[11px] text-slate-500">{i === 0 ? 'of visitors' : 'from previous step'}</p>
+                          <p className={`text-xs font-bold ${hasTrackingGap || (i > 0 && displayRate < 25) ? 'text-amber-700' : 'text-slate-900'}`}>
+                            {hasTrackingGap ? '—' : `${displayRate}%`}
+                          </p>
+                          <p className="mt-1 text-[11px] text-slate-500">
+                            {i === 0 ? 'of visitors' : hasTrackingGap ? 'tracking gap detected' : 'from previous step'}
+                          </p>
                         </div>
                       </div>
                     );
