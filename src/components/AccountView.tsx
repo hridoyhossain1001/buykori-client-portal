@@ -640,7 +640,7 @@ export function AccountView({
       {accountSection === 'profile' && (
         <section className="grid gap-4 rounded-xl border border-slate-200 bg-white p-5 shadow-sm lg:grid-cols-[1fr_auto_auto] lg:items-center">
           <div className="flex min-w-0 items-center gap-4">
-            <div className="flex h-13 w-13 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-violet-500 to-indigo-600 text-xl font-black uppercase text-white shadow-md shadow-indigo-200">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-violet-500 to-indigo-600 text-xl font-black uppercase text-white shadow-md shadow-indigo-200">
               {(profile.name || profile.email || 'A').trim().charAt(0)}
             </div>
             <div className="min-w-0">
