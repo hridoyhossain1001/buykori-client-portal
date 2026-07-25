@@ -633,18 +633,21 @@ export function OrdersView({
     const summary = details?.courier_summary;
     const score = Number(scoreValue) || 0;
 
-    let verdictKey = rawVerdict && rawVerdict !== 'UNKNOWN' ? rawVerdict : '';
-    if (!verdictKey) {
-      if (details?.gibberish_name || details?.disposable_email || details?.velocity_limit || details?.ip_mismatch || score >= 75) {
+    let verdictKey = '';
+
+    if (rawVerdict && rawVerdict !== 'UNKNOWN') {
+      verdictKey = rawVerdict;
+    } else {
+      if (score >= 75 || details?.velocity_limit || details?.gibberish_name || details?.disposable_email) {
         verdictKey = 'HIGH_RISK';
       } else if (score >= 35) {
         verdictKey = 'MODERATE';
       } else {
-        verdictKey = 'CLEAN';
+        verdictKey = 'NEW_CUSTOMER';
       }
     }
 
-    const style = VERDICT_STYLE[verdictKey] || VERDICT_STYLE.CLEAN;
+    const style = VERDICT_STYLE[verdictKey] || VERDICT_STYLE.NEW_CUSTOMER;
     const hasSummary = summary && summary.total_orders > 0;
 
     return (
@@ -668,7 +671,7 @@ export function OrdersView({
         {summary?.providers && summary.providers.length > 0 && (
           <div className="mt-1 flex flex-wrap gap-1">
             {summary.providers.filter(p => p.status === 'ok').map(p => {
-              const pStyle = VERDICT_STYLE[p.tier || 'CLEAN'] || VERDICT_STYLE.CLEAN;
+              const pStyle = VERDICT_STYLE[p.tier || 'NEW_CUSTOMER'] || VERDICT_STYLE.NEW_CUSTOMER;
               return (
                 <span key={p.provider} className={`inline-flex items-center gap-0.5 rounded border px-1 py-0.5 text-[9px] font-bold uppercase ${pStyle.bg} ${pStyle.border} ${pStyle.text}`}>
                   {p.provider}: {pStyle.label}
