@@ -199,15 +199,9 @@ export function SettingsView({
     },
     {
       id: 'courier',
-      label: 'Courier Logistics',
+      label: 'Courier & Alerts',
       sections: [
         { id: 'settings-courier', label: 'Courier accounts' },
-      ],
-    },
-    {
-      id: 'alerts',
-      label: 'Alerts & Notifications',
-      sections: [
         { id: 'settings-whatsapp', label: 'Telegram alerts' },
       ],
     },
@@ -788,15 +782,20 @@ export function SettingsView({
     : 'Completed';
 
   return (
-    <div className="space-y-4">
-      <section className="rounded-xl border border-slate-200 bg-white p-2 shadow-sm">
+    <div className="mx-auto max-w-6xl space-y-5">
+      <header>
+        <h1 className="text-2xl font-bold tracking-tight text-slate-900">Settings</h1>
+        <p className="mt-1 text-sm text-slate-500">Configure tracking, integrations and alerts for {storeDomain || 'your store'}.</p>
+      </header>
+
+      <section className="w-fit max-w-full rounded-xl border border-slate-200 bg-white p-1 shadow-sm">
         <div className="flex gap-1 overflow-x-auto">
           {settingsTabs.map((tab) => (
             <button
               key={tab.id}
               type="button"
               onClick={() => openSettingsTab(tab.id)}
-              className={`min-h-10 min-w-fit rounded-lg px-3 py-2 text-xs font-bold transition-colors ${
+              className={`min-h-10 min-w-fit rounded-lg px-4 py-2 text-xs font-bold transition-colors ${
                 activeSettingsTab === tab.id
                   ? 'bg-indigo-600 text-white shadow-sm'
                   : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
@@ -808,57 +807,43 @@ export function SettingsView({
         </div>
       </section>
       {activeSettingsTab === 'store' && (
-        <section className="rounded-xl border border-indigo-100 bg-indigo-50/40 p-4 shadow-sm">
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-            <div>
-              <h2 className="text-sm font-bold uppercase tracking-wide text-slate-800">Manage your store here</h2>
-              <p className="mt-1 max-w-3xl text-xs leading-relaxed text-slate-500">
-                Change your tracking, courier, and alert settings here. The WordPress plugin will follow the choices you save on this page.
-              </p>
-            </div>
-            <span className="inline-flex w-fit rounded-full border border-indigo-200 bg-white px-3 py-1 text-xs font-bold uppercase tracking-wide text-indigo-700">
-              WordPress stays simple
-            </span>
-          </div>
-
-          <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
+        <section className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
             <button
               type="button"
               onClick={() => openSettingsTab('conversions')}
-              className="rounded-lg border border-white bg-white/90 p-3 text-left shadow-sm transition-colors hover:border-indigo-200 hover:bg-white"
+              className="rounded-xl border border-slate-200 bg-white p-4 text-left shadow-sm transition-colors hover:border-indigo-200"
             >
-              <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Where events go</span>
-              <p className="mt-1 text-lg font-black text-slate-900">{configuredPlatformCount}/{platformStatusRows.length} ready</p>
-              <p className="mt-0.5 text-xs font-semibold text-slate-500">{enabledPlatformCount} platforms on, {enabledRouteCount} events ready</p>
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Events routing</span>
+              <p className="mt-4 text-base font-bold text-slate-900">{configuredPlatformCount} / {platformStatusRows.length} ready</p>
+              <p className="mt-1 text-xs text-slate-500">{enabledPlatformCount} platforms · {enabledRouteCount} events on</p>
             </button>
             <button
               type="button"
               onClick={() => openSettingsTab('courier')}
-              className="rounded-lg border border-white bg-white/90 p-3 text-left shadow-sm transition-colors hover:border-indigo-200 hover:bg-white"
+              className="rounded-xl border border-slate-200 bg-white p-4 text-left shadow-sm transition-colors hover:border-indigo-200"
             >
               <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Courier setup</span>
-              <p className="mt-1 text-lg font-black text-slate-900">{courierProviderConfigured ? 'Ready' : 'Setup needed'}</p>
-              <p className="mt-0.5 text-xs font-semibold capitalize text-slate-500">{selectedCourierProvider} default, manual booking</p>
+              <p className="mt-4 text-base font-bold text-slate-900">{courierProviderConfigured ? 'Ready' : 'Setup needed'}</p>
+              <p className="mt-1 text-xs capitalize text-slate-500">{selectedCourierProvider} default · manual booking</p>
             </button>
             <button
               type="button"
-              onClick={() => openSettingsTab('alerts')}
-              className="rounded-lg border border-white bg-white/90 p-3 text-left shadow-sm transition-colors hover:border-indigo-200 hover:bg-white"
+              onClick={() => openSettingsTab('courier')}
+              className="rounded-xl border border-slate-200 bg-white p-4 text-left shadow-sm transition-colors hover:border-indigo-200"
             >
               <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Telegram alerts</span>
-              <p className="mt-1 text-lg font-black text-slate-900">{telegramStatusLabel}</p>
-              <p className="mt-0.5 text-xs font-semibold text-slate-500">Get order alerts in Telegram</p>
+              <p className="mt-4 text-base font-bold text-slate-900">{telegramStatusLabel}</p>
+              <p className="mt-1 text-xs text-slate-500">Private order and recovery alerts</p>
             </button>
             <button
               type="button"
               onClick={() => openSettingsTab('store')}
-              className="rounded-lg border border-white bg-white/90 p-3 text-left shadow-sm transition-colors hover:border-indigo-200 hover:bg-white"
+              className="rounded-xl border border-slate-200 bg-white p-4 text-left shadow-sm transition-colors hover:border-indigo-200"
             >
-              <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Plugin connection</span>
-              <p className="mt-1 text-lg font-black text-slate-900">{wordpressConnectionStatus}</p>
-              <p className="mt-0.5 text-xs font-semibold text-slate-500">{updateAvailable ? 'Plugin update available' : pluginVersionHelp}</p>
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-400">WordPress plugin</span>
+              <p className="mt-4 text-base font-bold text-slate-900">{pluginVersionStatus}</p>
+              <p className="mt-1 text-xs text-slate-500">{updateAvailable ? 'Plugin update available' : pluginVersionHelp}</p>
             </button>
-          </div>
         </section>
       )}
       <div
@@ -880,8 +865,8 @@ export function SettingsView({
                 <Globe2 className="h-4 w-4" />
               </div>
               <div>
-                <h2 id="settings-domain-title" className="font-bold text-slate-800 text-sm uppercase tracking-wide ">Website Domain</h2>
-                <p className="text-xs text-slate-400 ">Enter the website address connected to this store.</p>
+                <h2 id="settings-domain-title" className="text-sm font-bold text-slate-900">Website domain</h2>
+                <p className="mt-1 text-xs text-slate-500">The store address your plugin reports events from.</p>
               </div>
             </div>
             <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-bold uppercase tracking-wide ${
@@ -919,10 +904,15 @@ export function SettingsView({
         </section>
         
         {/* Pipeline credentials card */}
-        <section id="settings-platforms" aria-labelledby="settings-platforms-title" className="scroll-mt-28 rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-6  ">
-          <div>
-            <h2 id="settings-platforms-title" className="font-bold text-slate-800 text-sm uppercase tracking-wide ">Connect Meta, TikTok, and GA4</h2>
-            <p className="text-xs text-slate-400 ">Add the ID and secret key for each platform you want to use. Leave a platform off until both fields are ready.</p>
+        <section id="settings-platforms" aria-labelledby="settings-platforms-title" className="scroll-mt-28 space-y-4">
+          <div className="flex items-center justify-between gap-4 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div>
+              <h2 id="settings-platforms-title" className="text-sm font-bold text-slate-900">Ad platforms</h2>
+              <p className="mt-1 text-xs text-slate-500">Add the ID and secret key for each platform. Leave a platform off until both fields are ready.</p>
+            </div>
+            <span className="shrink-0 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-[11px] font-bold text-emerald-700">
+              {configuredPlatformCount} of {platformStatusRows.length} connected
+            </span>
           </div>
 
           {Object.keys(credentials).map(platKey => {
@@ -932,7 +922,7 @@ export function SettingsView({
             const missingCredentials = platformMissingCredentials(plat, config);
             const enabledButMissingCredentials = Boolean(config.enabled && missingCredentials.length);
             return (
-              <div key={plat} className="bk-brand-panel space-y-3 rounded-lg border p-4">
+              <div key={plat} className="bk-brand-panel space-y-4 rounded-xl border bg-white p-5 shadow-sm">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <PlatformBadge platform={plat} label={plat} active={config.enabled} />
@@ -1027,8 +1017,8 @@ export function SettingsView({
         <section id="settings-ad-accounts" aria-labelledby="settings-ad-accounts-title" className="scroll-mt-28 rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-6">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
-              <h2 id="settings-ad-accounts-title" className="font-bold text-slate-800 text-sm uppercase tracking-wide">Marketing Ad Account Insights</h2>
-              <p className="text-xs text-slate-400">Connect a Meta or TikTok Advertiser account, then sync campaign spend, clicks, impressions, and ROAS data on demand.</p>
+              <h2 id="settings-ad-accounts-title" className="text-sm font-bold text-slate-900">Marketing insights</h2>
+              <p className="mt-1 text-xs text-slate-500">Read-only access to campaign spend, clicks, impressions and ROAS — synced on demand.</p>
             </div>
           </div>
 
@@ -1411,8 +1401,8 @@ export function SettingsView({
         <section id="settings-courier" aria-labelledby="settings-courier-title" className="scroll-mt-28 rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-6">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
-              <h2 id="settings-courier-title" className="font-black text-slate-900 text-base tracking-tight">Courier &amp; Logistics Config</h2>
-              <p className="mt-1 text-xs text-slate-500">Enable your active courier partners and configure API credentials below.</p>
+              <h2 id="settings-courier-title" className="text-sm font-bold text-slate-900">Courier partners</h2>
+              <p className="mt-1 text-xs text-slate-500">Toggle on the partners you ship with — active couriers show their credential form below.</p>
             </div>
             
             <div className="flex items-center gap-2">
@@ -1424,8 +1414,8 @@ export function SettingsView({
 
           {/* Integrated Courier Partners Selection Grid */}
           <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-4 sm:p-5 shadow-xs">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">Integrated Courier Partners</h3>
-            <p className="text-xs text-slate-500 mb-4">Toggle ON the courier partners you want to integrate. Active couriers will expand their credential form below.</p>
+            <h3 className="mb-1 text-xs font-bold uppercase tracking-wider text-slate-700">Available courier services</h3>
+            <p className="mb-4 text-xs text-slate-500">Your existing courier logos and saved integrations stay unchanged.</p>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               {/* SteadFast Toggle Box */}
@@ -2183,8 +2173,8 @@ export function SettingsView({
         {/* WordPress token health status */}
         <section id="settings-wordpress" aria-labelledby="settings-wordpress-title" className="scroll-mt-28 rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-4  ">
           <div>
-            <h2 id="settings-wordpress-title" className="font-bold text-slate-800 text-sm uppercase tracking-wide ">WordPress Plugin Connection</h2>
-            <p className="text-xs text-slate-400 ">This connects your WordPress store to Buykori. Manage all tracking choices from this portal.</p>
+            <h2 id="settings-wordpress-title" className="text-sm font-bold text-slate-900">WordPress plugin connection</h2>
+            <p className="mt-1 text-xs text-slate-500">Connects your WordPress store to Buykori — all tracking choices are managed from this portal.</p>
           </div>
 
           {(connection.reconnectRequired || connection.status !== 'Active') && (
@@ -2291,7 +2281,7 @@ export function SettingsView({
         <section id="settings-whatsapp" aria-labelledby="settings-telegram-title" className="scroll-mt-28 space-y-4 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div>
-              <h2 id="settings-telegram-title" className="text-sm font-bold uppercase tracking-wide text-slate-800">Telegram Notifications</h2>
+              <h2 id="settings-telegram-title" className="text-sm font-bold text-slate-900">Telegram alerts</h2>
               <p className="mt-1 max-w-2xl text-xs leading-relaxed text-slate-500">Connect Telegram privately to receive purchase and incomplete checkout alerts for this store. No phone number or recurring QR pairing is required.</p>
             </div>
             <span className={`inline-flex w-fit rounded-full border px-3 py-1 text-xs font-bold uppercase tracking-wide ${telegramStatus?.connected ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-amber-200 bg-amber-50 text-amber-700'}`}>

@@ -135,8 +135,7 @@ export function Sidebar({
       { id: 'settings-domain', label: 'Store Connection' },
       { id: 'settings-platforms', label: 'Conversions API' },
       { id: 'settings-ad-accounts', label: 'Ad Accounts' },
-      { id: 'settings-courier', label: 'Courier Logistics' },
-      { id: 'settings-whatsapp', label: 'Alerts & Notifications' },
+      { id: 'settings-courier', label: 'Courier & Alerts' },
     ],
   };
 
