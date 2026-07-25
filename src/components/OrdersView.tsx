@@ -29,6 +29,7 @@ import { InvoiceModal } from './InvoiceModal';
 import { Button } from './common/Button';
 import { Modal } from './common/Modal';
 import { loadCourierOrders, loadPathaoStores, type PathaoStore } from '../services/courierApi';
+import { FraudVerdictBadge, getFraudVerdictKey } from './FraudVerdictBadge';
 
 // â”€â”€â”€ BD Phone Normalizer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Accepts any Bangladeshi phone format and returns clean 01XXXXXXXXX (11 digits)
@@ -138,6 +139,11 @@ export function OrdersView({
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [providerFilter, setProviderFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [pendingSearch, setPendingSearch] = useState<string>('');
+  const [pendingFraudFilter, setPendingFraudFilter] = useState<string>('all');
+  const [pendingSort, setPendingSort] = useState<'oldest' | 'newest'>('oldest');
+  const [pendingPage, setPendingPage] = useState(1);
+  const [selectedPendingOrderIds, setSelectedPendingOrderIds] = useState<string[]>([]);
 
   // Send to Courier Modal State
   const [isSendModalOpen, setIsSendModalOpen] = useState<boolean>(false);
@@ -186,6 +192,11 @@ export function OrdersView({
   useEffect(() => {
     setSelectedShippedOrderIds([]);
   }, [activeTab, searchQuery, providerFilter, statusFilter]);
+
+  useEffect(() => {
+    setPendingPage(1);
+    setSelectedPendingOrderIds([]);
+  }, [pendingSearch, pendingFraudFilter, pendingSort]);
 
   useEffect(() => {
     shippedStatsLastYRef.current = window.scrollY;
@@ -617,71 +628,60 @@ export function OrdersView({
     })
     .slice(0, 30);
 
-  const VERDICT_STYLE: Record<string, { label: string; bg: string; text: string; icon: string; border: string }> = {
-    EXCELLENT: { label: 'Excellent', bg: 'bg-emerald-50', text: 'text-emerald-700', icon: '✅', border: 'border-emerald-200' },
-    GOOD: { label: 'Good Customer', bg: 'bg-green-50', text: 'text-green-700', icon: '👍', border: 'border-green-200' },
-    MODERATE: { label: 'Moderate Risk', bg: 'bg-amber-50', text: 'text-amber-700', icon: '⚠️', border: 'border-amber-200' },
-    RISKY: { label: 'Risky Customer', bg: 'bg-orange-50', text: 'text-orange-700', icon: '🔶', border: 'border-orange-200' },
-    HIGH_RISK: { label: 'High Risk', bg: 'bg-rose-50', text: 'text-rose-700', icon: '🔴', border: 'border-rose-200' },
-    NEW_CUSTOMER: { label: 'New Customer', bg: 'bg-blue-50', text: 'text-blue-700', icon: '🛡️', border: 'border-blue-200' },
-    CLEAN: { label: 'Clean Order', bg: 'bg-emerald-50', text: 'text-emerald-700', icon: '🟢', border: 'border-emerald-200' },
+  const renderCourierVerdict = (details?: DeferredOrder['fraudDetails'], scoreValue?: number) => (
+    <FraudVerdictBadge details={details} score={scoreValue} />
+  );
+
+  const pendingFilteredOrders = codVerificationOrders
+    .filter((order) => {
+      const query = pendingSearch.trim().toLowerCase();
+      const matchesSearch = !query || [
+        order.orderId,
+        order.recipientName,
+        order.recipientPhone,
+        order.recipientAddress,
+        order.products?.map((product) => product.name || product.content_name).join(' '),
+      ].some((value) => String(value || '').toLowerCase().includes(query));
+      const verdict = getFraudVerdictKey(order.fraudDetails, order.fraudScore);
+      const matchesFraud = pendingFraudFilter === 'all' || verdict === pendingFraudFilter;
+      return matchesSearch && matchesFraud;
+    })
+    .sort((a, b) => {
+      const aHours = Number(a.ageHours) || 0;
+      const bHours = Number(b.ageHours) || 0;
+      return pendingSort === 'oldest' ? bHours - aHours : aHours - bHours;
+    });
+  const pendingPageSize = 7;
+  const pendingTotalPages = Math.max(1, Math.ceil(pendingFilteredOrders.length / pendingPageSize));
+  const pendingPageSafe = Math.min(pendingPage, pendingTotalPages);
+  const pendingPageOrders = pendingFilteredOrders.slice(
+    (pendingPageSafe - 1) * pendingPageSize,
+    pendingPageSafe * pendingPageSize,
+  );
+  const heldOverWeek = codVerificationOrders.filter((order) => (Number(order.ageHours) || 0) >= 168).length;
+  const highRiskPending = codVerificationOrders.filter((order) => (
+    getFraudVerdictKey(order.fraudDetails, order.fraudScore) === 'HIGH_RISK'
+  )).length;
+  const bookedThisMonth = courierOrders.filter((order) => {
+    const createdAt = new Date(order.created_at);
+    const today = new Date();
+    return createdAt.getFullYear() === today.getFullYear() && createdAt.getMonth() === today.getMonth();
+  }).length;
+  const pendingValueTotal = codVerificationOrders.reduce((sum, order) => sum + (Number(order.amount) || 0), 0);
+
+  const togglePendingOrder = (orderId: string, checked: boolean) => {
+    setSelectedPendingOrderIds((current) => checked
+      ? (current.includes(orderId) ? current : [...current, orderId])
+      : current.filter((id) => id !== orderId));
   };
 
-  const renderCourierVerdict = (details?: DeferredOrder['fraudDetails'], scoreValue?: number) => {
-    const rawVerdict = details?.courier_verdict;
-    const confidence = details?.courier_confidence;
-    const summary = details?.courier_summary;
-    const score = Number(scoreValue) || 0;
-
-    let verdictKey = '';
-
-    if (rawVerdict && rawVerdict !== 'UNKNOWN') {
-      verdictKey = rawVerdict;
-    } else {
-      if (score >= 75 || details?.velocity_limit || details?.gibberish_name || details?.disposable_email) {
-        verdictKey = 'HIGH_RISK';
-      } else if (score >= 35) {
-        verdictKey = 'MODERATE';
-      } else {
-        verdictKey = 'NEW_CUSTOMER';
-      }
+  const openFirstSelectedPendingOrder = () => {
+    const order = codVerificationOrders.find((item) => selectedPendingOrderIds.includes(item.orderId));
+    if (!order) return;
+    if (selectedPendingOrderIds.length > 1) {
+      showToast('Opening the first selected order. Complete each courier booking with its delivery details.');
     }
-
-    const style = VERDICT_STYLE[verdictKey] || VERDICT_STYLE.NEW_CUSTOMER;
-    const hasSummary = summary && summary.total_orders > 0;
-
-    return (
-      <div className="min-w-[100px]">
-        <div className={`inline-flex items-center gap-1.5 rounded-lg border px-2 py-1 ${style.bg} ${style.border}`}>
-          <span className="text-xs leading-none">{style.icon}</span>
-          <span className={`text-xs font-bold uppercase tracking-wide ${style.text}`}>{style.label}</span>
-        </div>
-        {hasSummary && (
-          <div className="mt-1 flex items-center gap-1.5">
-            {confidence && confidence !== 'low' && (
-              <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold uppercase ${confidence === 'high' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
-                {confidence}
-              </span>
-            )}
-            <span className="text-[10px] font-semibold text-slate-400">
-              {summary.total_delivered}/{summary.total_orders} delivered
-            </span>
-          </div>
-        )}
-        {summary?.providers && summary.providers.length > 0 && (
-          <div className="mt-1 flex flex-wrap gap-1">
-            {summary.providers.filter(p => p.status === 'ok').map(p => {
-              const pStyle = VERDICT_STYLE[p.tier || 'NEW_CUSTOMER'] || VERDICT_STYLE.NEW_CUSTOMER;
-              return (
-                <span key={p.provider} className={`inline-flex items-center gap-0.5 rounded border px-1 py-0.5 text-[9px] font-bold uppercase ${pStyle.bg} ${pStyle.border} ${pStyle.text}`}>
-                  {p.provider}: {pStyle.label}
-                </span>
-              );
-            })}
-          </div>
-        )}
-      </div>
-    );
+    openPendingCourierModal(order);
   };
 
   return (
@@ -695,6 +695,28 @@ export function OrdersView({
           </div>
         </div>
       )}
+      <header>
+        <h1 className="text-2xl font-black tracking-tight text-slate-900">Courier Shipping</h1>
+        <p className="mt-1 text-sm text-slate-500">
+          Review pending orders, create invoices and book couriers — without leaving the page.
+        </p>
+      </header>
+
+      <section className="grid overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm sm:grid-cols-2 lg:grid-cols-4">
+        {[
+          ['Pending orders', codVerificationOrders.length, `BDT ${pendingValueTotal.toLocaleString()} waiting to ship`, 'text-slate-900'],
+          ['Held over 7 days', heldOverWeek, heldOverWeek > 0 ? 'Needs review' : 'No ageing orders', 'text-amber-700'],
+          ['Booked this month', bookedThisMonth, 'Across connected couriers', 'text-slate-900'],
+          ['High fraud risk', highRiskPending, highRiskPending > 0 ? 'Review before booking' : 'All pending orders look safe', highRiskPending > 0 ? 'text-rose-700' : 'text-emerald-700'],
+        ].map(([label, value, helper, tone]) => (
+          <div key={String(label)} className="border-b border-slate-100 px-5 py-4 last:border-b-0 sm:border-r lg:border-b-0">
+            <p className="text-xs font-bold uppercase tracking-wider text-slate-400">{label}</p>
+            <p className={`mt-1 text-lg font-black ${tone}`}>{value}</p>
+            <p className="mt-1 text-xs text-slate-400">{helper}</p>
+          </div>
+        ))}
+      </section>
+
       {activeTab === 'shipped' && (
         <div
           className={`fixed right-2 top-32 z-30 md:hidden transition-all duration-200 ${
@@ -736,34 +758,34 @@ export function OrdersView({
       )}
       
       {/* Tab bar header */}
-      <div className="flex border-b border-slate-200 ">
+      <div className="flex w-fit max-w-full rounded-xl border border-slate-200 bg-white p-1 shadow-sm">
         <button
           onClick={() => setActiveTab('pending')}
           data-guide="orders-pending-tab"
-          className={`flex min-h-10 flex-1 items-center justify-center gap-1.5 border-b-2 px-2 py-2 text-xs font-bold transition-all cursor-pointer sm:flex-none sm:justify-start sm:gap-2 sm:px-5 sm:py-3 sm:text-sm ${
+          className={`flex min-h-10 flex-1 items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-xs font-bold transition-all cursor-pointer sm:flex-none sm:justify-start sm:gap-2 sm:px-4 ${
             activeTab === 'pending'
-              ? 'border-indigo-600 text-indigo-600  '
-              : 'border-transparent text-slate-500 hover:text-slate-700  '
+              ? 'bg-indigo-600 text-white shadow-sm'
+              : 'text-slate-600 hover:bg-slate-50'
           }`}
         >
           <Package className="w-4 h-4" />
           <span className="sm:hidden">Pending</span>
           <span className="hidden sm:inline">Pending Orders</span>
-          <span className="rounded-full bg-slate-100 px-1.5 py-0.5 text-xs font-black text-slate-600">{deferredData?.operationsPendingCount ?? deferredData?.pendingCount ?? codVerificationOrders.length}</span>
+          <span className={`rounded-full px-1.5 py-0.5 text-xs font-black ${activeTab === 'pending' ? 'bg-white text-indigo-700' : 'bg-slate-100 text-slate-600'}`}>{deferredData?.operationsPendingCount ?? deferredData?.pendingCount ?? codVerificationOrders.length}</span>
         </button>
         <button
           onClick={() => setActiveTab('shipped')}
           data-guide="orders-shipped-tab"
-          className={`flex min-h-10 flex-1 items-center justify-center gap-1.5 border-b-2 px-2 py-2 text-xs font-bold transition-all cursor-pointer sm:flex-none sm:justify-start sm:gap-2 sm:px-5 sm:py-3 sm:text-sm ${
+          className={`flex min-h-10 flex-1 items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-xs font-bold transition-all cursor-pointer sm:flex-none sm:justify-start sm:gap-2 sm:px-4 ${
             activeTab === 'shipped'
-              ? 'border-indigo-600 text-indigo-600  '
-              : 'border-transparent text-slate-500 hover:text-slate-700  '
+              ? 'bg-indigo-600 text-white shadow-sm'
+              : 'text-slate-600 hover:bg-slate-50'
           }`}
         >
           <Truck className="w-4 h-4" />
           <span className="sm:hidden">Shipped</span>
           <span className="hidden sm:inline">Shipped Courier Log</span>
-          <span className="rounded-full bg-slate-100 px-1.5 py-0.5 text-xs font-black text-slate-600">{courierOrders.length}</span>
+          <span className={`rounded-full px-1.5 py-0.5 text-xs font-black ${activeTab === 'shipped' ? 'bg-white text-indigo-700' : 'bg-slate-100 text-slate-600'}`}>{courierOrders.length}</span>
         </button>
         
         <button 
@@ -772,7 +794,7 @@ export function OrdersView({
             fetchCourierOrders();
             showToast("Syncing data feeds...", false);
           }}
-          className="ml-auto inline-flex h-10 w-10 self-center items-center justify-center rounded-lg text-slate-400 hover:bg-slate-50 hover:text-slate-600 cursor-pointer"
+          className="inline-flex h-10 w-10 self-center items-center justify-center rounded-lg text-slate-400 hover:bg-slate-50 hover:text-slate-600 cursor-pointer"
           aria-label="Reload lists"
           title="Reload lists"
         >
@@ -781,23 +803,60 @@ export function OrdersView({
       </div>
 
       {activeTab === 'pending' && (
-        <div id="orders-pending" className="scroll-mt-24 rounded-xl border border-slate-200 bg-white p-6 shadow-sm flex flex-col space-y-4  ">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-            <div>
-              <h2 className="font-bold text-slate-800 text-sm uppercase tracking-wide ">Pending Courier Orders</h2>
-              <p className="text-xs text-slate-400 ">
-                Review order details, create invoices, and book orders with a courier.
-              </p>
+        <div id="orders-pending" className="scroll-mt-24 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+          <div className="flex flex-col gap-3 border-b border-slate-200 p-4 lg:flex-row lg:items-center">
+            <div className="relative min-w-0 flex-1">
+              <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+              <input
+                value={pendingSearch}
+                onChange={(event) => setPendingSearch(event.target.value)}
+                placeholder="Search order ID, name or phone…"
+                className="h-10 w-full rounded-lg border border-slate-200 pl-10 pr-3 text-sm outline-none focus:border-indigo-400"
+              />
             </div>
+            <select
+              value={pendingFraudFilter}
+              onChange={(event) => setPendingFraudFilter(event.target.value)}
+              aria-label="Filter pending orders by fraud level"
+              className="h-10 rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700"
+            >
+              <option value="all">All fraud levels</option>
+              <option value="EXCELLENT">Best customers</option>
+              <option value="GOOD">Good customers</option>
+              <option value="MODERATE">Moderate risk</option>
+              <option value="RISKY">Risky customers</option>
+              <option value="HIGH_RISK">High risk</option>
+              <option value="NEW_CUSTOMER">New customers</option>
+              <option value="UNKNOWN">Check unavailable</option>
+            </select>
+            <select
+              value={pendingSort}
+              onChange={(event) => setPendingSort(event.target.value as 'oldest' | 'newest')}
+              aria-label="Sort pending courier orders"
+              className="h-10 rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700"
+            >
+              <option value="oldest">Oldest first</option>
+              <option value="newest">Newest first</option>
+            </select>
+            <span className="text-xs font-bold text-slate-500">{selectedPendingOrderIds.length} selected</span>
+            <button
+              type="button"
+              disabled={selectedPendingOrderIds.length === 0}
+              onClick={openFirstSelectedPendingOrder}
+              className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-indigo-600 px-4 text-xs font-bold text-white hover:bg-indigo-700 disabled:opacity-50"
+            >
+              <Truck className="h-4 w-4" />
+              Book selected
+            </button>
           </div>
 
-          <div className="space-y-3 md:hidden">
-            {codVerificationOrders.length === 0 ? (
+          <div className="space-y-3 p-4 md:hidden">
+            {pendingPageOrders.length === 0 ? (
               <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center text-slate-400  ">
                 <CheckCircle2 className="mx-auto mb-2 h-8 w-8 text-emerald-400" />
                 <p className="text-xs font-semibold">No COD orders are waiting for your review.</p>
               </div>
-            ) : codVerificationOrders.map((order) => {
+            ) : pendingPageOrders.map((order) => {
               const isExpanded = expandedOrderId === order.orderId;
               const products = order.products || [];
               return (
@@ -867,6 +926,15 @@ export function OrdersView({
             <table className="w-full text-left text-xs text-slate-600 divide-y divide-slate-100 min-w-[750px]  ">
               <thead className="bg-slate-50 text-xs font-bold uppercase tracking-wider text-slate-500  ">
                 <tr>
+                  <th className="w-12 px-4 py-3">
+                    <input
+                      type="checkbox"
+                      checked={pendingPageOrders.length > 0 && pendingPageOrders.every((order) => selectedPendingOrderIds.includes(order.orderId))}
+                      onChange={(event) => setSelectedPendingOrderIds(event.target.checked ? pendingPageOrders.map((order) => order.orderId) : [])}
+                      aria-label="Select all visible pending courier orders"
+                      className="accent-indigo-600"
+                    />
+                  </th>
                   <th className="px-6 py-3">Order ID</th>
                   <th className="px-6 py-3">Customer Info</th>
                   <th className="px-6 py-3">Value</th>
@@ -876,20 +944,30 @@ export function OrdersView({
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 ">
-                {codVerificationOrders.length === 0 ? (
+                {pendingPageOrders.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="px-6 py-12 text-center text-slate-400 font-medium ">
+                    <td colSpan={7} className="px-6 py-12 text-center text-slate-400 font-medium ">
                       <CheckCircle2 className="w-8 h-8 mx-auto text-emerald-400 mb-2" />
                       No COD orders are waiting for your review.
                     </td>
                   </tr>
                 ) : (
-                  codVerificationOrders.map((order) => {
+                  pendingPageOrders.map((order) => {
                     const isExpanded = expandedOrderId === order.orderId;
                     const products = order.products || [];
+                    const isSelected = selectedPendingOrderIds.includes(order.orderId);
                     return (
                       <React.Fragment key={order.orderId}>
-                        <tr className={`hover:bg-slate-50/50 transition-colors  ${isExpanded ? 'bg-indigo-50/20 ' : ''}`}>
+                        <tr className={`hover:bg-slate-50/50 transition-colors ${isExpanded || isSelected ? 'bg-indigo-50/20' : ''}`}>
+                          <td className="px-4 py-3">
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={(event) => togglePendingOrder(order.orderId, event.target.checked)}
+                              aria-label={`Select pending courier order ${order.orderId}`}
+                              className="accent-indigo-600"
+                            />
+                          </td>
                           <td className="px-6 py-3">
                             <button
                               onClick={() => toggleExpand(order.orderId)}
@@ -939,7 +1017,7 @@ export function OrdersView({
                         {/* Expanded Detail Row */}
                         {isExpanded && (
                           <tr className="bg-slate-50/80 ">
-                            <td colSpan={6} className="px-6 py-3">
+                            <td colSpan={7} className="px-6 py-3">
                               <div className="grid grid-cols-1 items-start gap-3 lg:grid-cols-[minmax(280px,0.85fr)_minmax(0,1.35fr)]">
                                 {/* Customer Info Card */}
                                 <div className="self-start overflow-hidden rounded-xl border border-slate-200 bg-white">
@@ -1076,6 +1154,46 @@ export function OrdersView({
               </tbody>
             </table>
           </div>
+          <div className="flex items-center justify-between border-t border-slate-100 px-5 py-3">
+            <p className="text-xs text-slate-400">
+              Showing {pendingFilteredOrders.length === 0 ? 0 : (pendingPageSafe - 1) * pendingPageSize + 1}–{Math.min(pendingPageSafe * pendingPageSize, pendingFilteredOrders.length)} of {pendingFilteredOrders.length} pending orders
+            </p>
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                disabled={pendingPageSafe <= 1}
+                onClick={() => setPendingPage((page) => Math.max(1, page - 1))}
+                className="h-8 min-w-8 rounded-lg border border-slate-200 px-2 text-xs font-bold text-slate-600 disabled:opacity-40"
+              >
+                ‹
+              </button>
+              {Array.from({ length: pendingTotalPages }, (_, index) => index + 1).slice(0, 5).map((page) => (
+                <button
+                  type="button"
+                  key={page}
+                  onClick={() => setPendingPage(page)}
+                  className={`h-8 min-w-8 rounded-lg px-2 text-xs font-bold ${page === pendingPageSafe ? 'bg-indigo-600 text-white' : 'border border-slate-200 text-slate-600'}`}
+                >
+                  {page}
+                </button>
+              ))}
+              <button
+                type="button"
+                disabled={pendingPageSafe >= pendingTotalPages}
+                onClick={() => setPendingPage((page) => Math.min(pendingTotalPages, page + 1))}
+                className="h-8 min-w-8 rounded-lg border border-slate-200 px-2 text-xs font-bold text-slate-600 disabled:opacity-40"
+              >
+                ›
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'pending' && heldOverWeek > 0 && (
+        <div className="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs leading-relaxed text-amber-800">
+          <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0" />
+          <p><strong>{heldOverWeek} order{heldOverWeek === 1 ? '' : 's'} have been waiting over a week.</strong> Long-held COD orders cancel more often — book them now or move them out of the queue.</p>
         </div>
       )}
 

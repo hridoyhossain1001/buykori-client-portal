@@ -1,6 +1,17 @@
-import React from 'react';
-import { CheckCircle2, XCircle, Zap, Package } from 'lucide-react';
-import type { DeferredData, DeferredOrder, DeferredOrderProduct } from '../types';
+import React, { useMemo, useState } from 'react';
+import {
+  Check,
+  CheckCircle2,
+  ChevronDown,
+  Clock3,
+  Info,
+  Search,
+  Settings2,
+  ShieldCheck,
+  X,
+} from 'lucide-react';
+import type { DeferredData, DeferredOrder } from '../types';
+import { FraudVerdictBadge } from './FraudVerdictBadge';
 
 interface CodProtectionViewProps {
   deferredData: DeferredData;
@@ -21,6 +32,38 @@ interface CodProtectionViewProps {
   growthFeaturesEnabled?: boolean;
 }
 
+function formatHeldTime(rawHours: number | string | undefined) {
+  const hours = typeof rawHours === 'number'
+    ? rawHours
+    : Number.parseFloat(String(rawHours || '').replace(/[^\d.]/g, ''));
+  if (!Number.isFinite(hours) || hours < 0) return 'N/A';
+  if (hours < 1) return `${Math.max(1, Math.round(hours * 60))} min`;
+  if (hours < 24) return `${Math.floor(hours)} hr${Math.floor(hours) === 1 ? '' : 's'}`;
+  const days = Math.floor(hours / 24);
+  return `${days} day${days === 1 ? '' : 's'}`;
+}
+
+function customerDetails(order: DeferredOrder) {
+  const isHash = (value: string) => /^[a-f0-9]{32,}$/i.test(value);
+  const name = String(
+    order.customerName || order.customer_name || order.recipientName ||
+    order.recipient_name || order.name || order.customer || '',
+  ).trim();
+  const phone = String(
+    order.customerPhone || order.customer_phone || order.recipientPhone ||
+    order.recipient_phone || order.phone || '',
+  ).trim();
+  return {
+    name: !name || isHash(name) ? 'Protected customer' : name,
+    phone: isHash(phone) ? '' : phone,
+  };
+}
+
+function currency(value: number | string | undefined) {
+  if (typeof value === 'string' && /bdt/i.test(value)) return value;
+  return `BDT ${(Number(value) || 0).toLocaleString()}`;
+}
+
 export function CodProtectionView({
   deferredData,
   selectedOrderIds,
@@ -39,520 +82,328 @@ export function CodProtectionView({
   handleSaveDeferredSettings,
   growthFeaturesEnabled = false,
 }: CodProtectionViewProps) {
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortOrder, setSortOrder] = useState<'oldest' | 'newest'>('oldest');
+
   const pendingList = (deferredData?.deferredPendingList || deferredData?.pendingList || [])
     .filter((order) => !order.operationsOnly);
   const pendingCount = deferredData?.deferredPendingCount ?? deferredData?.pendingCount ?? pendingList.length;
-  const pendingValue = deferredData?.deferredPendingValue ?? deferredData?.pendingValue ?? 0;
+  const pendingValueRaw = deferredData?.deferredPendingValue ?? deferredData?.pendingValue ?? 0;
+  const pendingValueNumber = Number.parseFloat(String(pendingValueRaw).replace(/[^\d.]/g, '')) || 0;
+  const pendingValue = pendingValueNumber > 0
+    ? pendingValueRaw
+    : pendingList.reduce((sum, order) => sum + (Number(order.amount) || 0), 0);
   const confirmedToday = deferredData?.confirmedToday ?? 0;
-  const oldestPending = deferredData?.deferredOldestPending ?? deferredData?.oldestPending ?? 'None';
+  const oldestPending = deferredData?.deferredOldestPending ?? deferredData?.oldestPending ?? 0;
 
-  const formatHeldTime = (rawHours: number | string | undefined) => {
-    const parsed = typeof rawHours === 'number'
-      ? rawHours
-      : Number.parseFloat(String(rawHours || '').replace(/[^\d.]/g, ''));
+  const visibleOrders = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+    return pendingList
+      .filter((order) => {
+        if (!query) return true;
+        const customer = customerDetails(order);
+        return [
+          order.orderId,
+          customer.name,
+          customer.phone,
+          order.products?.map((product) => product.name || product.content_name).join(' '),
+        ].some((value) => String(value || '').toLowerCase().includes(query));
+      })
+      .sort((a, b) => {
+        const aHours = Number(a.ageHours) || 0;
+        const bHours = Number(b.ageHours) || 0;
+        return sortOrder === 'oldest' ? bHours - aHours : aHours - bHours;
+      });
+  }, [pendingList, searchQuery, sortOrder]);
 
-    if (!Number.isFinite(parsed) || parsed < 0) {
-      return 'N/A';
-    }
-
-    const totalMinutes = Math.max(0, Math.round(parsed * 60));
-    if (totalMinutes < 60) {
-      return `${Math.max(1, totalMinutes)} min ago`;
-    }
-
-    const totalHours = Math.floor(totalMinutes / 60);
-    if (totalHours < 24) {
-      const minutes = totalMinutes % 60;
-      return minutes > 0 ? `${totalHours}h ${minutes}m ago` : `${totalHours}h ago`;
-    }
-
-    const days = Math.floor(totalHours / 24);
-    return `${days} ${days === 1 ? 'day' : 'days'} ago`;
+  const toggleOrder = (orderId: string, checked: boolean) => {
+    setSelectedOrderIds((current) => checked
+      ? (current.includes(orderId) ? current : [...current, orderId])
+      : current.filter((id) => id !== orderId));
   };
 
-  const getCustomerSummary = (order: DeferredOrder) => {
-    const rawCustomer = String(order.customer || '').trim();
-    const isHash = (val: string) => /^[a-f0-9]{32,}$/i.test(val.trim());
-
-    const name = String(order.customerName || order.customer_name || order.recipientName || order.recipient_name || order.name || '').trim();
-    const phone = String(order.phone || order.customerPhone || order.customer_phone || order.recipientPhone || order.recipient_phone || '').trim();
-    const address = String(order.address || order.customerAddress || order.customer_address || order.recipientAddress || order.recipient_address || '').trim();
-
-    const isCustomerHash = isHash(rawCustomer);
-    const isNameHash = isHash(name);
-    const isPhoneHash = isHash(phone);
-
-    const protectedHash = isCustomerHash || isNameHash || isPhoneHash;
-    const displayHash = isCustomerHash ? rawCustomer : (isNameHash ? name : (isPhoneHash ? phone : ''));
-
-    const cleanName = isNameHash ? '' : name;
-    const cleanPhone = isPhoneHash ? '' : phone;
-    const cleanAddress = isHash(address) ? '' : address;
-
-    return {
-      primary: cleanName || (protectedHash ? 'Protected customer' : rawCustomer || 'Customer unavailable'),
-      secondary: cleanPhone || (protectedHash && displayHash ? `ID ${displayHash.slice(0, 10)}...` : ''),
-      tertiary: cleanAddress,
-      title: protectedHash ? (displayHash || 'Protected') : [cleanName || rawCustomer, cleanPhone, cleanAddress].filter(Boolean).join(' | '),
-    };
+  const toggleAll = (checked: boolean) => {
+    setSelectedOrderIds(checked ? visibleOrders.map((order) => order.orderId) : []);
   };
 
-  const summaryItems = [
-    { label: 'Pending', value: pendingCount, helper: 'COD orders', tone: 'text-amber-700', bg: 'bg-amber-50', border: 'border-amber-100' },
-    { label: 'Held', value: pendingValue, helper: 'Revenue', tone: 'text-indigo-700', bg: 'bg-indigo-50', border: 'border-indigo-100' },
-    { label: 'Verified', value: confirmedToday, helper: 'Today', tone: 'text-emerald-700', bg: 'bg-emerald-50', border: 'border-emerald-100' },
-    { label: 'Oldest', value: formatHeldTime(oldestPending), helper: 'Waiting', tone: 'text-rose-700', bg: 'bg-rose-50', border: 'border-rose-100' },
-  ];
-
-  const toggleOrderSelection = (orderId: string, checked: boolean) => {
-    if (checked) {
-      setSelectedOrderIds(prev => prev.includes(orderId) ? prev : [...prev, orderId]);
-    } else {
-      setSelectedOrderIds(prev => prev.filter(id => id !== orderId));
-    }
-  };
-
-  const VERDICT_STYLE: Record<string, { label: string; bg: string; text: string; icon: string; border: string }> = {
-    EXCELLENT: { label: 'Excellent', bg: 'bg-emerald-50', text: 'text-emerald-700', icon: '✅', border: 'border-emerald-200' },
-    GOOD: { label: 'Good Customer', bg: 'bg-green-50', text: 'text-green-700', icon: '👍', border: 'border-green-200' },
-    MODERATE: { label: 'Moderate Risk', bg: 'bg-amber-50', text: 'text-amber-700', icon: '⚠️', border: 'border-amber-200' },
-    RISKY: { label: 'Risky Customer', bg: 'bg-orange-50', text: 'text-orange-700', icon: '🔶', border: 'border-orange-200' },
-    HIGH_RISK: { label: 'High Risk', bg: 'bg-rose-50', text: 'text-rose-700', icon: '🔴', border: 'border-rose-200' },
-    NEW_CUSTOMER: { label: 'New Customer', bg: 'bg-blue-50', text: 'text-blue-700', icon: '🛡️', border: 'border-blue-200' },
-    CLEAN: { label: 'Clean Order', bg: 'bg-emerald-50', text: 'text-emerald-700', icon: '🟢', border: 'border-emerald-200' },
-  };
-
-  const renderCourierVerdict = (details?: DeferredOrder['fraudDetails'], scoreValue?: number) => {
-    const rawVerdict = details?.courier_verdict;
-    const confidence = details?.courier_confidence;
-    const summary = details?.courier_summary;
-    const score = Number(scoreValue) || 0;
-
-    let verdictKey = '';
-
-    if (rawVerdict && rawVerdict !== 'UNKNOWN') {
-      verdictKey = rawVerdict;
-    } else {
-      if (score >= 75 || details?.velocity_limit || details?.gibberish_name || details?.disposable_email) {
-        verdictKey = 'HIGH_RISK';
-      } else if (score >= 35) {
-        verdictKey = 'MODERATE';
-      } else {
-        verdictKey = 'NEW_CUSTOMER';
-      }
-    }
-
-    const style = VERDICT_STYLE[verdictKey] || VERDICT_STYLE.NEW_CUSTOMER;
-    const hasSummary = summary && summary.total_orders > 0;
-
-    return (
-      <div className="min-w-[100px]">
-        <div className={`inline-flex items-center gap-1.5 rounded-lg border px-2 py-1 ${style.bg} ${style.border}`}>
-          <span className="text-xs leading-none">{style.icon}</span>
-          <span className={`text-xs font-bold uppercase tracking-wide ${style.text}`}>{style.label}</span>
-        </div>
-        {hasSummary && (
-          <div className="mt-1 flex items-center gap-1.5">
-            {confidence && confidence !== 'low' && (
-              <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold uppercase ${confidence === 'high' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
-                {confidence}
-              </span>
-            )}
-            <span className="text-[10px] font-semibold text-slate-400">
-              {summary.total_delivered}/{summary.total_orders} delivered
-            </span>
-          </div>
-        )}
-        {summary?.providers && summary.providers.length > 0 && (
-          <div className="mt-1 flex flex-wrap gap-1">
-            {summary.providers.filter(p => p.status === 'ok').map(p => {
-              const pStyle = VERDICT_STYLE[p.tier || 'NEW_CUSTOMER'] || VERDICT_STYLE.NEW_CUSTOMER;
-              return (
-                <span key={p.provider} className={`inline-flex items-center gap-0.5 rounded border px-1 py-0.5 text-[9px] font-bold uppercase ${pStyle.bg} ${pStyle.border} ${pStyle.text}`}>
-                  {p.provider}: {pStyle.label}
-                </span>
-              );
-            })}
-          </div>
-        )}
-      </div>
-    );
-  };
-
-  const desktopSummaryRow = (
-    <div className="hidden grid-cols-4 gap-2 md:grid">
-      {summaryItems.map((item) => (
-        <div key={item.label} className={`flex items-center justify-between rounded-lg border ${item.border} ${item.bg} px-3 py-2`}>
-          <div>
-            <p className="text-xs font-bold uppercase tracking-wider text-slate-500">{item.label}</p>
-            <p className="text-xs text-slate-400">{item.helper}</p>
-          </div>
-          <p className={`font-mono text-lg font-black leading-none ${item.tone}`}>{item.value}</p>
-        </div>
-      ))}
-    </div>
-  );
-
-  const mobileSummaryTab = (
-    <aside
-      aria-label="COD queue summary"
-      className="fixed right-2 top-[222px] z-30 w-[58px] overflow-hidden rounded-2xl border border-slate-200 bg-white/95 shadow-lg backdrop-blur md:hidden"
-    >
-      {summaryItems.map((item) => (
-        <div key={item.label} className={`border-b ${item.border} ${item.bg} px-1.5 py-2 text-center last:border-b-0`}>
-          <p className={`font-mono text-sm font-black leading-none ${item.tone}`}>{item.value}</p>
-          <p className="mt-1 text-xs font-black uppercase leading-tight tracking-wide text-slate-600">{item.label}</p>
-        </div>
-      ))}
-    </aside>
-  );
+  const settingsSummary = `Auto-confirm: ${autoConfirmDays === 0 ? 'Off — manual only' : `After ${autoConfirmDays} day${autoConfirmDays === 1 ? '' : 's'}`} · Confirm status: ${autoConfirmStatus === 'processing' ? 'Processing / Confirmed' : 'Completed / Delivered'}`;
 
   return (
     <div className="space-y-4">
-      <section className="rounded-xl border border-slate-200 bg-white shadow-sm">
-        <details className="group md:hidden">
-          <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3">
+      <section className="rounded-xl border border-slate-200 bg-white px-5 py-4 shadow-sm">
+        <div className="grid gap-5 lg:grid-cols-[1.4fr_repeat(4,minmax(110px,.55fr))] lg:items-center">
+          <div className="flex items-center gap-4">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
+              <ShieldCheck className="h-5 w-5" />
+            </span>
             <div>
-              <h2 className="text-xs font-black uppercase tracking-wide text-slate-800">COD controls</h2>
-              <p className="mt-0.5 text-xs text-slate-500">
-                Protection {deferredEnabled ? 'on' : 'off'} - courier booking is manual
+              <h2 className="text-base font-bold text-slate-900">COD Protection</h2>
+              <p className="mt-1 max-w-sm text-xs leading-relaxed text-slate-500">
+                Purchases stay on hold until you confirm each COD order.
               </p>
             </div>
-            <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-bold text-slate-600">
-              Configure
-            </span>
-          </summary>
-          <div className="space-y-4 border-t border-slate-100 p-4">
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <span className={`flex h-8 w-8 items-center justify-center rounded-lg ${deferredEnabled ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
-                  <Zap className="h-4 w-4" />
-                </span>
-                <div>
-                  <p className="text-sm font-bold text-slate-900">COD Protection</p>
-                  <p className="text-xs text-slate-500">Verify before tracking</p>
-                </div>
-              </div>
-              <input
-                type="checkbox"
-                checked={deferredEnabled}
-                disabled={!growthFeaturesEnabled}
-                onChange={(e) => setDeferredEnabled(e.target.checked)}
-                aria-label="Toggle COD protection"
-                className="h-5 w-5 rounded accent-emerald-700"
-              />
-            </div>
-            <div className="grid grid-cols-1 gap-3">
-              <div>
-                <label htmlFor="cod-auto-confirm-days-mobile" className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-500">Auto-confirm after</label>
-                <select
-                  id="cod-auto-confirm-days-mobile"
-                  value={autoConfirmDays}
-                  onChange={(e) => setAutoConfirmDays(Number(e.target.value))}
-                  disabled={!deferredEnabled}
-                  className="w-full rounded-lg border border-slate-200 bg-slate-50 p-2 text-xs text-slate-800 outline-none focus:border-emerald-500 disabled:opacity-50"
-                >
-                  <option value="0">Off (Manual only)</option>
-                  <option value="1">1 Day</option>
-                  <option value="2">2 Days</option>
-                  <option value="3">3 Days</option>
-                  <option value="5">5 Days</option>
-                  <option value="7">7 Days</option>
-                </select>
-              </div>
-              <div>
-                <label htmlFor="cod-auto-confirm-status-mobile" className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-500">Confirm when status is</label>
-                <select
-                  id="cod-auto-confirm-status-mobile"
-                  value={autoConfirmStatus}
-                  onChange={(e) => setAutoConfirmStatus(e.target.value)}
-                  disabled={!deferredEnabled}
-                  className="w-full rounded-lg border border-slate-200 bg-slate-50 p-2 text-xs text-slate-800 outline-none focus:border-emerald-500 disabled:opacity-50"
-                >
-                  <option value="completed">Completed / Delivered</option>
-                  <option value="processing">Processing / Confirmed</option>
-                </select>
-              </div>
-            </div>
-            <button
-              type="button"
-              disabled={savingDeferredSettings || !growthFeaturesEnabled}
-              onClick={handleSaveDeferredSettings}
-              className="min-h-10 w-full rounded-lg bg-emerald-800 px-3 py-2 text-xs font-bold text-white transition-colors hover:bg-emerald-900 disabled:opacity-50"
-            >
-              {savingDeferredSettings ? 'Saving...' : 'Save COD settings'}
-            </button>
           </div>
-        </details>
+          {[
+            ['Pending', pendingCount, 'Waiting for you', 'text-slate-900'],
+            ['Held revenue', currency(pendingValue), 'Not sent to platforms', 'text-slate-900'],
+            ['Verified today', confirmedToday, 'Confirmed purchases', 'text-emerald-700'],
+            ['Oldest waiting', formatHeldTime(oldestPending), 'Needs your review', 'text-amber-700'],
+          ].map(([label, value, helper, tone]) => (
+            <div key={String(label)} className="border-t border-slate-100 pt-3 lg:border-l lg:border-t-0 lg:pl-5 lg:pt-0">
+              <p className="text-xs font-bold uppercase tracking-wider text-slate-400">{label}</p>
+              <p className={`mt-1 text-lg font-black ${tone}`}>{value}</p>
+              <p className="mt-1 text-xs text-slate-400">{helper}</p>
+            </div>
+          ))}
+        </div>
+      </section>
 
-        <div className="hidden items-end gap-3 p-3 md:grid md:grid-cols-[minmax(0,.8fr)_minmax(0,1.4fr)]">
-          <div className="flex items-stretch gap-1.5">
-            <label className="flex min-w-0 flex-1 items-center justify-between gap-2 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5">
-              <span className="min-w-0">
-                <span className="block truncate text-xs font-bold text-slate-900">COD Protection</span>
-                <span className="block truncate text-xs text-slate-500">Verify tracking</span>
+      <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+        <button
+          type="button"
+          onClick={() => setSettingsOpen((current) => !current)}
+          className="flex w-full items-center justify-between gap-4 px-5 py-4 text-left"
+          aria-expanded={settingsOpen}
+        >
+          <span className="flex min-w-0 items-center gap-3">
+            <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${deferredEnabled ? 'bg-indigo-50 text-indigo-600' : 'bg-slate-100 text-slate-500'}`}>
+              <ShieldCheck className="h-5 w-5" />
+            </span>
+            <span className="min-w-0">
+              <span className="flex items-center gap-2">
+                <span className="text-sm font-bold text-slate-900">Protection settings</span>
+                <span className={`rounded-full border px-2 py-0.5 text-xs font-bold ${deferredEnabled ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-slate-200 bg-slate-50 text-slate-500'}`}>
+                  {deferredEnabled ? 'On' : 'Off'}
+                </span>
               </span>
+              <span className="mt-1 block truncate text-xs text-slate-500">{settingsSummary}</span>
+            </span>
+          </span>
+          <span className="flex items-center gap-3 text-xs font-bold text-indigo-600">
+            {settingsOpen ? 'Close' : 'Edit'}
+            <ChevronDown className={`h-4 w-4 transition-transform ${settingsOpen ? 'rotate-180' : ''}`} />
+          </span>
+        </button>
+
+        {settingsOpen && (
+          <div className="grid gap-4 border-t border-slate-100 bg-slate-50/60 px-5 py-4 md:grid-cols-[1fr_1fr_1fr_auto] md:items-end">
+            <label className="flex min-h-10 items-center justify-between rounded-lg border border-slate-200 bg-white px-3">
+              <span className="text-xs font-bold text-slate-700">Enable protection</span>
               <input
                 type="checkbox"
                 checked={deferredEnabled}
                 disabled={!growthFeaturesEnabled}
-                onChange={(e) => setDeferredEnabled(e.target.checked)}
+                onChange={(event) => setDeferredEnabled(event.target.checked)}
                 aria-label="Toggle COD protection"
-                className="h-4 w-4 rounded accent-emerald-700"
+                className="h-4 w-4 accent-indigo-600"
               />
             </label>
-            <button
-              type="button"
-              disabled={savingDeferredSettings || !growthFeaturesEnabled}
-              onClick={handleSaveDeferredSettings}
-              className="rounded-lg bg-emerald-800 px-2.5 text-xs font-bold text-white hover:bg-emerald-900 disabled:opacity-50"
-            >
-              {savingDeferredSettings ? 'Saving' : 'Save'}
-            </button>
-          </div>
-
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <label htmlFor="cod-auto-confirm-days" className="mb-1 block text-xs font-bold uppercase tracking-wider text-slate-500">Auto-confirm after</label>
+            <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
+              Auto-confirm after
               <select
-                id="cod-auto-confirm-days"
                 value={autoConfirmDays}
-                onChange={(e) => setAutoConfirmDays(Number(e.target.value))}
+                onChange={(event) => setAutoConfirmDays(Number(event.target.value))}
                 disabled={!deferredEnabled}
-                className="h-9 w-full rounded-lg border border-slate-200 bg-white px-2 text-xs text-slate-800 outline-none focus:border-emerald-500 disabled:opacity-50"
+                className="mt-1 h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-xs font-medium normal-case tracking-normal text-slate-700 disabled:opacity-50"
               >
-                <option value="0">Off (Manual only)</option>
-                <option value="1">1 Day</option>
-                <option value="2">2 Days</option>
-                <option value="3">3 Days</option>
-                <option value="5">5 Days</option>
-                <option value="7">7 Days</option>
+                <option value="0">Off — manual only</option>
+                {[1, 2, 3, 5, 7].map((day) => <option key={day} value={day}>{day} day{day === 1 ? '' : 's'}</option>)}
               </select>
-            </div>
-            <div>
-              <label htmlFor="cod-auto-confirm-status" className="mb-1 block text-xs font-bold uppercase tracking-wider text-slate-500">Confirm status</label>
+            </label>
+            <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
+              Confirm status
               <select
-                id="cod-auto-confirm-status"
                 value={autoConfirmStatus}
-                onChange={(e) => setAutoConfirmStatus(e.target.value)}
+                onChange={(event) => setAutoConfirmStatus(event.target.value)}
                 disabled={!deferredEnabled}
-                className="h-9 w-full rounded-lg border border-slate-200 bg-white px-2 text-xs text-slate-800 outline-none focus:border-emerald-500 disabled:opacity-50"
+                className="mt-1 h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-xs font-medium normal-case tracking-normal text-slate-700 disabled:opacity-50"
               >
                 <option value="completed">Completed / Delivered</option>
                 <option value="processing">Processing / Confirmed</option>
               </select>
-            </div>
+            </label>
+            <button
+              type="button"
+              disabled={savingDeferredSettings || !growthFeaturesEnabled}
+              onClick={async () => {
+                await handleSaveDeferredSettings();
+                setSettingsOpen(false);
+              }}
+              className="h-10 rounded-lg bg-indigo-600 px-5 text-xs font-bold text-white hover:bg-indigo-700 disabled:opacity-50"
+            >
+              {savingDeferredSettings ? 'Saving…' : 'Save settings'}
+            </button>
           </div>
+        )}
+      </section>
 
+      <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+        <div className="flex flex-col gap-3 border-b border-slate-200 p-4 lg:flex-row lg:items-center">
+          <div className="relative min-w-0 flex-1">
+            <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+            <input
+              value={searchQuery}
+              onChange={(event) => setSearchQuery(event.target.value)}
+              placeholder="Search order ID, name or phone…"
+              className="h-10 w-full rounded-lg border border-slate-200 bg-white pl-10 pr-3 text-sm outline-none focus:border-indigo-400"
+            />
+          </div>
+          <select
+            aria-label="Sort pending COD orders"
+            value={sortOrder}
+            onChange={(event) => setSortOrder(event.target.value as 'oldest' | 'newest')}
+            className="h-10 rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700"
+          >
+            <option value="oldest">Oldest first</option>
+            <option value="newest">Newest first</option>
+          </select>
+          <span className="hidden h-6 border-l border-slate-200 lg:block" />
+          <span className="text-xs font-bold text-slate-500">{selectedOrderIds.length} selected</span>
+          <button
+            type="button"
+            disabled={selectedOrderIds.length === 0}
+            onClick={handleBulkConfirm}
+            className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-indigo-600 px-5 text-xs font-bold text-white hover:bg-indigo-700 disabled:opacity-50"
+          >
+            <Check className="h-4 w-4" />
+            Confirm {selectedOrderIds.length || ''} order{selectedOrderIds.length === 1 ? '' : 's'}
+          </button>
+          <button
+            type="button"
+            disabled={selectedOrderIds.length === 0}
+            onClick={handleBulkCancel}
+            className="h-10 rounded-lg border border-slate-200 bg-white px-4 text-xs font-bold text-slate-600 hover:bg-slate-50 disabled:opacity-50"
+          >
+            Skip selected
+          </button>
+        </div>
+
+        <div className="space-y-3 p-4 md:hidden">
+          {visibleOrders.length === 0 ? (
+            <div className="rounded-lg border border-dashed border-slate-200 py-10 text-center text-xs font-medium text-slate-400">
+              No pending COD orders.
+            </div>
+          ) : visibleOrders.map((order) => {
+            const customer = customerDetails(order);
+            const product = order.products?.[0];
+            const selected = selectedOrderIds.includes(order.orderId);
+            return (
+              <article key={order.orderId} className={`rounded-xl border p-4 ${selected ? 'border-indigo-300 bg-indigo-50/30' : 'border-slate-200'}`}>
+                <div className="flex items-start justify-between gap-3">
+                  <label className="flex min-w-0 items-start gap-3">
+                    <input
+                      type="checkbox"
+                      checked={selected}
+                      onChange={(event) => toggleOrder(order.orderId, event.target.checked)}
+                      className="mt-1 accent-indigo-600"
+                    />
+                    <span className="min-w-0">
+                      <span className="block font-mono text-sm font-bold text-slate-900">#{order.orderId}</span>
+                      <span className="mt-1 block truncate text-sm font-semibold text-slate-800">{customer.name}</span>
+                      <span className="block text-xs text-slate-400">{customer.phone}</span>
+                    </span>
+                  </label>
+                  <span className="whitespace-nowrap text-sm font-bold text-slate-900">{currency(order.amount)}</span>
+                </div>
+                <p className="mt-3 truncate text-xs font-semibold text-slate-700">{product?.name || product?.content_name || 'Product details unavailable'}</p>
+                <div className="mt-3 flex items-center justify-between gap-2">
+                  <FraudVerdictBadge details={order.fraudDetails} score={order.fraudScore} />
+                  <span className="inline-flex items-center gap-1 text-xs font-semibold text-slate-500">
+                    <Clock3 className="h-3.5 w-3.5" /> {formatHeldTime(order.ageHours)}
+                  </span>
+                </div>
+                <div className="mt-4 grid grid-cols-2 gap-2">
+                  <button type="button" onClick={() => handleConfirmOrder(order.orderId)} className="h-10 rounded-lg bg-indigo-600 text-xs font-bold text-white">Confirm</button>
+                  <button type="button" onClick={() => handleCancelOrder(order.orderId)} className="h-10 rounded-lg border border-slate-200 text-xs font-bold text-slate-600">Skip</button>
+                </div>
+              </article>
+            );
+          })}
+        </div>
+
+        <div className="hidden overflow-x-auto md:block">
+          <table className="w-full min-w-[920px] text-left text-xs">
+            <thead className="border-b border-slate-200 bg-slate-50 text-xs font-bold uppercase tracking-wider text-slate-500">
+              <tr>
+                <th className="w-12 px-5 py-3">
+                  <input
+                    type="checkbox"
+                    checked={visibleOrders.length > 0 && visibleOrders.every((order) => selectedOrderIds.includes(order.orderId))}
+                    onChange={(event) => toggleAll(event.target.checked)}
+                    aria-label="Select all pending COD orders"
+                    className="accent-indigo-600"
+                  />
+                </th>
+                <th className="px-4 py-3">Order</th>
+                <th className="px-4 py-3">Customer</th>
+                <th className="px-4 py-3">Product</th>
+                <th className="px-4 py-3">Amount</th>
+                <th className="px-4 py-3">Fraud risk</th>
+                <th className="px-4 py-3">Waiting</th>
+                <th className="px-5 py-3 text-right">Decision</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {visibleOrders.length === 0 ? (
+                <tr><td colSpan={8} className="px-5 py-14 text-center text-sm text-slate-400">No pending COD orders.</td></tr>
+              ) : visibleOrders.map((order) => {
+                const customer = customerDetails(order);
+                const product = order.products?.[0];
+                const selected = selectedOrderIds.includes(order.orderId);
+                return (
+                  <tr key={order.orderId} className={selected ? 'bg-indigo-50/40' : 'hover:bg-slate-50/50'}>
+                    <td className="px-5 py-3">
+                      <input
+                        type="checkbox"
+                        checked={selected}
+                        onChange={(event) => toggleOrder(order.orderId, event.target.checked)}
+                        aria-label={`Select COD order ${order.orderId}`}
+                        className="accent-indigo-600"
+                      />
+                    </td>
+                    <td className="px-4 py-3">
+                      <p className="font-mono font-bold text-slate-900">#{order.orderId}</p>
+                      <p className="mt-1 text-xs text-slate-400">{order.timestamp ? new Date(order.timestamp).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : ''}</p>
+                    </td>
+                    <td className="px-4 py-3">
+                      <p className="font-bold text-slate-800">{customer.name}</p>
+                      <p className="mt-1 font-mono text-xs text-slate-400">{customer.phone}</p>
+                    </td>
+                    <td className="max-w-[250px] px-4 py-3">
+                      <p className="truncate font-semibold text-slate-800" title={product?.name || product?.content_name}>
+                        {product?.name || product?.content_name || 'Product details unavailable'}
+                      </p>
+                      <p className="mt-1 text-xs text-slate-400">{product ? `Qty ${product.quantity || 1}` : ''}</p>
+                    </td>
+                    <td className="whitespace-nowrap px-4 py-3 font-bold text-slate-900">{currency(order.amount)}</td>
+                    <td className="px-4 py-3"><FraudVerdictBadge details={order.fraudDetails} score={order.fraudScore} /></td>
+                    <td className="whitespace-nowrap px-4 py-3">
+                      <p className="font-bold text-slate-800">{formatHeldTime(order.ageHours)}</p>
+                      <p className="mt-1 text-xs text-slate-400">Pending review</p>
+                    </td>
+                    <td className="whitespace-nowrap px-5 py-3 text-right">
+                      <button type="button" onClick={() => handleConfirmOrder(order.orderId)} className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-indigo-600 px-3 text-xs font-bold text-white">
+                        <Check className="h-3.5 w-3.5" /> Confirm
+                      </button>
+                      <button type="button" onClick={() => handleCancelOrder(order.orderId)} className="ml-2 h-8 rounded-lg border border-slate-200 px-3 text-xs font-bold text-slate-600">
+                        Skip
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+        <div className="border-t border-slate-100 px-5 py-3 text-xs text-slate-400">
+          {visibleOrders.length} pending order{visibleOrders.length === 1 ? '' : 's'} · confirmed orders send Purchase to Meta, TikTok and GA4
         </div>
       </section>
 
-      {desktopSummaryRow}
-      {mobileSummaryTab}
-
-      <div className="grid grid-cols-1 gap-4">
-        <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm md:p-5">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <h2 className="text-sm font-bold uppercase tracking-wide text-slate-800">Pending COD Orders</h2>
-              <p className="text-xs text-slate-400">Check each COD order before Buykori reports it as a sale.</p>
-            </div>
-            <div className="flex flex-col items-start gap-1 sm:items-end">
-              {selectedOrderIds.length === 0 && (
-                <span className="text-xs font-medium text-slate-400">Select orders to enable bulk actions.</span>
-              )}
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  disabled={selectedOrderIds.length === 0}
-                  onClick={handleBulkConfirm}
-                  className="inline-flex min-h-10 items-center gap-1.5 rounded-lg border border-green-200 bg-green-50 px-3 py-1.5 text-xs font-bold text-green-700 transition-colors hover:bg-green-100 disabled:opacity-50"
-                >
-                  <CheckCircle2 className="h-3.5 w-3.5" /> Verify
-                </button>
-                <button
-                  type="button"
-                  disabled={selectedOrderIds.length === 0}
-                  onClick={handleBulkCancel}
-                  className="inline-flex min-h-10 items-center gap-1.5 rounded-lg border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs font-bold text-rose-700 transition-colors hover:bg-rose-100 disabled:opacity-50"
-                >
-                  <XCircle className="h-3.5 w-3.5" /> Skip Selected
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-4 space-y-3 md:hidden">
-            {pendingList.length === 0 ? (
-              <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center text-slate-500">
-                <CheckCircle2 className="mx-auto mb-2 h-8 w-8 text-emerald-400" />
-                <p className="text-xs font-semibold">No pending COD orders to verify.</p>
-              </div>
-            ) : pendingList.map((order) => {
-              const isSelected = selectedOrderIds.includes(order.orderId);
-              const customer = getCustomerSummary(order);
-              return (
-                <article key={order.orderId} className={`rounded-xl border bg-white p-4 shadow-sm ${isSelected ? 'border-indigo-200 ring-1 ring-indigo-100' : 'border-slate-200'}`}>
-                  <div className="flex items-start justify-between gap-3">
-                    <label className="flex items-start gap-3">
-                      <input
-                        type="checkbox"
-                        checked={isSelected}
-                        onChange={(event) => toggleOrderSelection(order.orderId, event.target.checked)}
-                        className="mt-1 rounded accent-indigo-600"
-                      />
-                      <span>
-                        <span className="block font-mono text-sm font-bold text-slate-900">#{order.orderId}</span>
-                        <span className="mt-1 block text-sm font-semibold text-slate-800">{customer.primary}</span>
-                        {customer.secondary && <span className="block truncate font-mono text-xs text-slate-500">{customer.secondary}</span>}
-                      </span>
-                    </label>
-                    <span className="font-bold text-slate-900">{(Number(order.amount) || 0).toLocaleString()}</span>
-                  </div>
-                  <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
-                    <div className="rounded-lg bg-slate-50 p-2">
-                      <p className="font-bold uppercase text-slate-400">Risk</p>
-                      <div className="mt-1">{renderCourierVerdict(order.fraudDetails)}</div>
-                    </div>
-                    <div className="rounded-lg bg-slate-50 p-2">
-                      <p className="font-bold uppercase text-slate-400">Held</p>
-                      <p className="mt-1 font-mono font-bold text-slate-700">{formatHeldTime(order.ageHours)}</p>
-                    </div>
-                  </div>
-                  {order.products && order.products.length > 0 && (
-                    <details className="mt-3 group/prod">
-                      <summary className="flex cursor-pointer items-center justify-between text-xs font-bold text-indigo-700 select-none">
-                        <span>Order Items ({order.products.length})</span>
-                        <span className="text-xs text-indigo-500 group-open/prod:hidden">Show</span>
-                        <span className="text-xs text-indigo-500 hidden group-open/prod:inline">Hide</span>
-                      </summary>
-                      <div className="mt-2 space-y-1.5 border-t border-slate-100 pt-2">
-                        {order.products.map((p: DeferredOrderProduct, idx: number) => {
-                          const pName = p.name || p.content_name || `Item ${idx + 1}`;
-                          const qty = p.quantity ? ` x${p.quantity}` : '';
-                          const category = p.category || p.content_category || '';
-                          const attrs = p.attributes && typeof p.attributes === 'object'
-                            ? Object.entries(p.attributes).map(([k, v]) => `${k}: ${v}`).join(', ')
-                            : '';
-                          const meta = [category, attrs].filter(Boolean).join(' - ');
-                          return (
-                            <div key={idx} className="flex items-start gap-1.5 text-xs text-slate-500 leading-tight">
-                              <Package className="h-3.5 w-3.5 mt-0.5 shrink-0 text-slate-400" />
-                              <div>
-                                <span className="font-medium text-slate-700">{pName}</span>
-                                {qty && <span className="font-bold text-slate-500">{qty}</span>}
-                                {meta && <span className="block text-slate-400 font-normal">{meta}</span>}
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </details>
-                  )}
-                  <div className="mt-4 grid grid-cols-2 gap-2">
-                    <button type="button" onClick={() => handleConfirmOrder(order.orderId)} className="min-h-10 rounded-lg bg-emerald-800 px-3 py-2 text-xs font-bold text-white">Confirm</button>
-                    <button type="button" onClick={() => handleCancelOrder(order.orderId)} className="min-h-10 rounded-lg bg-rose-900 px-3 py-2 text-xs font-bold text-white">Skip Event</button>
-                  </div>
-                </article>
-              );
-            })}
-          </div>
-
-          <div className="mt-4 hidden overflow-x-auto md:block">
-            <table className="w-full min-w-[750px] divide-y divide-slate-100 text-left text-xs text-slate-600">
-              <thead className="bg-slate-50 text-xs font-bold uppercase tracking-wider text-slate-500">
-                <tr>
-                  <th className="w-10 px-6 py-3">
-                    <input
-                      type="checkbox"
-                      checked={pendingList.length > 0 && pendingList.every((order) => selectedOrderIds.includes(order.orderId))}
-                      aria-label="Select all pending COD orders"
-                      onChange={(event) => setSelectedOrderIds(event.target.checked ? pendingList.map((order) => order.orderId) : [])}
-                      className="rounded accent-indigo-600"
-                    />
-                  </th>
-                  <th className="px-6 py-3">Order ID</th>
-                  <th className="px-6 py-3">Customer</th>
-                  <th className="px-6 py-3">Amount</th>
-                  <th className="px-6 py-3">Fraud Check</th>
-                  <th className="px-6 py-3">Held Time</th>
-                  <th className="px-6 py-3 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {pendingList.length === 0 ? (
-                  <tr>
-                    <td colSpan={7} className="px-6 py-12 text-center font-medium text-slate-400">
-                      <CheckCircle2 className="mx-auto mb-2 h-8 w-8 text-emerald-400" />
-                      No pending COD orders to verify.
-                    </td>
-                  </tr>
-                ) : pendingList.map((order) => {
-                  const isSelected = selectedOrderIds.includes(order.orderId);
-                  const customer = getCustomerSummary(order);
-                  const products = order.products || [];
-                  return (
-                    <tr key={order.orderId} className={`transition-colors hover:bg-slate-50/50 ${isSelected ? 'bg-indigo-50/10' : ''}`}>
-                      <td className="px-6 py-3">
-                        <input
-                          type="checkbox"
-                          checked={isSelected}
-                          aria-label={`Select pending COD order ${order.orderId}`}
-                          onChange={(event) => toggleOrderSelection(order.orderId, event.target.checked)}
-                          className="rounded accent-indigo-600"
-                        />
-                      </td>
-                      <td className="px-6 py-2.5 font-mono font-bold text-slate-800">{order.orderId}</td>
-                      <td className="px-6 py-2" title={customer.title}>
-                        <div className="flex max-w-[300px] flex-col gap-0.5">
-                          <span className="truncate font-semibold text-slate-800">{customer.primary}</span>
-                          {customer.secondary && <span className="truncate font-mono text-xs text-slate-500">{customer.secondary}</span>}
-                          {products.length > 0 && (
-                            <div className="mt-0.5">
-                              {products.slice(0, 1).map((p, idx: number) => {
-                                const pName = p.name || p.content_name || `Item ${idx + 1}`;
-                                const qty = p.quantity ? ` x${p.quantity}` : '';
-                                const category = p.category || p.content_category || '';
-                                const attrs = p.attributes && typeof p.attributes === 'object'
-                                  ? Object.entries(p.attributes).map(([k, v]) => `${k}: ${v}`).join(', ')
-                                  : '';
-                                const meta = [category, attrs].filter(Boolean).join(' - ');
-                                return (
-                                  <div key={idx} className="flex items-start gap-1 text-xs text-slate-500 leading-tight" title={[pName + qty, meta].filter(Boolean).join(' | ')}>
-                                    <Package className="h-3 w-3 mt-0.5 shrink-0 text-slate-400" />
-                                    <div className="min-w-0">
-                                      <p className="truncate font-medium text-slate-700">{pName}{qty && <span className="font-bold text-slate-500">{qty}</span>}</p>
-                                      {meta && <p className="truncate text-xs font-normal text-slate-400">{meta}</p>}
-                                    </div>
-                                  </div>
-                                );
-                              })}
-                              {products.length > 1 && (
-                                <p className="mt-0.5 pl-4 text-xs font-semibold text-indigo-600">+{products.length - 1} more items</p>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-6 py-2.5 font-semibold text-slate-800">
-                        <span className="text-xs font-bold text-slate-400">BDT </span>{(Number(order.amount) || 0).toLocaleString()}
-                      </td>
-                      <td className="px-6 py-2.5">
-                        {renderCourierVerdict(order.fraudDetails)}
-                      </td>
-                      <td className="px-6 py-2.5 font-mono text-slate-500">{formatHeldTime(order.ageHours)}</td>
-                      <td className="space-x-2 whitespace-nowrap px-6 py-2.5 text-right">
-                        <button type="button" onClick={() => handleConfirmOrder(order.orderId)} className="rounded bg-emerald-800 px-2.5 py-1 text-xs font-bold text-white hover:bg-emerald-900">Confirm</button>
-                        <button type="button" onClick={() => handleCancelOrder(order.orderId)} className="rounded bg-rose-900 px-2.5 py-1 text-xs font-bold text-white hover:bg-rose-950">Skip Event</button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </section>
-
+      <div className="flex items-start gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs leading-relaxed text-emerald-800">
+        <Info className="mt-0.5 h-4 w-4 shrink-0" />
+        <p><strong>Why this matters:</strong> skipping fake COD orders keeps false purchases out of your ad data, so the platforms learn from real buyers.</p>
       </div>
     </div>
   );
