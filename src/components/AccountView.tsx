@@ -617,7 +617,7 @@ export function AccountView({
   );
 
   return (
-    <div className="space-y-6">
+    <div className="mx-auto max-w-6xl space-y-6">
       <div>
         <h1 className="text-xl font-bold tracking-tight text-slate-900">Account</h1>
         <p className="mt-1 text-sm text-slate-500">Manage your profile, sign-in security and connected devices.</p>
@@ -682,7 +682,8 @@ export function AccountView({
             </div>
           </div>
           
-          <form onSubmit={submitProfileSave} className="space-y-4 p-5">
+          <form onSubmit={submitProfileSave}>
+            <div className="space-y-4 p-5">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label htmlFor="account-display-name" className="block text-xs font-semibold text-slate-400  uppercase mb-1">Display Name</label>
@@ -728,7 +729,9 @@ export function AccountView({
             </div>
 
 
-            <div className="pt-2 text-right">
+            </div>
+            <div className="flex flex-col gap-3 border-t border-slate-200 bg-slate-50/50 px-5 py-3 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-[11px] text-slate-400">Account details update immediately after saving.</p>
               <button 
                 type="submit"
                 disabled={profUpdating}
@@ -828,7 +831,7 @@ export function AccountView({
               <p className="mt-0.5 text-xs text-slate-500">Add a one-time code when signing in to protect your account and billing.</p>
             </div>
           </div>
-          <button type="button" disabled title="Two-step verification is coming soon" className="min-h-10 shrink-0 rounded-lg border border-slate-200 px-4 text-xs font-bold text-slate-400 disabled:cursor-not-allowed">Coming soon</button>
+          <button type="button" disabled title="Two-step verification is coming soon" className="min-h-10 shrink-0 rounded-lg border border-slate-200 px-4 text-xs font-bold text-slate-600 disabled:cursor-not-allowed">Enable</button>
         </section>}
 
         {accountSection === 'profile' && <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
@@ -843,6 +846,10 @@ export function AccountView({
             <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-100 text-slate-600"><Monitor className="h-4 w-4" /></span>
             <div className="min-w-0 flex-1"><p className="text-xs font-bold text-slate-900">{browserName} on {operatingSystem}</p><p className="mt-0.5 text-[11px] text-slate-400">Current authenticated browser session</p></div>
             <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[10px] font-bold text-emerald-700">This device</span>
+          </div>
+          <div className="flex flex-col gap-3 border-t border-slate-200 bg-slate-50/50 px-5 py-3 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-[11px] text-slate-400">Signing out ends dashboard access on that device only.</p>
+            <button type="button" disabled title="No other active devices" className="min-h-10 rounded-lg border border-rose-200 bg-white px-4 text-xs font-bold text-rose-600 disabled:cursor-not-allowed disabled:opacity-50">Log out all other devices</button>
           </div>
         </section>}
 
