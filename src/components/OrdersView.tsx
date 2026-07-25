@@ -141,7 +141,7 @@ export function OrdersView({
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [pendingSearch, setPendingSearch] = useState<string>('');
   const [pendingFraudFilter, setPendingFraudFilter] = useState<string>('all');
-  const [pendingSort, setPendingSort] = useState<'oldest' | 'newest'>('oldest');
+  const [pendingSort, setPendingSort] = useState<'oldest' | 'newest'>('newest');
   const [pendingPage, setPendingPage] = useState(1);
   const [selectedPendingOrderIds, setSelectedPendingOrderIds] = useState<string[]>([]);
 
@@ -651,7 +651,7 @@ export function OrdersView({
       const bHours = Number(b.ageHours) || 0;
       return pendingSort === 'oldest' ? bHours - aHours : aHours - bHours;
     });
-  const pendingPageSize = 7;
+  const pendingPageSize = 10;
   const pendingTotalPages = Math.max(1, Math.ceil(pendingFilteredOrders.length / pendingPageSize));
   const pendingPageSafe = Math.min(pendingPage, pendingTotalPages);
   const pendingPageOrders = pendingFilteredOrders.slice(
@@ -835,8 +835,8 @@ export function OrdersView({
               aria-label="Sort pending courier orders"
               className="h-10 rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700"
             >
+              <option value="newest">Latest first</option>
               <option value="oldest">Oldest first</option>
-              <option value="newest">Newest first</option>
             </select>
             <span className="text-xs font-bold text-slate-500">{selectedPendingOrderIds.length} selected</span>
             <button
@@ -1016,133 +1016,83 @@ export function OrdersView({
 
                         {/* Expanded Detail Row */}
                         {isExpanded && (
-                          <tr className="bg-slate-50/80 ">
+                          <tr className="bg-slate-50/80">
                             <td colSpan={7} className="px-6 py-3">
-                              <div className="grid grid-cols-1 items-start gap-3 lg:grid-cols-[minmax(280px,0.85fr)_minmax(0,1.35fr)]">
-                                {/* Customer Info Card */}
-                                <div className="self-start overflow-hidden rounded-xl border border-slate-200 bg-white">
-                                  <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50/70 px-3 py-2">
-                                    <p className="text-xs font-bold uppercase tracking-widest text-slate-500">Customer Details</p>
-                                    <span className="font-mono text-xs font-bold text-slate-400">#{order.orderId}</span>
+                              <div className="grid grid-cols-1 gap-3 lg:grid-cols-[minmax(260px,.9fr)_minmax(0,1.2fr)]">
+                                <section className="max-h-[210px] overflow-y-auto rounded-xl border border-slate-200 bg-white p-4">
+                                  <div className="mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-500">
+                                    <span>Customer details</span>
+                                    <span className="text-slate-300">·</span>
+                                    <span className="font-mono">#{order.orderId}</span>
                                   </div>
-                                  <div className="space-y-2 p-3">
-                                    <div className="flex items-start gap-2.5">
-                                      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-indigo-50">
-                                        <User className="w-3.5 h-3.5 text-indigo-500" />
-                                      </div>
-                                      <div className="min-w-0">
-                                        <p className="text-xs text-slate-400 uppercase font-bold">Name</p>
-                                        <p className="truncate text-xs font-semibold text-slate-800">{order.recipientName || '-'}</p>
-                                      </div>
-                                    </div>
-                                    <div className="flex items-start gap-2.5">
-                                      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-emerald-50">
-                                        <Phone className="w-3.5 h-3.5 text-emerald-500" />
-                                      </div>
-                                      <div className="min-w-0 flex-1">
-                                        <p className="text-xs text-slate-400 uppercase font-bold">Phone</p>
-                                        <div className="flex items-center gap-1.5">
-                                          <p className="font-mono text-xs font-semibold text-slate-800">{usablePhone(order.recipientPhone) || '-'}</p>
-                                          {usablePhone(order.recipientPhone) && (
-                                            <button
-                                              type="button"
-                                              onClick={() => copyPhone(order.recipientPhone)}
-                                              className="rounded p-1 text-slate-400 transition-colors hover:bg-slate-100 hover:text-indigo-600"
-                                              title="Copy phone number"
-                                              aria-label="Copy phone number"
-                                            >
-                                              <Copy className="h-3 w-3" />
-                                            </button>
-                                          )}
-                                        </div>
-                                      </div>
-                                    </div>
-                                    <div className="flex items-start gap-2.5">
-                                      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-amber-50">
-                                        <MapPin className="w-3.5 h-3.5 text-amber-500" />
-                                      </div>
-                                      <div className="min-w-0">
-                                        <p className="text-xs text-slate-400 uppercase font-bold">Address</p>
-                                        <p className="text-xs font-semibold leading-relaxed text-slate-800">{order.recipientAddress || '-'}</p>
-                                      </div>
-                                    </div>
-                                  </div>
-                                </div>
+                                  <dl className="grid grid-cols-[64px_minmax(0,1fr)] gap-x-3 gap-y-2 text-xs">
+                                    <dt className="font-bold uppercase text-slate-400">Name</dt>
+                                    <dd className="truncate font-semibold text-slate-800">{order.recipientName || '-'}</dd>
+                                    <dt className="font-bold uppercase text-slate-400">Phone</dt>
+                                    <dd className="flex min-w-0 items-center gap-1.5">
+                                      <span className="truncate font-mono font-semibold text-slate-800">{usablePhone(order.recipientPhone) || '-'}</span>
+                                      {usablePhone(order.recipientPhone) && (
+                                        <button
+                                          type="button"
+                                          onClick={() => copyPhone(order.recipientPhone)}
+                                          className="shrink-0 rounded p-1 text-indigo-500 hover:bg-indigo-50"
+                                          title="Copy phone number"
+                                          aria-label="Copy phone number"
+                                        >
+                                          <Copy className="h-3 w-3" />
+                                        </button>
+                                      )}
+                                    </dd>
+                                    <dt className="font-bold uppercase text-slate-400">Address</dt>
+                                    <dd className="line-clamp-2 font-semibold leading-relaxed text-slate-800" title={order.recipientAddress}>
+                                      {order.recipientAddress || '-'}
+                                    </dd>
+                                  </dl>
+                                </section>
 
-                                {/* Products Card */}
-                                <div className="self-start overflow-hidden rounded-xl border border-slate-200 bg-white">
-                                  <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50/70 px-3 py-2">
-                                    <p className="text-xs font-bold uppercase tracking-widest text-slate-500">Order Items</p>
-                                    <span className="rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-bold text-indigo-600">{products.length} item{products.length === 1 ? '' : 's'}</span>
+                                <section className="max-h-[210px] overflow-y-auto rounded-xl border border-slate-200 bg-white p-4">
+                                  <div className="mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-500">
+                                    <span>Order items</span>
+                                    <span className="text-slate-300">·</span>
+                                    <span>{products.length} item{products.length === 1 ? '' : 's'}</span>
                                   </div>
-                                  <div>
-                                    {products.length === 0 ? (
-                                      <div className="px-4 py-5 text-center">
-                                        <Package className="w-5 h-5 mx-auto text-slate-300  mb-1" />
-                                        <p className="text-xs text-slate-400">Product details not available for this order</p>
-                                      </div>
-                                    ) : (
-                                      <div className="divide-y divide-slate-100">
-                                        {products.map((p, i: number) => {
-                                          const meta = productMeta(p);
-                                          return (
-                                            <div key={i} className="px-3 py-3 hover:bg-slate-50/50">
-                                              <div className="flex items-start justify-between gap-4">
-                                                <p className="text-xs font-semibold leading-snug text-slate-800">{p.name || p.content_name || 'Product'}</p>
-                                                <div className="shrink-0 text-right">
-                                                  <p className="text-xs font-bold uppercase text-slate-400">Unit price</p>
-                                                  <p className="text-xs font-bold text-slate-800">{Number(p.price || 0) > 0 ? `BDT ${Number(p.price || 0).toLocaleString()}` : 'No price'}</p>
-                                                </div>
-                                              </div>
-                                              {meta.length > 0 && (
-                                                <div className="mt-2 flex flex-wrap gap-1.5">
-                                                  {meta.map((item) => (
-                                                    <span key={`${item.label}-${item.value}`} className={`rounded-md border px-2 py-1 text-xs font-bold ${item.category ? 'border-slate-200 bg-slate-50 text-slate-600' : 'border-indigo-100 bg-indigo-50 text-indigo-700'}`}>
-                                                      {item.label}: {item.value}
-                                                    </span>
-                                                  ))}
-                                                </div>
-                                              )}
-                                              <div className="mt-2 flex items-center gap-3 text-xs text-slate-500">
-                                                <span className="rounded bg-slate-100 px-1.5 py-0.5">Qty <strong className="text-slate-700">{p.quantity || 1}</strong></span>
-                                              </div>
-                                            </div>
-                                          );
-                                        })}
-                                      </div>
-                                    )}
-                                  </div>
-                                  <div className="border-t border-slate-100 bg-slate-50/70 px-3 py-2.5">
-                                    <div className="ml-auto max-w-xs space-y-1 text-xs">
-                                      <div className="flex items-center justify-between gap-5 text-slate-500">
-                                        <span>Product subtotal</span>
-                                        <strong className="text-slate-700">BDT {Number(order.productSubtotal ?? order.amount ?? 0).toLocaleString()}</strong>
-                                      </div>
-                                      {Number(order.deliveryCharge || 0) > 0 && (
-                                        <div className="flex items-center justify-between gap-5 text-slate-500">
-                                          <span>Delivery charge</span>
-                                          <strong className="text-slate-700">+ BDT {Number(order.deliveryCharge).toLocaleString()}</strong>
+                                  {products.length === 0 ? (
+                                    <p className="py-3 text-center text-xs text-slate-400">Product details not available.</p>
+                                  ) : (
+                                    <div className="space-y-2">
+                                      {products.slice(0, 3).map((product, index) => (
+                                        <div key={index} className="flex items-start justify-between gap-4 border-b border-dashed border-slate-100 pb-2 last:border-0">
+                                          <div className="min-w-0">
+                                            <p className="truncate text-xs font-semibold text-slate-800" title={product.name || product.content_name}>
+                                              {product.name || product.content_name || 'Product'}
+                                            </p>
+                                            <p className="mt-1 text-xs text-slate-400">Qty {product.quantity || 1}</p>
+                                          </div>
+                                          <strong className="shrink-0 text-xs text-slate-800">
+                                            BDT {Number(product.price || 0).toLocaleString()}
+                                          </strong>
                                         </div>
+                                      ))}
+                                      {products.length > 3 && (
+                                        <p className="text-xs font-semibold text-indigo-600">+{products.length - 3} more items</p>
                                       )}
-                                      {Number(order.otherAdjustment || 0) !== 0 && (
-                                        <div className="flex items-center justify-between gap-5 text-slate-500">
-                                          <span>Delivery / adjustments</span>
-                                          <strong className="text-slate-700">{Number(order.otherAdjustment) > 0 ? '+' : '-'} BDT {Math.abs(Number(order.otherAdjustment)).toLocaleString()}</strong>
-                                        </div>
-                                      )}
-                                      {Number(order.discount || 0) > 0 && (
-                                        <div className="flex items-center justify-between gap-5 text-slate-500">
-                                          <span>Discount</span>
-                                          <strong className="text-slate-700">- BDT {Number(order.discount).toLocaleString()}</strong>
-                                        </div>
-                                      )}
-                                      <div className="flex items-center justify-between gap-5 border-t border-slate-200 pt-1.5 text-xs">
-                                        <span className="font-bold text-slate-700">Total order value</span>
-                                        <strong className="text-indigo-700">BDT {Number(order.orderTotal ?? order.amount ?? 0).toLocaleString()}</strong>
-                                      </div>
+                                    </div>
+                                  )}
+                                  <div className="mt-3 space-y-1.5 border-t border-slate-100 pt-3 text-xs">
+                                    <div className="flex items-center justify-between text-slate-500">
+                                      <span>Product subtotal</span>
+                                      <strong className="text-slate-700">BDT {Number(order.productSubtotal ?? order.amount ?? 0).toLocaleString()}</strong>
+                                    </div>
+                                    <div className="flex items-center justify-between text-slate-500">
+                                      <span>Delivery & adjustments</span>
+                                      <strong className="text-slate-700">BDT {Number((order.deliveryCharge || 0) + (order.otherAdjustment || 0)).toLocaleString()}</strong>
+                                    </div>
+                                    <div className="flex items-center justify-between border-t border-slate-100 pt-1.5 font-bold text-slate-800">
+                                      <span>Total order value</span>
+                                      <strong className="text-indigo-700">BDT {Number(order.orderTotal ?? order.amount ?? 0).toLocaleString()}</strong>
                                     </div>
                                   </div>
-                                </div>
+                                </section>
                               </div>
                             </td>
                           </tr>
