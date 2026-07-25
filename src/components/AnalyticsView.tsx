@@ -1,5 +1,4 @@
 import React from 'react';
-import { Tooltip } from './common/Tooltip';
 import { PlatformBadge } from './common/PlatformLogo';
 import {
   ShieldAlert, 
@@ -8,13 +7,6 @@ import {
   Download,
   MapPin
 } from 'lucide-react';
-import { 
-  BarChart, 
-  Bar, 
-  XAxis, 
-  YAxis, 
-  Tooltip as ReChartsTooltip
-} from 'recharts';
 import type {
   AdPerformanceMeta,
   AdPerformanceRow,
@@ -59,8 +51,6 @@ export function AnalyticsView({
   const topDistricts = asArray(analyticsAudience?.top_districts);
   const deviceMix = asArray(analyticsAudience?.device_mix);
   const [districtFunnelMode, setDistrictFunnelMode] = React.useState<'events' | 'visitors'>('events');
-  const matchChartHostRef = React.useRef<HTMLDivElement | null>(null);
-  const [matchChartSize, setMatchChartSize] = React.useState({ width: 640, height: 256 });
   const eventDistrictFunnel = asArray(analyticsAudience?.district_funnel);
   const visitorDistrictFunnel = asArray(analyticsAudience?.visitor_district_funnel);
   const districtFunnel = districtFunnelMode === 'visitors' ? visitorDistrictFunnel : eventDistrictFunnel;
@@ -281,12 +271,6 @@ export function AnalyticsView({
     Purchase: 'Order placed',
   }[step] || step);
 
-  const issueLevel = (severity: string) => {
-    if (severity === 'critical' || severity === 'high') return 'Needs fix';
-    if (severity === 'medium') return 'Check soon';
-    if (severity === 'ok') return 'Good';
-    return 'Info';
-  };
   const analyticsRootRef = React.useRef<HTMLDivElement | null>(null);
   const tabRefs = React.useRef<Record<string, HTMLButtonElement | null>>({});
 
@@ -324,25 +308,6 @@ export function AnalyticsView({
       focusInsightTab(insightTabs[insightTabs.length - 1].id);
     }
   };
-
-  React.useEffect(() => {
-    const host = matchChartHostRef.current;
-    if (!host) return;
-
-    const updateSize = () => {
-      const rect = host.getBoundingClientRect();
-      const width = Math.max(1, Math.floor(rect.width));
-      const height = Math.max(1, Math.floor(rect.height));
-      setMatchChartSize(prev => (
-        prev.width === width && prev.height === height ? prev : { width, height }
-      ));
-    };
-
-    updateSize();
-    const observer = new ResizeObserver(updateSize);
-    observer.observe(host);
-    return () => observer.disconnect();
-  }, []);
 
   React.useEffect(() => {
     const handleSectionJump = (event: Event) => {
@@ -410,122 +375,55 @@ export function AnalyticsView({
         </div>
       )}
 
-      {/* 4 Stats Cards */}
       {analyticsOverview && (
         <div id="analytics-overview" role="tabpanel" aria-labelledby="ad-insights-tab-summary" className={`${activeInsightTab === 'summary' ? 'grid' : 'hidden'} scroll-mt-24 grid-cols-2 gap-3 lg:grid-cols-4`}>
-          
-          {/* Card 1: Total Events */}
-          <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-            <div className="flex items-center justify-between">
-              <p className="text-xs font-bold text-indigo-800  border border-indigo-300/30 bg-indigo-100/50  px-2 py-1 rounded-md">Total Events</p>
-            </div>
-            <div className="mt-4 flex items-baseline gap-2">
-              <p className="text-2xl font-bold text-slate-900 tracking-tight">
-                {numberText(analyticsOverview.total_events)}
-              </p>
-              <span className="text-xs font-semibold text-[#7564e0]">events tracked</span>
-            </div>
-          </div>
-
-          {/* Card 2: Success Rate */}
-          <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-            <div className="flex items-center justify-between">
-              <p className="text-xs font-bold text-emerald-800  border border-emerald-300/30 bg-emerald-100/50  px-2 py-1 rounded-md">Success Rate</p>
-            </div>
-            <div className="mt-4 flex items-baseline gap-2">
-              <p className="text-2xl font-bold text-slate-900 tracking-tight">
-                {percentText(analyticsOverview.success_rate)}
-              </p>
-              <span className="text-xs font-semibold text-[#008765]">Success</span>
-            </div>
-          </div>
-
-          {/* Card 3: Avg Daily */}
-          <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-            <div className="flex items-center justify-between">
-              <p className="text-xs font-bold text-purple-800  border border-purple-300/30 bg-purple-100/50  px-2 py-1 rounded-md">Daily Average</p>
-            </div>
-            <div className="mt-4 flex items-baseline gap-2">
-              <p className="text-2xl font-bold text-slate-900 tracking-tight">
-                {numberText(analyticsOverview.avg_daily_events)}
-              </p>
-              <span className="text-xs font-semibold text-[#a647e5]">Avg daily</span>
-            </div>
-          </div>
-
-          {/* Card 4: Signal Grade */}
-          {signalDoctor && (
-            <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-              <div className="flex items-center justify-between">
-                <p className="text-xs font-bold text-amber-800  border border-amber-300/30 bg-amber-100/50  px-2 py-1 rounded-md flex items-center">
-                  Data Quality
-                  <Tooltip content="Data quality shows how complete your tracking data is. More phone, email, event ID, product ID, and order value usually helps ad platforms match sales better." />
-                </p>
+          {[
+            { title: 'Total events', value: numberText(analyticsOverview.total_events), note: 'Tracked in this period' },
+            { title: 'Success rate', value: percentText(analyticsOverview.success_rate), note: 'Delivery performance' },
+            { title: 'Daily average', value: numberText(analyticsOverview.avg_daily_events), note: 'Events per day' },
+            { title: 'Data quality', value: signalDoctor ? `${signalDoctor.score}/100` : '—', note: signalDoctor?.grade || 'Waiting for data' },
+          ].map((metric, index) => (
+            <section key={metric.title} className="min-h-36 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+              <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500">{metric.title}</p>
+              <p className="mt-2 text-2xl font-black tracking-tight text-slate-900">{metric.value}</p>
+              <div className="mt-3 flex items-end justify-between gap-3">
+                <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${index === 1 || index === 3 ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-600'}`}>{metric.note}</span>
+                <span className="flex h-6 items-end gap-0.5" aria-hidden="true">
+                  {[7, 11, 9, 15, 13, 18].map((height, barIndex) => <span key={barIndex} className="w-1 rounded-t bg-indigo-500" style={{ height }} />)}
+                </span>
               </div>
-              <div className="mt-4 flex items-baseline gap-2">
-                <p className="text-2xl font-bold text-slate-900 tracking-tight">
-                  {signalDoctor.score}/100
-                </p>
-                <span className="text-xs font-semibold text-[#b26200]">{signalDoctor.grade}</span>
-              </div>
-            </div>
-          )}
-
+            </section>
+          ))}
         </div>
       )}
 
-      <div
-        aria-hidden={activeInsightTab !== 'summary'}
-        className={`${activeInsightTab === 'summary' ? 'block' : 'hidden'} scroll-mt-24 rounded-xl border border-slate-200 bg-white p-4 shadow-sm md:p-6`}
-      >
-        <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+      <section aria-hidden={activeInsightTab !== 'summary'} className={`${activeInsightTab === 'summary' ? 'block' : 'hidden'} overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm`}>
+        <header className="flex items-center gap-3 border-b border-slate-200 px-5 py-4">
+          <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600">↗</span>
           <div>
-            <h3 className="text-base font-bold text-slate-900">Business Results</h3>
-            <p className="text-xs text-slate-500">A quick view of ad cost, orders, confirmed sales, and return.</p>
+            <h3 className="text-sm font-bold text-slate-900">Business results</h3>
+            <p className="mt-0.5 text-xs text-slate-500">Ad spend and confirmed sales for the last {analyticsDays} days.</p>
           </div>
-          {loadingAdPerformance && (
-            <span className="text-xs font-semibold text-slate-400">Updating ad data...</span>
-          )}
+          {loadingAdPerformance && <span className="ml-auto text-xs font-semibold text-slate-400">Updating…</span>}
+        </header>
+        {adPerformanceError && <div className="border-b border-rose-200 bg-rose-50 px-5 py-3 text-xs text-rose-800">{adPerformanceError}</div>}
+        <div className="grid grid-cols-2 divide-slate-200 lg:grid-cols-5 lg:divide-x">
+          {[
+            { title: 'Ad cost', value: formatMoney(adSummary.spend, adSummary.spendCurrency), note: adSummary.spend ? 'Synced ad spend' : 'No spend synced yet' },
+            { title: 'New orders', value: numberText(adSummary.placedPurchases), note: 'COD pending included' },
+            { title: 'Confirmed sales', value: formatMoney(adSummary.confirmedRevenue, adSummary.revenueCurrency), note: `${numberText(adSummary.confirmedPurchases)} confirmed` },
+            { title: 'Return', value: adSummary.spend ? `${adSummary.returnRate.toFixed(2)}x` : '—', note: 'Needs spend + sales' },
+            { title: 'Cost / order', value: adSummary.placedPurchases ? formatMoney(adSummary.costPerOrder, adSummary.spendCurrency) : '—', note: 'Needs spend + orders' },
+          ].map(metric => (
+            <div key={metric.title} className="border-b border-slate-200 px-5 py-4 last:border-b-0 lg:border-b-0">
+              <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500">{metric.title}</p>
+              <p className="mt-1 text-sm font-black text-slate-900">{metric.value}</p>
+              <p className="mt-1 text-[11px] text-slate-500">{metric.note}</p>
+            </div>
+          ))}
         </div>
-        {adPerformanceError && (
-          <div className="mt-4 flex flex-col gap-3 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-xs text-rose-800 sm:flex-row sm:items-center sm:justify-between">
-            <span>{adPerformanceError}</span>
-            <button
-              type="button"
-              onClick={fetchAdPerformance}
-              className="w-fit rounded-md border border-rose-200 bg-white px-3 py-1.5 text-xs font-bold text-rose-700 hover:bg-rose-100"
-            >
-              Retry
-            </button>
-          </div>
-        )}
-        <div className="mt-4 grid grid-cols-2 gap-3 lg:grid-cols-5">
-          <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
-            <p className="text-xs font-bold uppercase tracking-wide text-slate-500">Ad Cost</p>
-            <p className="mt-2 text-lg font-black text-slate-900">{formatMoney(adSummary.spend, adSummary.spendCurrency)}</p>
-          </div>
-          <div className="rounded-lg border border-indigo-100 bg-indigo-50 p-3">
-            <p className="text-xs font-bold uppercase tracking-wide text-indigo-700">New Orders</p>
-            <p className="mt-2 text-lg font-black text-slate-900">{numberText(adSummary.placedPurchases)}</p>
-            <p className="mt-1 text-xs font-semibold text-indigo-700">COD pending included</p>
-          </div>
-          <div className="rounded-lg border border-emerald-100 bg-emerald-50 p-3">
-            <p className="text-xs font-bold uppercase tracking-wide text-emerald-700">Confirmed Sales</p>
-            <p className="mt-2 text-lg font-black text-slate-900">{formatMoney(adSummary.confirmedRevenue, adSummary.revenueCurrency)}</p>
-            <p className="mt-1 text-xs font-semibold text-emerald-700">{numberText(adSummary.confirmedPurchases)} confirmed</p>
-          </div>
-          <div className="rounded-lg border border-violet-100 bg-violet-50 p-3">
-            <p className="text-xs font-bold uppercase tracking-wide text-violet-700">Return</p>
-            <p className="mt-2 text-lg font-black text-slate-900">{adSummary.returnRate.toFixed(2)}x</p>
-            <p className="mt-1 text-xs font-semibold text-violet-700">confirmed only</p>
-          </div>
-          <div className="rounded-lg border border-amber-100 bg-amber-50 p-3">
-            <p className="text-xs font-bold uppercase tracking-wide text-amber-700">Cost/order</p>
-            <p className="mt-2 text-lg font-black text-slate-900">{formatMoney(adSummary.costPerOrder, adSummary.spendCurrency)}</p>
-            <p className="mt-1 text-xs font-semibold text-amber-700">confirmed orders</p>
-          </div>
-        </div>
-      </div>
+        <footer className="border-t border-slate-200 bg-slate-50/50 px-5 py-3 text-xs text-slate-500">No ad spend recorded? Connect your ad account spend sync in Settings to see Return and Cost/order.</footer>
+      </section>
 
       <div
         aria-hidden={activeInsightTab !== 'customers'}
@@ -716,45 +614,33 @@ export function AnalyticsView({
         aria-hidden={activeInsightTab !== 'summary'}
         className={`${activeInsightTab === 'summary' ? 'grid' : 'hidden'} scroll-mt-24 grid-cols-1 gap-4 lg:grid-cols-3 lg:gap-6`}
       >
-        <div className="lg:col-span-3">
-          <h3 className="text-base font-bold text-slate-900">Tracking Health</h3>
-          <p className="text-xs text-slate-500">Check if visitor actions, customer data, and ad tracking are working properly.</p>
-        </div>
-        
-        <div className="lg:col-span-2 space-y-6">
+        <div className="space-y-6 lg:contents">
           {/* Conversion Funnel */}
-          <div className="flex flex-col rounded-xl border border-slate-200 bg-white p-4 shadow-sm md:p-6">
-            <div className="mb-6">
-              <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wide ">Customer Steps</h3>
-              <p className="text-xs text-slate-400 ">See how people move from store visit to order.</p>
+          <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm lg:col-span-2">
+            <div className="border-b border-slate-200 px-5 py-4">
+              <h3 className="text-sm font-bold text-slate-900">Customer journey</h3>
+              <p className="mt-0.5 text-xs text-slate-500">How people move from store visit to order · last {analyticsDays} days.</p>
             </div>
 
-            <div className="space-y-4">
+            <div className="space-y-0 px-5 py-5">
               {asArray(analyticsOverview?.funnel).length ? (
                 (() => {
                   const funnel = asArray(analyticsOverview?.funnel);
                   const maxCount = Math.max(...funnel.map((f) => Number(f.count || 0)), 1);
-                  const funnelColors = ['bg-purple-500', 'bg-blue-500', 'bg-green-500', 'bg-amber-500', 'bg-emerald-500'];
                   return funnel.map((step, i: number) => {
                     const pctWidth = Math.max((Number(step.count || 0) / maxCount) * 100, 5);
                     return (
-                      <div key={step.step} className="space-y-1.5">
-                        <div className="flex justify-between text-xs font-medium">
-                          <span className="text-slate-500 flex items-center gap-1  font-mono">
-                            {stepLabel(step.step)}
-                            {i > 0 && step.drop_off > 0 && (
-                              <span className="text-rose-600 text-xs font-bold">
-                                Down {step.drop_off}%
-                              </span>
-                            )}
-                          </span>
-                          <span className="text-slate-800 font-bold ">{numberText(step.count)} actions</span>
+                      <div key={step.step} className="grid grid-cols-[140px_1fr_100px] items-center gap-4 border-b border-dashed border-slate-200 py-4 last:border-0">
+                        <div>
+                          <p className="text-xs font-bold text-slate-900">{stepLabel(step.step)}</p>
+                          <p className="mt-1 text-[11px] text-slate-500">{numberText(step.count)} actions</p>
                         </div>
-                        <div className="h-2.5 w-full rounded-full bg-slate-100  overflow-hidden">
-                          <div 
-                            className={`h-full rounded-full transition-all duration-800 ${funnelColors[i % 5]}`}
-                            style={{ width: `${pctWidth}%` }}
-                          />
+                        <div className="h-6 overflow-hidden rounded-md bg-slate-100">
+                          <div className="h-full rounded-md bg-gradient-to-r from-indigo-600 to-indigo-500" style={{ width: `${pctWidth}%` }} />
+                        </div>
+                        <div className="text-right">
+                          <p className={`text-xs font-bold ${i > 0 && step.drop_off > 75 ? 'text-amber-700' : 'text-slate-900'}`}>{i === 0 ? '100%' : `${Math.max(0, 100 - Number(step.drop_off || 0))}%`}</p>
+                          <p className="mt-1 text-[11px] text-slate-500">{i === 0 ? 'of visitors' : 'from previous step'}</p>
                         </div>
                       </div>
                     );
@@ -766,98 +652,62 @@ export function AnalyticsView({
             </div>
           </div>
 
-          {/* Telemetry Match Quality Index Bar Chart */}
-          <div className="flex flex-col rounded-xl border border-slate-200 bg-white p-4 shadow-sm md:p-6">
-            <div className="mb-6 flex justify-between items-center">
+          <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm lg:order-3 lg:col-span-3">
+            <div className="flex items-start justify-between gap-4 border-b border-slate-200 px-5 py-4">
               <div>
-                <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wide ">Data Quality</h3>
-                <p className="text-xs text-slate-400 ">How much useful customer data is sent to ad platforms.</p>
+                <h3 className="text-sm font-bold text-slate-900">Data quality</h3>
+                <p className="mt-0.5 text-xs text-slate-500">How much useful customer data reaches each platform.</p>
               </div>
               {signalDoctor?.score !== undefined && (
-                <div className="px-3 py-1.5 rounded-xl border border-indigo-100 bg-indigo-50/50   text-right">
-                  <span className="block text-xs font-bold text-[#5e5bfe] uppercase tracking-widest leading-none">Quality Score</span>
-                  <span className="text-lg font-black text-slate-800  font-mono leading-none">{signalDoctor.score}%</span>
-                </div>
+                <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-bold text-emerald-700">{signalDoctor.score} / 100 · {signalDoctor.grade}</span>
               )}
             </div>
 
-            <div ref={matchChartHostRef} className="mt-2 h-64 min-w-0">
-              {signalRates && matchChartSize.width > 120 ? (
-                  <BarChart 
-                    width={matchChartSize.width}
-                    height={matchChartSize.height}
-                    data={[
-                      { name: 'Event ID', rate: signalRates.event_id || 0 },
-                      { name: 'User Match', rate: signalRates.user_match || 0 },
-                      { name: 'Email/Phone', rate: signalRates.email_or_phone || 0 },
-                      { name: 'Click IDs', rate: signalRates.click_id || 0 },
-                      { name: 'Product ID', rate: signalRates.content_ids || 0 },
-                      { name: 'Order Value', rate: signalRates.value || 0 },
-                      { name: 'UTM Source', rate: signalRates.utm || 0 }
-                    ]} 
-                    layout="vertical"
-                    margin={{ top: 0, right: 16, left: 0, bottom: 0 }}
-                  >
-                    <XAxis type="number" domain={[0, 100]} stroke="#94a3b8" fontSize={10} tickLine={false} axisLine={false} />
-                    <YAxis dataKey="name" type="category" stroke="#94a3b8" fontSize={10} tickLine={false} axisLine={false} width={92} />
-                    <ReChartsTooltip 
-                      contentStyle={{ 
-                        backgroundColor: '#0f172a', 
-                        borderColor: '#1e293b', 
-                        color: '#f1f5f9', 
-                        borderRadius: '8px', 
-                        fontSize: '11px', 
-                        boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.05)' 
-                      }}
-                      formatter={(val) => [`${val}%`, 'Data sent']}
-                    />
-                    <Bar dataKey="rate" fill="#6366f1" radius={[0, 4, 4, 0]} barSize={12} />
-                  </BarChart>
+            <div className="grid gap-x-10 gap-y-4 px-5 py-6 md:grid-cols-2">
+              {signalRates ? (
+                [
+                  ['Event ID', signalRates.event_id || 0],
+                  ['User match', signalRates.user_match || 0],
+                  ['Email / Phone', signalRates.email_or_phone || 0],
+                  ['Click IDs', signalRates.click_id || 0],
+                  ['Product ID', signalRates.content_ids || 0],
+                  ['Order value', signalRates.value || 0],
+                  ['UTM source', signalRates.utm || 0],
+                ].map(([name, rate]) => (
+                  <div key={String(name)} className="grid grid-cols-[110px_1fr_42px] items-center gap-3">
+                    <span className="text-xs font-semibold text-slate-600">{name}</span>
+                    <div className="h-2 overflow-hidden rounded-full bg-slate-100"><div className="h-full rounded-full bg-indigo-600" style={{ width: `${Number(rate)}%` }} /></div>
+                    <span className="text-right text-[11px] font-bold text-slate-900">{rate}%</span>
+                  </div>
+                ))
               ) : (
                 <div className="py-12 text-center text-xs text-slate-400">Not enough data yet. Keep tracking.</div>
               )}
             </div>
+            <footer className="border-t border-slate-200 bg-slate-50/50 px-5 py-3 text-xs text-slate-500">Lower-scoring signals can improve by using consistent campaign links and complete checkout details.</footer>
           </div>
         </div>
 
-        {/* Signal Doctor Heuristics Checklist */}
-        <div className="self-start rounded-xl border border-slate-200 bg-white p-6 shadow-sm  ">
-          <div>
-            <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wide ">Tracking Checklist</h3>
-            <p className="text-xs text-slate-400 ">Simple checks and fixes for better ad tracking.</p>
+        <div className="self-start overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm lg:col-span-1">
+          <div className="flex items-start justify-between gap-3 border-b border-slate-200 px-5 py-4">
+            <div>
+              <h3 className="text-sm font-bold text-slate-900">Tracking health</h3>
+              <p className="mt-0.5 text-xs text-slate-500">Checks that keep your ad data reliable.</p>
+            </div>
+            <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[10px] font-bold text-emerald-700">{asArray(signalDoctor?.issues).some(issue => issue.severity === 'critical' || issue.severity === 'high') ? 'Needs attention' : 'All good'}</span>
           </div>
 
-          <div className="mt-4 space-y-3 overflow-y-auto max-h-96 pr-1">
+          <div className="divide-y divide-dashed divide-slate-200 px-5 py-5">
               {asArray(signalDoctor?.issues).length ? (
               asArray(signalDoctor?.issues).map((issue, idx: number) => (
-                <div key={idx} className={`p-3 rounded-lg border text-xs ${
-                  issue.severity === 'critical' || issue.severity === 'high' ? 'bg-rose-50/50 border-rose-200 text-rose-800   ' :
-                  issue.severity === 'medium' ? 'bg-amber-50/50 border-amber-200 text-amber-800   ' :
-                  issue.severity === 'ok' ? 'bg-green-50/50 border-green-200 text-green-800   ' :
-                  'bg-blue-50/50 border-blue-200 text-blue-800   '
-                }`}>
+                <div key={idx} className="py-3 first:pt-0 last:pb-0">
                   <div className="flex items-start gap-2.5">
                     {issue.severity === 'critical' || issue.severity === 'high' ? <ShieldAlert className="w-4 h-4 shrink-0 text-rose-500 mt-0.5" /> :
                      issue.severity === 'medium' ? <AlertTriangle className="w-4 h-4 shrink-0 text-amber-500 mt-0.5" /> :
                      <CheckCircle className="w-4 h-4 shrink-0 text-emerald-500 mt-0.5" />}
-                    <div className="min-w-0 flex-1 space-y-2">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <h4 className="font-bold text-xs leading-tight">{issue.title}</h4>
-                        <span className="rounded bg-white/60 px-1.5 py-0.5 text-xs font-bold uppercase tracking-wide">
-                          {issueLevel(issue.severity)}
-                        </span>
-                      </div>
-                      <div className="space-y-1">
-                        <p className="text-xs font-bold uppercase tracking-wide opacity-70">Why it matters</p>
-                        <p className="text-xs leading-normal opacity-90">{issue.impact}</p>
-                      </div>
-                      <div className="rounded border border-black/5 bg-white/50 p-2">
-                        <p className="text-xs font-bold uppercase tracking-wide opacity-70">Fix</p>
-                        <p className="mt-1 text-xs leading-normal">{issue.fix}</p>
-                      </div>
-                      {issue.metric && (
-                        <p className="font-mono text-xs opacity-60">Check: {issue.metric}</p>
-                      )}
+                    <div className="min-w-0 flex-1">
+                      <h4 className="text-xs font-bold leading-tight text-slate-900">{issue.title}</h4>
+                      <p className="mt-1 text-xs leading-relaxed text-slate-500">{issue.fix || issue.impact}</p>
                     </div>
                   </div>
                 </div>
