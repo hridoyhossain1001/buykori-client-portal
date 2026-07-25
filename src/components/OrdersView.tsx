@@ -617,28 +617,54 @@ export function OrdersView({
     })
     .slice(0, 30);
 
-  const renderRiskGauge = (scoreValue: number) => {
-    const score = Math.max(0, Math.min(100, Number(scoreValue) || 0));
-    const tone = score >= 75
-      ? { label: 'High', text: 'text-rose-700', bar: 'bg-rose-500' }
-      : score >= 35
-        ? { label: 'Medium', text: 'text-amber-700', bar: 'bg-amber-500' }
-        : { label: 'Low', text: 'text-green-700', bar: 'bg-green-500' };
+  const VERDICT_STYLE: Record<string, { label: string; bg: string; text: string; icon: string; border: string }> = {
+    EXCELLENT: { label: 'Excellent', bg: 'bg-emerald-50', text: 'text-emerald-700', icon: '✅', border: 'border-emerald-200' },
+    GOOD: { label: 'Good', bg: 'bg-green-50', text: 'text-green-700', icon: '👍', border: 'border-green-200' },
+    MODERATE: { label: 'Moderate', bg: 'bg-amber-50', text: 'text-amber-700', icon: '⚠️', border: 'border-amber-200' },
+    RISKY: { label: 'Risky', bg: 'bg-orange-50', text: 'text-orange-700', icon: '🔶', border: 'border-orange-200' },
+    HIGH_RISK: { label: 'High Risk', bg: 'bg-rose-50', text: 'text-rose-700', icon: '🔴', border: 'border-rose-200' },
+    NEW_CUSTOMER: { label: 'New', bg: 'bg-blue-50', text: 'text-blue-700', icon: '🆕', border: 'border-blue-200' },
+    UNKNOWN: { label: 'Unknown', bg: 'bg-slate-50', text: 'text-slate-500', icon: '❓', border: 'border-slate-200' },
+  };
+
+  const renderCourierVerdict = (details?: DeferredOrder['fraudDetails']) => {
+    const verdict = details?.courier_verdict || 'UNKNOWN';
+    const confidence = details?.courier_confidence || 'low';
+    const summary = details?.courier_summary;
+    const style = VERDICT_STYLE[verdict] || VERDICT_STYLE.UNKNOWN;
+
+    const confBadge = confidence === 'high'
+      ? 'bg-emerald-100 text-emerald-700'
+      : confidence === 'medium'
+        ? 'bg-amber-100 text-amber-700'
+        : 'bg-slate-100 text-slate-500';
 
     return (
-      <div className="w-[96px]">
-        <div className="mb-1 flex items-center justify-between gap-2">
-          <span className={`text-xs font-black uppercase tracking-wide ${tone.text}`}>{tone.label}</span>
-          <span className="font-mono text-xs font-bold text-slate-500">{score}/100</span>
+      <div className="min-w-[110px]">
+        <div className={`inline-flex items-center gap-1.5 rounded-lg border px-2 py-1 ${style.bg} ${style.border}`}>
+          <span className="text-sm leading-none">{style.icon}</span>
+          <span className={`text-xs font-black uppercase tracking-wide ${style.text}`}>{style.label}</span>
         </div>
-        <div className="grid h-1.5 grid-cols-3 overflow-hidden rounded-full bg-slate-100">
-          <span className="bg-green-400" />
-          <span className="bg-amber-400" />
-          <span className="bg-rose-400" />
+        <div className="mt-1 flex items-center gap-1.5">
+          <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold uppercase ${confBadge}`}>{confidence}</span>
+          {summary && summary.total_orders > 0 && (
+            <span className="text-[10px] font-semibold text-slate-400">
+              {summary.total_delivered}/{summary.total_orders} delivered
+            </span>
+          )}
         </div>
-        <div className="mt-1 h-0.5 rounded-full bg-slate-100">
-          <div className={`h-full rounded-full ${tone.bar}`} style={{ width: `${score}%` }} />
-        </div>
+        {summary?.providers && summary.providers.length > 0 && (
+          <div className="mt-1 flex flex-wrap gap-1">
+            {summary.providers.filter(p => p.status === 'ok').map(p => {
+              const pStyle = VERDICT_STYLE[p.tier || 'UNKNOWN'] || VERDICT_STYLE.UNKNOWN;
+              return (
+                <span key={p.provider} className={`inline-flex items-center gap-0.5 rounded border px-1 py-0.5 text-[9px] font-bold uppercase ${pStyle.bg} ${pStyle.border} ${pStyle.text}`}>
+                  {p.provider}: {pStyle.label}
+                </span>
+              );
+            })}
+          </div>
+        )}
       </div>
     );
   };
@@ -773,7 +799,7 @@ export function OrdersView({
                     <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
                       <div className="rounded-lg bg-slate-50 p-2 ">
                         <p className="font-bold uppercase text-slate-400">Risk</p>
-                        <div className="mt-1">{renderRiskGauge(order.fraudScore)}</div>
+                        <div className="mt-1">{renderCourierVerdict(order.fraudDetails)}</div>
                       </div>
                       <div className="rounded-lg bg-slate-50 p-2 ">
                         <p className="font-bold uppercase text-slate-400">Held</p>
@@ -829,7 +855,7 @@ export function OrdersView({
                   <th className="px-6 py-3">Order ID</th>
                   <th className="px-6 py-3">Customer Info</th>
                   <th className="px-6 py-3">Value</th>
-                  <th className="px-6 py-3">Fraud Score</th>
+                  <th className="px-6 py-3">Courier Verdict</th>
                   <th className="px-6 py-3">Time Held</th>
                   <th className="px-6 py-3 text-right">Actions</th>
                 </tr>
@@ -875,7 +901,7 @@ export function OrdersView({
                           </td>
                           <td className="px-6 py-3 font-semibold text-slate-800 ">BDT {Number(order.amount || 0).toLocaleString()}</td>
                           <td className="px-6 py-3">
-                            {renderRiskGauge(order.fraudScore)}
+                            {renderCourierVerdict(order.fraudDetails)}
                           </td>
                           <td className="px-6 py-3 text-slate-400 font-mono ">{formatHeldAge(order.ageHours)}</td>
                           <td className="px-6 py-3 text-right space-x-2 whitespace-nowrap">

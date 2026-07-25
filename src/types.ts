@@ -287,7 +287,38 @@ export interface DeferredOrder {
   orderTotal?: number;
   customer?: string;
   fraudScore?: number;
-  fraudDetails?: Record<string, boolean>;
+  fraudDetails?: {
+    ip_mismatch?: boolean;
+    disposable_email?: boolean;
+    velocity_limit?: boolean;
+    gibberish_name?: boolean;
+    courier_verdict?: string | null;
+    courier_confidence?: string | null;
+    courier_summary?: {
+      verdict: string;
+      trust_score: number;
+      fraud_points: number;
+      confidence: string;
+      total_orders: number;
+      total_delivered: number;
+      total_cancelled: number;
+      success_ratio: number | null;
+      providers: Array<{
+        provider: string;
+        status: string;
+        tier: string | null;
+        total: number;
+        delivered: number;
+        cancelled: number;
+        success_ratio: number | null;
+        rating: string | null;
+        segment: string | null;
+      }>;
+      checked: string[];
+      failed: string[];
+    } | null;
+    [key: string]: unknown;
+  };
   ageHours?: number | string;
   timestamp?: string;
   operationsOnly?: boolean;
