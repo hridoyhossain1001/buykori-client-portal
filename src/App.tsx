@@ -1840,6 +1840,7 @@ export default function App() {
             {activePage === 'account' && profile && (
               <AccountView 
                 profile={profile}
+                connection={connection}
                 profName={profName}
                 setProfName={setProfName}
                 profEmail={profEmail}

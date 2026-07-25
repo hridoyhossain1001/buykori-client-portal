@@ -115,6 +115,7 @@ export interface PluginReleaseInfo {
 export interface UserProfile {
   name: string;
   email: string;
+  emailVerified?: boolean;
   notificationEmail: string;
   plan: string;
   planTier?: string;

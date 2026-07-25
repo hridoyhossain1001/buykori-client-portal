@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { ArrowRight, CheckCircle2, Clock3, Copy, CreditCard, KeyRound, Loader2, LockKeyhole, QrCode, ReceiptText, RotateCcw, ShieldAlert, Smartphone, Sparkles, UserRound, WalletCards, X } from 'lucide-react';
+import { ArrowRight, Check, CheckCircle2, Clock3, Copy, CreditCard, Download, Eye, EyeOff, Info, KeyRound, Loader2, LockKeyhole, Monitor, QrCode, ReceiptText, RotateCcw, ShieldAlert, Smartphone, Sparkles, Trash2, UserRound, WalletCards, X } from 'lucide-react';
 import QRCode from 'qrcode';
-import { UserProfile } from '../types';
+import { ClientConnection, UserProfile } from '../types';
 import { Modal } from './common/Modal';
 
 const PLAN_PRICING = Object.freeze({
@@ -49,6 +49,7 @@ type PaymentHistoryItem = {
 
 interface AccountViewProps {
   profile: UserProfile;
+  connection: ClientConnection | null;
   profName: string;
   setProfName: (v: string) => void;
   profEmail: string;
@@ -82,6 +83,7 @@ interface AccountViewProps {
 
 export function AccountView({
   profile,
+  connection,
   profName,
   setProfName,
   profEmail,
@@ -122,10 +124,15 @@ export function AccountView({
   const [paymentSecondsLeft, setPaymentSecondsLeft] = useState(0);
   const [paymentFeedback, setPaymentFeedback] = useState('');
   const [paymentSuccess, setPaymentSuccess] = useState<{ title: string; message: string } | null>(null);
-  const [accountSection, setAccountSection] = useState<'profile' | 'billing' | 'payments' | 'danger'>('profile');
+  const [accountSection, setAccountSection] = useState<'profile' | 'billing' | 'danger'>('profile');
   const [paymentHistory, setPaymentHistory] = useState<PaymentHistoryItem[]>([]);
   const [paymentHistoryLoading, setPaymentHistoryLoading] = useState(false);
   const [paymentHistoryLoaded, setPaymentHistoryLoaded] = useState(false);
+  const [paymentStatusFilter, setPaymentStatusFilter] = useState<'all' | 'paid' | 'cancelled' | 'expired'>('all');
+  const [paymentPage, setPaymentPage] = useState(1);
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const paymentBrand = paymentProvider === 'bkash'
     ? { name: 'bKash', primary: '#E2136E', secondary: '#A90052', soft: '#FFF1F7', text: '#9D174D' }
     : { name: 'Nagad', primary: '#D8292F', secondary: '#F37021', soft: '#FFF4ED', text: '#9A3412' };
@@ -135,7 +142,6 @@ export function AccountView({
   const isGrowth = currentPlanLower.includes('growth');
   const isScale = currentPlanLower.includes('scale');
   const isAgency = currentPlanLower.includes('agency');
-  const emailChanged = profEmail.trim().toLowerCase() !== profile.email.trim().toLowerCase();
   const isDemo = window.location.hostname.includes('localhost') || 
                  window.location.hostname.includes('127.0.0.1');
 
@@ -248,7 +254,7 @@ export function AccountView({
   }, [paymentIntent?.reference, paymentIntent?.status, paymentIntent?.expiresAt]);
 
   useEffect(() => {
-    if (accountSection !== 'payments' || paymentHistoryLoaded || paymentHistoryLoading) return;
+    if (accountSection !== 'billing' || paymentHistoryLoaded || paymentHistoryLoading) return;
     setPaymentHistoryLoading(true);
     fetch('/api/payments/history?limit=100')
       .then(async (response) => {
@@ -321,7 +327,6 @@ export function AccountView({
   const accountSections = [
     { id: 'profile' as const, label: 'Profile & Security', icon: UserRound },
     { id: 'billing' as const, label: 'Plan & Billing', icon: WalletCards },
-    { id: 'payments' as const, label: 'Payment History', icon: ReceiptText },
     { id: 'danger' as const, label: 'Danger Zone', icon: ShieldAlert },
   ];
 
@@ -363,15 +368,268 @@ export function AccountView({
     'Up to 60 days of event history',
   ];
 
+  const usagePercent = profile.eventsQuota > 0
+    ? Math.min(100, (profile.eventsUsed / profile.eventsQuota) * 100)
+    : 0;
+  const passwordStrength = [
+    passNew.length >= 8,
+    /[a-z]/.test(passNew) && /[A-Z]/.test(passNew),
+    /\d/.test(passNew),
+    /[^A-Za-z0-9]/.test(passNew),
+  ].filter(Boolean).length;
+  const passwordStrengthLabel = ['Too short', 'Weak', 'Fair', 'Good', 'Strong'][passwordStrength];
+  const maskedConnectionKey = connection?.api_key
+    ? `${connection.api_key.slice(0, 7)}••••${connection.api_key.slice(-4)}`
+    : 'Not available';
+  const browserName = /Edg/i.test(navigator.userAgent)
+    ? 'Edge'
+    : /Firefox/i.test(navigator.userAgent)
+      ? 'Firefox'
+      : /Chrome/i.test(navigator.userAgent)
+        ? 'Chrome'
+        : /Safari/i.test(navigator.userAgent)
+          ? 'Safari'
+          : 'Browser';
+  const operatingSystem = /Windows/i.test(navigator.userAgent)
+    ? 'Windows'
+    : /Android/i.test(navigator.userAgent)
+      ? 'Android'
+      : /iPhone|iPad/i.test(navigator.userAgent)
+        ? 'iOS'
+        : /Mac/i.test(navigator.userAgent)
+          ? 'macOS'
+          : 'this device';
+
+  const paymentCategory = (status: string): 'paid' | 'cancelled' | 'expired' | 'other' => {
+    if (['approved', 'matched', 'approved_overpaid'].includes(status)) return 'paid';
+    if (['cancelled', 'rejected', 'failed'].includes(status)) return 'cancelled';
+    if (status === 'expired') return 'expired';
+    return 'other';
+  };
+  const paymentCounts = {
+    all: paymentHistory.length,
+    paid: paymentHistory.filter(payment => paymentCategory(payment.status) === 'paid').length,
+    cancelled: paymentHistory.filter(payment => paymentCategory(payment.status) === 'cancelled').length,
+    expired: paymentHistory.filter(payment => paymentCategory(payment.status) === 'expired').length,
+  };
+  const filteredPaymentHistory = paymentHistory.filter(payment =>
+    paymentStatusFilter === 'all' || paymentCategory(payment.status) === paymentStatusFilter
+  );
+  const paymentPageSize = 6;
+  const paymentPageCount = Math.max(1, Math.ceil(filteredPaymentHistory.length / paymentPageSize));
+  const visiblePayments = filteredPaymentHistory.slice(
+    (paymentPage - 1) * paymentPageSize,
+    paymentPage * paymentPageSize,
+  );
+  const paidPayments = paymentHistory
+    .filter(payment => paymentCategory(payment.status) === 'paid')
+    .sort((a, b) => new Date(b.receivedAt || b.createdAt || 0).getTime() - new Date(a.receivedAt || a.createdAt || 0).getTime());
+  const currentMonth = new Date();
+  const paidThisMonth = paidPayments
+    .filter(payment => {
+      const paidAt = new Date(payment.receivedAt || payment.createdAt || 0);
+      return paidAt.getFullYear() === currentMonth.getFullYear() && paidAt.getMonth() === currentMonth.getMonth();
+    })
+    .reduce((total, payment) => total + Number(payment.totalAmount || 0), 0);
+  const lastPaidPayment = paidPayments[0] || null;
+
+  const downloadTextFile = (filename: string, content: string, type = 'text/plain') => {
+    const blob = new Blob([content], { type });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const exportPaymentHistory = () => {
+    const csvRows = [
+      ['Date', 'Plan', 'Method', 'Transaction', 'Amount', 'Currency', 'Status'],
+      ...filteredPaymentHistory.map(payment => [
+        payment.createdAt || '',
+        payment.planTier,
+        payment.provider,
+        payment.trxId || '',
+        payment.totalAmount,
+        payment.currency,
+        statusLabel(payment.status),
+      ]),
+    ];
+    const csv = csvRows
+      .map(row => row.map(value => `"${String(value).replaceAll('"', '""')}"`).join(','))
+      .join('\n');
+    downloadTextFile('buykori-payment-history.csv', csv, 'text/csv');
+  };
+
+  const downloadReceipt = (payment: PaymentHistoryItem) => {
+    downloadTextFile(
+      `buykori-receipt-${payment.reference}.txt`,
+      [
+        'Buykori AdSync Payment Receipt',
+        `Reference: ${payment.reference}`,
+        `Date: ${payment.createdAt ? new Date(payment.createdAt).toLocaleString() : 'Not available'}`,
+        `Plan: ${payment.planTier}`,
+        `Method: ${payment.provider}`,
+        `Transaction: ${payment.trxId || 'Not submitted'}`,
+        `Amount: ${payment.currency} ${payment.totalAmount}`,
+        `Status: ${statusLabel(payment.status)}`,
+      ].join('\n'),
+    );
+  };
+
+  const renderPaymentHistory = () => (
+    <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm" aria-labelledby="payment-history-heading">
+      <div className="flex flex-col gap-3 border-b border-slate-200 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-3">
+          <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600">
+            <CreditCard className="h-4 w-4" />
+          </span>
+          <div>
+            <h3 id="payment-history-heading" className="text-sm font-bold text-slate-900">Payment history</h3>
+            <p className="mt-0.5 text-xs text-slate-500">Invoices, receipts and payment attempts.</p>
+          </div>
+        </div>
+        <button type="button" onClick={exportPaymentHistory} disabled={paymentHistory.length === 0} className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50">
+          <Download className="h-3.5 w-3.5" /> Export CSV
+        </button>
+      </div>
+
+      <div className="grid border-b border-slate-200 sm:grid-cols-3">
+        <div className="border-b border-slate-200 px-5 py-4 sm:border-b-0 sm:border-r">
+          <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Paid this month</p>
+          <p className="mt-1 text-sm font-bold text-slate-900">BDT {paidThisMonth.toFixed(2)}</p>
+          <p className="mt-1 text-[11px] text-slate-400">{paidPayments.length} successful payment{paidPayments.length === 1 ? '' : 's'} total</p>
+        </div>
+        <div className="border-b border-slate-200 px-5 py-4 sm:border-b-0 sm:border-r">
+          <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Last payment</p>
+          <p className="mt-1 text-sm font-bold text-slate-900">
+            {lastPaidPayment?.createdAt
+              ? new Date(lastPaidPayment.createdAt).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })
+              : 'No successful payment'}
+          </p>
+          <p className="mt-1 text-[11px] capitalize text-slate-400">
+            {lastPaidPayment ? `${lastPaidPayment.provider} · BDT ${lastPaidPayment.totalAmount}` : '—'}
+          </p>
+        </div>
+        <div className="px-5 py-4">
+          <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Next renewal</p>
+          <p className="mt-1 text-sm font-bold text-slate-900">{profile.renewalDate || 'Not scheduled'}</p>
+          <p className="mt-1 text-[11px] text-slate-400">{profile.plan} · {isScale ? 'BDT 2,499' : 'BDT 899'}</p>
+        </div>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2 border-b border-slate-200 px-5 py-3">
+        {([
+          ['all', 'All'],
+          ['paid', 'Paid'],
+          ['cancelled', 'Cancelled'],
+          ['expired', 'Expired'],
+        ] as const).map(([value, label]) => (
+          <button
+            key={value}
+            type="button"
+            aria-pressed={paymentStatusFilter === value}
+            onClick={() => {
+              setPaymentStatusFilter(value);
+              setPaymentPage(1);
+            }}
+            className={`min-h-8 rounded-full border px-3 text-[11px] font-bold ${
+              paymentStatusFilter === value
+                ? 'border-slate-900 bg-slate-900 text-white'
+                : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+            }`}
+          >
+            {label} <span className="ml-1 opacity-70">{paymentCounts[value]}</span>
+          </button>
+        ))}
+        <button type="button" onClick={() => setPaymentHistoryLoaded(false)} disabled={paymentHistoryLoading} className="ml-auto inline-flex min-h-8 items-center gap-1.5 px-2 text-[11px] font-bold text-indigo-600 disabled:opacity-50">
+          <RotateCcw className={`h-3 w-3 ${paymentHistoryLoading ? 'animate-spin' : ''}`} /> Refresh
+        </button>
+      </div>
+
+      {paymentHistoryLoading ? (
+        <div className="flex items-center justify-center gap-2 px-5 py-14 text-xs text-slate-500">
+          <Loader2 className="h-5 w-5 animate-spin text-indigo-600" /> Loading payment history…
+        </div>
+      ) : visiblePayments.length === 0 ? (
+        <div className="px-5 py-14 text-center">
+          <ReceiptText className="mx-auto h-9 w-9 text-slate-300" />
+          <h4 className="mt-3 text-sm font-bold text-slate-800">No matching payments</h4>
+          <p className="mt-1 text-xs text-slate-500">Payment records will appear here when available.</p>
+        </div>
+      ) : (
+        <>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[850px] text-left text-xs">
+              <thead className="bg-slate-50 text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                <tr>
+                  <th className="px-5 py-3">Date</th>
+                  <th className="px-4 py-3">Plan</th>
+                  <th className="px-4 py-3">Method</th>
+                  <th className="px-4 py-3">Transaction</th>
+                  <th className="px-4 py-3 text-right">Amount</th>
+                  <th className="px-4 py-3">Status</th>
+                  <th className="w-16 px-5 py-3" aria-label="Receipt" />
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {visiblePayments.map(payment => (
+                  <tr key={payment.reference} className="hover:bg-slate-50/70">
+                    <td className="whitespace-nowrap px-5 py-4">
+                      <span className="block font-bold text-slate-800">{payment.createdAt ? new Date(payment.createdAt).toLocaleDateString([], { dateStyle: 'medium' }) : '—'}</span>
+                      <span className="mt-0.5 block text-[11px] text-slate-400">{payment.createdAt ? new Date(payment.createdAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : ''}</span>
+                    </td>
+                    <td className="px-4 py-4">
+                      <span className="font-bold capitalize text-slate-800">{payment.planTier}</span>
+                      <span className="mt-0.5 block font-mono text-[10px] text-slate-400">{payment.reference}</span>
+                    </td>
+                    <td className="px-4 py-4">
+                      <span className="font-bold capitalize text-slate-800">{payment.provider}</span>
+                      <span className="mt-0.5 block text-[11px] capitalize text-slate-400">{payment.paymentType?.replaceAll('_', ' ') || 'Awaiting SMS'}</span>
+                    </td>
+                    <td className="px-4 py-4 font-mono text-[11px] text-slate-700">{payment.trxId || 'Not submitted'}</td>
+                    <td className="px-4 py-4 text-right font-bold text-slate-900">BDT {payment.totalAmount}</td>
+                    <td className="px-4 py-4">
+                      <span className={`inline-flex rounded-full border px-2.5 py-1 text-[10px] font-bold capitalize ${statusClasses(payment.status)}`}>{statusLabel(payment.status)}</span>
+                    </td>
+                    <td className="px-5 py-4 text-right">
+                      <button type="button" disabled={paymentCategory(payment.status) !== 'paid'} onClick={() => downloadReceipt(payment)} aria-label={`Download receipt for ${payment.reference}`} className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-30">
+                        <Download className="h-3.5 w-3.5" />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 px-5 py-3 text-[11px] text-slate-400">
+            <span>Showing {(paymentPage - 1) * paymentPageSize + 1}–{Math.min(paymentPage * paymentPageSize, filteredPaymentHistory.length)} of {filteredPaymentHistory.length} payments</span>
+            <div className="flex items-center gap-1">
+              <button type="button" disabled={paymentPage <= 1} onClick={() => setPaymentPage(page => Math.max(1, page - 1))} className="h-8 w-8 rounded-lg border border-slate-200 text-slate-600 disabled:opacity-40">‹</button>
+              <span className="min-w-16 text-center font-bold text-slate-600">Page {paymentPage} / {paymentPageCount}</span>
+              <button type="button" disabled={paymentPage >= paymentPageCount} onClick={() => setPaymentPage(page => Math.min(paymentPageCount, page + 1))} className="h-8 w-8 rounded-lg border border-slate-200 text-slate-600 disabled:opacity-40">›</button>
+            </div>
+          </div>
+        </>
+      )}
+    </section>
+  );
+
   return (
     <div className="space-y-6">
-      <div className="rounded-xl border border-slate-200 bg-white p-2 shadow-sm">
+      <div>
+        <h1 className="text-xl font-bold tracking-tight text-slate-900">Account</h1>
+        <p className="mt-1 text-sm text-slate-500">Manage your profile, sign-in security and connected devices.</p>
+      </div>
+
+      <div className="inline-flex max-w-full rounded-xl border border-slate-200 bg-white p-1 shadow-sm">
         <div className="flex gap-1 overflow-x-auto" role="tablist" aria-label="Account sections">
           {accountSections.map((section) => {
             const Icon = section.icon;
             const active = accountSection === section.id;
             return (
-              <button key={section.id} type="button" role="tab" aria-selected={active} onClick={() => setAccountSection(section.id)} className={`flex min-h-10 shrink-0 items-center gap-2 rounded-lg px-3.5 py-2.5 text-xs font-bold transition ${active ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800'}`}>
+              <button key={section.id} type="button" role="tab" aria-selected={active} onClick={() => setAccountSection(section.id)} className={`flex min-h-9 shrink-0 items-center gap-2 rounded-lg px-3.5 py-2 text-xs font-bold transition ${active ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'}`}>
                 <Icon className="h-4 w-4" /> {section.label}
               </button>
             );
@@ -379,28 +637,52 @@ export function AccountView({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-8">
-      
-      {/* Edit forms */}
-      <div className={`${accountSection === 'billing' ? 'hidden' : ''} space-y-6`}>
-        
-        {/* Account detail profile save */}
-        {accountSection === 'profile' && <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm  ">
-          <div className="mb-6 grid gap-4 rounded-xl border border-indigo-100 bg-gradient-to-r from-indigo-50 to-violet-50 p-5 md:grid-cols-[auto_1fr] md:items-center">
-            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-600 to-violet-600 text-2xl font-black uppercase text-white shadow-lg shadow-indigo-200">{(profile.name || profile.email || 'A').trim().charAt(0)}</div>
-            <div>
-              <div className="flex flex-wrap items-center gap-2"><h3 className="text-lg font-black text-slate-900">{profile.name || 'Your account'}</h3><span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-black uppercase tracking-wide text-emerald-700">Active account</span></div>
-              <p className="mt-1 text-xs text-slate-600">{profile.email}</p>
-              <div className="mt-3 grid gap-2 sm:grid-cols-3">
-                <div className="rounded-lg bg-white/80 px-3 py-2"><span className="block text-xs font-bold uppercase text-slate-400">Current plan</span><strong className="mt-1 block text-xs text-slate-800">{profile.plan}</strong></div>
-                <div className="rounded-lg bg-white/80 px-3 py-2"><span className="block text-xs font-bold uppercase text-slate-400">Notification email</span><strong className="mt-1 block truncate text-xs text-slate-800">{profile.notificationEmail || profile.email}</strong></div>
-                <div className="rounded-lg bg-white/80 px-3 py-2"><span className="block text-xs font-bold uppercase text-slate-400">Monthly usage</span><strong className="mt-1 block text-xs text-slate-800">{profile.eventsUsed.toLocaleString()} / {profile.eventsQuota.toLocaleString()}</strong></div>
+      {accountSection === 'profile' && (
+        <section className="grid gap-4 rounded-xl border border-slate-200 bg-white p-5 shadow-sm lg:grid-cols-[1fr_auto_auto] lg:items-center">
+          <div className="flex min-w-0 items-center gap-4">
+            <div className="flex h-13 w-13 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-violet-500 to-indigo-600 text-xl font-black uppercase text-white shadow-md shadow-indigo-200">
+              {(profile.name || profile.email || 'A').trim().charAt(0)}
+            </div>
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <h2 className="truncate text-base font-bold text-slate-900">{profile.name || 'Your account'}</h2>
+                <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700"><Check className="h-3 w-3" /> Active</span>
               </div>
+              <p className="mt-1 truncate text-xs text-slate-500">{profile.email}</p>
             </div>
           </div>
-          <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wide mb-4 ">Edit Profile</h3>
+          <div className="border-t border-slate-200 pt-3 lg:min-w-36 lg:border-l lg:border-t-0 lg:pl-6 lg:pt-0">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Current plan</p>
+            <p className="mt-1 text-sm font-bold text-slate-900">{profile.plan}</p>
+            <p className="mt-1 text-[11px] text-slate-400">Renews {profile.renewalDate || 'not scheduled'}</p>
+          </div>
+          <div className="border-t border-slate-200 pt-3 lg:min-w-52 lg:border-l lg:border-t-0 lg:pl-6 lg:pt-0">
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Monthly usage</p>
+              <span className="text-[10px] font-bold text-indigo-600">{usagePercent.toFixed(2)}%</span>
+            </div>
+            <p className="mt-1 text-sm font-bold text-slate-900">{profile.eventsUsed.toLocaleString()} / {profile.eventsQuota.toLocaleString()}</p>
+            <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-100"><div className="h-full rounded-full bg-indigo-600" style={{ width: `${usagePercent}%` }} /></div>
+          </div>
+        </section>
+      )}
+
+      <div className="grid grid-cols-1 gap-6">
+      
+      {/* Edit forms */}
+      <div className={`${accountSection === 'billing' ? 'order-2' : 'order-1'} space-y-5`}>
+        
+        {/* Account detail profile save */}
+        {accountSection === 'profile' && <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+          <div className="flex items-center gap-3 border-b border-slate-200 px-5 py-4">
+            <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600"><UserRound className="h-4 w-4" /></span>
+            <div>
+              <h3 className="text-sm font-bold text-slate-900">Profile</h3>
+              <p className="mt-0.5 text-xs text-slate-500">Your account details and where we send alerts.</p>
+            </div>
+          </div>
           
-          <form onSubmit={submitProfileSave} className="space-y-4">
+          <form onSubmit={submitProfileSave} className="space-y-4 p-5">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label htmlFor="account-display-name" className="block text-xs font-semibold text-slate-400  uppercase mb-1">Display Name</label>
@@ -409,52 +691,29 @@ export function AccountView({
                   type="text" 
                   value={profName}
                   onChange={(e) => setProfName(e.target.value)}
-                  className="w-full p-2 text-xs bg-slate-50 border border-slate-200    rounded"
+                  className="w-full rounded-lg border border-slate-200 bg-white p-2.5 text-xs outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
                 />
               </div>
 
               <div>
-                <label htmlFor="account-profile-email" className="block text-xs font-semibold text-slate-400  uppercase mb-1">Profile Email</label>
-                <input 
-                  id="account-profile-email"
-                  type="email" 
-                  value={profEmail}
-                  onChange={(e) => setProfEmail(e.target.value)}
-                  className="w-full p-2 text-xs bg-slate-50 border border-slate-200    rounded"
-                />
-                {emailChanged && !profEmailCodeRequested && (
-                  <p className="mt-1 text-xs leading-relaxed text-amber-600">Click the button below. We will send a code to your new email.</p>
-                )}
+                <label htmlFor="account-profile-email" className="mb-1 flex items-center gap-2 text-xs font-semibold uppercase text-slate-500">
+                  Sign-in Email
+                  {profile.emailVerified !== false && <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold normal-case text-emerald-700"><Check className="h-3 w-3" /> Verified</span>}
+                </label>
+                <div className="relative">
+                  <input
+                    id="account-profile-email"
+                    type="email"
+                    value={profile.email}
+                    readOnly
+                    aria-readonly="true"
+                    className="w-full rounded-lg border border-slate-200 bg-slate-50 p-2.5 pr-9 text-xs text-slate-500"
+                  />
+                  <LockKeyhole className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                </div>
+                <p className="mt-1 text-[11px] text-slate-400">Contact support to change your sign-in email.</p>
               </div>
             </div>
-
-            {emailChanged && profEmailCodeRequested && (
-              <div className="grid grid-cols-1 gap-4 rounded-lg border border-indigo-200 bg-indigo-50 p-4 md:grid-cols-2">
-                <div>
-                  <label className="mb-1 block text-xs font-semibold uppercase text-indigo-500">Verification Code</label>
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    autoComplete="one-time-code"
-                    value={profEmailCode}
-                    onChange={(e) => setProfEmailCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                    placeholder="6-digit code"
-                    className="w-full rounded border border-indigo-200 bg-white p-2 font-mono text-xs"
-                  />
-                </div>
-                <div>
-                  <label className="mb-1 block text-xs font-semibold uppercase text-indigo-500">Current Password</label>
-                  <input
-                    type="password"
-                    autoComplete="current-password"
-                    value={profEmailCurrentPassword}
-                    onChange={(e) => setProfEmailCurrentPassword(e.target.value)}
-                    placeholder="Enter your current password"
-                    className="w-full rounded border border-indigo-200 bg-white p-2 text-xs"
-                  />
-                </div>
-              </div>
-            )}
 
             <div>
               <label htmlFor="account-notification-email" className="block text-xs font-semibold text-slate-400  uppercase mb-1">Notification Email</label>
@@ -463,8 +722,9 @@ export function AccountView({
                 type="email" 
                 value={profNotifEmail}
                 onChange={(e) => setProfNotifEmail(e.target.value)}
-                className="w-full p-2 text-xs bg-slate-50 border border-slate-200    rounded"
+                className="w-full rounded-lg border border-slate-200 bg-white p-2.5 text-xs outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
               />
+              <p className="mt-1 text-[11px] text-slate-400">Order alerts, weekly reports and billing receipts are sent here.</p>
             </div>
 
 
@@ -474,224 +734,214 @@ export function AccountView({
                 disabled={profUpdating}
                 className="min-h-10 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white text-xs font-bold rounded-lg transition-colors shadow-sm cursor-pointer"
               >
-                {profUpdating
-                  ? 'Saving...'
-                  : emailChanged && !profEmailCodeRequested
-                      ? 'Send Code to New Email'
-                    : emailChanged
-                      ? 'Verify Email & Save'
-                      : 'Save Profile Changes'}
+                {profUpdating ? 'Saving…' : 'Save changes'}
               </button>
             </div>
           </form>
         </div>}
 
-        {/* Password modifier */}
-        {accountSection === 'profile' && <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm  ">
-          <h3 className="mb-1 flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-slate-800"><KeyRound className="h-4 w-4 text-indigo-600" /> Change Password</h3>
-          <p className="mb-4 text-xs text-slate-500">Use a unique password between 8 and 16 characters.</p>
-          
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label htmlFor="account-current-password" className="block text-xs font-semibold text-slate-400  uppercase mb-1">Current Password</label>
-                <input 
-                  id="account-current-password"
-                  type="password" 
-                  value={passCurrent} 
-                  placeholder="**************"
-                  onChange={(e) => setPassCurrent(e.target.value)}
-                  className="w-full p-2 text-xs bg-slate-50 border border-slate-200    rounded font-mono"
-                />
-              </div>
-
-              <div>
-                <label htmlFor="account-new-password" className="block text-xs font-semibold text-slate-400  uppercase mb-1">New Password</label>
-                <input 
-                  id="account-new-password"
-                  type="password" 
-                  value={passNew} 
-                  placeholder="8-16 character password"
-                  minLength={8}
-                  maxLength={16}
-                  autoComplete="new-password"
-                  onChange={(e) => setPassNew(e.target.value)}
-                  className="w-full p-2 text-xs bg-slate-50 border border-slate-200    rounded font-mono"
-                />
-              </div>
-
-              <div>
-                <label htmlFor="account-confirm-password" className="block text-xs font-semibold text-slate-400  uppercase mb-1">Confirm New Password</label>
-                <input 
-                  id="account-confirm-password"
-                  type="password" 
-                  value={passConfirm} 
-                  placeholder="Confirm secure password"
-                  minLength={8}
-                  maxLength={16}
-                  autoComplete="new-password"
-                  onChange={(e) => setPassConfirm(e.target.value)}
-                  className="w-full p-2 text-xs bg-slate-50 border border-slate-200    rounded font-mono"
-                />
-              </div>
-            </div>
-
-            <div className="flex flex-col gap-3 pt-2 sm:flex-row sm:items-center sm:justify-between">
-              <button
-                type="button"
-                onClick={submitPasswordResetEmail}
-                className="inline-flex min-h-10 items-center text-left text-xs font-bold text-indigo-600 hover:text-indigo-700 underline-offset-4 hover:underline"
-              >
-                Forgot current password? Send reset link
-              </button>
-              <button 
-                type="button"
-                onClick={submitPasswordUpdate}
-                className="min-h-10 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-lg transition-colors shadow-sm cursor-pointer"
-              >
-                Update Password
-              </button>
+        {accountSection === 'profile' && <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+          <div className="flex items-center gap-3 border-b border-slate-200 px-5 py-4">
+            <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600"><LockKeyhole className="h-4 w-4" /></span>
+            <div>
+              <h3 className="text-sm font-bold text-slate-900">Password</h3>
+              <p className="mt-0.5 text-xs text-slate-500">Use a unique password between 8 and 16 characters.</p>
             </div>
           </div>
-        </div>}
 
-        {/* Danger parameters */}
-        {accountSection === 'danger' && <div className="rounded-xl border border-rose-200 bg-rose-50   p-6 shadow-sm space-y-6">
-          <div>
-            <h3 className="font-bold text-rose-800  text-sm uppercase tracking-wide">Danger Zone</h3>
-            <p className="text-xs text-rose-600  leading-normal mt-0.5">These actions can't be undone. Please confirm carefully.</p>
+          <div className="grid gap-4 p-5 md:grid-cols-3">
+            {[
+              {
+                id: 'account-current-password',
+                label: 'Current password',
+                value: passCurrent,
+                setValue: setPassCurrent,
+                shown: showCurrentPassword,
+                setShown: setShowCurrentPassword,
+                placeholder: 'Enter current password',
+                autoComplete: 'current-password',
+              },
+              {
+                id: 'account-new-password',
+                label: 'New password',
+                value: passNew,
+                setValue: setPassNew,
+                shown: showNewPassword,
+                setShown: setShowNewPassword,
+                placeholder: 'At least 8 characters',
+                autoComplete: 'new-password',
+              },
+              {
+                id: 'account-confirm-password',
+                label: 'Confirm new password',
+                value: passConfirm,
+                setValue: setPassConfirm,
+                shown: showConfirmPassword,
+                setShown: setShowConfirmPassword,
+                placeholder: 'Repeat new password',
+                autoComplete: 'new-password',
+              },
+            ].map(field => (
+              <div key={field.id}>
+                <label htmlFor={field.id} className="mb-1 block text-xs font-semibold uppercase text-slate-500">{field.label}</label>
+                <div className="relative">
+                  <input
+                    id={field.id}
+                    type={field.shown ? 'text' : 'password'}
+                    value={field.value}
+                    placeholder={field.placeholder}
+                    minLength={field.id === 'account-current-password' ? undefined : 8}
+                    maxLength={field.id === 'account-current-password' ? undefined : 16}
+                    autoComplete={field.autoComplete}
+                    onChange={event => field.setValue(event.target.value)}
+                    className="w-full rounded-lg border border-slate-200 bg-white p-2.5 pr-10 text-xs outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+                  />
+                  <button type="button" onClick={() => field.setShown(!field.shown)} aria-label={`${field.shown ? 'Hide' : 'Show'} ${field.label}`} className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded p-1 text-slate-400 hover:text-slate-700">
+                    {field.shown ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+                {field.id === 'account-new-password' && passNew && (
+                  <div className="mt-2 flex items-center gap-1">
+                    {[1, 2, 3, 4].map(level => <span key={level} className={`h-1 flex-1 rounded-full ${passwordStrength >= level ? 'bg-emerald-500' : 'bg-slate-200'}`} />)}
+                    <span className="ml-1 text-[10px] font-bold text-emerald-700">{passwordStrengthLabel}</span>
+                  </div>
+                )}
+              </div>
+            ))}
           </div>
 
-          <div className="space-y-5 divide-y divide-rose-200/50 ">
-            
-            {/* Webhook access key change */}
-            <div className="space-y-3">
-              <h4 className="font-bold text-xs text-rose-800  uppercase tracking-widest mt-2">Create a New Plugin Key</h4>
-              <p className="text-xs text-rose-700  leading-relaxed max-w-2xl">
-                This creates a new connection key. Tracking will stop until you paste the new key into your WordPress plugin.
-              </p>
-
-              <div className="flex flex-col sm:flex-row gap-3">
-                <input 
-                  type="text" 
-                  placeholder="Type REVOKE to confirm"
-                  value={confirmRevokeText}
-                  onChange={(e) => setConfirmRevokeText(e.target.value)}
-                  className="p-2 text-xs bg-white border border-rose-200/50 rounded font-mono text-rose-900 focus:outline-none focus:border-rose-500 w-full sm:w-80   "
-                />
-                <button 
-                  type="button"
-                  onClick={handleTokenRevoke}
-                  className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-lg transition-colors shadow cursor-pointer whitespace-nowrap"
-                >
-                  Create New Key
-                </button>
-              </div>
-            </div>
-
-            {/* Deletion requests */}
-            <div className="pt-5 space-y-3">
-              <h4 className="font-bold text-xs text-rose-800  uppercase tracking-widest">Delete account request</h4>
-              <p className="text-xs text-rose-700  leading-relaxed max-w-2xl">
-                This does not delete your account right away. Send a request and Buykori support will contact you before removing your account and data.
-              </p>
-
-              <div className="flex flex-col sm:flex-row gap-3">
-                <input 
-                  type="text" 
-                  placeholder="Type DELETE to confirm"
-                  value={confirmDeleteText}
-                  onChange={(e) => setConfirmDeleteText(e.target.value)}
-                  className="p-2 text-xs bg-white border border-rose-200/50 rounded font-mono text-rose-900 focus:outline-none focus:border-rose-500 w-full sm:w-80   "
-                />
-                <button 
-                  type="button"
-                  onClick={handleDeleteAccountRequest}
-                  className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-lg transition-colors shadow cursor-pointer whitespace-nowrap"
-                >
-                  Submit deletion request
-                </button>
-              </div>
-            </div>
-
+          <div className="flex flex-col gap-3 border-t border-slate-200 bg-slate-50/50 px-5 py-3 sm:flex-row sm:items-center sm:justify-between">
+            <button type="button" onClick={submitPasswordResetEmail} className="min-h-10 text-left text-xs font-bold text-indigo-600 hover:text-indigo-700">
+              Forgot password? Send a reset link
+            </button>
+            <button type="button" disabled={!passCurrent || passNew.length < 8 || passNew !== passConfirm} onClick={submitPasswordUpdate} className="min-h-10 rounded-lg bg-indigo-600 px-4 py-2 text-xs font-bold text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-slate-300">
+              Update password
+            </button>
           </div>
-        </div>}
+        </section>}
 
-        {accountSection === 'payments' && (
-          <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-            <div className="flex flex-col gap-3 border-b border-slate-200 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <h3 className="flex items-center gap-2 text-sm font-black uppercase tracking-wide text-slate-800"><ReceiptText className="h-4 w-4 text-indigo-600" /> Payment History</h3>
-                <p className="mt-1 text-xs text-slate-500">Your plan payments, test checks, fees, and current payment status.</p>
-              </div>
-              <button type="button" onClick={() => setPaymentHistoryLoaded(false)} disabled={paymentHistoryLoading} className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-xs font-bold text-slate-600 hover:bg-slate-50 disabled:opacity-50"><RotateCcw className={`h-3.5 w-3.5 ${paymentHistoryLoading ? 'animate-spin' : ''}`} /> Refresh</button>
+        {accountSection === 'profile' && <section className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white px-5 py-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-3">
+            <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600"><ShieldAlert className="h-4 w-4" /></span>
+            <div>
+              <div className="flex items-center gap-2"><h3 className="text-sm font-bold text-slate-900">Two-step verification</h3><span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-bold text-amber-700">Off</span></div>
+              <p className="mt-0.5 text-xs text-slate-500">Add a one-time code when signing in to protect your account and billing.</p>
             </div>
-            {paymentHistoryLoading ? (
-              <div className="flex items-center justify-center gap-2 px-5 py-14 text-sm text-slate-500"><Loader2 className="h-5 w-5 animate-spin text-indigo-600" /> Loading payment history...</div>
-            ) : paymentHistory.length === 0 ? (
-              <div className="px-5 py-14 text-center"><CreditCard className="mx-auto h-9 w-9 text-slate-300" /><h4 className="mt-3 text-sm font-bold text-slate-800">No payments yet</h4><p className="mt-1 text-xs text-slate-500">Your payment records will appear here after you start a payment.</p></div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full min-w-[850px] text-left text-xs">
-                  <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500"><tr><th className="px-5 py-3">Date</th><th className="px-4 py-3">Plan</th><th className="px-4 py-3">Payment</th><th className="px-4 py-3">Sender / TrxID</th><th className="px-4 py-3">Amount</th><th className="px-5 py-3 text-right">Status</th></tr></thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {paymentHistory.map((payment) => (
-                      <tr key={payment.reference} className="hover:bg-slate-50/70">
-                        <td className="whitespace-nowrap px-5 py-4"><span className="block font-semibold text-slate-700">{payment.createdAt ? new Date(payment.createdAt).toLocaleDateString() : '-'}</span><span className="mt-0.5 block text-xs text-slate-400">{payment.createdAt ? new Date(payment.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}</span></td>
-                        <td className="px-4 py-4"><span className="font-bold capitalize text-slate-800">{payment.planTier}</span>{payment.isTest && <span className="ml-2 rounded-full bg-violet-100 px-2 py-0.5 text-xs font-bold uppercase text-violet-700">Test</span>}<span className="mt-1 block font-mono text-xs text-slate-400">{payment.reference}</span></td>
-                        <td className="px-4 py-4"><span className="font-bold capitalize text-slate-700">{payment.provider}</span><span className="mt-1 block text-xs capitalize text-slate-400">{payment.paymentType?.replaceAll('_', ' ') || 'Awaiting SMS'}</span></td>
-                        <td className="px-4 py-4"><span className="block font-mono font-semibold text-slate-700">{payment.senderPhone || '-'}</span><span className="mt-1 block font-mono text-xs text-slate-400">{payment.trxId || 'TrxID not submitted'}</span></td>
-                        <td className="px-4 py-4"><span className="font-black text-slate-900">BDT {payment.totalAmount}</span><span className="mt-1 block text-xs text-slate-400">Price {payment.baseAmount} + fee {payment.feeAmount}</span></td>
-                        <td className="px-5 py-4 text-right"><span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-black uppercase tracking-wide ${statusClasses(payment.status)}`}>{statusLabel(payment.status)}</span></td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
           </div>
-        )}
+          <button type="button" disabled title="Two-step verification is coming soon" className="min-h-10 shrink-0 rounded-lg border border-slate-200 px-4 text-xs font-bold text-slate-400 disabled:cursor-not-allowed">Coming soon</button>
+        </section>}
+
+        {accountSection === 'profile' && <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+          <div className="flex items-center justify-between gap-3 border-b border-slate-200 px-5 py-4">
+            <div className="flex items-center gap-3">
+              <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600"><Monitor className="h-4 w-4" /></span>
+              <div><h3 className="text-sm font-bold text-slate-900">Active sessions</h3><p className="mt-0.5 text-xs text-slate-500">Devices currently signed in to this account.</p></div>
+            </div>
+            <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[10px] font-bold text-slate-600">1 device</span>
+          </div>
+          <div className="flex items-center gap-3 px-5 py-4">
+            <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-100 text-slate-600"><Monitor className="h-4 w-4" /></span>
+            <div className="min-w-0 flex-1"><p className="text-xs font-bold text-slate-900">{browserName} on {operatingSystem}</p><p className="mt-0.5 text-[11px] text-slate-400">Current authenticated browser session</p></div>
+            <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[10px] font-bold text-emerald-700">This device</span>
+          </div>
+        </section>}
+
+        {accountSection === 'danger' && <section className="overflow-hidden rounded-xl border border-amber-200 bg-white shadow-sm">
+          <div className="flex items-start justify-between gap-3 border-b border-amber-200 bg-amber-50 px-5 py-4">
+            <div className="flex items-center gap-3">
+              <span className="flex h-9 w-9 items-center justify-center rounded-lg border border-amber-200 bg-white text-amber-700"><KeyRound className="h-4 w-4" /></span>
+              <div><h3 className="text-sm font-bold text-slate-900">Rotate plugin connection key</h3><p className="mt-0.5 text-xs text-slate-500">Maintenance action—reversible, but tracking pauses briefly.</p></div>
+            </div>
+            <span className="rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[10px] font-bold text-amber-700">Caution</span>
+          </div>
+          <div className="space-y-4 p-5">
+            <p className="max-w-2xl text-xs leading-relaxed text-slate-600">Generates a new connection key for your WordPress plugin. The old key stops working immediately, so tracking pauses until you paste the new key into the plugin.</p>
+            <div className="space-y-2 text-xs text-slate-600">
+              <p className="flex items-center gap-2"><Info className="h-3.5 w-3.5 text-slate-400" /> Current key <code className="rounded border border-slate-200 bg-slate-50 px-2 py-1 font-mono text-[11px]">{maskedConnectionKey}</code></p>
+              <p className="flex items-center gap-2"><Info className="h-3.5 w-3.5 text-slate-400" /> Tracking pauses until the new key is saved in WordPress.</p>
+              <p className="flex items-center gap-2"><Info className="h-3.5 w-3.5 text-slate-400" /> Event history and settings are not affected.</p>
+            </div>
+            <div>
+              <div className="flex flex-col gap-3 sm:flex-row">
+                <input type="text" autoComplete="off" placeholder="Type REVOKE to confirm" value={confirmRevokeText} onChange={event => setConfirmRevokeText(event.target.value)} className="min-h-10 w-full rounded-lg border border-slate-200 bg-white px-3 font-mono text-xs outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-100 sm:max-w-xs" />
+                <button type="button" disabled={confirmRevokeText.toUpperCase() !== 'REVOKE'} onClick={handleTokenRevoke} className="min-h-10 rounded-lg bg-amber-600 px-4 text-xs font-bold text-white hover:bg-amber-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400">Rotate key</button>
+              </div>
+              <p className="mt-1.5 text-[11px] text-slate-400">The button unlocks after you type <code className="rounded bg-slate-100 px-1 font-mono">REVOKE</code>.</p>
+            </div>
+          </div>
+        </section>}
+
+        {accountSection === 'danger' && <section className="overflow-hidden rounded-xl border border-rose-200 bg-white shadow-sm">
+          <div className="flex items-start justify-between gap-3 border-b border-rose-200 bg-rose-50 px-5 py-4">
+            <div className="flex items-center gap-3">
+              <span className="flex h-9 w-9 items-center justify-center rounded-lg border border-rose-200 bg-white text-rose-600"><Trash2 className="h-4 w-4" /></span>
+              <div><h3 className="text-sm font-bold text-slate-900">Delete account</h3><p className="mt-0.5 text-xs text-slate-500">Permanent—Buykori support confirms with you before anything is removed.</p></div>
+            </div>
+            <span className="rounded-full border border-rose-200 bg-rose-50 px-2.5 py-1 text-[10px] font-bold text-rose-600">Irreversible</span>
+          </div>
+          <div className="space-y-4 p-5">
+            <p className="max-w-2xl text-xs leading-relaxed text-slate-600">Sends a deletion request to Buykori support. Nothing is removed right away—our team contacts you to confirm the request.</p>
+            <ul className="space-y-2 text-xs text-slate-600">
+              <li className="flex gap-2"><X className="mt-0.5 h-3.5 w-3.5 text-slate-400" /> All stores, event history and courier data are permanently deleted.</li>
+              <li className="flex gap-2"><X className="mt-0.5 h-3.5 w-3.5 text-slate-400" /> Meta, TikTok and GA4 connections are disconnected.</li>
+              <li className="flex gap-2"><X className="mt-0.5 h-3.5 w-3.5 text-slate-400" /> Remaining plan time is not refundable.</li>
+            </ul>
+            <div>
+              <div className="flex flex-col gap-3 sm:flex-row">
+                <input type="text" autoComplete="off" placeholder="Type DELETE to confirm" value={confirmDeleteText} onChange={event => setConfirmDeleteText(event.target.value)} className="min-h-10 w-full rounded-lg border border-slate-200 bg-white px-3 font-mono text-xs outline-none focus:border-rose-500 focus:ring-2 focus:ring-rose-100 sm:max-w-xs" />
+                <button type="button" disabled={confirmDeleteText.toUpperCase() !== 'DELETE'} onClick={handleDeleteAccountRequest} className="min-h-10 rounded-lg bg-rose-600 px-4 text-xs font-bold text-white hover:bg-rose-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400">Submit deletion request</button>
+              </div>
+              <p className="mt-1.5 text-[11px] text-slate-400">You’ll receive confirmation before anything is deleted.</p>
+            </div>
+          </div>
+        </section>}
+
+        {accountSection === 'billing' && renderPaymentHistory()}
 
       </div>
 
-      {/* Left side subscriptions container */}
-      {accountSection === 'billing' && <div className="space-y-6">
-        
-        {/* Current Active Plan summary card */}
-        <div className="space-y-6 rounded-xl border border-slate-200 bg-white p-6 shadow-sm lg:p-8">
+      {accountSection === 'billing' && <div className="order-1 space-y-5">
+        <section className="grid gap-5 rounded-xl border border-slate-200 bg-white p-5 shadow-sm lg:grid-cols-2 lg:items-center">
           <div>
-            <span className="block text-xs font-bold uppercase tracking-wider text-indigo-600">Plan & Billing</span>
-            <h3 className="mt-1 text-xl font-black text-slate-900">Your plan and available upgrades</h3>
-            <p className="mt-1 text-xs text-slate-500">Review your usage and compare Growth with Scale in simple terms.</p>
-          </div>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <div className="rounded-xl border border-indigo-100 bg-indigo-50 p-4"><span className="text-xs font-bold uppercase tracking-wide text-indigo-500">Current plan</span><strong className="mt-1 block text-base text-slate-900">{profile.plan}</strong></div>
-            <div className="rounded-xl border border-slate-200 bg-slate-50 p-4"><span className="text-xs font-bold uppercase tracking-wide text-slate-400">Renewal date</span><strong className="mt-1 block text-sm text-slate-800">{profile.renewalDate || 'Not scheduled'}</strong></div>
-            <div className="rounded-xl border border-slate-200 bg-slate-50 p-4"><span className="text-xs font-bold uppercase tracking-wide text-slate-400">Monthly usage</span><strong className="mt-1 block text-sm text-slate-800">{profile.eventsUsed.toLocaleString()} / {profile.eventsQuota.toLocaleString()}</strong></div>
-            <div className="rounded-xl border border-emerald-100 bg-emerald-50 p-4"><span className="text-xs font-bold uppercase tracking-wide text-emerald-600">Tracking protection</span><strong className="mt-1 block text-sm text-emerald-800">Fully enabled</strong></div>
-          </div>
-          <div>
-            <div className="mb-3"><span className="block text-xs font-bold uppercase tracking-wide text-indigo-600">Upgrade your plan</span><h4 className="mt-1 text-base font-black text-slate-900">Choose Growth or Scale</h4></div>
-            <div className="grid gap-4 lg:grid-cols-2">
-              {[
-                { tier: 'growth' as const, label: 'Growth Plan', events: '500K events / month', price: 'BDT 899 / month', features: growthPlanFeatures, active: isGrowth },
-                { tier: 'scale' as const, label: 'Scale Plan', events: '1M events / month', price: 'BDT 2,499 / month', features: scalePlanFeatures, active: isScale },
-              ].map((plan) => (
-                <div key={plan.tier} className={`flex flex-col rounded-2xl border p-5 ${plan.tier === 'growth' ? 'border-indigo-200 bg-gradient-to-br from-indigo-50 to-white' : 'border-slate-200 bg-gradient-to-br from-slate-50 to-white'}`}>
-                  <div className="flex items-start justify-between gap-3">
-                    <div><span className={`text-xs font-black uppercase tracking-wider ${plan.tier === 'growth' ? 'text-indigo-600' : 'text-slate-500'}`}>{plan.events}</span><h5 className="mt-1 text-xl font-black text-slate-900">{plan.label}</h5><p className="mt-1 font-mono text-sm font-black text-slate-700">{plan.price}</p></div>
-                    {plan.active && <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-black uppercase text-emerald-700">Current</span>}
-                  </div>
-                  <div className="mt-5 grid gap-2 sm:grid-cols-2">
-                    {plan.features.map((feature) => <div key={feature} className="flex items-start gap-2 text-xs leading-relaxed text-slate-600"><CheckCircle2 className={`mt-0.5 h-4 w-4 shrink-0 ${plan.tier === 'growth' ? 'text-indigo-600' : 'text-emerald-600'}`} /><span>{feature}</span></div>)}
-                  </div>
-                  <button type="button" disabled={plan.active || isAgency} onClick={() => openPayment(plan.tier)} className={`mt-6 w-full rounded-xl px-4 py-3 text-xs font-black text-white transition disabled:cursor-default disabled:bg-emerald-600 ${plan.tier === 'growth' ? 'bg-indigo-600 hover:bg-indigo-700' : 'bg-slate-900 hover:bg-slate-800'}`}>{plan.active ? 'Your current plan' : isAgency ? 'Managed by support' : `Choose ${plan.label}`}</button>
-                </div>
-              ))}
+            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Current plan</p>
+            <div className="mt-1 flex flex-wrap items-center gap-2">
+              <h2 className="text-lg font-bold text-slate-900">{profile.plan}</h2>
+              <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700"><Check className="h-3 w-3" /> Active</span>
             </div>
+            <p className="mt-1 text-xs text-slate-500">{isScale ? 'BDT 2,499' : 'BDT 899'} / month · Renews {profile.renewalDate || 'not scheduled'} · Tracking protection fully enabled</p>
           </div>
+          <div>
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Monthly usage</p>
+              <span className="text-[10px] font-bold text-emerald-700">{usagePercent.toFixed(2)}% used</span>
+            </div>
+            <p className="mt-1 text-sm font-bold text-slate-900">{profile.eventsUsed.toLocaleString()} / {profile.eventsQuota.toLocaleString()} events</p>
+            <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-100"><div className="h-full rounded-full bg-emerald-500" style={{ width: `${usagePercent}%` }} /></div>
+            <p className="mt-1.5 text-[11px] text-slate-400">Resets {profile.renewalDate || 'at the end of the billing period'}</p>
+          </div>
+        </section>
 
-
+        <div className="grid gap-5 lg:grid-cols-2">
+          {[
+            { tier: 'growth' as const, label: 'Growth', subtitle: 'For a single store, up to 500,000 events / month', price: 'BDT 899', features: growthPlanFeatures.slice(0, 5), active: isGrowth, recommended: false },
+            { tier: 'scale' as const, label: 'Scale', subtitle: 'For growing brands, up to 3 stores & 1M events / month', price: 'BDT 2,499', features: scalePlanFeatures.slice(0, 5), active: isScale, recommended: !isScale },
+          ].map(plan => (
+            <section key={plan.tier} className={`flex flex-col rounded-xl border bg-white p-5 shadow-sm ${plan.recommended ? 'border-indigo-500' : 'border-slate-200'}`}>
+              <div className="flex flex-wrap items-center gap-2">
+                <h3 className="text-base font-bold text-slate-900">{plan.label}</h3>
+                {plan.active && <span className="rounded-full border border-indigo-200 bg-indigo-50 px-2 py-0.5 text-[10px] font-bold text-indigo-600">Current plan</span>}
+                {plan.recommended && <span className="rounded-full border border-indigo-200 bg-indigo-50 px-2 py-0.5 text-[10px] font-bold text-indigo-600">Recommended</span>}
+              </div>
+              <p className="mt-1 text-xs text-slate-500">{plan.subtitle}</p>
+              <p className="mt-5 text-2xl font-bold text-slate-900">{plan.price} <span className="text-xs font-normal text-slate-500">/ month</span></p>
+              <ul className="mt-5 flex-1 space-y-3">
+                {plan.features.map(feature => <li key={feature} className="flex items-start gap-2 text-xs text-slate-600"><Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" /><span>{feature}</span></li>)}
+              </ul>
+              <button type="button" disabled={plan.active || isAgency} onClick={() => openPayment(plan.tier)} className={`mt-6 min-h-10 w-full rounded-lg px-4 text-xs font-bold transition ${plan.active ? 'bg-slate-100 text-slate-400' : 'bg-indigo-600 text-white hover:bg-indigo-700'} disabled:cursor-not-allowed`}>
+                {plan.active ? 'Your current plan' : isAgency ? 'Managed by support' : plan.tier === 'scale' ? 'Upgrade to Scale' : 'Choose Growth'}
+              </button>
+            </section>
+          ))}
         </div>
 
         {/* Reset demo sandbox context values widget */}
