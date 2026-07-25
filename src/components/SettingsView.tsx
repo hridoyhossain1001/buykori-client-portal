@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Check, Copy, Globe2, MessageCircle, Plus, RefreshCw, Save, Trash2, Truck } from 'lucide-react';
+import { Check, Copy, Globe2, MessageCircle, Plus, RefreshCw, Save, Send, Trash2, Truck, Zap } from 'lucide-react';
 import { Tooltip } from './common/Tooltip';
 import { PlatformBadge, PlatformLogo } from './common/PlatformLogo';
 import { AdAccount, Platform, PlatformConfig, EventRule, ClientConnection, PluginReleaseInfo, CustomEventAutomation, CustomEventTrigger, CourierSettings } from '../types';
@@ -813,7 +813,9 @@ export function SettingsView({
               onClick={() => openSettingsTab('conversions')}
               className="rounded-xl border border-slate-200 bg-white p-4 text-left shadow-sm transition-colors hover:border-indigo-200"
             >
-              <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Events routing</span>
+              <span className="flex items-center justify-between text-xs font-bold uppercase tracking-wider text-slate-400">
+                Events routing <Zap className="h-4 w-4 text-emerald-500" />
+              </span>
               <p className="mt-4 text-base font-bold text-slate-900">{configuredPlatformCount} / {platformStatusRows.length} ready</p>
               <p className="mt-1 text-xs text-slate-500">{enabledPlatformCount} platforms · {enabledRouteCount} events on</p>
             </button>
@@ -822,7 +824,9 @@ export function SettingsView({
               onClick={() => openSettingsTab('courier')}
               className="rounded-xl border border-slate-200 bg-white p-4 text-left shadow-sm transition-colors hover:border-indigo-200"
             >
-              <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Courier setup</span>
+              <span className="flex items-center justify-between text-xs font-bold uppercase tracking-wider text-slate-400">
+                Courier setup <Truck className="h-4 w-4 text-amber-500" />
+              </span>
               <p className="mt-4 text-base font-bold text-slate-900">{courierProviderConfigured ? 'Ready' : 'Setup needed'}</p>
               <p className="mt-1 text-xs capitalize text-slate-500">{selectedCourierProvider} default · manual booking</p>
             </button>
@@ -831,7 +835,9 @@ export function SettingsView({
               onClick={() => openSettingsTab('courier')}
               className="rounded-xl border border-slate-200 bg-white p-4 text-left shadow-sm transition-colors hover:border-indigo-200"
             >
-              <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Telegram alerts</span>
+              <span className="flex items-center justify-between text-xs font-bold uppercase tracking-wider text-slate-400">
+                Telegram alerts <Send className="h-4 w-4 text-emerald-500" />
+              </span>
               <p className="mt-4 text-base font-bold text-slate-900">{telegramStatusLabel}</p>
               <p className="mt-1 text-xs text-slate-500">Private order and recovery alerts</p>
             </button>
@@ -840,7 +846,9 @@ export function SettingsView({
               onClick={() => openSettingsTab('store')}
               className="rounded-xl border border-slate-200 bg-white p-4 text-left shadow-sm transition-colors hover:border-indigo-200"
             >
-              <span className="text-xs font-bold uppercase tracking-wider text-slate-400">WordPress plugin</span>
+              <span className="flex items-center justify-between text-xs font-bold uppercase tracking-wider text-slate-400">
+                WordPress plugin <Globe2 className="h-4 w-4 text-emerald-500" />
+              </span>
               <p className="mt-4 text-base font-bold text-slate-900">{pluginVersionStatus}</p>
               <p className="mt-1 text-xs text-slate-500">{updateAvailable ? 'Plugin update available' : pluginVersionHelp}</p>
             </button>
@@ -858,8 +866,8 @@ export function SettingsView({
       
       {/* Fixed controls sidebar settings tabs */}
       <div className="space-y-5 lg:col-span-2 lg:space-y-6">
-        <section id="settings-domain" aria-labelledby="settings-domain-title" className="scroll-mt-28 rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-4  ">
-          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+        <section id="settings-domain" aria-labelledby="settings-domain-title" className="scroll-mt-28 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+          <div className="flex flex-col gap-4 border-b border-slate-200 px-5 py-4 sm:flex-row sm:items-start sm:justify-between">
             <div className="flex items-start gap-3">
               <div className="h-9 w-9 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center  ">
                 <Globe2 className="h-4 w-4" />
@@ -878,9 +886,9 @@ export function SettingsView({
             </span>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-3">
+          <div className="px-5 py-5">
             <div>
-              <label htmlFor="store-domain" className="block text-xs font-semibold text-slate-400 uppercase mb-1">Store Domain</label>
+              <label htmlFor="store-domain" className="mb-2 block text-xs font-semibold uppercase tracking-wider text-slate-500">Store domain</label>
               <input
                 id="store-domain"
                 type="text"
@@ -888,17 +896,21 @@ export function SettingsView({
                 placeholder="example.com"
                 onChange={(e) => setLocalStoreDomain(e.target.value)}
                 onKeyDown={(e) => { if (e.key === 'Enter') saveStoreDomain(); }}
-                className="w-full p-2.5 text-sm bg-white border border-slate-200 rounded-lg text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500   "
+                className="w-full rounded-lg border border-slate-200 bg-white p-2.5 text-sm text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500"
               />
+              <p className="mt-2 text-xs text-slate-400">Use the bare domain, without https:// or a trailing slash.</p>
             </div>
+          </div>
+          <div className="flex flex-col gap-3 border-t border-slate-200 bg-slate-50/60 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-xs text-slate-500">Changing the domain pauses tracking until the plugin reconnects.</p>
             <button
               type="button"
               disabled={savingStoreDomain || localStoreDomain.trim() === (storeDomain || '').trim()}
               onClick={saveStoreDomain}
-              className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-slate-900 px-4 py-2.5 text-xs font-bold text-white disabled:cursor-not-allowed disabled:opacity-50 sm:self-end  "
+              className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-indigo-600 px-5 py-2.5 text-xs font-bold text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
             >
               <Save className="h-3.5 w-3.5" />
-              {savingStoreDomain ? 'Saving' : 'Save Domain'}
+              {savingStoreDomain ? 'Saving' : 'Save domain'}
             </button>
           </div>
         </section>
@@ -959,7 +971,7 @@ export function SettingsView({
                   </div>
                 )}
 
-                <div className={`grid grid-cols-1 ${plat === 'GA4' ? 'md:grid-cols-2' : 'md:grid-cols-3'} gap-4`}>
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                   <div>
                     <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">{platformDestinationLabel(plat)}</label>
                     <input 
@@ -976,7 +988,7 @@ export function SettingsView({
                   
                   <div>
                     <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">{platformTokenLabel(plat)}</label>
-                    <input 
+                    <input
                       type="password"
                       name={`platform-${plat.toLowerCase().replace(/\s+/g, '-')}-access-token`}
                       autoComplete="new-password"
@@ -990,23 +1002,22 @@ export function SettingsView({
                     <p className="mt-1 text-xs leading-4 text-slate-500">{credentialHelp.token}</p>
                   </div>
 
-                  {plat !== 'GA4' && (
-                    <div>
-                      <label className="text-xs font-semibold text-slate-400 uppercase mb-1 flex items-center">
-                        Test Event Code (Optional)
-                        <Tooltip content="Use this optional Meta or TikTok test event code only while validating tracking setup." />
-                      </label>
-                      <input 
-                        type="text"
-                        value={localTestCodes[plat]}
-                        placeholder="e.g. TEST12345"
-                        onChange={(e) => setLocalTestCodes(prev => ({ ...prev, [plat]: e.target.value }))}
-                        onBlur={() => handleUpdatePlatform(plat, { testEventCode: localTestCodes[plat] })}
-                        onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); }}
-                        className="w-full p-2 text-xs bg-white border border-slate-200 rounded font-mono text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500   "
-                      />
-                    </div>
-                  )}
+                  <div>
+                    <label className="mb-1 flex items-center text-xs font-semibold uppercase text-slate-400">
+                      Test Event Code (Optional)
+                      <Tooltip content="Use this optional code only while validating tracking setup." />
+                    </label>
+                    <input
+                      type="text"
+                      value={localTestCodes[plat]}
+                      placeholder="e.g. TEST12345"
+                      onChange={(e) => setLocalTestCodes(prev => ({ ...prev, [plat]: e.target.value }))}
+                      onBlur={() => handleUpdatePlatform(plat, { testEventCode: localTestCodes[plat] })}
+                      onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); }}
+                      className="w-full rounded border border-slate-200 bg-white p-2 font-mono text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                    />
+                    <p className="mt-1 text-xs leading-4 text-slate-500">Only for verifying events in test mode.</p>
+                  </div>
                 </div>
               </div>
             );
@@ -1398,8 +1409,8 @@ export function SettingsView({
         </section>
 
         {/* Masterwork Courier & Logistics Settings Panel */}
-        <section id="settings-courier" aria-labelledby="settings-courier-title" className="scroll-mt-28 rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-6">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <section id="settings-courier" aria-labelledby="settings-courier-title" className="scroll-mt-28 space-y-5">
+          <div className="flex flex-col items-start justify-between gap-4 rounded-xl border border-slate-200 bg-white p-5 shadow-sm sm:flex-row sm:items-center">
             <div>
               <h2 id="settings-courier-title" className="text-sm font-bold text-slate-900">Courier partners</h2>
               <p className="mt-1 text-xs text-slate-500">Toggle on the partners you ship with — active couriers show their credential form below.</p>
@@ -1413,7 +1424,7 @@ export function SettingsView({
           </div>
 
           {/* Integrated Courier Partners Selection Grid */}
-          <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-4 sm:p-5 shadow-xs">
+          <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
             <h3 className="mb-1 text-xs font-bold uppercase tracking-wider text-slate-700">Available courier services</h3>
             <p className="mb-4 text-xs text-slate-500">Your existing courier logos and saved integrations stay unchanged.</p>
 
@@ -1489,7 +1500,7 @@ export function SettingsView({
               <div className="space-y-5">
                 {/* SteadFast API Card */}
                 {enabledCouriers.steadfast && (
-                  <div className="p-4 sm:p-5 rounded-xl border border-indigo-200 bg-slate-50/70 space-y-4 shadow-xs">
+                  <div className="space-y-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
                     <div className="flex items-center justify-between pb-2 border-b border-indigo-100">
                       <div className="flex items-center gap-2">
                         <span className="flex h-6 w-6 items-center justify-center rounded-md bg-blue-600 text-xs font-bold text-white">S</span>
@@ -1541,7 +1552,7 @@ export function SettingsView({
 
                 {/* Pathao API Card */}
                 {enabledCouriers.pathao && (
-                  <div className="p-4 sm:p-5 rounded-xl border border-indigo-200 bg-slate-50/70 space-y-4 shadow-xs">
+                  <div className="space-y-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
                     <div className="flex items-center justify-between pb-2 border-b border-indigo-100">
                       <div className="flex items-center gap-2">
                         <span className="flex h-6 w-6 items-center justify-center rounded-md bg-rose-600 text-xs font-bold text-white">P</span>
@@ -1667,7 +1678,7 @@ export function SettingsView({
 
                 {/* RedX API Card */}
                 {enabledCouriers.redx && (
-                  <div className="p-4 sm:p-5 rounded-xl border border-indigo-200 bg-slate-50/70 space-y-4 shadow-xs">
+                  <div className="space-y-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
                     <div className="flex items-center justify-between pb-2 border-b border-indigo-100">
                       <div className="flex items-center gap-2">
                         <span className="flex h-6 w-6 items-center justify-center rounded-md bg-red-600 text-xs font-bold text-white">R</span>
@@ -1736,7 +1747,7 @@ export function SettingsView({
               </div>
 
               {/* Primary Preferred Courier Provider Selection */}
-              <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/60">
+              <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
                 <label htmlFor="default-courier-provider" className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
                   Primary Preferred Courier
                 </label>
@@ -1754,13 +1765,13 @@ export function SettingsView({
               </div>
 
               {/* Submit Button */}
-              <div className="pt-2">
+              <div className="flex justify-end rounded-xl border border-slate-200 bg-slate-50/60 p-4">
                 <button
                   type="submit"
                   disabled={savingCourier}
-                  className="w-full py-3 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 disabled:opacity-50 text-white text-xs font-bold uppercase tracking-wider rounded-xl shadow-lg transition-all cursor-pointer text-center"
+                  className="min-h-10 rounded-lg bg-indigo-600 px-5 py-2.5 text-xs font-bold text-white transition-colors hover:bg-indigo-700 disabled:opacity-50"
                 >
-                  {savingCourier ? 'Updating settings...' : 'Save Courier Configurations'}
+                  {savingCourier ? 'Updating settings...' : 'Save courier settings'}
                 </button>
               </div>
             </form>
@@ -2171,14 +2182,19 @@ export function SettingsView({
       <div className="space-y-6">
         
         {/* WordPress token health status */}
-        <section id="settings-wordpress" aria-labelledby="settings-wordpress-title" className="scroll-mt-28 rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-4  ">
-          <div>
+        <section id="settings-wordpress" aria-labelledby="settings-wordpress-title" className="scroll-mt-28 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+          <div className="flex items-start justify-between gap-4 border-b border-slate-200 px-5 py-4">
+            <div>
             <h2 id="settings-wordpress-title" className="text-sm font-bold text-slate-900">WordPress plugin connection</h2>
             <p className="mt-1 text-xs text-slate-500">Connects your WordPress store to Buykori — all tracking choices are managed from this portal.</p>
+            </div>
+            <span className={`shrink-0 rounded-full border px-3 py-1 text-[11px] font-bold ${connection.status === 'Active' ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-amber-200 bg-amber-50 text-amber-700'}`}>
+              {connection.status === 'Active' ? 'Connected' : 'Reconnect'}
+            </span>
           </div>
 
           {(connection.reconnectRequired || connection.status !== 'Active') && (
-            <div className="rounded-lg border border-rose-200 bg-rose-50 p-3 text-xs text-rose-800">
+            <div className="mx-5 mt-5 rounded-lg border border-rose-200 bg-rose-50 p-3 text-xs text-rose-800">
               <p className="font-bold">WordPress reconnection required</p>
               <p className="mt-1">
                 {connection.connectionIssue || 'Open Buykori AdSync in WordPress and reconnect this site to restore event delivery.'}
@@ -2196,7 +2212,7 @@ export function SettingsView({
             </div>
           )}
 
-          <div className="p-4 rounded-lg bg-slate-50 border border-slate-200   space-y-3 font-mono text-xs text-slate-700 ">
+          <div className="mx-5 mt-5 space-y-3 rounded-lg border border-slate-200 bg-slate-50 p-4 font-mono text-xs text-slate-700">
             <div>
               <span className="block text-xs font-semibold text-slate-400  uppercase tracking-wider mb-0.5">Plugin connection key</span>
               <div className="flex items-center gap-2 bg-white  px-2 py-1.5 rounded border border-slate-200 ">
@@ -2229,7 +2245,7 @@ export function SettingsView({
             </div>
           </div>
 
-          <div className="rounded-lg border border-slate-200 bg-white p-3 text-xs  ">
+          <div className="mx-5 my-4 rounded-lg border border-slate-200 bg-white p-3 text-xs">
             <div className="flex items-start justify-between gap-3">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 ">Latest plugin package</p>
@@ -2271,7 +2287,7 @@ export function SettingsView({
                 .then(() => showToast("WordPress site binding is active.", false))
                 .catch((error) => showToast(error?.message || "WordPress reconnection is required.", true));
             }}
-            className="min-h-10 w-full rounded-lg border border-indigo-700/20 bg-indigo-600 py-2 text-xs font-semibold text-white transition-colors hover:bg-indigo-700 cursor-pointer"
+            className="mb-4 ml-auto mr-5 block min-h-10 rounded-lg border border-slate-200 bg-white px-5 py-2 text-xs font-bold text-slate-700 transition-colors hover:bg-slate-50"
           >
             Test WordPress Connection
           </button>
