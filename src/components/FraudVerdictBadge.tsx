@@ -72,16 +72,18 @@ export function getFraudVerdictKey(
 export function FraudVerdictBadge({
   details,
   score,
+  compact = false,
 }: {
   details?: DeferredOrder['fraudDetails'];
   score?: number;
+  compact?: boolean;
 }) {
   const verdict = VERDICTS[resolveVerdict(details, score)];
   const Icon = verdict.Icon;
 
   return (
-    <span className={`inline-flex whitespace-nowrap items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-bold ${verdict.className}`}>
-      <Icon className="h-3.5 w-3.5" aria-hidden="true" />
+    <span className={`inline-flex whitespace-nowrap items-center rounded-full border font-bold ${compact ? 'gap-1 px-2 py-0.5 text-[9px]' : 'gap-1.5 px-2.5 py-1 text-xs'} ${verdict.className}`}>
+      <Icon className={compact ? 'h-3 w-3' : 'h-3.5 w-3.5'} aria-hidden="true" />
       {verdict.label}
     </span>
   );
