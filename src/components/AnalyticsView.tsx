@@ -556,14 +556,21 @@ export function AnalyticsView({
               const currentCount = Number(step.count || 0);
               const previousCount = index > 0 ? Number(mobileFunnel[index - 1]?.count || 0) : currentCount;
               const hasGap = index > 0 && currentCount > previousCount;
-              const rate = index === 0 ? 100 : previousCount > 0 ? Number(((currentCount / previousCount) * 100).toFixed(1)) : 0;
+              const storeVisitCount = Number(mobileFunnel[0]?.count || 0);
+              const rate = index === 0
+                ? 100
+                : hasGap
+                  ? (storeVisitCount > 0 ? Number(((currentCount / storeVisitCount) * 100).toFixed(1)) : 0)
+                  : previousCount > 0
+                    ? Number(((currentCount / previousCount) * 100).toFixed(1))
+                    : 0;
               return (
                 <div key={step.step} className="py-2">
                   <div className="flex items-center gap-2">
                     <strong className="text-[11px] text-slate-800">{stepLabel(step.step)}</strong>
                     <span className="text-[9px] text-slate-400">{numberText(currentCount)} {index === 0 ? 'sessions' : 'events'}</span>
                     <span className={`ml-auto text-[11px] font-bold ${hasGap || (index > 0 && rate < 25) ? 'text-orange-600' : 'text-slate-800'}`}>
-                      {hasGap ? '—' : `${rate}%`}
+                      {rate}%
                     </span>
                   </div>
                   <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-stone-100">
