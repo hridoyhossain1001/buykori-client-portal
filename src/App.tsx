@@ -1687,6 +1687,7 @@ export default function App() {
                 analyticsError={analyticsError}
                 analyticsDays={analyticsDays}
                 setAnalyticsDays={setAnalyticsDays}
+                setActivePage={setActivePage}
               />
             )}
 
