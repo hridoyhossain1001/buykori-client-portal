@@ -15,6 +15,7 @@ import {
   CheckCircle2,
   ChevronRight,
   CircleGauge,
+  Flag,
   PackageCheck,
   Send,
   Settings2,
@@ -67,6 +68,31 @@ function eventContext(event: CAPIEvent) {
     }
   }
   return 'Website event';
+}
+
+function relativeEventTime(timestamp: string) {
+  const elapsedSeconds = Math.max(0, Math.floor((Date.now() - new Date(timestamp).getTime()) / 1000));
+  if (elapsedSeconds < 60) return 'Just now';
+  const minutes = Math.floor(elapsedSeconds / 60);
+  if (minutes < 60) return `${minutes} min ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours} hr ago`;
+  return `${Math.floor(hours / 24)}d ago`;
+}
+
+function chartGeometry(values: number[], width = 320, height = 86) {
+  const safeValues = values.length > 0 ? values : [0, 0];
+  const max = Math.max(...safeValues, 1);
+  const denominator = Math.max(1, safeValues.length - 1);
+  const points = safeValues.map((value, index) => ({
+    x: (index / denominator) * width,
+    y: height - 8 - (Math.max(0, value) / max) * (height - 22),
+  }));
+  const line = points.map((point, index) => `${index === 0 ? 'M' : 'L'}${point.x.toFixed(1)} ${point.y.toFixed(1)}`).join(' ');
+  return {
+    line,
+    area: `${line} L${width} ${height} L0 ${height} Z`,
+  };
 }
 
 export function DashboardView({
@@ -138,10 +164,187 @@ export function DashboardView({
   const orderQuota = Number(profile.ordersQuota || 0);
   const orderPercent = orderQuota > 0 ? Math.min(100, (ordersUsed / orderQuota) * 100) : 0;
   const recentEvents = events.slice(0, 5);
+  const mobileRecentEvents = recentEvents.slice(0, 4);
   const showGettingStarted = events.length === 0 && profile.eventsUsed === 0;
+  const deliveryAttempts = platformRows.reduce((total, row) => total + row.total, 0);
+  const successfulDeliveries = platformRows.reduce((total, row) => total + Math.round(row.total * row.rate / 100), 0);
+  const deliveryRate = deliveryAttempts > 0 ? Math.round((successfulDeliveries / deliveryAttempts) * 100) : 0;
+  const deliveryChart = useMemo(
+    () => chartGeometry(chartData.map(point => point.delivered)),
+    [chartData],
+  );
+  const firstTrendLabel = chartData[0]?.name || '';
+  const middleTrendLabel = chartData[Math.floor((chartData.length - 1) / 2)]?.name || '';
+  const lastTrendLabel = chartData[chartData.length - 1]?.name || '';
+  const renewalDate = profile.renewalDate ? new Date(profile.renewalDate) : null;
+  const renewalIsValid = Boolean(renewalDate && !Number.isNaN(renewalDate.getTime()));
+  const daysUntilRenewal = renewalIsValid
+    ? Math.max(0, Math.ceil((renewalDate!.getTime() - Date.now()) / 86_400_000))
+    : null;
 
   return (
     <div className="space-y-5">
+      <div className="space-y-3 md:hidden">
+        <section className="rounded-[18px] border border-slate-200 bg-white px-3.5 py-3 shadow-[0_4px_14px_rgba(15,23,42,0.03)]">
+          <div>
+            <div className="flex items-center justify-between text-[11px]">
+              <span className="font-semibold text-slate-500">Events this month</span>
+              <strong className="text-slate-800">{compactNumber(profile.eventsUsed)} <span className="font-medium text-slate-400">/ {compactNumber(profile.eventsQuota)}</span></strong>
+            </div>
+            <div className="mt-1.5 h-[5px] overflow-hidden rounded-full bg-slate-100">
+              <div className="h-full rounded-full bg-[#2f80df]" style={{ width: `${usagePercent}%` }} />
+            </div>
+          </div>
+          <div className="mt-2.5">
+            <div className="flex items-center justify-between text-[11px]">
+              <span className="font-semibold text-slate-500">Orders this month</span>
+              <strong className="text-slate-800">{compactNumber(ordersUsed)} <span className="font-medium text-slate-400">/ {orderQuota ? compactNumber(orderQuota) : '∞'}</span></strong>
+            </div>
+            <div className="mt-1.5 h-[5px] overflow-hidden rounded-full bg-slate-100">
+              <div className="h-full rounded-full bg-[#2f80df]" style={{ width: `${orderPercent}%` }} />
+            </div>
+          </div>
+          <div className="mt-2.5 flex items-center justify-between text-[11px]">
+            <span className="font-semibold text-slate-500">
+              {renewalIsValid ? `Resets ${renewalDate!.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}` : 'Monthly plan'}
+              {daysUntilRenewal !== null ? ` · ${daysUntilRenewal}d left` : ''}
+            </span>
+            <button onClick={() => setActivePage('account')} className="font-bold text-[#2375d8]">Upgrade</button>
+          </div>
+        </section>
+
+        <div className="grid grid-cols-3 rounded-xl bg-stone-100 p-1 text-center text-[11px] font-bold text-stone-500">
+          {[7, 30, 90].map(days => (
+            <button
+              key={days}
+              type="button"
+              onClick={() => setAnalyticsDays(days)}
+              className={`rounded-lg px-2 py-2 transition ${analyticsDays === days ? 'bg-white text-slate-800 shadow-sm' : ''}`}
+            >
+              {days} days
+            </button>
+          ))}
+        </div>
+
+        <section className="overflow-hidden rounded-[18px] border border-slate-200 bg-white shadow-[0_4px_14px_rgba(15,23,42,0.03)]">
+          <button onClick={() => setActivePage('pending-purchases')} className="flex w-full items-center gap-3 px-3.5 py-3 text-left">
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-orange-50 text-orange-500">
+              <Flag className="h-4 w-4" fill="currentColor" />
+            </span>
+            <span className="min-w-0 flex-1">
+              <strong className="block truncate text-[13px] text-slate-800">
+                {pendingOrderCount > 0 ? `${pendingOrderCount} COD ${pendingOrderCount === 1 ? 'order needs' : 'orders need'} review` : 'COD review queue is clear'}
+              </strong>
+              <span className="mt-0.5 block truncate text-[10px] text-slate-500">Confirm or skip pending events</span>
+            </span>
+            <span className="rounded-lg bg-[#2f80df] px-3 py-2 text-[11px] font-bold text-white">Review</span>
+          </button>
+          <button onClick={() => setActivePage('settings')} className="flex w-full items-center gap-3 border-t border-slate-100 px-3.5 py-3 text-left">
+            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-50 text-emerald-500">
+              <CheckCircle2 className="h-3.5 w-3.5" />
+            </span>
+            <span className="min-w-0 flex-1 text-[12px] font-bold text-slate-800">
+              {hasDeliveryIssue ? 'Tracking needs attention' : 'Setup & tracking healthy'}
+            </span>
+            <span className="text-[10px] font-bold text-[#2375d8]">View</span>
+          </button>
+        </section>
+
+        <section className="rounded-[18px] border border-slate-200 bg-white px-3.5 py-3 shadow-[0_4px_14px_rgba(15,23,42,0.03)]">
+          <div className="flex items-center justify-between">
+            <h2 className="text-[13px] font-bold text-slate-800">Tracking health</h2>
+            <button onClick={() => setActivePage('settings')} className="text-[10px] font-bold text-[#2375d8]">Manage</button>
+          </div>
+          <div className="mt-1">
+            {platformRows.map((row, index) => (
+              <button
+                key={row.label}
+                onClick={() => setActivePage('event-logs')}
+                className={`flex w-full items-center gap-2.5 py-2.5 text-left ${index > 0 ? 'border-t border-slate-100' : ''}`}
+              >
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-stone-100">
+                  <PlatformLogo platform={row.platform} className="h-4 w-4" />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <strong className="block text-[12px] leading-none text-slate-800">{row.label}</strong>
+                  <span className="mt-1 block truncate text-[10px] leading-none text-slate-400">
+                    {row.total.toLocaleString()} events · synced {row.lastTime || 'waiting'}
+                  </span>
+                </span>
+                <span className={`rounded-full px-2 py-1 text-[10px] font-bold ${row.total > 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-400'}`}>
+                  {row.total > 0 ? `${row.rate}%` : '—'}
+                </span>
+              </button>
+            ))}
+          </div>
+        </section>
+
+        <section className="rounded-[18px] border border-slate-200 bg-white px-3.5 py-3 shadow-[0_4px_14px_rgba(15,23,42,0.03)]">
+          <div className="flex items-center justify-between">
+            <h2 className="text-[13px] font-bold text-slate-800">Recent activity</h2>
+            <button onClick={() => setActivePage('event-logs')} className="text-[10px] font-bold text-[#2375d8]">View all</button>
+          </div>
+          {mobileRecentEvents.length > 0 ? (
+            <div className="mt-1">
+              {mobileRecentEvents.map((event, index) => (
+                <button
+                  key={event.id}
+                  onClick={() => setActivePage('event-logs')}
+                  className={`flex w-full items-center gap-2.5 py-2.5 text-left ${index > 0 ? 'border-t border-slate-100' : ''}`}
+                >
+                  <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${
+                    event.status === 'Success' ? 'bg-emerald-50 text-emerald-500' : event.status === 'Retry' ? 'bg-amber-50 text-amber-500' : 'bg-rose-50 text-rose-500'
+                  }`}>
+                    <CheckCircle2 className="h-3.5 w-3.5" />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <strong className="block truncate text-[12px] leading-none text-slate-800">{event.name} · {eventContext(event)}</strong>
+                    <span className="mt-1 block text-[10px] leading-none text-slate-400">{relativeEventTime(event.timestamp)}</span>
+                  </span>
+                  <span className="rounded-md border border-slate-200 bg-stone-50 px-1.5 py-1 text-[9px] font-semibold text-slate-500">
+                    {event.platform === 'Meta CAPI' ? 'Meta' : event.platform === 'TikTok Events API' ? 'TikTok' : event.platform === 'Gateway Ingest' ? 'Server' : event.platform}
+                  </span>
+                </button>
+              ))}
+            </div>
+          ) : (
+            <p className="py-5 text-center text-[11px] text-slate-400">Recent events will appear here.</p>
+          )}
+        </section>
+
+        <section className="rounded-[18px] border border-slate-200 bg-white px-3.5 py-3 shadow-[0_4px_14px_rgba(15,23,42,0.03)]">
+          <div className="flex items-center justify-between">
+            <h2 className="text-[13px] font-bold text-slate-800">Event delivery</h2>
+            <span className="text-[10px] font-bold text-[#2375d8]">Last {analyticsDays} days</span>
+          </div>
+          <div className="mt-3 h-[116px]">
+            {chartData.length > 0 ? (
+              <>
+                <svg className="h-[90px] w-full" viewBox="0 0 320 86" preserveAspectRatio="none" role="img" aria-label={`${deliveryRate}% event delivery rate`}>
+                  <defs>
+                    <linearGradient id="mobileDeliveryGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#2f80df" stopOpacity=".25" />
+                      <stop offset="100%" stopColor="#2f80df" stopOpacity=".03" />
+                    </linearGradient>
+                  </defs>
+                  {[18, 43, 68].map(y => <line key={y} x1="0" x2="320" y1={y} y2={y} stroke="#edf1f6" />)}
+                  <path d={deliveryChart.area} fill="url(#mobileDeliveryGradient)" />
+                  <path d={deliveryChart.line} fill="none" stroke="#2580e8" strokeWidth="2.25" strokeLinejoin="round" strokeLinecap="round" />
+                </svg>
+                <div className="flex justify-between text-[9px] text-slate-400">
+                  <span>{firstTrendLabel}</span>
+                  <span>{middleTrendLabel}</span>
+                  <span>{lastTrendLabel}</span>
+                </div>
+              </>
+            ) : (
+              <div className="flex h-full items-center justify-center text-[11px] text-slate-400">Waiting for delivery data</div>
+            )}
+          </div>
+        </section>
+      </div>
+
+      <div className="hidden space-y-5 md:block">
       {hasDeliveryIssue && (
         <section className="flex flex-col gap-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 sm:flex-row sm:items-center sm:justify-between" role="alert">
           <div className="flex items-start gap-3">
@@ -371,6 +574,7 @@ export function DashboardView({
           </div>
         )}
       </section>
+      </div>
     </div>
   );
 }

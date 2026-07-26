@@ -67,7 +67,77 @@ export function WeeklyReportCard() {
   ] : [];
 
   return (
-    <section className="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-[0_8px_30px_rgba(15,23,42,0.04)]">
+    <>
+    <section className="relative overflow-hidden rounded-[20px] bg-gradient-to-br from-[#142d4f] via-[#183d67] to-[#0f3156] p-4 text-white shadow-[0_12px_30px_rgba(15,49,86,0.18)] md:hidden">
+      {loading && !report ? (
+        <div className="h-[194px] animate-pulse rounded-2xl bg-white/10" />
+      ) : report && (
+        <>
+          <div className="relative z-10">
+            <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-slate-300">Tracked revenue · last 7 days</p>
+            <div className="mt-0.5 flex items-center gap-2">
+              <h2 className="text-[29px] font-extrabold leading-none tracking-tight">
+                {report.current.currency} {report.current.revenue.toLocaleString()}
+              </h2>
+              {report.changes.revenue !== null && (
+                <span className={`rounded-full px-2 py-1 text-[10px] font-bold ${
+                  report.changes.revenue >= 0 ? 'bg-emerald-300/15 text-emerald-200' : 'bg-rose-300/15 text-rose-200'
+                }`}>
+                  {report.changes.revenue >= 0 ? '△' : '▽'} {Math.abs(report.changes.revenue)}%
+                </span>
+              )}
+            </div>
+          </div>
+
+          <svg className="mt-3 h-[58px] w-full overflow-visible" viewBox="0 0 320 58" preserveAspectRatio="none" aria-hidden="true">
+            <defs>
+              <linearGradient id="mobileWeeklyRevenue" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#7dd3a7" stopOpacity=".35" />
+                <stop offset="100%" stopColor="#7dd3a7" stopOpacity="0" />
+              </linearGradient>
+            </defs>
+            <path
+              d={report.current.revenue >= report.previous.revenue
+                ? 'M0 48 C58 41 76 22 132 31 C187 41 198 50 226 24 C249 3 278 19 320 34 L320 58 L0 58 Z'
+                : 'M0 20 C58 12 76 30 132 24 C187 18 198 30 226 35 C260 42 286 39 320 48 L320 58 L0 58 Z'}
+              fill="url(#mobileWeeklyRevenue)"
+            />
+            <path
+              d={report.current.revenue >= report.previous.revenue
+                ? 'M0 48 C58 41 76 22 132 31 C187 41 198 50 226 24 C249 3 278 19 320 34'
+                : 'M0 20 C58 12 76 30 132 24 C187 18 198 30 226 35 C260 42 286 39 320 48'}
+              fill="none"
+              stroke="#7dd3a7"
+              strokeWidth="2"
+              strokeLinecap="round"
+            />
+            <circle cx="319" cy={report.current.revenue >= report.previous.revenue ? 34 : 48} r="2.5" fill="#fff" />
+          </svg>
+
+          <div className="relative z-10 mt-2 grid grid-cols-3 gap-2">
+            {[
+              { label: 'Orders', value: report.current.purchases.toLocaleString(), change: report.changes.purchases, points: false },
+              { label: 'Recovered', value: report.current.recoveredCheckouts.toLocaleString(), change: report.changes.recoveredCheckouts, points: false },
+              { label: 'Delivery', value: report.current.deliveryRate === null ? '—' : `${report.current.deliveryRate}%`, change: report.changes.deliveryRate, points: true },
+            ].map(metric => (
+              <div key={metric.label} className="rounded-xl border border-white/15 bg-white/10 px-3 py-2.5">
+                <p className="text-[10px] font-semibold text-slate-300">{metric.label}</p>
+                <p className="mt-0.5 text-base font-extrabold leading-none">{metric.value}</p>
+                <p className={`mt-2 text-[10px] font-bold ${
+                  metric.change === null ? 'text-slate-400' : metric.change >= 0 ? 'text-emerald-200' : 'text-rose-200'
+                }`}>
+                  {metric.change === null
+                    ? '—'
+                    : `${metric.change >= 0 ? '+' : ''}${metric.change}${metric.points ? ' pts' : '%'}`}
+                </p>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+    </section>
+
+    <section className="hidden rounded-2xl border border-slate-200/90 bg-white p-5 shadow-[0_8px_30px_rgba(15,23,42,0.04)] md:block">
       <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="text-xs font-bold uppercase tracking-[0.16em] text-blue-700">Store performance</p>
@@ -106,5 +176,6 @@ export function WeeklyReportCard() {
         </>
       )}
     </section>
+    </>
   );
 }
