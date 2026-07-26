@@ -21,7 +21,8 @@ import {
   ChevronDown,
   ChevronUp,
   Printer,
-  Copy
+  Copy,
+  Info
 } from 'lucide-react';
 import { CourierBookingPayload, CourierOrder, CourierSettings, DeferredData, DeferredOrder, DeferredOrderProduct, FulfillmentOrder } from '../types';
 import { CourierLabelModal } from './CourierLabelModal';
@@ -144,6 +145,13 @@ export function OrdersView({
   const [pendingSort, setPendingSort] = useState<'oldest' | 'newest'>('newest');
   const [pendingPage, setPendingPage] = useState(1);
   const [selectedPendingOrderIds, setSelectedPendingOrderIds] = useState<string[]>([]);
+  const [pendingOverviewOpen, setPendingOverviewOpen] = useState(false);
+
+  useEffect(() => {
+    if (!pendingOverviewOpen) return undefined;
+    const timer = window.setTimeout(() => setPendingOverviewOpen(false), 5000);
+    return () => window.clearTimeout(timer);
+  }, [pendingOverviewOpen]);
 
   // Send to Courier Modal State
   const [isSendModalOpen, setIsSendModalOpen] = useState<boolean>(false);
@@ -628,8 +636,8 @@ export function OrdersView({
     })
     .slice(0, 30);
 
-  const renderCourierVerdict = (details?: DeferredOrder['fraudDetails'], scoreValue?: number) => (
-    <FraudVerdictBadge details={details} score={scoreValue} />
+  const renderCourierVerdict = (details?: DeferredOrder['fraudDetails'], scoreValue?: number, compact = false) => (
+    <FraudVerdictBadge details={details} score={scoreValue} compact={compact} />
   );
 
   const pendingFilteredOrders = codVerificationOrders
@@ -685,7 +693,7 @@ export function OrdersView({
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3 md:space-y-6">
       {deferredLoadError && (
         <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs text-amber-800">
           <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0" />
@@ -695,14 +703,61 @@ export function OrdersView({
           </div>
         </div>
       )}
-      <header>
+      <header className="hidden md:block">
         <h1 className="text-2xl font-black tracking-tight text-slate-900">Courier Shipping</h1>
         <p className="mt-1 text-sm text-slate-500">
           Review pending orders, create invoices and book couriers — without leaving the page.
         </p>
       </header>
 
-      <section className="grid overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm sm:grid-cols-2 lg:grid-cols-4">
+      <section className="overflow-hidden rounded-[14px] border border-slate-200 bg-white p-2.5 shadow-sm md:hidden">
+        <div className={`flex items-center justify-between ${pendingOverviewOpen ? 'border-b border-slate-100 pb-2' : ''}`}>
+          <div className="flex items-center gap-2">
+            <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-blue-50 text-[#2f80df]">
+              <Truck className="h-3.5 w-3.5" />
+            </span>
+            <span className="text-[11px] font-bold text-slate-900">Courier overview</span>
+            <span className="rounded-full bg-blue-50 px-2 py-0.5 text-[8px] font-black text-[#285ac7]">
+              {codVerificationOrders.length} pending
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setPendingOverviewOpen((current) => !current)}
+            aria-expanded={pendingOverviewOpen}
+            aria-label={pendingOverviewOpen ? 'Hide courier overview details' : 'Show courier overview details'}
+            className={`flex h-7 items-center justify-center gap-1 rounded-lg border px-2 transition ${
+              pendingOverviewOpen
+                ? 'border-blue-200 bg-blue-50 text-[#2f80df]'
+                : 'border-slate-200 bg-white text-slate-500'
+            }`}
+          >
+            <Info className="h-3.5 w-3.5" />
+            <ChevronDown className={`h-3 w-3 transition-transform ${pendingOverviewOpen ? 'rotate-180' : ''}`} />
+          </button>
+        </div>
+        {pendingOverviewOpen && (
+          <div className="grid grid-cols-2 pt-1">
+            {[
+              ['Pending orders', codVerificationOrders.length, `BDT ${pendingValueTotal.toLocaleString()} waiting`, 'text-slate-900'],
+              ['Held over 7 days', heldOverWeek, heldOverWeek > 0 ? 'Needs review' : 'No ageing orders', 'text-orange-600'],
+              ['Booked this month', bookedThisMonth, 'Connected couriers', 'text-slate-900'],
+              ['High fraud risk', highRiskPending, highRiskPending > 0 ? 'Review before booking' : 'All orders look safe', highRiskPending > 0 ? 'text-rose-600' : 'text-emerald-600'],
+            ].map(([label, value, helper, tone], index) => (
+              <div
+                key={String(label)}
+                className={`min-w-0 px-2.5 py-2 ${index % 2 === 1 ? 'border-l border-slate-100' : ''} ${index > 1 ? 'border-t border-slate-100' : ''}`}
+              >
+                <p className="whitespace-nowrap text-[7.5px] font-bold uppercase tracking-[0.09em] text-slate-500">{label}</p>
+                <p className={`mt-0.5 text-[16px] font-black leading-none tracking-tight ${tone}`}>{value}</p>
+                <p className="mt-1 text-[8px] font-medium leading-[11px] text-slate-500">{helper}</p>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
+      <section className="hidden overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm md:grid md:grid-cols-2 lg:grid-cols-4">
         {[
           ['Pending orders', codVerificationOrders.length, `BDT ${pendingValueTotal.toLocaleString()} waiting to ship`, 'text-slate-900'],
           ['Held over 7 days', heldOverWeek, heldOverWeek > 0 ? 'Needs review' : 'No ageing orders', 'text-amber-700'],
@@ -758,7 +813,7 @@ export function OrdersView({
       )}
       
       {/* Tab bar header */}
-      <div className="flex w-fit max-w-full rounded-xl border border-slate-200 bg-white p-1 shadow-sm">
+      <div className="flex w-full max-w-full rounded-xl border border-slate-200 bg-white p-1 shadow-sm md:w-fit">
         <button
           onClick={() => setActiveTab('pending')}
           data-guide="orders-pending-tab"
@@ -804,7 +859,57 @@ export function OrdersView({
 
       {activeTab === 'pending' && (
         <div id="orders-pending" className="scroll-mt-24 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-          <div className="flex flex-col gap-3 border-b border-slate-200 p-4 lg:flex-row lg:items-center">
+          <div className="border-b border-slate-200 p-3 md:hidden">
+            <div className="grid grid-cols-[minmax(0,1fr)_112px] gap-2">
+              <div className="relative min-w-0">
+                <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-slate-400" />
+                <input
+                  value={pendingSearch}
+                  onChange={(event) => setPendingSearch(event.target.value)}
+                  placeholder="Search order ID, name or phone…"
+                  className="h-9 w-full rounded-lg border border-slate-200 pl-9 pr-2 text-[10px] outline-none focus:border-[#2f80df]"
+                />
+              </div>
+              <select
+                value={pendingFraudFilter}
+                onChange={(event) => setPendingFraudFilter(event.target.value)}
+                aria-label="Filter pending orders by fraud level"
+                className="h-9 min-w-0 rounded-lg border border-slate-200 bg-white px-2 text-[9px] font-bold text-slate-700"
+              >
+                <option value="all">All fraud levels</option>
+                <option value="EXCELLENT">Best customers</option>
+                <option value="GOOD">Good customers</option>
+                <option value="MODERATE">Moderate risk</option>
+                <option value="RISKY">Risky customers</option>
+                <option value="HIGH_RISK">High risk</option>
+                <option value="NEW_CUSTOMER">New customers</option>
+                <option value="UNKNOWN">Check unavailable</option>
+              </select>
+            </div>
+            <div className="mt-2 grid grid-cols-[104px_1fr_116px] items-center gap-2">
+              <select
+                value={pendingSort}
+                onChange={(event) => setPendingSort(event.target.value as 'oldest' | 'newest')}
+                aria-label="Sort pending courier orders"
+                className="h-8 min-w-0 rounded-lg border border-slate-200 bg-white px-2 text-[9px] font-bold text-slate-700"
+              >
+                <option value="newest">Latest first ▼</option>
+                <option value="oldest">Oldest first ▼</option>
+              </select>
+              <span className="truncate text-[9px] font-bold text-slate-400">{selectedPendingOrderIds.length} selected</span>
+              <button
+                type="button"
+                disabled={selectedPendingOrderIds.length === 0}
+                onClick={openFirstSelectedPendingOrder}
+                className="inline-flex h-8 items-center justify-center gap-1 rounded-lg bg-[#2f80df] px-2 text-[9px] font-bold text-white disabled:border disabled:border-slate-200 disabled:bg-slate-50 disabled:text-slate-400"
+              >
+                <Truck className="h-3 w-3" />
+                Book selected
+              </button>
+            </div>
+          </div>
+
+          <div className="hidden flex-col gap-3 border-b border-slate-200 p-4 md:flex lg:flex-row lg:items-center">
             <div className="relative min-w-0 flex-1">
               <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
               <input
@@ -850,74 +955,93 @@ export function OrdersView({
             </button>
           </div>
 
-          <div className="space-y-3 p-4 md:hidden">
+          <div className="divide-y divide-slate-100 md:hidden">
             {pendingPageOrders.length === 0 ? (
-              <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center text-slate-400  ">
+              <div className="px-4 py-8 text-center text-slate-400">
                 <CheckCircle2 className="mx-auto mb-2 h-8 w-8 text-emerald-400" />
                 <p className="text-xs font-semibold">No COD orders are waiting for your review.</p>
               </div>
             ) : pendingPageOrders.map((order) => {
               const isExpanded = expandedOrderId === order.orderId;
               const products = order.products || [];
+              const selected = selectedPendingOrderIds.includes(order.orderId);
+              const productSubtotal = Number(order.productSubtotal ?? products.reduce((sum, product) => sum + (Number(product.price || 0) * Number(product.quantity || 1)), 0));
+              const deliveryAndAdjustments = Number(order.deliveryCharge || 0) + Number(order.otherAdjustment || 0);
               return (
-                <div key={order.orderId} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm  ">
-                  <button type="button" onClick={() => toggleExpand(order.orderId)} className="w-full text-left">
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <p className="font-mono text-sm font-bold text-slate-900 ">#{order.orderId}</p>
-                        <p className="mt-1 text-sm font-semibold text-slate-800 ">{order.recipientName || 'Customer unavailable'}</p>
-                        <p className="mt-0.5 font-mono text-xs text-slate-500">{usablePhone(order.recipientPhone) || usablePhone(order.customer) || 'No phone'}</p>
+                <article key={order.orderId} className={`px-3 py-2.5 ${selected ? 'bg-blue-50/40' : 'bg-white'}`}>
+                  <div className="flex items-start gap-2">
+                    <input
+                      type="checkbox"
+                      checked={selected}
+                      onChange={(event) => togglePendingOrder(order.orderId, event.target.checked)}
+                      aria-label={`Select pending courier order ${order.orderId}`}
+                      className="mt-0.5 h-4 w-4 shrink-0 rounded accent-[#2f80df]"
+                    />
+                    <button type="button" onClick={() => toggleExpand(order.orderId)} className="min-w-0 flex-1 text-left" aria-expanded={isExpanded}>
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="flex items-center gap-1 font-mono text-[12px] font-bold leading-none text-slate-900">
+                            #{order.orderId}
+                            {isExpanded ? <ChevronUp className="h-3 w-3 text-[#2f80df]" /> : <ChevronDown className="h-3 w-3 text-slate-400" />}
+                          </p>
+                          <p className="mt-1 truncate text-[10px] font-semibold text-slate-800">
+                            {order.recipientName || 'Customer unavailable'}
+                            <span className="ml-1 font-normal text-slate-400">· {usablePhone(order.recipientPhone) || usablePhone(order.customer) || 'No phone'}</span>
+                          </p>
+                        </div>
+                        <span className="shrink-0 text-right">
+                          <strong className="block text-[13px] font-black leading-none text-slate-900">BDT {Number(order.amount || 0).toLocaleString()}</strong>
+                          <span className={`mt-1 block text-[8px] font-bold ${(Number(order.ageHours) || 0) >= 168 ? 'text-orange-600' : 'text-slate-400'}`}>
+                            {formatHeldAge(order.ageHours)}
+                          </span>
+                        </span>
                       </div>
-                      <span className="font-bold text-slate-900 ">BDT {Number(order.amount || 0).toLocaleString()}</span>
-                    </div>
-                    <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
-                      <div className="rounded-lg bg-slate-50 p-2 ">
-                        <p className="font-bold uppercase text-slate-400">Risk</p>
-                        <div className="mt-1">{renderCourierVerdict(order.fraudDetails, order.fraudScore)}</div>
+                      <div className="mt-2 flex items-center justify-between gap-2">
+                        {renderCourierVerdict(order.fraudDetails, order.fraudScore, true)}
+                        <span className="text-[8px] font-medium text-slate-400">{isExpanded ? 'Hide details' : 'View details'}</span>
                       </div>
-                      <div className="rounded-lg bg-slate-50 p-2 ">
-                        <p className="font-bold uppercase text-slate-400">Held</p>
-                        <p className="mt-1 font-mono font-bold text-slate-700 ">{formatHeldAge(order.ageHours)}</p>
-                      </div>
-                    </div>
-                  </button>
+                    </button>
+                  </div>
+
+                  <div className="mt-2 grid grid-cols-2 gap-2">
+                    <button onClick={() => openInvoice(order)} className="h-8 rounded-lg border border-slate-200 bg-white px-2 text-[9px] font-bold text-slate-700">Invoice</button>
+                    <button onClick={() => openPendingCourierModal(order)} className="h-8 rounded-lg bg-[#2f80df] px-2 text-[9px] font-bold text-white">Book courier</button>
+                  </div>
+
                   {isExpanded && (
-                    <div className="mt-4 space-y-3 border-t border-slate-100 pt-3 ">
-                      <div className="rounded-lg bg-slate-50 p-3 text-xs ">
-                        <p className="font-bold uppercase tracking-wider text-slate-400">Address</p>
-                        <p className="mt-1 font-semibold text-slate-800 ">{order.recipientAddress || 'Address unavailable'}</p>
+                    <div className="mt-2 grid gap-2 border-t border-slate-100 pt-2">
+                      <div className="rounded-lg bg-slate-50 p-2.5">
+                        <p className="text-[8px] font-bold uppercase tracking-wider text-slate-400">Customer details</p>
+                        <div className="mt-1.5 grid grid-cols-[44px_1fr] gap-x-2 gap-y-1 text-[9px]">
+                          <span className="font-bold text-slate-400">Name</span>
+                          <strong className="truncate text-slate-700">{order.recipientName || 'Customer unavailable'}</strong>
+                          <span className="font-bold text-slate-400">Phone</span>
+                          <span className="font-mono font-semibold text-slate-700">{usablePhone(order.recipientPhone) || 'No phone'}</span>
+                          <span className="font-bold text-slate-400">Address</span>
+                          <span className="leading-3 text-slate-700">{order.recipientAddress || 'Address unavailable'}</span>
+                        </div>
                       </div>
                       {products.length > 0 && (
-                        <div className="rounded-lg border border-slate-200 ">
-                          {products.slice(0, 4).map((p, i: number) => {
-                            const meta = productMeta(p);
-                            return (
-                              <div key={i} className="border-b border-slate-100 px-3 py-2 text-xs last:border-b-0 ">
-                                <p className="font-semibold text-slate-700 ">{p.name || p.content_name || 'Product'}</p>
-                                {meta.length > 0 && (
-                                  <div className="mt-1 flex flex-wrap gap-1">
-                                    {meta.map((item) => (
-                                      <span key={`${item.label}-${item.value}`} className={`rounded px-1.5 py-0.5 text-xs font-semibold ${item.category ? 'bg-slate-100 text-slate-600' : 'bg-indigo-50 text-indigo-700'}`}>
-                                        {item.label}: {item.value}
-                                      </span>
-                                    ))}
-                                  </div>
-                                )}
-                                <p className="mt-1 text-xs text-slate-500">
-                                  Qty {p.quantity || 1} · {Number(p.price || 0) > 0 ? `BDT ${Number(p.price || 0).toLocaleString()}` : 'Price unavailable'}
-                                </p>
+                        <div className="rounded-lg border border-slate-200 p-2.5">
+                          <p className="text-[8px] font-bold uppercase tracking-wider text-slate-400">Order items · {products.length}</p>
+                          <div className="mt-1.5 space-y-1.5">
+                            {products.slice(0, 3).map((product, index) => (
+                              <div key={index} className="flex items-start justify-between gap-2 text-[9px]">
+                                <span className="min-w-0 truncate font-semibold text-slate-700">{product.name || product.content_name || 'Product'} · Qty {product.quantity || 1}</span>
+                                <strong className="shrink-0 text-slate-700">BDT {Number(product.price || 0).toLocaleString()}</strong>
                               </div>
-                            );
-                          })}
+                            ))}
+                          </div>
+                          <div className="mt-2 space-y-1 border-t border-slate-100 pt-2 text-[9px]">
+                            <div className="flex justify-between text-slate-500"><span>Product subtotal</span><strong className="text-slate-700">BDT {productSubtotal.toLocaleString()}</strong></div>
+                            <div className="flex justify-between text-slate-500"><span>Delivery & adjustments</span><strong className="text-slate-700">BDT {deliveryAndAdjustments.toLocaleString()}</strong></div>
+                            <div className="flex justify-between border-t border-slate-100 pt-1 font-bold text-slate-800"><span>Total order value</span><strong className="text-[#285ac7]">BDT {Number(order.orderTotal ?? order.amount ?? 0).toLocaleString()}</strong></div>
+                          </div>
                         </div>
                       )}
                     </div>
                   )}
-                  <div className="mt-4 grid grid-cols-2 gap-2">
-                    <button onClick={() => openInvoice(order)} className="min-h-10 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-bold text-slate-700">Invoice</button>
-                    <button onClick={() => openPendingCourierModal(order)} className="min-h-10 rounded-lg bg-indigo-600 px-3 py-2 text-xs font-bold text-white">Book Courier</button>
-                  </div>
-                </div>
+                </article>
               );
             })}
           </div>
