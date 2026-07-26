@@ -95,6 +95,7 @@ export function CampaignBuilderView({
   copiedStates,
   handleCopy
 }: CampaignBuilderViewProps) {
+  const [mobileTab, setMobileTab] = React.useState<'url' | 'tester' | 'preview'>('url');
   const campaignOptions = React.useMemo(
     () => (Array.isArray(syncedAdCampaigns) ? syncedAdCampaigns : [])
       .filter((campaign) => campaign.platform === urlBuilderAdPlatform),
@@ -130,6 +131,9 @@ export function CampaignBuilderView({
     const handleSectionJump = (event: Event) => {
       const detail = (event as CustomEvent<{ pageId: string; sectionId: string }>).detail;
       if (detail?.pageId !== 'campaign-builder') return;
+      if (detail.sectionId === 'campaign-url-builder') setMobileTab('url');
+      if (detail.sectionId === 'campaign-event-tester') setMobileTab('tester');
+      if (detail.sectionId === 'campaign-data-preview') setMobileTab('preview');
       window.requestAnimationFrame(() => {
         document.getElementById(detail.sectionId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
       });
@@ -139,11 +143,34 @@ export function CampaignBuilderView({
   }, []);
 
   return (
-    <div className="space-y-6 md:space-y-8">
+    <div className="space-y-2 md:space-y-8">
+      <div className="grid grid-cols-3 gap-1 rounded-xl bg-slate-100 p-1 md:hidden" role="tablist" aria-label="Campaign tools">
+        {([
+          ['url', 'URL builder'],
+          ['tester', 'Event tester'],
+          ['preview', 'Data preview']
+        ] as const).map(([tab, label]) => (
+          <button
+            key={tab}
+            type="button"
+            role="tab"
+            aria-selected={mobileTab === tab}
+            onClick={() => setMobileTab(tab)}
+            className={`min-h-9 rounded-lg px-2 text-[11px] font-bold transition ${
+              mobileTab === tab
+                ? 'bg-white text-slate-900 shadow-sm ring-1 ring-slate-200'
+                : 'text-slate-500 hover:text-slate-700'
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
       {/* Campaign URL Builder Widget */}
-      <div id="campaign-url-builder" className="scroll-mt-24 rounded-xl border border-slate-200 bg-white p-4 shadow-sm flex flex-col space-y-4   md:p-6">
-        <div className="flex items-start gap-2.5 pb-3 border-b border-slate-100 ">
-          <div className="hidden p-2 rounded-lg bg-indigo-50  text-indigo-600  sm:block">
+      <div id="campaign-url-builder" className={`${mobileTab === 'url' ? 'flex' : 'hidden'} scroll-mt-24 flex-col space-y-3 rounded-xl border border-slate-200 bg-white p-3 shadow-sm md:flex md:space-y-4 md:p-6`}>
+        <div className="flex items-start gap-2.5 border-b border-slate-100 pb-2.5 md:pb-3">
+          <div className="rounded-lg bg-indigo-50 p-1.5 text-indigo-600 md:p-2">
             <Link className="w-4 h-4" />
           </div>
           <div>
@@ -152,10 +179,10 @@ export function CampaignBuilderView({
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 md:gap-6 md:pt-2">
           
           {/* Input parameters Form */}
-          <div className="space-y-4">
+          <div className="space-y-3 md:space-y-4">
             
             {/* Base Website URL */}
             <div>
@@ -172,7 +199,7 @@ export function CampaignBuilderView({
             </div>
 
             {/* Source & Medium grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-2 md:gap-4">
               <div>
                 <label htmlFor="campaign-url-source" className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5 ">Campaign Source</label>
                 <select 
@@ -224,7 +251,7 @@ export function CampaignBuilderView({
               />
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-[150px_minmax(0,1fr)] gap-4">
+            <div className="grid grid-cols-[minmax(0,0.9fr)_minmax(0,1.6fr)] gap-2 md:grid-cols-[150px_minmax(0,1fr)] md:gap-4">
               <div>
                 <label htmlFor="campaign-url-ad-platform" className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5 ">Ad Platform</label>
                 <select
@@ -279,7 +306,7 @@ export function CampaignBuilderView({
             </div>
 
             {/* Optional parameters Content & Term */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-2 md:gap-4">
               <div>
                 <label htmlFor="campaign-url-content" className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5 ">Ad Content (Optional)</label>
                 <input 
@@ -309,7 +336,7 @@ export function CampaignBuilderView({
             <button 
               type="button"
               onClick={handleGenerateCampaignUrl}
-              className="min-h-10 px-5 py-2.5 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white text-xs font-bold rounded-lg transition-all duration-300 transform hover:-translate-y-0.5 shadow-md shadow-indigo-500/10 hover:shadow-indigo-500/20 cursor-pointer"
+              className="min-h-10 w-full rounded-lg bg-gradient-to-r from-indigo-600 to-violet-600 px-5 py-2.5 text-xs font-bold text-white shadow-md shadow-indigo-500/10 transition-all duration-300 hover:-translate-y-0.5 hover:from-indigo-700 hover:to-violet-700 hover:shadow-indigo-500/20 cursor-pointer"
             >
               Create Campaign Link
             </button>
@@ -317,13 +344,13 @@ export function CampaignBuilderView({
           </div>
 
           {/* Output generator result box */}
-          <div className="rounded-xl bg-gradient-to-br from-indigo-50/40 to-slate-50/20 border border-indigo-100/50 p-5 flex flex-col justify-between   ">
+          <div className="flex flex-col justify-between rounded-xl border border-indigo-100/50 bg-gradient-to-br from-indigo-50/40 to-slate-50/20 p-3 md:p-5">
             <div className="space-y-3">
               <h3 className="text-xs font-bold text-slate-700 uppercase tracking-widest ">Your Campaign Link</h3>
               <p className="text-xs text-slate-400 ">Copy this link and use it as the website link in Meta Ads Manager or TikTok Ads Manager.</p>
             </div>
 
-            <div className="my-4 bg-white border border-slate-200 rounded-lg p-3 text-xs font-mono text-slate-700 break-all select-all    relative group min-h-24 flex items-center">
+            <div className="group relative my-3 flex min-h-20 items-center break-all rounded-lg border border-slate-200 bg-white p-3 font-mono text-xs text-slate-700 select-all md:my-4 md:min-h-24">
               {generatedCampaignUrl ? (
                 <>
                   <span className="pr-8">{generatedCampaignUrl}</span>
@@ -350,16 +377,21 @@ export function CampaignBuilderView({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div className="contents md:grid md:grid-cols-1 md:gap-8 lg:grid-cols-2">
         
         {/* Builder Form controls */}
-        <form id="campaign-event-tester" onSubmit={handleDispatchSandboxTest} className="scroll-mt-24 rounded-xl border border-slate-200 bg-white p-4 shadow-sm space-y-5   md:p-6 md:space-y-6">
-          <div>
+        <form id="campaign-event-tester" onSubmit={handleDispatchSandboxTest} className={`${mobileTab === 'tester' ? 'block' : 'hidden'} scroll-mt-24 rounded-xl border border-slate-200 bg-white p-3 shadow-sm space-y-3 md:block md:p-6 md:space-y-6`}>
+          <div className="flex items-start gap-2.5 border-b border-slate-100 pb-2.5 md:border-0 md:pb-0">
+            <div className="rounded-lg bg-amber-50 p-1.5 text-amber-500 md:hidden">
+              <Send className="h-4 w-4" />
+            </div>
+            <div>
             <h2 className="font-bold text-slate-800 text-sm uppercase tracking-wide ">Campaign Event Tester</h2>
             <p className="text-xs text-slate-400 ">Build a sample WooCommerce event and test how it reaches your ad platforms.</p>
+            </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-2 md:gap-4">
             <div>
               <label htmlFor="campaign-test-platform" className="block text-xs font-bold text-slate-400 uppercase mb-1">API target Router</label>
               <select 
@@ -403,7 +435,7 @@ export function CampaignBuilderView({
           <div className="space-y-4">
             <h3 className="text-xs font-bold text-indigo-700 uppercase tracking-widest bg-indigo-50/50   py-1 px-2 rounded">Variables catalog metadata</h3>
             
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-2 md:gap-4">
               <div>
                 <label htmlFor="campaign-test-value" className="block text-xs font-medium text-slate-500 mb-1">Assigned value (price)</label>
                 <input 
@@ -436,7 +468,7 @@ export function CampaignBuilderView({
               <Tooltip content="এড প্ল্যাটফর্মে কাস্টমার প্রোফাইল ম্যাচ করার জন্য ইমেইল বা ফোন নম্বরকে SHA-256 সিকিউরড অ্যালগরিদমে হ্যাশ করে নিরাপদে পাঠানো হয়।" />
             </h3>
             
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-2 md:gap-4">
               <div>
                 <label htmlFor="campaign-test-email" className="block text-xs font-medium text-slate-500 mb-1">Email address</label>
                 <input 
@@ -461,7 +493,7 @@ export function CampaignBuilderView({
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-2 md:gap-4">
               <div>
                 <label htmlFor="campaign-test-ip" className="block text-xs font-medium text-slate-500 mb-1">Client origin IP address</label>
                 <input 
@@ -504,7 +536,7 @@ export function CampaignBuilderView({
 
             <div className="space-y-2">
               {(customParams || []).map((param, index) => (
-                <div key={index} className="grid grid-cols-1 gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] sm:items-center">
+                <div key={index} className="grid grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)_auto] items-center gap-2">
                   <input 
                     type="text" 
                     placeholder="Key (e.g. content_name)"
@@ -565,14 +597,14 @@ export function CampaignBuilderView({
         </form>
 
         {/* Right live preview monitor and sandbox gateway results viewer */}
-        <div className="flex flex-col gap-6">
+        <div className={`${mobileTab === 'preview' ? 'flex' : 'hidden'} flex-col gap-2 md:flex md:gap-6`}>
           
           {/* JSON Live representation page container */}
-          <div id="campaign-data-preview" className="scroll-mt-24 rounded-xl border border-slate-200 bg-slate-900 p-4 shadow-sm text-slate-200 font-mono text-xs h-80 flex flex-col justify-between  md:h-96 md:p-5">
+          <div id="campaign-data-preview" className="scroll-mt-24 flex h-[304px] flex-col justify-between rounded-xl border border-slate-200 bg-slate-900 p-3 font-mono text-xs text-slate-200 shadow-sm md:h-96 md:p-5">
             <div>
               <div className="flex justify-between items-center mb-3 text-slate-400 font-sans border-b border-slate-800 pb-2">
                 <span className="text-xs uppercase font-bold tracking-wider text-[#738196]">Event Data Preview</span>
-                <span className="text-xs text-green-500 uppercase tracking-widest font-mono">Updating dynamically</span>
+                <span className="flex items-center gap-1 text-[9px] font-mono font-bold uppercase tracking-widest text-emerald-400 before:h-1 before:w-1 before:rounded-full before:bg-emerald-400">Updating dynamically</span>
               </div>
               <pre tabIndex={0} aria-label="Event data JSON preview" className="overflow-auto max-h-56 select-all leading-normal whitespace-pre-wrap break-words outline-none focus:ring-2 focus:ring-indigo-400 md:max-h-72">{renderCampaignPayloadJson()}</pre>
             </div>
@@ -583,7 +615,7 @@ export function CampaignBuilderView({
           </div>
 
           {/* Sandboxed API gate output response */}
-          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm flex-1 flex flex-col justify-between  ">
+          <div className="flex flex-1 flex-col justify-between rounded-xl border border-slate-200 bg-white p-3 shadow-sm md:p-5">
             <div>
               <h3 className="font-bold text-slate-800 text-xs uppercase tracking-wider mb-2 ">Test Event Response</h3>
               <p className="text-xs text-slate-400  mb-4">Responses returned after sending the test event.</p>
