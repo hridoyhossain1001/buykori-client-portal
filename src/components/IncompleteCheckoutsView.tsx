@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { CheckCircle2, Clock3, Copy, MessageCircle, Phone, Plus, Search, ShoppingCart, Trash2, UserRoundX, X } from 'lucide-react';
+import { CheckCircle2, Clock3, Copy, MessageCircle, Phone, Plus, RefreshCw, Search, ShoppingCart, Trash2, UserRoundX, X } from 'lucide-react';
 import { Tooltip } from './common/Tooltip';
 import { Button } from './common/Button';
 import { Modal } from './common/Modal';
@@ -14,6 +14,7 @@ interface Props {
 }
 
 const STATUS_STYLES: Record<string, string> = {
+  open: 'bg-sky-50 text-sky-700 border-sky-200   ',
   active: 'bg-sky-50 text-sky-700 border-sky-200   ',
   incomplete: 'bg-amber-50 text-amber-700 border-amber-200   ',
   contacted: 'bg-violet-50 text-violet-700 border-violet-200   ',
@@ -46,8 +47,15 @@ export function IncompleteCheckoutsView({ data, onStatusChange, onCreateOrder, o
   const [orderDraft, setOrderDraft] = useState<RecoveryOrderPayload | null>(null);
   const [creatingOrder, setCreatingOrder] = useState(false);
   const items = data.items || [];
+  const displayCounts = {
+    active: data.counts.active || items.filter(item => ['active', 'open'].includes(item.status)).length,
+    incomplete: data.counts.incomplete || items.filter(item => item.status === 'incomplete').length,
+    contacted: data.counts.contacted || items.filter(item => item.status === 'contacted').length,
+    recovered: data.counts.recovered || items.filter(item => item.status === 'recovered').length,
+  };
   const filtered = useMemo(() => items.filter(item => {
-    if (filter !== 'all' && item.status !== filter) return false;
+    const normalizedStatus = item.status === 'open' ? 'active' : item.status;
+    if (filter !== 'all' && normalizedStatus !== filter) return false;
     const haystack = `${item.phone} ${item.customerName} ${item.email} ${item.address}`.toLowerCase();
     return haystack.includes(query.trim().toLowerCase());
   }), [items, filter, query]);
@@ -194,8 +202,44 @@ export function IncompleteCheckoutsView({ data, onStatusChange, onCreateOrder, o
   }
 
   return (
-    <div className="space-y-5">
-      <div className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-5   md:flex-row md:items-center md:justify-between">
+    <div className="space-y-2 md:space-y-5">
+      <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm md:hidden">
+        <div className="flex items-start justify-between gap-2 px-3 py-2.5">
+          <div className="min-w-0">
+            <h2 className="flex items-center text-[14px] font-black leading-tight text-slate-900">
+              Incomplete Checkout Recovery
+              <Tooltip content="Incomplete checkout sessions that remain unfinished after the customer entered checkout details." />
+            </h2>
+            <p className="mt-0.5 text-[9px] leading-[13px] text-slate-500">
+              Customers who start checkout but do not order within 5 minutes appear here.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onRefresh}
+            aria-label="Refresh incomplete orders"
+            className="inline-flex h-7 shrink-0 items-center gap-1 rounded-lg border border-slate-200 bg-white px-2 text-[9px] font-bold text-slate-600"
+          >
+            <RefreshCw className="h-3 w-3" />
+            Refresh
+          </button>
+        </div>
+        <div className="grid grid-cols-4 border-t border-slate-100">
+          {[
+            ['Active', displayCounts.active, 'text-slate-900'],
+            ['Incomplete', displayCounts.incomplete, 'text-amber-600'],
+            ['Contacted', displayCounts.contacted, 'text-violet-600'],
+            ['Recovered', displayCounts.recovered, 'text-emerald-600'],
+          ].map(([label, count, tone], index) => (
+            <div key={String(label)} className={`px-1 py-2 text-center ${index > 0 ? 'border-l border-slate-100' : ''}`}>
+              <p className="truncate text-[7px] font-black uppercase tracking-[0.08em] text-slate-400">{label}</p>
+              <p className={`mt-1 text-[18px] font-black leading-none ${tone}`}>{count}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <div className="hidden flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-5 md:flex md:flex-row md:items-center md:justify-between">
         <div>
           <h2 className="text-lg font-bold flex items-center">
             Incomplete Checkout Recovery
@@ -208,7 +252,7 @@ export function IncompleteCheckoutsView({ data, onStatusChange, onCreateOrder, o
         </button>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+      <div className="hidden grid-cols-2 gap-3 md:grid md:grid-cols-4">
         {[
           ['Active', data.counts.active || 0],
           ['Incomplete', data.counts.incomplete || 0],
@@ -222,13 +266,13 @@ export function IncompleteCheckoutsView({ data, onStatusChange, onCreateOrder, o
         ))}
       </div>
 
-      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white  ">
-        <div className="flex flex-col gap-3 border-b border-slate-100 p-4  md:flex-row">
+      <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm md:rounded-2xl md:shadow-none">
+        <div className="flex gap-2 border-b border-slate-100 p-2 md:flex-row md:gap-3 md:p-4">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
-          <input value={query} onChange={event => setQuery(event.target.value)} aria-label="Search incomplete orders" placeholder="Search phone, name, email or address..." className="w-full rounded-lg border border-slate-200 bg-slate-50 py-2 pl-9 pr-3 text-xs outline-none focus:border-indigo-400  " />
+            <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-slate-400 md:h-4 md:w-4" />
+          <input value={query} onChange={event => setQuery(event.target.value)} aria-label="Search incomplete orders" placeholder="Search phone, name, email or address..." className="h-9 w-full rounded-lg border border-slate-200 bg-slate-50 py-2 pl-9 pr-2 text-[10px] outline-none focus:border-indigo-400 md:text-xs" />
           </div>
-          <select value={filter} onChange={event => setFilter(event.target.value)} aria-label="Filter incomplete checkouts by status" className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs  ">
+          <select value={filter} onChange={event => setFilter(event.target.value)} aria-label="Filter incomplete checkouts by status" className="h-9 w-[104px] shrink-0 rounded-lg border border-slate-200 bg-white px-2 text-[10px] font-semibold md:w-auto md:px-3 md:text-xs">
             <option value="all">All statuses</option>
             <option value="active">Active</option>
             <option value="incomplete">Incomplete</option>
@@ -236,48 +280,47 @@ export function IncompleteCheckoutsView({ data, onStatusChange, onCreateOrder, o
             <option value="recovered">Recovered</option>
           </select>
         </div>
-        <div className="space-y-3 p-4 md:hidden">
+        <div className="divide-y divide-slate-100 md:hidden">
           {filtered.length === 0 ? (
-            <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center text-slate-400  ">
+            <div className="m-3 rounded-lg border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center text-slate-400">
               <Phone className="mx-auto h-7 w-7 text-slate-300" />
-              <p className="mt-2 text-xs font-bold text-slate-600 ">No recoverable checkouts yet</p>
+              <p className="mt-2 text-xs font-bold text-slate-600">No recoverable checkouts yet</p>
             </div>
           ) : filtered.map(item => {
             const product = item.products?.[0];
-            const meta = productMeta(product);
             const source = item.campaignData?.utm_source || 'Direct';
+            const displayStatus = item.status === 'open' ? 'active' : item.status;
+            const telPhone = normalizeWhatsAppPhone(item.phone);
             const whatsAppLink = getWhatsAppLink(item.phone, item.customerName, item.amount, item.currency, item.products);
             return (
-              <div key={item.id} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm  ">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-bold text-slate-900 ">{item.customerName}</p>
-                    <p className="mt-1 font-mono text-xs text-slate-500">{item.phone}</p>
-                    <p className="mt-0.5 truncate text-xs text-slate-400">{item.address}</p>
+              <article key={item.id} className="bg-white px-3 py-2.5">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex min-w-0 items-center gap-1.5">
+                    <p className="truncate text-[12px] font-black leading-none text-slate-800">{item.customerName || 'Customer'}</p>
+                    <span className={`shrink-0 rounded-full border px-1.5 py-0.5 text-[7px] font-black uppercase leading-none ${STATUS_STYLES[item.status] || 'border-slate-200 text-slate-500'}`}>{displayStatus}</span>
                   </div>
-                  <span className={`shrink-0 rounded-full border px-2 py-1 text-xs font-bold capitalize ${STATUS_STYLES[item.status] || 'border-slate-200 text-slate-500'}`}>{item.status}</span>
+                  <strong className="shrink-0 text-[13px] font-black leading-none text-slate-800">
+                    {item.currency || 'BDT'} {Number(item.amount || 0).toLocaleString()}
+                  </strong>
                 </div>
-                <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
-                  <div className="rounded-lg bg-slate-50 p-2 ">
-                    <p className="font-bold uppercase text-slate-400">Product</p>
-                    <p className="mt-1 font-semibold text-slate-800 ">{product?.content_name || product?.name || 'Unavailable'}</p>
-                    {meta && <p className="mt-1 text-xs text-slate-500">{meta}</p>}
-                  </div>
-                  <div className="rounded-lg bg-slate-50 p-2 ">
-                    <p className="font-bold uppercase text-slate-400">Amount</p>
-                    <p className="mt-1 font-bold text-slate-800 ">{item.currency || 'BDT'} {Number(item.amount || 0).toLocaleString()}</p>
-                  </div>
-                  <div className="rounded-lg bg-slate-50 p-2 ">
-                    <p className="font-bold uppercase text-slate-400">Source</p>
-                    <p className="mt-1 capitalize text-slate-700 ">{source}</p>
-                  </div>
-                  <div className="rounded-lg bg-slate-50 p-2 ">
-                    <p className="font-bold uppercase text-slate-400">Last activity</p>
-                    <p className="mt-1 text-slate-700 ">{new Date(item.lastActivityAt).toLocaleDateString()}</p>
-                  </div>
-                </div>
-                <div className="mt-4 flex flex-wrap justify-end gap-2">
-                  <a href={`tel:+${item.phone}`} title="Call customer" aria-label="Call customer" className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-slate-200 hover:bg-slate-50"><Phone className="h-3.5 w-3.5" /></a>
+
+                <p className="mt-1 truncate text-[9px] leading-3 text-slate-400">
+                  <span className="font-mono font-semibold text-slate-500">{item.phone || 'No phone'}</span>
+                  {item.address ? <span> · {item.address}</span> : null}
+                </p>
+
+                <p className="mt-1.5 truncate text-[10px] font-medium leading-4 text-slate-700">
+                  {product?.content_name || product?.name || 'Product details unavailable'}
+                  <span className="text-slate-400"> · Qty {product?.quantity || 1}</span>
+                </p>
+
+                <div className="mt-1.5 flex items-center justify-between gap-2">
+                  <p className="min-w-0 truncate text-[8px] text-slate-400">
+                    <span className="capitalize">{source}</span>
+                    <span> · {new Date(item.lastActivityAt).toLocaleString([], { year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</span>
+                  </p>
+                  <div className="flex shrink-0 items-center gap-1">
+                  <a href={`tel:+${telPhone}`} title="Call customer" aria-label="Call customer" className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"><Phone className="h-3 w-3" /></a>
                   {whatsAppLink && (
                     <a
                       href={whatsAppLink}
@@ -285,17 +328,18 @@ export function IncompleteCheckoutsView({ data, onStatusChange, onCreateOrder, o
                       rel="noreferrer"
                       title="WhatsApp recovery"
                       aria-label="Open WhatsApp recovery"
-                      className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-green-200 bg-green-50 text-green-600 hover:bg-green-100"
+                      className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-600 hover:bg-emerald-100"
                     >
-                      <MessageCircle className="h-3.5 w-3.5" />
+                      <MessageCircle className="h-3 w-3" />
                     </a>
                   )}
-                  <button title="Copy phone" aria-label="Copy phone" onClick={() => { navigator.clipboard.writeText(item.phone); showToast('Phone number copied.'); }} className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-slate-200 hover:bg-slate-50"><Copy className="h-3.5 w-3.5" /></button>
-                  {['incomplete', 'contacted'].includes(item.status) && <button disabled={updatingId === item.id} title="Create order" aria-label="Create order" onClick={() => openCreateOrder(item)} className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 disabled:opacity-50"><ShoppingCart className="h-3.5 w-3.5" /></button>}
-                  {!['recovered', 'contacted'].includes(item.status) && <button disabled={updatingId === item.id} title="Mark contacted" aria-label="Mark contacted" onClick={() => updateStatus(item.id, 'contacted')} className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-emerald-200 text-emerald-600 hover:bg-emerald-50 disabled:opacity-50"><CheckCircle2 className="h-3.5 w-3.5" /></button>}
-                  {!['recovered', 'ignored'].includes(item.status) && <button disabled={updatingId === item.id} title="Ignore draft" aria-label="Ignore draft" onClick={() => updateStatus(item.id, 'ignored')} className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-rose-200 text-rose-600 hover:bg-rose-50 disabled:opacity-50"><UserRoundX className="h-3.5 w-3.5" /></button>}
+                  <button title="Copy phone" aria-label="Copy phone" onClick={() => { navigator.clipboard.writeText(item.phone); showToast('Phone number copied.'); }} className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 hover:bg-slate-50"><Copy className="h-3 w-3" /></button>
+                  {['open', 'incomplete', 'contacted'].includes(item.status) && <button disabled={updatingId === item.id} title="Create order" aria-label="Create order" onClick={() => openCreateOrder(item)} className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 disabled:opacity-50"><ShoppingCart className="h-3 w-3" /></button>}
+                  {!['recovered', 'contacted'].includes(item.status) && <button disabled={updatingId === item.id} title="Mark contacted" aria-label="Mark contacted" onClick={() => updateStatus(item.id, 'contacted')} className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-emerald-200 text-emerald-600 hover:bg-emerald-50 disabled:opacity-50"><CheckCircle2 className="h-3 w-3" /></button>}
+                  {!['recovered', 'ignored'].includes(item.status) && <button disabled={updatingId === item.id} title="Ignore draft" aria-label="Ignore draft" onClick={() => updateStatus(item.id, 'ignored')} className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-rose-200 text-rose-600 hover:bg-rose-50 disabled:opacity-50"><UserRoundX className="h-3 w-3" /></button>}
+                  </div>
                 </div>
-              </div>
+              </article>
             );
           })}
         </div>
@@ -328,6 +372,7 @@ export function IncompleteCheckoutsView({ data, onStatusChange, onCreateOrder, o
                 const product = item.products?.[0];
                 const meta = productMeta(product);
                 const source = item.campaignData?.utm_source || 'Direct';
+                const telPhone = normalizeWhatsAppPhone(item.phone);
                 const whatsAppLink = getWhatsAppLink(item.phone, item.customerName, item.amount, item.currency, item.products);
                 return (
                   <tr key={item.id} className="hover:bg-slate-50/70 ">
@@ -347,7 +392,7 @@ export function IncompleteCheckoutsView({ data, onStatusChange, onCreateOrder, o
                     <td className="px-4 py-3"><span className={`rounded-full border px-2 py-1 text-xs font-bold capitalize ${STATUS_STYLES[item.status] || 'border-slate-200 text-slate-500'}`}>{item.status}</span></td>
                     <td className="px-4 py-3">
                       <div className="flex justify-end gap-1.5">
-                        <a href={`tel:+${item.phone}`} title="Call customer" className="rounded-lg border border-slate-200 p-2 hover:bg-slate-50  "><Phone className="h-3.5 w-3.5" /></a>
+                        <a href={`tel:+${telPhone}`} title="Call customer" className="rounded-lg border border-slate-200 p-2 hover:bg-slate-50  "><Phone className="h-3.5 w-3.5" /></a>
                         {whatsAppLink && (
                           <a
                             href={whatsAppLink}
@@ -360,7 +405,7 @@ export function IncompleteCheckoutsView({ data, onStatusChange, onCreateOrder, o
                           </a>
                         )}
                         <button title="Copy phone" onClick={() => { navigator.clipboard.writeText(item.phone); showToast('Phone number copied.'); }} className="rounded-lg border border-slate-200 p-2 hover:bg-slate-50  "><Copy className="h-3.5 w-3.5" /></button>
-                        {['incomplete', 'contacted'].includes(item.status) && <button disabled={updatingId === item.id} title="Create order" onClick={() => openCreateOrder(item)} className="rounded-lg border border-indigo-200 bg-indigo-50 p-2 text-indigo-700 hover:bg-indigo-100 disabled:opacity-50"><ShoppingCart className="h-3.5 w-3.5" /></button>}
+                        {['open', 'incomplete', 'contacted'].includes(item.status) && <button disabled={updatingId === item.id} title="Create order" onClick={() => openCreateOrder(item)} className="rounded-lg border border-indigo-200 bg-indigo-50 p-2 text-indigo-700 hover:bg-indigo-100 disabled:opacity-50"><ShoppingCart className="h-3.5 w-3.5" /></button>}
                         {!['recovered', 'contacted'].includes(item.status) && <button disabled={updatingId === item.id} title="Mark contacted" onClick={() => updateStatus(item.id, 'contacted')} className="rounded-lg border border-emerald-200 p-2 text-emerald-600 hover:bg-emerald-50 disabled:opacity-50  "><CheckCircle2 className="h-3.5 w-3.5" /></button>}
                         {!['recovered', 'ignored'].includes(item.status) && <button disabled={updatingId === item.id} title="Ignore draft" onClick={() => updateStatus(item.id, 'ignored')} className="rounded-lg border border-rose-200 p-2 text-rose-600 hover:bg-rose-50 disabled:opacity-50  "><UserRoundX className="h-3.5 w-3.5" /></button>}
                       </div>
@@ -372,7 +417,7 @@ export function IncompleteCheckoutsView({ data, onStatusChange, onCreateOrder, o
           </table>
         </div>
       </div>
-      <p className="flex items-center gap-1 text-xs text-slate-400"><Clock3 className="h-3.5 w-3.5" /> Unfinished checkout details are kept for 30 days.</p>
+      <p className="flex items-center gap-1 px-1 text-[9px] text-slate-400 md:px-0 md:text-xs"><Clock3 className="h-3 w-3 md:h-3.5 md:w-3.5" /> Unfinished checkout details are kept for 30 days.</p>
       {orderLead && orderDraft && (
         <Modal
           onClose={() => { setOrderLead(null); setOrderDraft(null); }}
