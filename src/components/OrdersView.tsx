@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { useRef } from 'react';
 import { 
   Truck, 
   CheckCircle2, 
@@ -99,9 +98,6 @@ export function OrdersView({
   storeEmail,
 }: OrdersViewProps) {
   const [activeTab, setActiveTab] = useState<'pending' | 'shipped'>('pending');
-  const [shippedStatsOpen, setShippedStatsOpen] = useState(false);
-  const [shippedStatsVisible, setShippedStatsVisible] = useState(true);
-  const shippedStatsLastYRef = useRef(0);
 
   const [courierOrders, setCourierOrders] = useState<CourierOrder[]>([]);
   const [courierSettings, setCourierSettings] = useState<CourierSettings | null>(null);
@@ -205,25 +201,6 @@ export function OrdersView({
     setPendingPage(1);
     setSelectedPendingOrderIds([]);
   }, [pendingSearch, pendingFraudFilter, pendingSort]);
-
-  useEffect(() => {
-    shippedStatsLastYRef.current = window.scrollY;
-    const handleScroll = () => {
-      const currentY = window.scrollY;
-      const scrollingUp = currentY < shippedStatsLastYRef.current;
-      const nearTop = currentY < 120;
-
-      setShippedStatsVisible(nearTop || scrollingUp);
-      if (!nearTop && currentY > shippedStatsLastYRef.current + 8) {
-        setShippedStatsOpen(false);
-      }
-
-      shippedStatsLastYRef.current = currentY;
-    };
-
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
 
   const toggleSelectShippedOrder = (orderId: number) => {
     setSelectedShippedOrderIds(prev => 
@@ -772,46 +749,6 @@ export function OrdersView({
         ))}
       </section>
 
-      {activeTab === 'shipped' && (
-        <div
-          className={`fixed right-2 top-32 z-30 md:hidden transition-all duration-200 ${
-            shippedStatsVisible ? 'translate-x-0 opacity-100' : 'translate-x-16 opacity-0 pointer-events-none'
-          }`}
-        >
-          <button
-            type="button"
-            onClick={() => setShippedStatsOpen(prev => !prev)}
-            className="flex w-[72px] flex-col gap-1 rounded-2xl border border-slate-200 bg-white/95 p-1.5 text-left shadow-lg shadow-slate-200/70 backdrop-blur"
-            aria-label="Shipment status summary"
-          >
-            {shippedStatItems.map(item => (
-              <span key={item.label} className="flex items-center justify-between rounded-xl bg-slate-50 px-1.5 py-1">
-                <span className={`h-1.5 w-1.5 rounded-full ${item.dot}`} />
-                <span className="text-xs font-bold uppercase leading-none text-slate-500">{item.shortLabel}</span>
-                <span className={`font-mono text-xs font-black leading-none ${item.tone}`}>{item.value}</span>
-              </span>
-            ))}
-          </button>
-
-          {shippedStatsOpen && (
-            <div className="absolute right-20 top-0 w-40 rounded-2xl border border-slate-200 bg-white p-2 shadow-xl shadow-slate-200/80">
-              <p className="px-1 pb-1 text-xs font-black uppercase tracking-wide text-slate-500">Shipment summary</p>
-              <div className="space-y-1">
-                {shippedStatItems.map(item => (
-                  <div key={item.label} className="flex items-center justify-between rounded-xl bg-slate-50 px-2 py-1.5">
-                    <span className="flex items-center gap-1.5 text-xs font-bold text-slate-600">
-                      <span className={`h-1.5 w-1.5 rounded-full ${item.dot}`} />
-                      {item.label}
-                    </span>
-                    <span className={`font-mono text-xs font-black ${item.tone}`}>{item.value}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-      
       {/* Tab bar header */}
       <div className="flex w-full max-w-full rounded-xl border border-slate-200 bg-white p-1 shadow-sm md:w-fit">
         <button
@@ -1003,11 +940,6 @@ export function OrdersView({
                     </button>
                   </div>
 
-                  <div className="mt-2 grid grid-cols-2 gap-2">
-                    <button onClick={() => openInvoice(order)} className="h-8 rounded-lg border border-slate-200 bg-white px-2 text-[9px] font-bold text-slate-700">Invoice</button>
-                    <button onClick={() => openPendingCourierModal(order)} className="h-8 rounded-lg bg-[#2f80df] px-2 text-[9px] font-bold text-white">Book courier</button>
-                  </div>
-
                   {isExpanded && (
                     <div className="mt-2 grid gap-2 border-t border-slate-100 pt-2">
                       <div className="rounded-lg bg-slate-50 p-2.5">
@@ -1041,6 +973,11 @@ export function OrdersView({
                       )}
                     </div>
                   )}
+
+                  <div className="mt-2 grid grid-cols-2 gap-2">
+                    <button onClick={() => openInvoice(order)} className="h-8 rounded-lg border border-slate-200 bg-white px-2 text-[9px] font-bold text-slate-700">Invoice</button>
+                    <button onClick={() => openPendingCourierModal(order)} className="h-8 rounded-lg bg-[#2f80df] px-2 text-[9px] font-bold text-white">Book courier</button>
+                  </div>
                 </article>
               );
             })}
@@ -1287,6 +1224,16 @@ export function OrdersView({
               <div key={item.label} className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
                 <p className={`text-base font-bold leading-none ${item.tone}`}>{item.value}</p>
                 <p className="mt-1 text-xs font-bold uppercase tracking-wider text-slate-400">{item.label}</p>
+              </div>
+            ))}
+          </div>
+
+          <div className="grid grid-cols-5 gap-1.5 md:hidden" aria-label="Shipment status summary">
+            {shippedStatItems.map(item => (
+              <div key={item.label} className="min-w-0 rounded-lg border border-slate-200 bg-slate-50 px-1 py-2 text-center">
+                <span className={`mx-auto block h-1.5 w-1.5 rounded-full ${item.dot}`} />
+                <p className={`mt-1 font-mono text-[12px] font-black leading-none ${item.tone}`}>{item.value}</p>
+                <p className="mt-1 truncate text-[7px] font-black uppercase tracking-[0.04em] text-slate-500">{item.shortLabel}</p>
               </div>
             ))}
           </div>
