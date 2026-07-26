@@ -4,12 +4,18 @@ import {
   Check,
   CheckCircle2,
   Clock3,
+  CircleDot,
   Copy,
   Download,
+  BarChart3,
+  List,
   Loader2,
+  Play,
+  Plus,
   Radio,
   RotateCcw,
   Search,
+  SlidersHorizontal,
   XCircle,
 } from 'lucide-react';
 import { CAPIEvent, OutboxItem } from '../types';
@@ -168,6 +174,108 @@ function DeliveryBadge({ event }: { event: CAPIEvent }) {
   );
 }
 
+function MobileDeliveryBadge({ event }: { event: CAPIEvent }) {
+  const state = event.status === 'Success'
+    ? '✓'
+    : event.status === 'Failed'
+      ? '✕'
+      : event.status === 'Retry'
+        ? '· retry'
+        : '·';
+  return (
+    <span className={`inline-flex items-center rounded-md px-2 py-1 text-[9px] font-bold uppercase leading-none ${
+      event.status === 'Success'
+        ? 'bg-emerald-50 text-emerald-700'
+        : event.status === 'Failed'
+          ? 'bg-rose-50 text-rose-600'
+          : event.status === 'Retry'
+            ? 'bg-orange-50 text-orange-700'
+            : 'bg-sky-50 text-sky-700'
+    }`}>
+      {platformShortName[event.platform]} {state}
+    </span>
+  );
+}
+
+function mobileEventDateKey(timestamp: string): string {
+  return new Date(timestamp).toLocaleDateString('en-CA');
+}
+
+function mobileEventDateLabel(timestamp: string): string {
+  const date = new Date(timestamp);
+  const today = new Date();
+  const yesterday = new Date();
+  yesterday.setDate(today.getDate() - 1);
+  const prefix = mobileEventDateKey(timestamp) === mobileEventDateKey(today.toISOString())
+    ? 'Today'
+    : mobileEventDateKey(timestamp) === mobileEventDateKey(yesterday.toISOString())
+      ? 'Yesterday'
+      : date.toLocaleDateString([], { weekday: 'short' });
+  return `${prefix} · ${date.toLocaleDateString([], { day: '2-digit', month: 'short' })}`.toUpperCase();
+}
+
+function MobileEventIcon({ name }: { name: string }) {
+  const normalized = name.toLowerCase();
+  const iconClass = 'h-4 w-4';
+  if (normalized.includes('checkout')) {
+    return (
+      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-sky-50 text-sky-700">
+        <Play className={iconClass} fill="currentColor" />
+      </span>
+    );
+  }
+  if (normalized.includes('cart')) {
+    return (
+      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-orange-50 text-orange-700">
+        <Plus className={iconClass} />
+      </span>
+    );
+  }
+  return (
+    <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${
+      normalized.includes('purchase')
+        ? 'bg-emerald-50 text-emerald-800'
+        : 'bg-slate-100 text-slate-700'
+    }`}>
+      <CircleDot className={iconClass} />
+    </span>
+  );
+}
+
+function eventCustomData(group: GroupedEvent): Record<string, unknown> {
+  const firstPayload = group.events[0]?.payload || {};
+  const customData = firstPayload.custom_data;
+  return customData && typeof customData === 'object' && !Array.isArray(customData)
+    ? customData as Record<string, unknown>
+    : firstPayload;
+}
+
+function eventValueLabel(group: GroupedEvent): string {
+  const customData = eventCustomData(group);
+  const value = customData.value;
+  if (value === undefined || value === null || value === '') return '—';
+  const amount = Number(value);
+  const rendered = Number.isFinite(amount)
+    ? amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+    : String(value);
+  return `${String(customData.currency || 'BDT')} ${rendered}`;
+}
+
+function deliverySummary(event: CAPIEvent): string {
+  if (event.status === 'Success') return `Sent · ${event.httpCode || 200} OK`;
+  if (event.status === 'Retry') return 'Queued · retry scheduled';
+  if (event.status === 'Failed') {
+    const response = event.responseBody;
+    if (response && typeof response === 'object' && !Array.isArray(response)) {
+      const record = response as Record<string, unknown>;
+      const reason = record.message || record.error || record.error_message;
+      if (reason) return `Rejected · ${String(reason)}`;
+    }
+    return `Rejected · ${event.httpCode || 'platform error'}`;
+  }
+  return `${event.status} · ${event.httpCode || 'processing'}`;
+}
+
 interface EventLogsViewProps {
   filteredEventsForTable: CAPIEvent[];
   searchFilter: string;
@@ -234,6 +342,13 @@ export function EventLogsView({
   ).length;
   const failedGroups = groupedEvents.filter(group => group.failedCount > 0).length;
   const retryingGroups = groupedEvents.filter(group => group.retryingCount > 0).length;
+  const mobileDetailGroup = groupedEvents.find(group => group.key === expandedEventId) || null;
+  const mobileRetryItem = mobileDetailGroup
+    ? retryByEventId.get(mobileDetailGroup.eventId)
+    : undefined;
+  const mobileRetrying = mobileRetryItem
+    ? retryingOutboxIds.includes(mobileRetryItem.id)
+    : false;
 
   const renderExpandedDetails = (group: GroupedEvent) => (
     <div className="space-y-4">
@@ -315,12 +430,12 @@ export function EventLogsView({
   );
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-0 pb-16 md:space-y-5 md:pb-0">
       <section
         aria-label="Event log filters"
-        className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm"
+        className="sticky top-14 z-20 -mx-4 overflow-hidden border-y border-slate-200 bg-white shadow-sm md:static md:mx-0 md:rounded-xl md:border"
       >
-        <div className="flex flex-col gap-3 p-4 lg:flex-row lg:items-center">
+        <div className="flex flex-col gap-2 px-4 pb-2 pt-3 md:gap-3 md:p-4 lg:flex-row lg:items-center">
           <div className="relative min-w-0 flex-1">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
             <input
@@ -329,11 +444,11 @@ export function EventLogsView({
               placeholder="Search by event name, ID, product or URL..."
               value={searchFilter}
               onChange={event => setSearchFilter(event.target.value)}
-              className="min-h-10 w-full rounded-lg border border-slate-200 bg-white py-2 pl-9 pr-4 text-xs text-slate-800 outline-none placeholder:text-slate-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+              className="min-h-11 w-full rounded-xl border-0 bg-slate-100 py-2 pl-9 pr-4 text-sm text-slate-800 outline-none placeholder:text-slate-400 focus:ring-2 focus:ring-indigo-100 md:min-h-10 md:rounded-lg md:border md:border-slate-200 md:bg-white md:text-xs md:focus:border-indigo-500"
             />
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="hidden flex-wrap items-center gap-2 md:flex">
             <div
               className={`flex min-h-12 min-w-[190px] items-center justify-between gap-3 rounded-xl border px-3 py-2 transition-colors ${
                 liveMode
@@ -402,7 +517,7 @@ export function EventLogsView({
 
         {liveMode && (
           <div
-            className="flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-emerald-100 bg-emerald-50/70 px-4 py-2.5 text-[11px]"
+            className="hidden flex-wrap items-center gap-x-3 gap-y-1 border-t border-emerald-100 bg-emerald-50/70 px-4 py-2.5 text-[11px] md:flex"
             role="status"
             aria-live="polite"
           >
@@ -430,7 +545,7 @@ export function EventLogsView({
           </div>
         )}
 
-        <div className="flex flex-wrap items-center gap-2 border-t border-slate-100 px-4 py-3">
+        <div className="flex flex-nowrap items-center gap-2 overflow-x-auto px-4 pb-2 md:flex-wrap md:overflow-visible md:border-t md:border-slate-100 md:py-3">
           <button
             type="button"
             onClick={() => {
@@ -438,13 +553,13 @@ export function EventLogsView({
               setStatusFilters([]);
             }}
             aria-pressed={platformFilters.length === 0 && statusFilters.length === 0}
-            className={`min-h-8 rounded-full border px-3 text-[11px] font-bold ${
+            className={`min-h-9 shrink-0 rounded-lg border px-3 text-xs font-semibold md:min-h-8 md:rounded-full md:text-[11px] md:font-bold ${
               platformFilters.length === 0 && statusFilters.length === 0
-                ? 'border-slate-900 bg-slate-900 text-white'
-                : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                ? 'border-sky-300 bg-sky-50 text-sky-700 md:border-slate-900 md:bg-slate-900 md:text-white'
+                : 'border-transparent bg-slate-100 text-slate-700 hover:bg-slate-200 md:border-slate-200 md:bg-white md:text-slate-600 md:hover:bg-slate-50'
             }`}
           >
-            All events <span className="italic">{groupedEvents.length}</span>
+            <span className="md:hidden">All </span><span className="hidden md:inline">All events </span><span className="text-[10px] opacity-70">{groupedEvents.length}</span>
           </button>
 
           {(['Meta CAPI', 'TikTok Events API', 'GA4'] as const).map(platform => {
@@ -464,20 +579,21 @@ export function EventLogsView({
                   )
                 }
                 aria-pressed={active}
-                className={`inline-flex min-h-8 items-center gap-1.5 rounded-full border px-3 text-[11px] font-bold ${
+                className={`inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-lg border px-3 text-xs font-semibold md:min-h-8 md:rounded-full md:text-[11px] md:font-bold ${
                   active
                     ? 'border-indigo-300 bg-indigo-50 text-indigo-700'
-                    : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                    : 'border-transparent bg-slate-100 text-slate-700 hover:bg-slate-200 md:border-slate-200 md:bg-white md:text-slate-600 md:hover:bg-slate-50'
                 }`}
               >
-                <PlatformLogo platform={platform} className="h-3.5 w-3.5" />
-                {platformShortName[platform]} <span className="italic">{count}</span>
+                <PlatformLogo platform={platform} className="hidden h-3.5 w-3.5 md:block" />
+                {platformShortName[platform]} <span className="text-[10px] opacity-60">{count}</span>
               </button>
             );
           })}
 
-          <span className="hidden h-5 w-px bg-slate-200 sm:block" />
+          <span className="hidden h-5 w-px bg-slate-200 md:block" />
 
+          <div className="hidden contents md:contents">
           {[
             ['Success', successfulGroups],
             ['Failed', failedGroups],
@@ -511,6 +627,7 @@ export function EventLogsView({
               </button>
             );
           })}
+          </div>
 
           {(platformFilters.length > 0 || statusFilters.length > 0 || searchFilter) && (
             <button
@@ -527,11 +644,24 @@ export function EventLogsView({
             </button>
           )}
         </div>
+
+        <div className="flex items-center justify-between px-4 pb-2 text-[11px] md:hidden">
+          <button
+            type="button"
+            onClick={() => setLiveMode(!liveMode)}
+            className={`inline-flex items-center gap-1.5 font-medium ${liveMode ? 'text-emerald-600' : 'text-slate-500'}`}
+            aria-pressed={liveMode}
+          >
+            <span className={`h-2 w-2 rounded-full ${liveMode ? 'bg-emerald-500' : 'bg-slate-400'}`} />
+            Live updates {liveMode ? 'on' : 'off'}
+          </button>
+          <span className="text-slate-500">Failed {failedGroups} · Retry {retryingGroups}</span>
+        </div>
       </section>
 
       <section
         aria-labelledby="event-log-results-title"
-        className="min-w-0 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm"
+        className="-mx-4 h-[calc(100dvh-268px)] min-w-0 overflow-y-auto bg-white md:mx-0 md:h-auto md:overflow-hidden md:rounded-xl md:border md:border-slate-200 md:shadow-sm"
       >
         {loadError && groupedEvents.length > 0 && (
           <div
@@ -571,75 +701,53 @@ export function EventLogsView({
           </div>
         ) : (
           <>
-            <div className="space-y-3 p-3 md:hidden">
-              {groupedEvents.map(group => {
-                const expanded = expandedEventId === group.key;
-                const retryItem = retryByEventId.get(group.eventId);
-                const retrying = retryItem ? retryingOutboxIds.includes(retryItem.id) : false;
+            <div className="md:hidden">
+              {groupedEvents.map((group, index) => {
+                const currentDateKey = mobileEventDateKey(group.timestamp);
+                const previousDateKey = index > 0
+                  ? mobileEventDateKey(groupedEvents[index - 1].timestamp)
+                  : null;
                 return (
-                  <article key={group.key} className="overflow-hidden rounded-xl border border-slate-200 bg-white">
-                    <button
-                      type="button"
-                      onClick={() => setExpandedEventId(expanded ? null : group.key)}
-                      className="w-full p-4 text-left"
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <p className="text-sm font-bold text-slate-900">
-                            {highlightText(group.name, searchFilter)}
-                          </p>
-                          <p className="mt-0.5 truncate font-mono text-[11px] text-slate-400">
-                            {highlightText(group.eventId, searchFilter)}
-                          </p>
-                        </div>
-                        <span className="shrink-0 text-[11px] font-bold text-slate-700">
-                          {relativeTime(group.timestamp)}
-                        </span>
-                      </div>
-                      <p className="mt-3 truncate text-xs font-semibold text-slate-700">
-                        {highlightText(group.contextLabel, searchFilter)}
-                      </p>
-                      {group.pageUrl && (
-                        <p className="mt-0.5 truncate text-[11px] text-slate-400">{group.pageUrl}</p>
-                      )}
-                      <div className="mt-3 flex flex-wrap gap-1.5">
-                        {group.deliveries.map(event => (
-                          <React.Fragment key={event.id}>
-                            <DeliveryBadge event={event} />
-                          </React.Fragment>
-                        ))}
-                      </div>
-                    </button>
-                    <div className="flex items-center justify-between border-t border-slate-100 px-4 py-2.5">
-                      <span className="text-[11px] text-slate-400">
-                        {new Date(group.timestamp).toLocaleString()}
-                      </span>
-                      {retryItem ? (
-                        <button
-                          type="button"
-                          disabled={retrying}
-                          onClick={() => handleRetryOutbox(retryItem.id)}
-                          className="inline-flex min-h-8 items-center gap-1.5 rounded-lg border border-slate-200 px-3 text-[11px] font-bold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
-                        >
-                          {retrying ? <Loader2 className="h-3 w-3 animate-spin" /> : <RotateCcw className="h-3 w-3" />}
-                          Retry
-                        </button>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => setExpandedEventId(expanded ? null : group.key)}
-                          className="min-h-8 px-2 text-[11px] font-bold text-indigo-600"
-                        >
-                          {expanded ? 'Hide' : 'View'}
-                        </button>
-                      )}
-                    </div>
-                    {expanded && (
-                      <div className="border-t border-slate-100 bg-slate-50 p-4">
-                        {renderExpandedDetails(group)}
+                  <React.Fragment key={group.key}>
+                    {currentDateKey !== previousDateKey && (
+                      <div className="border-b border-slate-100 bg-slate-50 px-4 py-2 text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                        {mobileEventDateLabel(group.timestamp)}
                       </div>
                     )}
-                  </article>
+                    <button
+                      type="button"
+                      onClick={() => setExpandedEventId(group.key)}
+                      className="flex min-h-[82px] w-full items-start gap-3 border-b border-slate-100 px-4 py-3 text-left transition-colors active:bg-slate-50"
+                      aria-label={`View details for ${group.name}`}
+                    >
+                      <MobileEventIcon name={group.name} />
+                      <span className="min-w-0 flex-1">
+                        <span className="flex items-start justify-between gap-3">
+                          <span className="truncate text-sm font-bold leading-tight text-slate-900">
+                            {highlightText(group.name, searchFilter)}
+                          </span>
+                          <span className="shrink-0 text-[10px] text-slate-500">
+                            {relativeTime(group.timestamp)}
+                          </span>
+                        </span>
+                        <span className="mt-0.5 block truncate text-xs leading-tight text-slate-600">
+                          {highlightText(group.contextLabel, searchFilter)}
+                          {group.name.toLowerCase().includes('purchase') && eventValueLabel(group) !== '—'
+                            ? ` · ${eventValueLabel(group)}`
+                            : ''}
+                        </span>
+                        <span className="mt-2 flex flex-wrap gap-1.5">
+                          {group.deliveries
+                            .filter(event => event.platform !== 'Gateway Ingest')
+                            .map(event => (
+                              <React.Fragment key={event.id}>
+                                <MobileDeliveryBadge event={event} />
+                              </React.Fragment>
+                            ))}
+                        </span>
+                      </span>
+                    </button>
+                  </React.Fragment>
                 );
               })}
             </div>
@@ -764,7 +872,7 @@ export function EventLogsView({
               </table>
             </div>
 
-            <div className="flex items-center justify-between gap-3 border-t border-slate-100 px-5 py-3 text-[11px] text-slate-400">
+            <div className="hidden items-center justify-between gap-3 border-t border-slate-100 px-5 py-3 text-[11px] text-slate-400 md:flex">
               <span>
                 Showing {groupedEvents.length} unique event{groupedEvents.length === 1 ? '' : 's'}
               </span>
@@ -773,6 +881,142 @@ export function EventLogsView({
           </>
         )}
       </section>
+
+      <nav
+        aria-label="Event logs mobile navigation"
+        className="fixed inset-x-0 bottom-0 z-50 grid h-16 grid-cols-4 border-t border-slate-200 bg-white px-3 pb-1 md:hidden"
+      >
+        <a href="/event-logs" aria-current="page" className="flex flex-col items-center justify-center gap-1 text-[10px] font-semibold text-sky-600">
+          <List className="h-4 w-4" />
+          Logs
+        </a>
+        <a href="/dashboard" className="flex flex-col items-center justify-center gap-1 text-[10px] font-medium text-slate-500">
+          <BarChart3 className="h-4 w-4" />
+          Overview
+        </a>
+        <a href="/settings/conversions-api" className="flex flex-col items-center justify-center gap-1 text-[10px] font-medium text-slate-500">
+          <CircleDot className="h-4 w-4" />
+          Pixels
+        </a>
+        <a href="/settings/store-connection" className="flex flex-col items-center justify-center gap-1 text-[10px] font-medium text-slate-500">
+          <SlidersHorizontal className="h-4 w-4" />
+          Settings
+        </a>
+      </nav>
+
+      {mobileDetailGroup && (
+        <div className="fixed inset-0 z-[70] md:hidden">
+          <button
+            type="button"
+            aria-label="Close event details"
+            onClick={() => setExpandedEventId(null)}
+            className="absolute inset-0 bg-slate-950/35"
+          />
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="mobile-event-detail-title"
+            className="absolute inset-x-0 bottom-0 max-h-[78vh] overflow-y-auto rounded-t-3xl bg-white px-4 pb-5 pt-3 shadow-2xl"
+          >
+            <button
+              type="button"
+              aria-label="Close detail sheet"
+              onClick={() => setExpandedEventId(null)}
+              className="mx-auto mb-3 block h-1 w-10 rounded-full bg-slate-200"
+            />
+
+            <div className="flex items-start gap-3">
+              <MobileEventIcon name={mobileDetailGroup.name} />
+              <div className="min-w-0 flex-1">
+                <h2 id="mobile-event-detail-title" className="truncate text-lg font-bold text-slate-900">
+                  {mobileDetailGroup.name}
+                </h2>
+                <p className="text-xs text-slate-500">
+                  {new Date(mobileDetailGroup.timestamp).toLocaleDateString([], {
+                    day: '2-digit',
+                    month: 'short',
+                    year: 'numeric',
+                  })}
+                  {' · '}
+                  {new Date(mobileDetailGroup.timestamp).toLocaleTimeString([], {
+                    hour: 'numeric',
+                    minute: '2-digit',
+                  })}
+                  {' · '}
+                  {relativeTime(mobileDetailGroup.timestamp)}
+                </p>
+              </div>
+            </div>
+
+            <dl className="mt-4 overflow-hidden rounded-xl border border-slate-200 text-sm">
+              {[
+                ['Event ID', mobileDetailGroup.eventId],
+                ['Product', mobileDetailGroup.contextLabel],
+                ['Value', eventValueLabel(mobileDetailGroup)],
+                ['Source URL', mobileDetailGroup.pageUrl || '—'],
+              ].map(([label, value]) => (
+                <div key={label} className="grid grid-cols-[92px_minmax(0,1fr)] gap-3 border-b border-slate-100 px-3 py-2.5 last:border-b-0">
+                  <dt className="text-slate-500">{label}</dt>
+                  <dd className="truncate text-right font-medium text-slate-800" title={value}>{value}</dd>
+                </div>
+              ))}
+            </dl>
+
+            <div className="mt-4 space-y-2">
+              {mobileDetailGroup.deliveries
+                .filter(event => event.platform !== 'Gateway Ingest')
+                .map(event => (
+                  <div key={event.id} className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 px-3 py-2.5">
+                    <div className="min-w-0">
+                      <p className="text-sm font-bold text-slate-800">
+                        {event.platform === 'Meta CAPI'
+                          ? 'Meta Pixel'
+                          : event.platform.includes('TikTok')
+                            ? 'TikTok Pixel'
+                            : event.platform}
+                      </p>
+                      <p className="truncate text-[10px] text-slate-500">{deliverySummary(event)}</p>
+                    </div>
+                    <span className={`shrink-0 rounded-md px-2 py-1 text-[10px] font-bold uppercase ${
+                      event.status === 'Success'
+                        ? 'bg-emerald-50 text-emerald-700'
+                        : event.status === 'Failed'
+                          ? 'bg-rose-50 text-rose-600'
+                          : 'bg-orange-50 text-orange-700'
+                    }`}>
+                      {event.status === 'Success' ? '✓ OK' : event.status === 'Failed' ? '✕ Failed' : event.status}
+                    </span>
+                  </div>
+                ))}
+            </div>
+
+            <div className="mt-4 grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                disabled={!mobileRetryItem || mobileRetrying}
+                onClick={() => mobileRetryItem && handleRetryOutbox(mobileRetryItem.id)}
+                className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-sky-600 px-3 text-sm font-bold text-white disabled:cursor-not-allowed disabled:bg-slate-300"
+              >
+                {mobileRetrying && <Loader2 className="h-4 w-4 animate-spin" />}
+                Resend event
+              </button>
+              <button
+                type="button"
+                onClick={() => handleCopy(
+                  JSON.stringify(mobileDetailGroup.events, null, 2),
+                  `event_json_${mobileDetailGroup.key}`,
+                )}
+                className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-slate-100 px-3 text-sm font-bold text-slate-800"
+              >
+                {copiedStates[`event_json_${mobileDetailGroup.key}`]
+                  ? <Check className="h-4 w-4 text-emerald-600" />
+                  : <Copy className="h-4 w-4" />}
+                {copiedStates[`event_json_${mobileDetailGroup.key}`] ? 'Copied' : 'Copy JSON'}
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
     </div>
   );
 }
