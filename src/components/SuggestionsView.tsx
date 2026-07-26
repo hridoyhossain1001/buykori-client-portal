@@ -1,5 +1,5 @@
 ﻿import React from 'react';
-import { Sparkles, XCircle, CheckCircle } from 'lucide-react';
+import { Sparkles, XCircle, CheckCircle, Info } from 'lucide-react';
 import { Suggestion } from '../types';
 
 interface SuggestionsViewProps {
@@ -34,48 +34,66 @@ export function SuggestionsView({
     }, new Map<string, Suggestion>()).values()
   );
   const unresolvedSuggestions = uniqueSuggestions.filter(s => !s.resolved);
+  const allHealthy = unresolvedSuggestions.length === 0;
+  const healthChecks = [
+    { name: 'Meta CAPI', state: 'Connected' },
+    { name: 'TikTok Events', state: 'Active' },
+    { name: 'GA4 route', state: 'Checked' },
+  ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-2 md:space-y-6">
       
       {/* Top tracking health optimization header */}
-      <div className="rounded-xl border border-indigo-200 bg-indigo-50/50   p-6 flex flex-col md:flex-row gap-6 justify-between items-start md:items-center shadow-inner">
-        <div className="space-y-1">
-          <h2 className="font-bold text-slate-900  text-base flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-indigo-600 animate-pulse" />
-            Tracking Health Check
-          </h2>
-          <p className="text-xs text-slate-600  max-w-2xl leading-normal">
-            We check your tracking setup and suggest improvements. Fix the issues below to get better results from your ads.
-          </p>
+      <div className="flex flex-col items-start justify-between gap-3 rounded-xl border border-indigo-200 bg-indigo-50/60 p-3.5 shadow-inner md:flex-row md:items-center md:gap-6 md:p-6">
+        <div className="flex items-start gap-2.5">
+          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-indigo-100 bg-white text-indigo-600 md:h-8 md:w-8">
+            <Sparkles className="h-4 w-4 animate-pulse" />
+          </div>
+          <div className="space-y-0.5">
+            <h2 className="text-sm font-bold text-slate-900 md:text-base">Tracking Health Check</h2>
+            <p className="max-w-2xl text-[10px] leading-snug text-slate-500 md:text-xs md:leading-normal">
+              We check your tracking setup and suggest improvements. Fix the issues below to get better results from your ads.
+            </p>
+          </div>
         </div>
 
         {/* Optimization score badge widget */}
-        <div className="text-right shrink-0">
-          <span className="block text-xs font-bold text-[#5b59fd] uppercase tracking-widest leading-none">Tracking Score</span>
-          <span className="text-4xl font-extrabold text-slate-800  font-mono inline-block mt-1">{optScore}%</span>
-          <div className="mt-1.5 h-1.5 w-24 bg-slate-200  rounded-full overflow-hidden ml-auto">
-            <div className="h-full bg-indigo-600 rounded-full" style={{ width: `${optScore}%` }} />
+        <div className="w-full shrink-0 md:w-56">
+          <span className="block text-[9px] font-bold uppercase leading-none tracking-widest text-slate-500 md:text-xs">Tracking Score</span>
+          <div className="mt-0.5 flex items-end justify-between gap-3">
+            <span className="font-mono text-4xl font-extrabold leading-none text-slate-800">{optScore}<span className="text-xl">%</span></span>
+            <span className={`mb-0.5 inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[9px] font-bold ${
+              allHealthy
+                ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                : 'border-amber-200 bg-amber-50 text-amber-700'
+            }`}>
+              {allHealthy && <CheckCircle className="h-3 w-3" />}
+              {allHealthy ? 'All checks passed' : `${unresolvedSuggestions.length} need attention`}
+            </span>
+          </div>
+          <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-slate-200">
+            <div className="h-full rounded-full bg-gradient-to-r from-indigo-600 to-sky-500" style={{ width: `${optScore}%` }} />
           </div>
         </div>
       </div>
 
       {/* Live Diagnostics scan trigger CTA */}
-      <div className="bg-white border border-slate-200   p-4 rounded-xl shadow-sm flex flex-col sm:flex-row gap-4 items-center justify-between">
+      <div className="flex flex-col items-stretch justify-between gap-3 rounded-xl border border-slate-200 bg-white p-3 shadow-sm sm:flex-row sm:items-center md:p-4">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-indigo-100  flex items-center justify-center text-indigo-700  border border-indigo-200  shrink-0">
-            <Sparkles className="w-5 h-5" />
+          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600 md:h-10 md:w-10 md:border md:border-indigo-200 md:bg-indigo-100">
+            <Sparkles className="h-4 w-4 md:h-5 md:w-5" />
           </div>
           <div>
             <h3 className="font-bold text-slate-800  text-xs uppercase tracking-wider">Check My Setup</h3>
-            <p className="text-xs text-slate-400 ">Scan your tracking setup for problems and get clear fix suggestions.</p>
+            <p className="text-[10px] leading-snug text-slate-400 md:text-xs">Scan your tracking setup for problems and get clear fix suggestions.</p>
           </div>
         </div>
 
         <button
           disabled={aiReviewing}
           onClick={handleAiReview}
-          className="flex min-h-10 w-full shrink-0 cursor-pointer items-center justify-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-xs font-bold text-white shadow-sm transition-colors hover:bg-indigo-700 disabled:bg-indigo-400 sm:w-auto"
+          className="flex min-h-11 w-full shrink-0 cursor-pointer items-center justify-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-bold text-white shadow-sm transition-colors hover:bg-indigo-700 disabled:bg-indigo-400 sm:w-auto md:min-h-10 md:text-xs"
         >
           {aiReviewing ? (
             <>
@@ -92,25 +110,37 @@ export function SuggestionsView({
       </div>
 
       {/* Suggestions lists */}
-      <div className="space-y-4">
+      <div className="space-y-2 md:space-y-4">
         {unresolvedSuggestions.length === 0 && (
-          <div className="p-10 border  rounded-xl bg-white  text-center space-y-5">
-            <div className="w-12 h-12 bg-green-50  rounded-full border border-green-100  flex items-center justify-center mx-auto text-green-600">
-              <CheckCircle className="w-6 h-6" />
+          <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+            <div className="flex items-start gap-2.5 p-3">
+              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-emerald-50 text-emerald-600">
+                <CheckCircle className="h-4 w-4" />
+              </div>
+              <div>
+                <h3 className="text-xs font-bold text-slate-800 md:text-sm">Excellent! All checklist resolved</h3>
+                <p className="mt-0.5 text-[10px] leading-snug text-slate-400 md:text-xs">Your tracking setup looks healthy across Meta, TikTok, and GA4.</p>
+              </div>
             </div>
-            <div>
-              <h3 className="font-bold text-slate-800 ">Excellent! All checklist resolved</h3>
-              <p className="text-xs text-slate-400  max-w-sm mx-auto mt-1">Your tracking setup looks healthy across Meta, TikTok, and GA4.</p>
-            </div>
-            <div className="mx-auto grid max-w-2xl grid-cols-1 gap-2 text-left sm:grid-cols-3">
-              {['Meta CAPI connected', 'TikTok Events active', 'GA4 route checked'].map((item) => (
-                <div key={item} className="flex items-center gap-2 rounded-lg border border-emerald-100 bg-emerald-50/70 px-3 py-2 text-xs font-semibold text-emerald-700   ">
-                  <CheckCircle className="h-3.5 w-3.5 shrink-0" />
-                  {item}
+
+            <div className="divide-y divide-slate-100 border-y border-slate-100">
+              {healthChecks.map((item) => (
+                <div key={item.name} className="flex min-h-9 items-center justify-between gap-4 px-3 py-2">
+                  <div className="flex items-center gap-2">
+                    <span className="flex h-4 w-4 items-center justify-center rounded-full bg-emerald-50 text-emerald-600">
+                      <CheckCircle className="h-3 w-3" />
+                    </span>
+                    <span className="text-[11px] font-semibold text-slate-700 md:text-xs">{item.name}</span>
+                  </div>
+                  <span className="text-[9px] font-bold uppercase tracking-wider text-emerald-600 md:text-[10px]">{item.state}</span>
                 </div>
               ))}
             </div>
-            <p className="text-xs text-slate-400">This result uses the latest data on this page. Check again after changing Settings or updating the WordPress plugin.</p>
+
+            <div className="flex items-start gap-2 px-3 py-2.5 text-[9px] leading-relaxed text-slate-400 md:text-xs">
+              <Info className="mt-0.5 h-3 w-3 shrink-0" />
+              <p>This result uses the latest data on this page. Check again after changing Settings or updating the WordPress plugin.</p>
+            </div>
           </div>
         )}
 
