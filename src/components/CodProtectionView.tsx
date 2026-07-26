@@ -130,8 +130,34 @@ export function CodProtectionView({
   const settingsSummary = `Auto-confirm: ${autoConfirmDays === 0 ? 'Off — manual only' : `After ${autoConfirmDays} day${autoConfirmDays === 1 ? '' : 's'}`} · Confirm status: ${autoConfirmStatus === 'processing' ? 'Processing / Confirmed' : 'Completed / Delivered'}`;
 
   return (
-    <div className="space-y-4">
-      <section className="rounded-xl border border-slate-200 bg-white px-5 py-4 shadow-sm">
+    <div className="space-y-2.5 md:space-y-4">
+      <section className="rounded-[16px] border border-slate-200 bg-white px-3 py-3 shadow-sm md:hidden">
+        <div className="flex items-center gap-2.5 border-b border-slate-100 pb-3">
+          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-[#2f80df]">
+            <ShieldCheck className="h-4 w-4" />
+          </span>
+          <p className="text-[10px] leading-4 text-slate-500">Purchases stay on hold until you confirm each COD order.</p>
+        </div>
+        <div className="grid grid-cols-2">
+          {[
+            ['Pending', pendingCount, 'Waiting for you', 'text-slate-900'],
+            ['Held revenue', currency(pendingValue), 'Not sent to platforms', 'text-slate-900'],
+            ['Verified today', confirmedToday, 'Confirmed purchases', 'text-emerald-600'],
+            ['Oldest waiting', formatHeldTime(oldestPending), 'Needs your review', 'text-orange-600'],
+          ].map(([label, value, helper, tone], index) => (
+            <div
+              key={String(label)}
+              className={`min-w-0 py-2.5 ${index % 2 === 0 ? 'pr-3' : 'border-l border-slate-100 pl-3'} ${index > 1 ? 'border-t border-slate-100' : ''}`}
+            >
+              <p className="text-[8px] font-bold uppercase tracking-[0.11em] text-slate-400">{label}</p>
+              <p className={`mt-0.5 truncate text-lg font-black leading-none ${tone}`}>{value}</p>
+              <p className="mt-1 truncate text-[9px] text-slate-400">{helper}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="hidden rounded-xl border border-slate-200 bg-white px-5 py-4 shadow-sm md:block">
         <div className="grid gap-5 lg:grid-cols-[1.4fr_repeat(4,minmax(110px,.55fr))] lg:items-center">
           <div className="flex items-center gap-4">
             <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
@@ -159,28 +185,31 @@ export function CodProtectionView({
         </div>
       </section>
 
-      <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+      <section className="overflow-hidden rounded-[14px] border border-slate-200 bg-white shadow-sm md:rounded-xl">
         <button
           type="button"
           onClick={() => setSettingsOpen((current) => !current)}
-          className="flex w-full items-center justify-between gap-4 px-5 py-4 text-left"
+          className="flex w-full items-center justify-between gap-3 px-3 py-2.5 text-left md:gap-4 md:px-5 md:py-4"
           aria-expanded={settingsOpen}
         >
           <span className="flex min-w-0 items-center gap-3">
-            <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${deferredEnabled ? 'bg-indigo-50 text-indigo-600' : 'bg-slate-100 text-slate-500'}`}>
-              <ShieldCheck className="h-5 w-5" />
+            <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg md:h-10 md:w-10 md:rounded-xl ${deferredEnabled ? 'bg-blue-50 text-[#2f80df]' : 'bg-slate-100 text-slate-500'}`}>
+              <ShieldCheck className="h-4 w-4 md:h-5 md:w-5" />
             </span>
             <span className="min-w-0">
               <span className="flex items-center gap-2">
-                <span className="text-sm font-bold text-slate-900">Protection settings</span>
-                <span className={`rounded-full border px-2 py-0.5 text-xs font-bold ${deferredEnabled ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-slate-200 bg-slate-50 text-slate-500'}`}>
+                <span className="text-[12px] font-bold text-slate-900 md:text-sm">Protection settings</span>
+                <span className={`rounded-full border px-2 py-0.5 text-[9px] font-bold md:text-xs ${deferredEnabled ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-slate-200 bg-slate-50 text-slate-500'}`}>
                   {deferredEnabled ? 'On' : 'Off'}
                 </span>
               </span>
-              <span className="mt-1 block truncate text-xs text-slate-500">{settingsSummary}</span>
+              <span className="mt-0.5 block truncate text-[9px] text-slate-500 md:mt-1 md:text-xs">
+                <span className="md:hidden">Auto-confirm: {autoConfirmDays === 0 ? 'Off — manual only' : `After ${autoConfirmDays} days`}</span>
+                <span className="hidden md:inline">{settingsSummary}</span>
+              </span>
             </span>
           </span>
-          <span className="flex items-center gap-3 text-xs font-bold text-indigo-600">
+          <span className="flex shrink-0 items-center gap-1 text-[10px] font-bold text-[#2375d8] md:gap-3 md:text-xs md:text-indigo-600">
             {settingsOpen ? 'Close' : 'Edit'}
             <ChevronDown className={`h-4 w-4 transition-transform ${settingsOpen ? 'rotate-180' : ''}`} />
           </span>
@@ -238,8 +267,51 @@ export function CodProtectionView({
         )}
       </section>
 
-      <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-        <div className="flex flex-col gap-3 border-b border-slate-200 p-4 lg:flex-row lg:items-center">
+      <section className="overflow-hidden rounded-[14px] border border-slate-200 bg-white shadow-sm md:rounded-xl">
+        <div className="border-b border-slate-200 p-3 md:hidden">
+          <div className="grid grid-cols-[minmax(0,1fr)_104px] gap-2">
+            <div className="relative min-w-0">
+              <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-slate-400" />
+              <input
+                value={searchQuery}
+                onChange={(event) => setSearchQuery(event.target.value)}
+                placeholder="Search order ID, name or phone…"
+                className="h-9 w-full rounded-lg border border-slate-200 bg-white pl-9 pr-2 text-[10px] outline-none focus:border-[#2f80df]"
+              />
+            </div>
+            <select
+              aria-label="Sort pending COD orders"
+              value={sortOrder}
+              onChange={(event) => setSortOrder(event.target.value as 'oldest' | 'newest')}
+              className="h-9 min-w-0 rounded-lg border border-slate-200 bg-white px-2 text-[10px] font-bold text-slate-700"
+            >
+              <option value="oldest">Oldest first ▼</option>
+              <option value="newest">Newest first ▼</option>
+            </select>
+          </div>
+          <div className="mt-2 grid grid-cols-[1fr_1.2fr_1fr] items-center gap-2">
+            <span className="text-[9px] font-bold text-slate-400">{selectedOrderIds.length} selected</span>
+            <button
+              type="button"
+              disabled={selectedOrderIds.length === 0}
+              onClick={handleBulkConfirm}
+              className="inline-flex h-8 items-center justify-center gap-1 rounded-lg bg-[#2f80df] px-2 text-[9px] font-bold text-white disabled:border disabled:border-slate-200 disabled:bg-slate-50 disabled:text-slate-400"
+            >
+              <Check className="h-3 w-3" />
+              Confirm orders
+            </button>
+            <button
+              type="button"
+              disabled={selectedOrderIds.length === 0}
+              onClick={handleBulkCancel}
+              className="h-8 rounded-lg border border-slate-200 bg-white px-2 text-[9px] font-bold text-slate-600 disabled:bg-slate-50 disabled:text-slate-400"
+            >
+              Skip selected
+            </button>
+          </div>
+        </div>
+
+        <div className="hidden flex-col gap-3 border-b border-slate-200 p-4 md:flex lg:flex-row lg:items-center">
           <div className="relative min-w-0 flex-1">
             <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
             <input
@@ -279,7 +351,7 @@ export function CodProtectionView({
           </button>
         </div>
 
-        <div className="space-y-3 p-4 md:hidden">
+        <div className="divide-y divide-slate-100 md:hidden">
           {visibleOrders.length === 0 ? (
             <div className="rounded-lg border border-dashed border-slate-200 py-10 text-center text-xs font-medium text-slate-400">
               No pending COD orders.
@@ -289,33 +361,35 @@ export function CodProtectionView({
             const product = order.products?.[0];
             const selected = selectedOrderIds.includes(order.orderId);
             return (
-              <article key={order.orderId} className={`rounded-xl border p-4 ${selected ? 'border-indigo-300 bg-indigo-50/30' : 'border-slate-200'}`}>
+              <article key={order.orderId} className={`px-3 py-3 ${selected ? 'bg-blue-50/40' : 'bg-white'}`}>
                 <div className="flex items-start justify-between gap-3">
-                  <label className="flex min-w-0 items-start gap-3">
+                  <label className="flex min-w-0 items-start gap-2">
                     <input
                       type="checkbox"
                       checked={selected}
                       onChange={(event) => toggleOrder(order.orderId, event.target.checked)}
-                      className="mt-1 accent-indigo-600"
+                      aria-label={`Select COD order ${order.orderId}`}
+                      className="mt-0.5 h-4 w-4 rounded accent-[#2f80df]"
                     />
                     <span className="min-w-0">
-                      <span className="block font-mono text-sm font-bold text-slate-900">#{order.orderId}</span>
-                      <span className="mt-1 block truncate text-sm font-semibold text-slate-800">{customer.name}</span>
-                      <span className="block text-xs text-slate-400">{customer.phone}</span>
+                      <span className="block font-mono text-[12px] font-bold leading-none text-slate-900">#{order.orderId}</span>
+                      <span className="mt-1 block truncate text-[11px] font-semibold text-slate-800">{customer.name} <span className="font-normal text-slate-400">· {customer.phone}</span></span>
                     </span>
                   </label>
-                  <span className="whitespace-nowrap text-sm font-bold text-slate-900">{currency(order.amount)}</span>
-                </div>
-                <p className="mt-3 truncate text-xs font-semibold text-slate-700">{product?.name || product?.content_name || 'Product details unavailable'}</p>
-                <div className="mt-3 flex items-center justify-between gap-2">
-                  <FraudVerdictBadge details={order.fraudDetails} score={order.fraudScore} />
-                  <span className="inline-flex items-center gap-1 text-xs font-semibold text-slate-500">
-                    <Clock3 className="h-3.5 w-3.5" /> {formatHeldTime(order.ageHours)}
+                  <span className="shrink-0 text-right">
+                    <span className="block whitespace-nowrap text-[13px] font-black text-slate-900">{currency(order.amount)}</span>
+                    <span className="mt-1 inline-flex items-center gap-1 text-[9px] text-slate-400">
+                      <Clock3 className="h-3 w-3" /> {formatHeldTime(order.ageHours)}
+                    </span>
                   </span>
                 </div>
-                <div className="mt-4 grid grid-cols-2 gap-2">
-                  <button type="button" onClick={() => handleConfirmOrder(order.orderId)} className="h-10 rounded-lg bg-indigo-600 text-xs font-bold text-white">Confirm</button>
-                  <button type="button" onClick={() => handleCancelOrder(order.orderId)} className="h-10 rounded-lg border border-slate-200 text-xs font-bold text-slate-600">Skip</button>
+                <p className="mt-1.5 pl-6 truncate text-[10px] text-slate-500">{product?.name || product?.content_name || 'Product details unavailable'}</p>
+                <div className="mt-2 pl-6">
+                  <FraudVerdictBadge details={order.fraudDetails} score={order.fraudScore} />
+                </div>
+                <div className="mt-2 grid grid-cols-2 gap-2">
+                  <button type="button" onClick={() => handleConfirmOrder(order.orderId)} className="h-9 rounded-lg bg-[#2f80df] text-[11px] font-bold text-white">Confirm</button>
+                  <button type="button" onClick={() => handleCancelOrder(order.orderId)} className="h-9 rounded-lg border border-slate-200 text-[11px] font-bold text-slate-700">Skip</button>
                 </div>
               </article>
             );
@@ -396,12 +470,12 @@ export function CodProtectionView({
             </tbody>
           </table>
         </div>
-        <div className="border-t border-slate-100 px-5 py-3 text-xs text-slate-400">
+        <div className="border-t border-slate-100 px-3 py-2.5 text-[9px] leading-4 text-slate-400 md:px-5 md:py-3 md:text-xs">
           {visibleOrders.length} pending order{visibleOrders.length === 1 ? '' : 's'} · confirmed orders send Purchase to Meta, TikTok and GA4
         </div>
       </section>
 
-      <div className="flex items-start gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs leading-relaxed text-emerald-800">
+      <div className="flex items-start gap-2 rounded-[14px] border border-emerald-200 bg-emerald-50 px-3 py-3 text-[9px] leading-4 text-emerald-800 md:rounded-xl md:px-4 md:text-xs md:leading-relaxed">
         <Info className="mt-0.5 h-4 w-4 shrink-0" />
         <p><strong>Why this matters:</strong> skipping fake COD orders keeps false purchases out of your ad data, so the platforms learn from real buyers.</p>
       </div>
