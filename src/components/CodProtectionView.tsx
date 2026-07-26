@@ -83,6 +83,7 @@ export function CodProtectionView({
   growthFeaturesEnabled = false,
 }: CodProtectionViewProps) {
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [summaryInfoOpen, setSummaryInfoOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [sortOrder, setSortOrder] = useState<'oldest' | 'newest'>('oldest');
 
@@ -132,32 +133,51 @@ export function CodProtectionView({
   return (
     <div className="space-y-2.5 md:space-y-4">
       <section className="rounded-[14px] border border-slate-200 bg-white p-2.5 shadow-sm md:hidden">
-        <div className="grid grid-cols-[96px_minmax(0,1fr)] items-stretch gap-2">
-          <div className="flex flex-col items-center justify-center border-r border-slate-100 pr-2 text-center">
+        <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+          <div className="flex items-center gap-2">
             <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-blue-50 text-[#2f80df]">
               <ShieldCheck className="h-3.5 w-3.5" />
             </span>
-            <p className="mt-1.5 text-[8px] font-medium leading-[12px] text-slate-600">
-              Purchases stay on hold until you confirm each COD order.
-            </p>
+            <div>
+              <h2 className="text-[11px] font-bold leading-none text-slate-900">COD order status</h2>
+              <p className="mt-1 text-[8px] font-medium text-slate-400">Pending purchase overview</p>
+            </div>
           </div>
-          <div className="grid min-w-0 grid-cols-2">
-            {[
-              ['Pending', pendingCount, 'Waiting for you', 'text-slate-900'],
-              ['Held revenue', currency(pendingValue), 'Not sent to platforms', 'text-slate-900'],
-              ['Verified today', confirmedToday, 'Confirmed purchases', 'text-emerald-600'],
-              ['Oldest waiting', formatHeldTime(oldestPending), 'Needs your review', 'text-orange-600'],
-            ].map(([label, value, helper, tone], index) => (
-              <div
-                key={String(label)}
-                className={`min-w-0 px-2 py-1.5 ${index % 2 === 1 ? 'border-l border-slate-100' : ''} ${index > 1 ? 'border-t border-slate-100' : ''}`}
-              >
-                <p className="whitespace-nowrap text-[7px] font-bold uppercase tracking-[0.09em] text-slate-500">{label}</p>
-                <p className={`mt-0.5 text-[15px] font-black leading-none tracking-tight ${tone}`}>{value}</p>
-                <p className="mt-1 break-words text-[7.5px] font-medium leading-[10px] text-slate-500">{helper}</p>
-              </div>
-            ))}
+          <button
+            type="button"
+            onClick={() => setSummaryInfoOpen((current) => !current)}
+            aria-expanded={summaryInfoOpen}
+            aria-label="About COD order status"
+            className={`flex h-7 w-7 items-center justify-center rounded-lg border transition ${
+              summaryInfoOpen
+                ? 'border-blue-200 bg-blue-50 text-[#2f80df]'
+                : 'border-slate-200 bg-white text-slate-500'
+            }`}
+          >
+            <Info className="h-3.5 w-3.5" />
+          </button>
+        </div>
+        {summaryInfoOpen && (
+          <div className="mt-2 rounded-lg border border-blue-100 bg-blue-50 px-2.5 py-2 text-[8px] font-medium leading-[12px] text-[#315f93]">
+            Purchases stay on hold until you confirm each COD order. Only confirmed purchases are sent to your ad platforms.
           </div>
+        )}
+        <div className="grid min-w-0 grid-cols-2 pt-1">
+          {[
+            ['Pending', pendingCount, 'Waiting for you', 'text-slate-900'],
+            ['Held revenue', currency(pendingValue), 'Not sent to platforms', 'text-slate-900'],
+            ['Verified today', confirmedToday, 'Confirmed purchases', 'text-emerald-600'],
+            ['Oldest waiting', formatHeldTime(oldestPending), 'Needs your review', 'text-orange-600'],
+          ].map(([label, value, helper, tone], index) => (
+            <div
+              key={String(label)}
+              className={`min-w-0 px-2.5 py-2 ${index % 2 === 1 ? 'border-l border-slate-100' : ''} ${index > 1 ? 'border-t border-slate-100' : ''}`}
+            >
+              <p className="whitespace-nowrap text-[7.5px] font-bold uppercase tracking-[0.1em] text-slate-500">{label}</p>
+              <p className={`mt-0.5 text-[16px] font-black leading-none tracking-tight ${tone}`}>{value}</p>
+              <p className="mt-1 break-words text-[8px] font-medium leading-[11px] text-slate-500">{helper}</p>
+            </div>
+          ))}
         </div>
       </section>
 
