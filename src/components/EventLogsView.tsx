@@ -7,15 +7,12 @@ import {
   CircleDot,
   Copy,
   Download,
-  BarChart3,
-  List,
   Loader2,
   Play,
   Plus,
   Radio,
   RotateCcw,
   Search,
-  SlidersHorizontal,
   XCircle,
 } from 'lucide-react';
 import { CAPIEvent, OutboxItem } from '../types';
@@ -430,7 +427,7 @@ export function EventLogsView({
   );
 
   return (
-    <div className="space-y-0 pb-16 md:space-y-5 md:pb-0">
+    <div className="space-y-0 md:space-y-5">
       <section
         aria-label="Event log filters"
         className="sticky top-14 z-20 -mx-4 overflow-hidden border-y border-slate-200 bg-white shadow-sm md:static md:mx-0 md:rounded-xl md:border"
@@ -661,7 +658,7 @@ export function EventLogsView({
 
       <section
         aria-labelledby="event-log-results-title"
-        className="-mx-4 h-[calc(100dvh-268px)] min-w-0 overflow-y-auto bg-white md:mx-0 md:h-auto md:overflow-hidden md:rounded-xl md:border md:border-slate-200 md:shadow-sm"
+        className="-mx-4 h-[calc(100dvh-204px)] min-w-0 overflow-y-auto bg-white md:mx-0 md:h-auto md:overflow-hidden md:rounded-xl md:border md:border-slate-200 md:shadow-sm"
       >
         {loadError && groupedEvents.length > 0 && (
           <div
@@ -881,28 +878,6 @@ export function EventLogsView({
           </>
         )}
       </section>
-
-      <nav
-        aria-label="Event logs mobile navigation"
-        className="fixed inset-x-0 bottom-0 z-50 grid h-16 grid-cols-4 border-t border-slate-200 bg-white px-3 pb-1 md:hidden"
-      >
-        <a href="/event-logs" aria-current="page" className="flex flex-col items-center justify-center gap-1 text-[10px] font-semibold text-sky-600">
-          <List className="h-4 w-4" />
-          Logs
-        </a>
-        <a href="/dashboard" className="flex flex-col items-center justify-center gap-1 text-[10px] font-medium text-slate-500">
-          <BarChart3 className="h-4 w-4" />
-          Overview
-        </a>
-        <a href="/settings/conversions-api" className="flex flex-col items-center justify-center gap-1 text-[10px] font-medium text-slate-500">
-          <CircleDot className="h-4 w-4" />
-          Pixels
-        </a>
-        <a href="/settings/store-connection" className="flex flex-col items-center justify-center gap-1 text-[10px] font-medium text-slate-500">
-          <SlidersHorizontal className="h-4 w-4" />
-          Settings
-        </a>
-      </nav>
 
       {mobileDetailGroup && (
         <div className="fixed inset-0 z-[70] md:hidden">
