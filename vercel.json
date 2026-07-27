@@ -42,8 +42,28 @@
       "destination": "https://api.buykori.app/client"
     },
     {
-      "source": "/client/:path*",
-      "destination": "https://api.buykori.app/client/:path*"
+      "source": "/client/login",
+      "destination": "https://api.buykori.app/client/login"
+    },
+    {
+      "source": "/client/signup",
+      "destination": "https://api.buykori.app/client/signup"
+    },
+    {
+      "source": "/client/forgot-password",
+      "destination": "https://api.buykori.app/client/forgot-password"
+    },
+    {
+      "source": "/client/reset-password",
+      "destination": "https://api.buykori.app/client/reset-password"
+    },
+    {
+      "source": "/client/verify-email",
+      "destination": "https://api.buykori.app/client/verify-email"
+    },
+    {
+      "source": "/client/logout",
+      "destination": "https://api.buykori.app/client/logout"
     },
     {
       "source": "/((?!.*\\..*).*)",
