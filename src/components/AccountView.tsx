@@ -62,6 +62,13 @@ export function AccountView({
   connection,
   profName,
   setProfName,
+  profEmail,
+  setProfEmail,
+  profEmailCodeRequested,
+  profEmailCode,
+  setProfEmailCode,
+  profEmailCurrentPassword,
+  setProfEmailCurrentPassword,
   profNotifEmail,
   setProfNotifEmail,
   profUpdating,
@@ -355,10 +362,17 @@ export function AccountView({
         <div className="grid gap-5 lg:grid-cols-[1fr_320px]">
           <div className="order-2 space-y-5 lg:order-1">
             <ProfileForm
-              profile={profile}
-              profName={profName}
-              setProfName={setProfName}
-              profNotifEmail={profNotifEmail}
+                profile={profile}
+                profName={profName}
+                setProfName={setProfName}
+                profEmail={profEmail}
+                setProfEmail={setProfEmail}
+                profEmailCodeRequested={profEmailCodeRequested}
+                profEmailCode={profEmailCode}
+                setProfEmailCode={setProfEmailCode}
+                profEmailCurrentPassword={profEmailCurrentPassword}
+                setProfEmailCurrentPassword={setProfEmailCurrentPassword}
+                profNotifEmail={profNotifEmail}
               setProfNotifEmail={setProfNotifEmail}
               profUpdating={profUpdating}
               submitProfileSave={submitProfileSave}

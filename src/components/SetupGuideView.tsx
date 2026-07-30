@@ -60,7 +60,7 @@ const setupSteps: SetupInstruction[] = [
     title: 'Install the WordPress plugin',
     description: (
       <>
-        Download Buykori AdSync, then in WordPress open <b>Plugins → Add New → Upload Plugin</b>. Upload the ZIP and activate it.
+        Download Buykori AdSync, then in WordPress open <b>Plugins → Add New → Upload Plugin</b>. Upload the ZIP and activate it. You can manage the settings from this portal.
       </>
     ),
     action: 'download',
@@ -83,7 +83,7 @@ const setupSteps: SetupInstruction[] = [
     action: 'settings',
   },
   {
-    title: 'Choose which events to send',
+    title: 'Choose Which Events to Send',
     description: (
       <>
         Turn on only the events you need. A good starting list: <b>PageView, ViewContent, AddToCart, InitiateCheckout, Purchase.</b>
@@ -360,7 +360,7 @@ export function SetupGuideView({
                     )}
                     {step.action === 'settings' && (
                       <button type="button" onClick={() => openPortalSection('settings', 'settings-platforms')} className="mt-3 min-h-9 rounded-lg border border-slate-200 px-4 text-xs font-bold text-slate-600 hover:bg-slate-50">
-                        Open Conversions API
+                        Open Conversions API Settings
                       </button>
                     )}
                     {step.action === 'health' && (
