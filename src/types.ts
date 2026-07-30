@@ -563,6 +563,9 @@ export interface AdPerformanceRow {
   placed_purchases?: number;
   placed_revenue?: number;
   placed_roas?: number;
+  placed_cpa?: number;
+  pending_purchases?: number;
+  cancelled_purchases?: number;
   confirmed_purchases?: number;
   confirmed_revenue?: number;
   confirmed_roas?: number;
