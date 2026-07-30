@@ -3,13 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect, useRef, useCallback, Suspense, lazy } from 'react';
-import { 
-  ShieldAlert, 
-  CheckCircle2, 
-  XCircle,
-  Loader2
-} from 'lucide-react';
+import React, { useState, useEffect, useRef, useCallback, Suspense } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { CreateStoreModal } from './components/CreateStoreModal';
 import { Header } from './components/Header';
@@ -17,80 +11,34 @@ import { PluginConnectAuthorizeView } from './components/PluginConnectAuthorizeV
 import { ProductGuide } from './components/ProductGuide';
 import { SupportWidget } from './components/SupportWidget';
 import { PluginUpdateModal } from './components/PluginUpdateModal';
-import { Button } from './components/common/Button';
-import { Modal } from './components/common/Modal';
-import { CAPIEvent, APILog, Suggestion, Platform, EventRule, PlatformConfig, UserProfile, ClientConnection, OutboxItem, PluginReleaseInfo, CustomEventAutomation, CourierOrder, DeferredData, IncompleteCheckoutData, RecoveryOrderPayload, SidebarStatus, StoreInfo, AnalyticsAudience, AnalyticsCampaigns, AnalyticsOverview, CampaignDispatchResponse, RecoverySummary, SignalDoctor, SyncedAdCampaign, TrendPoint } from './types';
+import { CAPIEvent, APILog, Suggestion, Platform, EventRule, PlatformConfig, UserProfile, ClientConnection, OutboxItem, PluginReleaseInfo, CustomEventAutomation, CourierOrder, DeferredData, IncompleteCheckoutData, RecoveryOrderPayload, SidebarStatus, StoreInfo, AnalyticsAudience, AnalyticsCampaigns, AnalyticsOverview, CampaignDispatchResponse, RecoverySummary, SignalDoctor, TrendPoint } from './types';
 import { clientPathForPage, clientPathForSection, isClientPageId, resolveClientRoute } from './lib/clientRoutes';
 import { comparePluginVersions, errorMessage, normalizePluginVersion, uniqueSuggestions } from './lib/clientAppUtils';
 import { fetchAnalyticsBundle, fetchDashboardAnalytics } from './services/analyticsApi';
 import { fetchClientStores, fetchDeferredData, markClientSidebarSeen, runDeferredBulkAction, runDeferredOrderAction, saveClientStoreDomain, saveDeferredSettings, switchClientStore } from './services/operationsApi';
 import { requestAccountDeletion, requestProfileEmailCode, resetDemoProfile, revokeClientConnection, sendPasswordResetEmail, updateClientPassword, updateClientProfile } from './services/accountApi';
-
-const lazyWithReload = <Props extends object>(
-  loader: () => Promise<{ default: React.ComponentType<Props> }>
-) => lazy(() => loader().catch((error) => {
-  const chunkFailed = /Failed to fetch dynamically imported module|Importing a module script failed|Loading chunk/i.test(String(error?.message || error));
-  if (chunkFailed && sessionStorage.getItem('buykori_chunk_reload') !== '1') {
-    sessionStorage.setItem('buykori_chunk_reload', '1');
-    window.location.reload();
-  }
-  throw error;
-}));
-
-// Lazy-loaded modular views (code-splitting for smaller initial bundle)
-const DashboardView = lazyWithReload(() => import('./components/DashboardView').then(m => ({ default: m.DashboardView })));
-const WeeklyReportCard = lazyWithReload(() => import('./components/WeeklyReportCard').then(m => ({ default: m.WeeklyReportCard })));
-
-class PageErrorBoundary extends React.Component<
-  { pageKey: string; children: React.ReactNode },
-  { error: Error | null }
-> {
-  declare props: Readonly<{ pageKey: string; children: React.ReactNode }>;
-  declare setState: React.Component<
-    { pageKey: string; children: React.ReactNode },
-    { error: Error | null }
-  >['setState'];
-  state = { error: null as Error | null };
-
-  static getDerivedStateFromError(error: Error) {
-    return { error };
-  }
-
-  componentDidCatch(error: Error) {
-    console.error(`Page render failed: ${this.props.pageKey}`, error);
-  }
-
-  componentDidUpdate(previousProps: { pageKey: string }) {
-    if (previousProps.pageKey !== this.props.pageKey && this.state.error) {
-      this.setState({ error: null });
-    }
-  }
-
-  render() {
-    if (this.state.error) {
-      return (
-        <div className="rounded-xl border border-rose-200 bg-rose-50 p-5 text-rose-800">
-          <h2 className="text-sm font-bold">This workspace could not be displayed</h2>
-          <p className="mt-1 text-xs">Refresh the page and try again. The error has been logged for diagnosis.</p>
-          <p className="mt-2 rounded bg-white/70 px-2 py-1 font-mono text-[10px]">{this.state.error.message}</p>
-        </div>
-      );
-    }
-    return this.props.children;
-  }
-}
-const AnalyticsView = lazyWithReload(() => import('./components/AnalyticsView').then(m => ({ default: m.AnalyticsView })));
-const CodProtectionView = lazyWithReload(() => import('./components/CodProtectionView').then(m => ({ default: m.CodProtectionView })));
-const EventLogsView = lazyWithReload(() => import('./components/EventLogsView').then(m => ({ default: m.EventLogsView })));
-const ApiLogsView = lazyWithReload(() => import('./components/ApiLogsView').then(m => ({ default: m.ApiLogsView })));
-const SettingsView = lazyWithReload(() => import('./components/SettingsView').then(m => ({ default: m.SettingsView })));
-const SetupGuideView = lazyWithReload(() => import('./components/SetupGuideView').then(m => ({ default: m.SetupGuideView })));
-const SuggestionsView = lazyWithReload(() => import('./components/SuggestionsView').then(m => ({ default: m.SuggestionsView })));
-const CampaignBuilderView = lazyWithReload(() => import('./components/CampaignBuilderView').then(m => ({ default: m.CampaignBuilderView })));
-const AccountView = lazyWithReload(() => import('./components/AccountView').then(m => ({ default: m.AccountView })));
-const OrderSuccessView = lazyWithReload(() => import('./components/OrderSuccessView').then(m => ({ default: m.OrderSuccessView })));
-const OrdersView = lazyWithReload(() => import('./components/OrdersView').then(m => ({ default: m.OrdersView })));
-const IncompleteCheckoutsView = lazyWithReload(() => import('./components/IncompleteCheckoutsView').then(m => ({ default: m.IncompleteCheckoutsView })));
+import {
+  AccountView,
+  AnalyticsView,
+  ApiLogsView,
+  CampaignBuilderView,
+  CodProtectionView,
+  DashboardView,
+  EventLogsView,
+  IncompleteCheckoutsView,
+  OrderSuccessView,
+  OrdersView,
+  SettingsView,
+  SetupGuideView,
+  SuggestionsView,
+  WeeklyReportCard,
+  pageTitleFor,
+} from './app/lazyViews';
+import { PageErrorBoundary } from './app/PageErrorBoundary';
+import { ConnectionErrorBanner, ConsoleSkeleton, PageSuspenseFallback } from './app/AppShellStates';
+import { GlobalToast, type GlobalToastState } from './app/GlobalToast';
+import { DemoResetModal } from './app/DemoResetModal';
+import { useCampaignUrlBuilder } from './app/useCampaignUrlBuilder';
 
 export default function App() {
   const isPluginConnectRoute = window.location.pathname === '/plugin/connect';
@@ -118,7 +66,7 @@ export default function App() {
   const [outboxItems, setOutboxItems] = useState<OutboxItem[]>([]);
   const [retryingOutboxIds, setRetryingOutboxIds] = useState<number[]>([]);
   const [deferredData, setDeferredData] = useState<DeferredData | null>(null);
-  const [courierOrders, setCourierOrders] = useState<CourierOrder[]>([]);
+  const [courierOrders] = useState<CourierOrder[]>([]);
   const [sidebarStatus, setSidebarStatus] = useState<SidebarStatus | null>(null);
   const [incompleteCheckoutData, setIncompleteCheckoutData] = useState<IncompleteCheckoutData>({ items: [], counts: {} });
   const [pluginReleaseInfo, setPluginReleaseInfo] = useState<PluginReleaseInfo | null>(null);
@@ -141,18 +89,6 @@ export default function App() {
   const [analyticsError, setAnalyticsError] = useState<string | null>(null);
   const [trendData, setTrendData] = useState<TrendPoint[]>([]);
   const [recoverySummary, setRecoverySummary] = useState<RecoverySummary | null>(null);
-
-  const setActivePage = useCallback((pageId: string) => {
-    const nextPage = isClientPageId(pageId) ? pageId : 'dashboard';
-    const nextPath = clientPathForPage(nextPage) || '/dashboard';
-    activePageRef.current = nextPage;
-    setSearchVal('');
-    setActivePageState(nextPage);
-    setActiveRouteSection(null);
-    if (window.location.pathname !== nextPath) {
-      window.history.pushState({ buykoriPage: nextPage }, '', nextPath);
-    }
-  }, []);
 
   // Async Lifecycle States
   const [loading, setLoading] = useState<boolean>(true);
@@ -193,18 +129,50 @@ export default function App() {
   const [campaignResp, setCampaignResp] = useState<CampaignDispatchResponse | null>(null);
   const [dispatchingTest, setDispatchingTest] = useState<boolean>(false);
 
-  // Campaign URL Builder States
-  const [urlBuilderBaseUrl, setUrlBuilderBaseUrl] = useState<string>('');
-  const [urlBuilderSource, setUrlBuilderSource] = useState<string>('facebook');
-  const [urlBuilderMedium, setUrlBuilderMedium] = useState<string>('paid_social');
-  const [urlBuilderCampaign, setUrlBuilderCampaign] = useState<string>('');
-  const [urlBuilderContent, setUrlBuilderContent] = useState<string>('');
-  const [urlBuilderTerm, setUrlBuilderTerm] = useState<string>('');
-  const [urlBuilderAdPlatform, setUrlBuilderAdPlatform] = useState<'meta' | 'tiktok'>('meta');
-  const [urlBuilderCampaignId, setUrlBuilderCampaignId] = useState<string>('');
-  const [syncedAdCampaigns, setSyncedAdCampaigns] = useState<SyncedAdCampaign[]>([]);
-  const [loadingSyncedAdCampaigns, setLoadingSyncedAdCampaigns] = useState<boolean>(false);
-  const [generatedCampaignUrl, setGeneratedCampaignUrl] = useState<string>('');
+  // Account / Profiles States
+  const [profName, setProfName] = useState<string>('');
+  const [profEmail, setProfEmail] = useState<string>('');
+  const [profNotifEmail, setProfNotifEmail] = useState<string>('');
+  const [profNotifyWhatsapp, setProfNotifyWhatsapp] = useState<boolean>(false);
+  const [profWhatsappNumber, setProfWhatsappNumber] = useState<string>('');
+  const [profUpdating, setProfUpdating] = useState<boolean>(false);
+  const [profEmailCodeRequested, setProfEmailCodeRequested] = useState<boolean>(false);
+  const [profEmailCode, setProfEmailCode] = useState<string>('');
+  const [profEmailCurrentPassword, setProfEmailCurrentPassword] = useState<string>('');
+  const [passCurrent, setPassCurrent] = useState<string>('');
+  const [passNew, setPassNew] = useState<string>('');
+  const [passConfirm, setPassConfirm] = useState<string>('');
+  const [confirmDeleteText, setConfirmDeleteText] = useState<string>('');
+  const [confirmRevokeText, setConfirmRevokeText] = useState<string>('');
+
+  // Copied confirmation states mapping
+  const [copiedStates, setCopiedStates] = useState<Record<string, boolean>>({});
+
+  // Trigger feedback toasts
+  const [globalToast, setGlobalToast] = useState<GlobalToastState>({ show: false, msg: '', err: false });
+  const [productGuideOpen, setProductGuideOpen] = useState<boolean>(false);
+  const [deferredLoadError, setDeferredLoadError] = useState<string | null>(null);
+
+  const showToast = (msg: string, isErr = false, action?: { label: string; onClick: () => void }) => {
+    setGlobalToast({ show: true, msg, err: isErr, actionLabel: action?.label, onAction: action?.onClick });
+    setTimeout(() => {
+      setGlobalToast(prev => ({ ...prev, show: false }));
+    }, 4000);
+  };
+
+  const campaignUrlBuilder = useCampaignUrlBuilder(profile, showToast);
+
+  const setActivePage = useCallback((pageId: string) => {
+    const nextPage = isClientPageId(pageId) ? pageId : 'dashboard';
+    const nextPath = clientPathForPage(nextPage) || '/dashboard';
+    activePageRef.current = nextPage;
+    setSearchVal('');
+    setActivePageState(nextPage);
+    setActiveRouteSection(null);
+    if (window.location.pathname !== nextPath) {
+      window.history.pushState({ buykoriPage: nextPage }, '', nextPath);
+    }
+  }, []);
 
   useEffect(() => {
     if (isPluginConnectRoute) return;
@@ -251,104 +219,6 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    if (profile && !urlBuilderBaseUrl) {
-      setUrlBuilderBaseUrl(profile.email ? `https://${profile.name.toLowerCase().replace(/\s+/g, '')}.com` : 'https://your-site.com');
-    }
-  }, [profile]);
-
-  useEffect(() => {
-    if (!profile) return;
-    const fetchSyncedAdCampaigns = async () => {
-      setLoadingSyncedAdCampaigns(true);
-      try {
-        const res = await fetch('/api/v1/ad-campaigns');
-        if (res.ok) {
-          const data = await res.json();
-          setSyncedAdCampaigns(Array.isArray(data) ? data : []);
-        }
-      } catch (err) {
-        console.error('Failed to load synced ad campaigns', err);
-      } finally {
-        setLoadingSyncedAdCampaigns(false);
-      }
-    };
-    fetchSyncedAdCampaigns();
-  }, [profile]);
-
-  const compileCampaignUrl = () => {
-    if (!urlBuilderBaseUrl.trim() || !urlBuilderCampaign.trim()) return '';
-    try {
-      let base = urlBuilderBaseUrl.trim();
-      if (!/^https?:\/\//i.test(base)) {
-        base = 'https://' + base;
-      }
-      const url = new URL(base);
-      url.searchParams.set('utm_source', urlBuilderSource.trim());
-      url.searchParams.set('utm_medium', urlBuilderMedium.trim());
-      url.searchParams.set('utm_campaign', urlBuilderCampaign.trim().toLowerCase().replace(/\s+/g, '_'));
-      if (urlBuilderCampaignId.trim()) {
-        url.searchParams.set('bk_platform', urlBuilderAdPlatform);
-        url.searchParams.set('bk_campaign_id', urlBuilderCampaignId.trim());
-      }
-      if (urlBuilderContent.trim()) {
-        url.searchParams.set('utm_content', urlBuilderContent.trim());
-      }
-      if (urlBuilderTerm.trim()) {
-        url.searchParams.set('utm_term', urlBuilderTerm.trim());
-      }
-      return url.toString();
-    } catch {
-      return '';
-    }
-  };
-
-  useEffect(() => {
-    setGeneratedCampaignUrl(compileCampaignUrl());
-  }, [urlBuilderBaseUrl, urlBuilderSource, urlBuilderMedium, urlBuilderCampaign, urlBuilderContent, urlBuilderTerm, urlBuilderAdPlatform, urlBuilderCampaignId]);
-
-  const handleGenerateCampaignUrl = () => {
-    if (!urlBuilderBaseUrl.trim()) {
-      showToast("Please enter a base website URL", true);
-      return;
-    }
-    if (!urlBuilderCampaign.trim()) {
-      showToast("Please enter a campaign name", true);
-      return;
-    }
-    const compiled = compileCampaignUrl();
-    if (compiled) {
-      setGeneratedCampaignUrl(compiled);
-      showToast("Campaign URL is ready.", false);
-    } else {
-      showToast("Invalid base URL format", true);
-    }
-  };
-
-  // Account / Profiles States
-  const [profName, setProfName] = useState<string>('');
-  const [profEmail, setProfEmail] = useState<string>('');
-  const [profNotifEmail, setProfNotifEmail] = useState<string>('');
-  const [profNotifyWhatsapp, setProfNotifyWhatsapp] = useState<boolean>(false);
-  const [profWhatsappNumber, setProfWhatsappNumber] = useState<string>('');
-  const [profUpdating, setProfUpdating] = useState<boolean>(false);
-  const [profEmailCodeRequested, setProfEmailCodeRequested] = useState<boolean>(false);
-  const [profEmailCode, setProfEmailCode] = useState<string>('');
-  const [profEmailCurrentPassword, setProfEmailCurrentPassword] = useState<string>('');
-  const [passCurrent, setPassCurrent] = useState<string>('');
-  const [passNew, setPassNew] = useState<string>('');
-  const [passConfirm, setPassConfirm] = useState<string>('');
-  const [confirmDeleteText, setConfirmDeleteText] = useState<string>('');
-  const [confirmRevokeText, setConfirmRevokeText] = useState<string>('');
-
-  // Copied confirmation states mapping
-  const [copiedStates, setCopiedStates] = useState<Record<string, boolean>>({});
-
-  // Trigger feedback toasts
-  const [globalToast, setGlobalToast] = useState<{ show: boolean; msg: string; err: boolean; actionLabel?: string; onAction?: () => void }>({ show: false, msg: '', err: false });
-  const [productGuideOpen, setProductGuideOpen] = useState<boolean>(false);
-  const [deferredLoadError, setDeferredLoadError] = useState<string | null>(null);
-
-  useEffect(() => {
     sessionStorage.removeItem('buykori_chunk_reload');
   }, []);
 
@@ -371,13 +241,6 @@ export default function App() {
     }
     setProductGuideOpen(false);
     setMobileSidebarOpen(false);
-  };
-
-  const showToast = (msg: string, isErr = false, action?: { label: string; onClick: () => void }) => {
-    setGlobalToast({ show: true, msg, err: isErr, actionLabel: action?.label, onAction: action?.onClick });
-    setTimeout(() => {
-      setGlobalToast(prev => ({ ...prev, show: false }));
-    }, 4000);
   };
 
   useEffect(() => {
@@ -422,8 +285,8 @@ export default function App() {
       return;
     }
     try {
-      const siteUrl = new URL(/^https?:\/\//i.test(rawHost) ? rawHost : `https://${rawHost}`);
-      window.open(`${siteUrl.origin}/wp-admin/plugins.php`, '_blank', 'noopener,noreferrer');
+      const siteUrl = new URL(/^https?:\/\//i.test(rawHost) ? rawHost : 'https://' + rawHost);
+      window.open(siteUrl.origin + '/wp-admin/plugins.php', '_blank', 'noopener,noreferrer');
       setPluginUpdateOpen(false);
     } catch {
       setPluginUpdateOpen(false);
@@ -705,7 +568,7 @@ export default function App() {
       setSidebarStatus(dSidebar);
       setPluginReleaseInfo(dPlugin);
       setTrendData(dTrend.trend || []);
-      
+
       // Initialize text fields
       setProfName(dProf.name);
       setProfEmail(dProf.email);
@@ -1352,7 +1215,7 @@ export default function App() {
       if (format === 'json') {
         payload = JSON.stringify(apiLogs, null, 2);
       } else {
-        payload = "Date,Platform,Endpoint,Method,Status,Retries\n" + 
+        payload = "Date,Platform,Endpoint,Method,Status,Retries\n" +
           apiLogs.map(l => `"${l.timestamp}","${l.platform}","${l.endpoint}","${l.method}",${l.statusCode},${l.retryCount}`).join("\n");
       }
     }
@@ -1380,10 +1243,10 @@ export default function App() {
          e.status.toLowerCase().includes(normalizedFilter) ||
          e.deduplicationKey.toLowerCase().includes(normalizedFilter))
       : true;
-    
+
     // Platform select filter
     const matchesPlatform = platformFilters.length > 0 ? platformFilters.includes(e.platform) : true;
-    
+
     // Status select filter
     const matchesStatus = statusFilters.length > 0 ? statusFilters.includes(e.status) : true;
 
@@ -1427,8 +1290,6 @@ export default function App() {
   const tiktokStats = getPlatformStats('TikTok Events API');
   const ga4Stats = getPlatformStats('GA4');
 
-
-
   // Suggestions optimization score
   const unresolvedSuggestions = suggestions.filter(s => !s.resolved);
   const resolvedCount = suggestions.length - unresolvedSuggestions.length;
@@ -1448,20 +1309,6 @@ export default function App() {
     return total + 8;
   }, 0);
   const optScore = Math.max(0, Math.min(100, 100 - severityPenalty));
-  const pageTitles: Record<string, string> = {
-    dashboard: 'Dashboard',
-    analytics: 'Insights',
-    'pending-purchases': 'COD Protection',
-    orders: 'Courier Shipping',
-    'incomplete-checkouts': 'Incomplete Orders',
-    'campaign-builder': 'Campaign Tools',
-    suggestions: 'Setup Health',
-    'event-logs': 'Event Logs',
-    'api-logs': 'API Logs',
-    settings: 'Settings',
-    'setup-guide': 'Setup Guide',
-    account: 'Account',
-  };
 
   if (isPluginConnectRoute) {
     return <PluginConnectAuthorizeView />;
@@ -1503,34 +1350,10 @@ export default function App() {
       )}
 
       {showDemoResetConfirm && (
-        <Modal
+        <DemoResetModal
           onClose={() => setShowDemoResetConfirm(false)}
-          labelledBy="demo-reset-title"
-          overlayClassName="fixed inset-0 z-[70] flex items-center justify-center bg-slate-900/40 px-4 backdrop-blur-sm"
-          panelClassName="w-full max-w-sm rounded-xl border border-slate-200 bg-white p-5 shadow-2xl"
-        >
-            <div className="space-y-1">
-              <h3 id="demo-reset-title" className="text-sm font-bold text-slate-900">Reset demo data?</h3>
-              <p className="text-xs leading-relaxed text-slate-500">This restores demo metrics and tracking history to their default values.</p>
-            </div>
-            <div className="mt-5 flex justify-end gap-2">
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => setShowDemoResetConfirm(false)}
-                className="text-slate-600"
-              >
-                Cancel
-              </Button>
-              <Button
-                variant="primary"
-                size="sm"
-                onClick={confirmDemoReset}
-              >
-                Reset Data
-              </Button>
-            </div>
-        </Modal>
+          onConfirm={confirmDemoReset}
+        />
       )}
 
       <PluginUpdateModal
@@ -1546,7 +1369,7 @@ export default function App() {
       <div className={`flex-1 flex flex-col min-w-0 transition-all duration-200 ${sidebarCollapsed ? 'md:pl-[72px]' : 'md:pl-[288px]'}`}>
         {connection && (
           <Header 
-            title={pageTitles[activePage] || activePage.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')} 
+            title={pageTitleFor(activePage)} 
             connection={connection}
             onRefreshConnection={refreshWPHeartbeat}
             searchVal={searchVal}
@@ -1561,51 +1384,18 @@ export default function App() {
         <main id="main-content" tabIndex={-1} className="flex-1 min-w-0">
         {/* Global Error Banner */}
         {errState && (
-          <div className="m-4 md:m-8 p-4 rounded-xl border border-rose-200 bg-rose-50 text-rose-800 flex items-start gap-3">
-            <ShieldAlert className="w-5 h-5 text-rose-500 mt-0.5 shrink-0" />
-            <div>
-              <h4 className="font-bold">Connection Error</h4>
-              <p className="text-xs mt-1 text-rose-700">{errState}</p>
-              <button 
-                onClick={() => loadSystemData()} 
-                className="mt-3 px-3 py-1 bg-rose-600 text-white rounded text-xs font-semibold hover:bg-rose-700"
-              >
-                Try Again
-              </button>
-            </div>
-          </div>
+          <ConnectionErrorBanner message={errState} onRetry={() => loadSystemData()} />
         )}
 
         {/* Main Dashboard Skeleton */}
         {loading && !errState ? (
-          <div className="bk-console-page flex-1 space-y-6 p-4 md:p-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 animate-pulse">
-              {[...Array(4)].map((_, i) => (
-                <div key={i} className="h-28 rounded-xl border border-slate-200 bg-white p-5 space-y-3">
-                  <div className="h-4 bg-slate-100 rounded w-1/2" />
-                  <div className="h-8 bg-slate-200 rounded w-3/4" />
-                </div>
-              ))}
-            </div>
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6 animate-pulse">
-              <div className="lg:col-span-2 h-72 rounded-xl border border-slate-200 bg-white p-6" />
-              <div className="lg:col-span-1 h-72 rounded-xl border border-slate-200 bg-white p-6" />
-            </div>
-            <div className="h-64 rounded-xl border border-slate-200 bg-white animate-pulse" />
-          </div>
+          <ConsoleSkeleton />
         ) : !errState && (
           <div className="bk-console-page flex-1 space-y-4 p-4 sm:p-5 md:space-y-6 md:p-6">
 
             {/* --- CORE VIEWS DISPATCHER --- */}
             <PageErrorBoundary pageKey={activePage}>
-            <Suspense fallback={
-              <div className="flex-1 flex items-center justify-center min-h-[400px]">
-                <div className="flex flex-col items-center gap-3">
-                  <Loader2 className="w-8 h-8 text-indigo-500 animate-spin" />
-                  <span className="text-sm text-slate-400 font-medium">Loading...</span>
-                </div>
-              </div>
-            }>
+            <Suspense fallback={<PageSuspenseFallback />}>
 
             {/* PAGE 1: DASHBOARD */}
             {activePage === 'dashboard' && profile && (
@@ -1807,32 +1597,32 @@ export default function App() {
                 campaignResp={campaignResp}
                 dispatchingTest={dispatchingTest}
                 handleDispatchSandboxTest={handleDispatchSandboxTest}
-                urlBuilderBaseUrl={urlBuilderBaseUrl}
-                setUrlBuilderBaseUrl={setUrlBuilderBaseUrl}
-                urlBuilderSource={urlBuilderSource}
-                setUrlBuilderSource={setUrlBuilderSource}
-                urlBuilderMedium={urlBuilderMedium}
-                setUrlBuilderMedium={setUrlBuilderMedium}
-                urlBuilderCampaign={urlBuilderCampaign}
-                setUrlBuilderCampaign={setUrlBuilderCampaign}
-                urlBuilderContent={urlBuilderContent}
-                setUrlBuilderContent={setUrlBuilderContent}
-                urlBuilderTerm={urlBuilderTerm}
-                setUrlBuilderTerm={setUrlBuilderTerm}
-                urlBuilderAdPlatform={urlBuilderAdPlatform}
-                setUrlBuilderAdPlatform={setUrlBuilderAdPlatform}
-                urlBuilderCampaignId={urlBuilderCampaignId}
-                setUrlBuilderCampaignId={setUrlBuilderCampaignId}
-                syncedAdCampaigns={syncedAdCampaigns}
-                loadingSyncedAdCampaigns={loadingSyncedAdCampaigns}
-                generatedCampaignUrl={generatedCampaignUrl}
-                handleGenerateCampaignUrl={handleGenerateCampaignUrl}
+                urlBuilderBaseUrl={campaignUrlBuilder.urlBuilderBaseUrl}
+                setUrlBuilderBaseUrl={campaignUrlBuilder.setUrlBuilderBaseUrl}
+                urlBuilderSource={campaignUrlBuilder.urlBuilderSource}
+                setUrlBuilderSource={campaignUrlBuilder.setUrlBuilderSource}
+                urlBuilderMedium={campaignUrlBuilder.urlBuilderMedium}
+                setUrlBuilderMedium={campaignUrlBuilder.setUrlBuilderMedium}
+                urlBuilderCampaign={campaignUrlBuilder.urlBuilderCampaign}
+                setUrlBuilderCampaign={campaignUrlBuilder.setUrlBuilderCampaign}
+                urlBuilderContent={campaignUrlBuilder.urlBuilderContent}
+                setUrlBuilderContent={campaignUrlBuilder.setUrlBuilderContent}
+                urlBuilderTerm={campaignUrlBuilder.urlBuilderTerm}
+                setUrlBuilderTerm={campaignUrlBuilder.setUrlBuilderTerm}
+                urlBuilderAdPlatform={campaignUrlBuilder.urlBuilderAdPlatform}
+                setUrlBuilderAdPlatform={campaignUrlBuilder.setUrlBuilderAdPlatform}
+                urlBuilderCampaignId={campaignUrlBuilder.urlBuilderCampaignId}
+                setUrlBuilderCampaignId={campaignUrlBuilder.setUrlBuilderCampaignId}
+                syncedAdCampaigns={campaignUrlBuilder.syncedAdCampaigns}
+                loadingSyncedAdCampaigns={campaignUrlBuilder.loadingSyncedAdCampaigns}
+                generatedCampaignUrl={campaignUrlBuilder.generatedCampaignUrl}
+                handleGenerateCampaignUrl={campaignUrlBuilder.handleGenerateCampaignUrl}
                 copiedStates={copiedStates}
                 handleCopy={handleCopy}
               />
             )}
 
-            {/* PAGE 10: ACCOUNT */}
+            {/* PAGE 10: ORDER SUCCESS */}
             {activePage === 'order-success' && (
               <OrderSuccessView />
             )}
@@ -1894,33 +1684,10 @@ export default function App() {
       </div>
 
       {/* Persistent notifications overlay alert */}
-      {globalToast.show && (
-        <div className={`fixed right-4 top-4 z-[250] flex w-[calc(100vw-2rem)] max-w-sm items-start gap-3 overflow-hidden rounded-xl border bg-white px-4 py-3.5 shadow-[0_20px_50px_rgba(15,23,42,.28)] animate-slide-in-up sm:right-6 sm:top-6 ${globalToast.err ? 'border-rose-200' : 'border-emerald-200'}`} role="status" aria-live="polite">
-          <span className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${globalToast.err ? 'bg-rose-50 text-rose-600' : 'bg-emerald-50 text-emerald-600'}`}>
-            {globalToast.err ? (
-              <XCircle className="h-4.5 w-4.5" />
-            ) : (
-              <CheckCircle2 className="h-4.5 w-4.5" />
-            )}
-          </span>
-          <span className="min-w-0 flex-1 pt-1 text-xs font-semibold leading-relaxed text-slate-800">
-            {globalToast.msg}
-          </span>
-          {globalToast.actionLabel && globalToast.onAction && (
-            <button
-              type="button"
-              onClick={() => {
-                const action = globalToast.onAction;
-                setGlobalToast(prev => ({ ...prev, show: false }));
-                action?.();
-              }}
-              className="rounded-md border border-slate-200 px-2 py-1 text-[11px] font-bold text-indigo-700 hover:bg-indigo-50"
-            >
-              {globalToast.actionLabel}
-            </button>
-          )}
-        </div>
-      )}
+      <GlobalToast
+        toast={globalToast}
+        onDismiss={() => setGlobalToast(prev => ({ ...prev, show: false }))}
+      />
 
       {/* Create Store Modal */}
       <CreateStoreModal
