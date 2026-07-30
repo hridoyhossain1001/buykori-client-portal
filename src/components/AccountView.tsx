@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { Trash2, UserRound, WalletCards } from 'lucide-react';
 import QRCode from 'qrcode';
 import type { ClientConnection, UserProfile } from '../types';
@@ -33,8 +33,12 @@ interface AccountViewProps {
   setProfEmailCurrentPassword: (v: string) => void;
   profNotifEmail: string;
   setProfNotifEmail: (v: string) => void;
+  profNotifyWhatsapp: boolean;
+  setProfNotifyWhatsapp: (v: boolean) => void;
+  profWhatsappNumber: string;
+  setProfWhatsappNumber: (v: string) => void;
   profUpdating: boolean;
-  submitProfileSave: () => Promise<void>;
+  submitProfileSave: (e: FormEvent) => Promise<boolean>;
   passCurrent: string;
   setPassCurrent: (v: string) => void;
   passNew: string;
@@ -50,7 +54,7 @@ interface AccountViewProps {
   handleTokenRevoke: () => Promise<void>;
   handleDeleteAccountRequest: () => void;
   handleDemoReset: () => Promise<void>;
-  showToast: (message: string, type?: 'success' | 'error' | 'info') => void;
+  showToast: (msg: string, isErr?: boolean, action?: { label: string; onClick: () => void }) => void;
 }
 
 export function AccountView({
@@ -113,7 +117,7 @@ export function AccountView({
   const readApiError = async (response: Response, fallback: string) => {
     try {
       const payload = await response.json();
-      return payload?.error || payload?.message || fallback;
+      return payload?.error || payload?.message || payload?.detail || fallback;
     } catch {
       return fallback;
     }
@@ -247,7 +251,7 @@ export function AccountView({
         }),
       });
       if (!response.ok) {
-        showToast(await readApiError(response, 'Could not start the payment session.'), 'error');
+        showToast(await readApiError(response, 'Could not start the payment session.'), true);
         return;
       }
       const payload = await response.json();
@@ -255,7 +259,7 @@ export function AccountView({
       setPaymentIntent(intent);
       setPaymentSecondsLeft(300);
     } catch {
-      showToast('Network error while starting the payment session.', 'error');
+      showToast('Network error while starting the payment session.', true);
     } finally {
       setPaymentBusy(false);
     }
@@ -271,7 +275,7 @@ export function AccountView({
         body: JSON.stringify({ trxId: paymentTrxId.trim().toUpperCase() }),
       });
       if (!response.ok) {
-        showToast(await readApiError(response, 'Could not submit the transaction ID.'), 'error');
+        showToast(await readApiError(response, 'Could not submit the transaction ID.'), true);
         return;
       }
       const payload = await response.json();
@@ -281,10 +285,10 @@ export function AccountView({
       } else {
         setPaymentFeedback('We received your submission. Our team is verifying it manually.');
       }
-      showToast('Transaction ID submitted for verification.', 'success');
+      showToast('Transaction ID submitted for verification.', false);
       setPaymentHistoryLoaded(false);
     } catch {
-      showToast('Network error while submitting the transaction ID.', 'error');
+      showToast('Network error while submitting the transaction ID.', true);
     } finally {
       setPaymentBusy(false);
     }
@@ -298,14 +302,14 @@ export function AccountView({
         method: 'POST',
       });
       if (!response.ok) {
-        showToast(await readApiError(response, 'Could not send the refund request.'), 'error');
+        showToast(await readApiError(response, 'Could not send the refund request.'), true);
         return;
       }
       setPaymentIntent(current => (current ? { ...current, refundStatus: 'requested' } : current));
-      showToast('Refund request sent. Support will contact you.', 'success');
+      showToast('Refund request sent. Support will contact you.', false);
       setPaymentHistoryLoaded(false);
     } catch {
-      showToast('Network error while sending the refund request.', 'error');
+      showToast('Network error while sending the refund request.', true);
     } finally {
       setPaymentBusy(false);
     }
