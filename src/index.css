@@ -48,6 +48,22 @@
     --bk-console-radius: 8px;
     --bk-console-sidebar: 288px;
     --bk-console-sidebar-collapsed: 72px;
+
+    /*
+     * Contrast-boosted slate text ramp.
+     *
+     * These intentionally darken Tailwind's stock slate scale for body copy:
+     * text-slate-400 renders slate-500, text-slate-500 renders gray-600, and
+     * so on. The values live here rather than inline in the utility rules so a
+     * future theme can flip them in one place without editing component
+     * markup. Only `color` is affected -- bg-slate-* and border-slate-*
+     * utilities keep Tailwind's own values.
+     */
+    --bk-text-slate-400: #64748b; /* High-contrast grey */
+    --bk-text-slate-500: #4b5563; /* Deeper slate-600 equivalent */
+    --bk-text-slate-600: #374151; /* Deep charcoal */
+    --bk-text-slate-700: #1f2937; /* Near black */
+    --bk-text-slate-strong: #0f172a; /* Pitch black slate: 800/900/950 */
   }
 
   body {
@@ -85,6 +101,37 @@
 
   [tabindex="-1"]:focus {
     outline: none !important;
+  }
+}
+
+/*
+ * Typography contrast boosts.
+ *
+ * Declared inside @layer utilities so they sit in Tailwind's own utility
+ * layer instead of overriding it from outside the cascade. Previously these
+ * were unlayered rules, which always won against @layer utilities and made
+ * the outcome depend on stylesheet order.
+ *
+ * TODO(FE-03): migrate call sites to semantic classes (e.g. text-muted,
+ * text-subtle) and delete these compatibility utilities.
+ */
+@layer utilities {
+  .text-slate-400 {
+    color: var(--bk-text-slate-400);
+  }
+  .text-slate-500 {
+    color: var(--bk-text-slate-500);
+  }
+  .text-slate-600 {
+    color: var(--bk-text-slate-600);
+  }
+  .text-slate-700 {
+    color: var(--bk-text-slate-700);
+  }
+  .text-slate-800,
+  .text-slate-900,
+  .text-slate-950 {
+    color: var(--bk-text-slate-strong);
   }
 }
 
@@ -274,23 +321,6 @@
 
 .bk-plugin-update-primary:hover {
   background: linear-gradient(135deg, #4338ca 0%, #1d4ed8 100%);
-}
-
-/* Typography contrast boosts globally in Light Mode */
-.text-slate-400 {
-  color: #64748b; /* High-contrast grey */
-}
-.text-slate-500 {
-  color: #4b5563; /* Deeper slate-600 equivalent */
-}
-.text-slate-600 {
-  color: #374151; /* Deep charcoal */
-}
-.text-slate-700 {
-  color: #1f2937; /* Near black */
-}
-.text-slate-800, .text-slate-900, .text-slate-950 {
-  color: #0f172a; /* Pitch black slate */
 }
 
 /* Scrollbars styling */
