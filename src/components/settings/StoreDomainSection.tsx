@@ -75,3 +75,5 @@ export function StoreDomainSection({
     </section>
   );
 }
+
+export default StoreDomainSection;
