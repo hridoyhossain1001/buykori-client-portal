@@ -1,5 +1,5 @@
 import React from 'react';
-import Tooltip from '../common/Tooltip';
+import { Tooltip } from '../common/Tooltip';
 import { PlatformBadge } from '../common/PlatformLogo';
 import { Platform, PlatformConfig } from '../../types';
 

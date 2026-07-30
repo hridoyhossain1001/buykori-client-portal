@@ -109,7 +109,7 @@ export function AccountView({
   const isGrowth = currentPlanLower.includes('growth');
   const isScale = currentPlanLower.includes('scale');
   const isAgency = currentPlanLower.includes('agency');
-  const isDemo = (connection?.store_url || '').includes('demo');
+  const isDemo = (connection?.siteHost || '').includes('demo');
   const usagePercent = profile.eventsQuota > 0
     ? Math.min(100, (profile.eventsUsed / profile.eventsQuota) * 100)
     : 0;
