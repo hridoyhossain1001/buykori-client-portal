@@ -1,6 +1,6 @@
 import { forwardRef, type HTMLAttributes } from 'react';
 
-type BadgeTone = 'neutral' | 'success' | 'warning' | 'danger' | 'info' | 'brand';
+type BadgeTone = 'neutral' | 'success' | 'warning' | 'danger' | 'info' | 'brand' | 'rose' | 'indigo';
 type BadgeSize = 'sm' | 'md';
 
 interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
@@ -8,6 +8,8 @@ interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
   size?: BadgeSize;
   /** Renders a small leading status dot in the same tone. */
   dot?: boolean;
+  /** Fully rounded by default; set false for the squarer `rounded` label. */
+  pill?: boolean;
 }
 
 const toneClasses: Record<BadgeTone, string> = {
@@ -17,6 +19,8 @@ const toneClasses: Record<BadgeTone, string> = {
   danger: 'border-red-200 bg-red-50 text-red-700',
   info: 'border-sky-200 bg-sky-50 text-sky-700',
   brand: 'border-[var(--bk-brand-border)] bg-[var(--bk-console-blue-soft)] text-[var(--bk-console-blue)]',
+  rose: 'border-rose-200 bg-rose-50 text-rose-700',
+  indigo: 'border-indigo-200 bg-indigo-50 text-indigo-700',
 };
 
 const dotClasses: Record<BadgeTone, string> = {
@@ -26,6 +30,8 @@ const dotClasses: Record<BadgeTone, string> = {
   danger: 'bg-red-500',
   info: 'bg-sky-500',
   brand: 'bg-[var(--bk-console-blue)]',
+  rose: 'bg-rose-500',
+  indigo: 'bg-indigo-500',
 };
 
 const sizeClasses: Record<BadgeSize, string> = {
@@ -38,13 +44,13 @@ const sizeClasses: Record<BadgeSize, string> = {
  * short labels. Tones map to the semantic colours already used in the console.
  */
 export const Badge = forwardRef<HTMLSpanElement, BadgeProps>(function Badge(
-  { tone = 'neutral', size = 'sm', dot = false, className = '', children, ...props },
+  { tone = 'neutral', size = 'sm', dot = false, pill = true, className = '', children, ...props },
   ref,
 ) {
   return (
     <span
       ref={ref}
-      className={`inline-flex items-center gap-1.5 rounded-full border font-semibold whitespace-nowrap ${toneClasses[tone]} ${sizeClasses[size]} ${className}`}
+      className={`inline-flex items-center gap-1.5 border font-semibold whitespace-nowrap ${pill ? 'rounded-full' : 'rounded'} ${toneClasses[tone]} ${sizeClasses[size]} ${className}`}
       {...props}
     >
       {dot && <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${dotClasses[tone]}`} aria-hidden="true" />}
