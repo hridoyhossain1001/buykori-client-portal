@@ -1,8 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { Check, Copy, Globe2, MessageCircle, Plus, RefreshCw, Save, Send, Trash2, Truck, Zap } from 'lucide-react';
-import { Tooltip } from './common/Tooltip';
-import { PlatformBadge, PlatformLogo } from './common/PlatformLogo';
-import { AdAccount, Platform, PlatformConfig, EventRule, ClientConnection, PluginReleaseInfo, CustomEventAutomation, CustomEventTrigger, CourierSettings } from '../types';
+import { Globe2, Send, Truck, Zap } from 'lucide-react';
+import { AdAccount, Platform, PlatformConfig, EventRule, ClientConnection, PluginReleaseInfo, CustomEventAutomation, CourierSettings } from '../types';
+import StoreDomainSection from './settings/StoreDomainSection';
+import AdPlatformsSection from './settings/AdPlatformsSection';
+import AdAccountsSection from './settings/AdAccountsSection';
+import CourierSection from './settings/CourierSection';
+import CodTimingSection from './settings/CodTimingSection';
+import EventRoutingSection from './settings/EventRoutingSection';
+import CustomAutomationsSection from './settings/CustomAutomationsSection';
+import WordPressSection from './settings/WordPressSection';
+import TelegramAlertsSection, { TelegramLinkCode, TelegramNotificationStatus } from './settings/TelegramAlertsSection';
 
 interface SettingsViewProps {
   initialSectionId?: string | null;
@@ -28,24 +35,6 @@ interface SettingsViewProps {
   storeDomain?: string;
   onSaveStoreDomain?: (domain: string) => Promise<void>;
   onOpenPage?: (pageId: string) => void;
-}
-
-interface TelegramNotificationStatus {
-  available: boolean;
-  connected: boolean;
-  botUsername?: string | null;
-  telegramUsername?: string | null;
-  telegramFirstName?: string | null;
-  linkedAt?: string | null;
-}
-
-interface TelegramLinkCode {
-  code: string;
-  expiresAt: string;
-  expiresInMinutes: number;
-  botUsername?: string | null;
-  botUrl?: string | null;
-  deepLinkUrl?: string | null;
 }
 
 export function SettingsView({
@@ -769,11 +758,6 @@ export function SettingsView({
     : telegramStatus?.available === false
       ? 'Unavailable'
       : 'Needs setup';
-  const wordpressConnectionStatus = connection.status === 'Active' && connection.bindingVerified
-    ? 'Connected'
-    : connection.reconnectRequired
-      ? 'Reconnect required'
-      : connection.status;
   const autoConfirmLabel = autoConfirmDays > 0
     ? `${autoConfirmDays} day${autoConfirmDays === 1 ? '' : 's'} after order hold`
     : 'Manual confirmation only';
@@ -866,1532 +850,147 @@ export function SettingsView({
       
       {/* Fixed controls sidebar settings tabs */}
       <div className="space-y-5 lg:col-span-2 lg:space-y-6">
-        <section id="settings-domain" aria-labelledby="settings-domain-title" className="scroll-mt-28 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-          <div className="flex flex-col gap-4 border-b border-slate-200 px-5 py-4 sm:flex-row sm:items-start sm:justify-between">
-            <div className="flex items-start gap-3">
-              <div className="h-9 w-9 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center  ">
-                <Globe2 className="h-4 w-4" />
-              </div>
-              <div>
-                <h2 id="settings-domain-title" className="text-sm font-bold text-slate-900">Website domain</h2>
-                <p className="mt-1 text-xs text-slate-500">The store address your plugin reports events from.</p>
-              </div>
-            </div>
-            <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-bold uppercase tracking-wide ${
-              storeDomain
-                ? 'bg-emerald-50 text-emerald-700 border border-emerald-100   '
-                : 'bg-amber-50 text-amber-700 border border-amber-100   '
-            }`}>
-              {storeDomain ? 'Ready' : 'Not added'}
-            </span>
-          </div>
+        <StoreDomainSection
+          storeDomain={storeDomain}
+          localStoreDomain={localStoreDomain}
+          setLocalStoreDomain={setLocalStoreDomain}
+          saveStoreDomain={saveStoreDomain}
+          savingStoreDomain={savingStoreDomain}
+        />
 
-          <div className="px-5 py-5">
-            <div>
-              <label htmlFor="store-domain" className="mb-2 block text-xs font-semibold uppercase tracking-wider text-slate-500">Store domain</label>
-              <input
-                id="store-domain"
-                type="text"
-                value={localStoreDomain}
-                placeholder="example.com"
-                onChange={(e) => setLocalStoreDomain(e.target.value)}
-                onKeyDown={(e) => { if (e.key === 'Enter') saveStoreDomain(); }}
-                className="w-full rounded-lg border border-slate-200 bg-white p-2.5 text-sm text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-              />
-              <p className="mt-2 text-xs text-slate-400">Use the bare domain, without https:// or a trailing slash.</p>
-            </div>
-          </div>
-          <div className="flex flex-col gap-3 border-t border-slate-200 bg-slate-50/60 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-xs text-slate-500">Changing the domain pauses tracking until the plugin reconnects.</p>
-            <button
-              type="button"
-              disabled={savingStoreDomain || localStoreDomain.trim() === (storeDomain || '').trim()}
-              onClick={saveStoreDomain}
-              className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-indigo-600 px-5 py-2.5 text-xs font-bold text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              <Save className="h-3.5 w-3.5" />
-              {savingStoreDomain ? 'Saving' : 'Save domain'}
-            </button>
-          </div>
-        </section>
-        
-        {/* Pipeline credentials card */}
-        <section id="settings-platforms" aria-labelledby="settings-platforms-title" className="scroll-mt-28 space-y-4">
-          <div className="flex items-center justify-between gap-4 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-            <div>
-              <h2 id="settings-platforms-title" className="text-sm font-bold text-slate-900">Ad platforms</h2>
-              <p className="mt-1 text-xs text-slate-500">Add the ID and secret key for each platform. Leave a platform off until both fields are ready.</p>
-            </div>
-            <span className="shrink-0 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-[11px] font-bold text-emerald-700">
-              {configuredPlatformCount} of {platformStatusRows.length} connected
-            </span>
-          </div>
-
-          {Object.keys(credentials).map(platKey => {
-            const plat = platKey as Platform;
-            const config = credentials[plat];
-            const credentialHelp = platformCredentialHelp(plat);
-            const missingCredentials = platformMissingCredentials(plat, config);
-            const enabledButMissingCredentials = Boolean(config.enabled && missingCredentials.length);
-            return (
-              <div key={plat} className="bk-brand-panel space-y-4 rounded-xl border bg-white p-5 shadow-sm">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <PlatformBadge platform={plat} label={plat} active={config.enabled} />
-                    <span className={`inline-flex px-1.5 py-0.5 rounded text-xs font-bold uppercase tracking-wider ${
-                      config.status === 'Valid' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200   ' : 
-                      config.status === 'Invalid' ? 'bg-rose-50 text-rose-700 border border-rose-200   ' : 
-                      'bg-slate-100 text-slate-600  '
-                    }`}>
-                      {config.status}
-                    </span>
-                  </div>
-
-                  {/* Enable platform toggle switch */}
-                  <label className="relative inline-flex items-center cursor-pointer select-none">
-                    <input 
-                      type="checkbox" 
-                      checked={config.enabled}
-                      onChange={(e) => handleUpdatePlatform(plat, { enabled: e.target.checked })} 
-                      className="sr-only peer"
-                    />
-                    <div className="w-9 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#285ac7]" />
-                    <span className="ml-2 text-xs font-semibold text-slate-500 uppercase ">
-                      {config.enabled ? 'On' : 'Off'}
-                    </span>
-                  </label>
-                </div>
-
-                {enabledButMissingCredentials && (
-                  <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-relaxed text-amber-800">
-                    <p className="font-bold">{plat} is on, but setup details are missing.</p>
-                    <p className="mt-0.5">
-                      Add {missingCredentials.join(' and ')} before events can be sent.
-                    </p>
-                  </div>
-                )}
-
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">{platformDestinationLabel(plat)}</label>
-                    <input 
-                      type="text"
-                      value={localPixelIds[plat]}
-                      placeholder="e.g. 782049182390"
-                      onChange={(e) => setLocalPixelIds(prev => ({ ...prev, [plat]: e.target.value }))}
-                      onBlur={() => handleUpdatePlatform(plat, { pixelIdOrMeasurementId: localPixelIds[plat] })}
-                      onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); }}
-                      className="w-full p-2 text-xs bg-white border border-slate-200 rounded font-mono text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500   "
-                    />
-                    <p className="mt-1 text-xs leading-4 text-slate-500">{credentialHelp.destination}</p>
-                  </div>
-                  
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">{platformTokenLabel(plat)}</label>
-                    <input
-                      type="password"
-                      name={`platform-${plat.toLowerCase().replace(/\s+/g, '-')}-access-token`}
-                      autoComplete="new-password"
-                      value={localTokens[plat]}
-                      placeholder="Paste access token"
-                      onChange={(e) => setLocalTokens(prev => ({ ...prev, [plat]: e.target.value }))}
-                      onBlur={() => handleUpdatePlatform(plat, { accessToken: localTokens[plat] })}
-                      onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); }}
-                      className="w-full p-2 text-xs bg-white border border-slate-200 rounded font-mono text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500   "
-                    />
-                    <p className="mt-1 text-xs leading-4 text-slate-500">{credentialHelp.token}</p>
-                  </div>
-
-                  <div>
-                    <label className="mb-1 flex items-center text-xs font-semibold uppercase text-slate-400">
-                      Test Event Code (Optional)
-                      <Tooltip content="Use this optional code only while validating tracking setup." />
-                    </label>
-                    <input
-                      type="text"
-                      value={localTestCodes[plat]}
-                      placeholder="e.g. TEST12345"
-                      onChange={(e) => setLocalTestCodes(prev => ({ ...prev, [plat]: e.target.value }))}
-                      onBlur={() => handleUpdatePlatform(plat, { testEventCode: localTestCodes[plat] })}
-                      onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); }}
-                      className="w-full rounded border border-slate-200 bg-white p-2 font-mono text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                    />
-                    <p className="mt-1 text-xs leading-4 text-slate-500">Only for verifying events in test mode.</p>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </section>
+        <AdPlatformsSection
+          credentials={credentials}
+          configuredPlatformCount={configuredPlatformCount}
+          platformCount={platformStatusRows.length}
+          localPixelIds={localPixelIds}
+          setLocalPixelIds={setLocalPixelIds}
+          localTokens={localTokens}
+          setLocalTokens={setLocalTokens}
+          localTestCodes={localTestCodes}
+          setLocalTestCodes={setLocalTestCodes}
+          handleUpdatePlatform={handleUpdatePlatform}
+          platformDestinationLabel={platformDestinationLabel}
+          platformTokenLabel={platformTokenLabel}
+          platformCredentialHelp={platformCredentialHelp}
+          platformMissingCredentials={platformMissingCredentials}
+        />
 
         {/* Ad Sync Integration Settings Card */}
-        <section id="settings-ad-accounts" aria-labelledby="settings-ad-accounts-title" className="scroll-mt-28 rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-6">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <div>
-              <h2 id="settings-ad-accounts-title" className="text-sm font-bold text-slate-900">Marketing insights</h2>
-              <p className="mt-1 text-xs text-slate-500">Read-only access to campaign spend, clicks, impressions and ROAS — synced on demand.</p>
-            </div>
-          </div>
-
-          <div className="overflow-hidden rounded-xl border border-indigo-200 bg-indigo-50/70">
-            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-indigo-100 px-4 py-3">
-              <div>
-                <p className="text-xs font-bold text-slate-900">Connect your {adPlatform === 'meta' ? 'Meta' : 'TikTok'} ad account in 4 easy steps</p>
-                <p className="mt-0.5 text-xs text-slate-600">Complete these steps once. Buykori will use the connection only to read advertising performance.</p>
-              </div>
-              <span className="rounded-full bg-white px-2.5 py-1 text-xs font-bold uppercase tracking-wide text-indigo-700 shadow-sm">
-                {adPlatform === 'meta' ? 'Meta setup' : 'TikTok setup'}
-              </span>
-            </div>
-
-            {adPlatform === 'meta' ? (
-              <div className="grid grid-cols-1 gap-px bg-indigo-100 sm:grid-cols-2 lg:grid-cols-4">
-                {[
-                  ['Open Meta', 'Go to Business Settings, then Users, then System users.'],
-                  ['Give access', 'Select your system user and assign the ad account with View performance access.'],
-                  ['Create token', 'Click Generate token and include the ads_read permission. Copy that token.'],
-                  ['Connect here', 'Paste the token below, find the account, select it, then click Connect & Verify.']
-                ].map(([title, description], index) => (
-                  <div key={title} className="bg-white/80 px-4 py-3">
-                    <div className="flex items-start gap-2.5">
-                      <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-indigo-600 text-xs font-bold text-white">{index + 1}</span>
-                      <div>
-                        <p className="text-xs font-bold text-slate-800">{title}</p>
-                        <p className="mt-1 text-xs leading-4 text-slate-600">{description}</p>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 gap-px bg-indigo-100 sm:grid-cols-2 lg:grid-cols-4">
-                {[
-                  ['Open TikTok', 'Go to TikTok Business Center, then Assets, then Advertiser accounts.'],
-                  ['Choose account', 'Select the advertiser account whose campaign reports you want in Buykori.'],
-                  ['Create token', 'Create a Marketing API reporting token with permission to read ad performance.'],
-                  ['Connect here', 'Paste the Advertiser ID and token below, then click Connect & Verify.']
-                ].map(([title, description], index) => (
-                  <div key={title} className="bg-white/80 px-4 py-3">
-                    <div className="flex items-start gap-2.5">
-                      <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-cyan-600 text-xs font-bold text-white">{index + 1}</span>
-                      <div>
-                        <p className="text-xs font-bold text-slate-800">{title}</p>
-                        <p className="mt-1 text-xs leading-4 text-slate-600">{description}</p>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            <div className="border-t border-amber-200 bg-amber-50 px-4 py-2 text-xs leading-4 text-amber-800">
-              <strong>Important:</strong> {adPlatform === 'meta'
-                ? 'Use a System User advertising token with ads_read. Do not use a Pixel or Conversions API event token.'
-                : 'Use a TikTok Marketing API reporting token. Do not use a TikTok Events API token.'}
-            </div>
-          </div>
-
-          {adPlatform === 'meta' && (
-            <details className="group overflow-hidden rounded-xl border border-slate-200 bg-white">
-              <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 hover:bg-slate-50">
-                <div>
-                  <p className="text-xs font-bold text-slate-800">Show picture guide</p>
-                  <p className="mt-0.5 text-xs leading-4 text-slate-500">See exactly where to create the reporting token and give permission.</p>
-                </div>
-                <span className="rounded-full bg-indigo-50 px-2.5 py-1 text-xs font-bold text-indigo-700 group-open:hidden">Open guide</span>
-                <span className="hidden rounded-full bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-600 group-open:inline">Close guide</span>
-              </summary>
-
-              <div className="border-t border-slate-200 bg-slate-50 p-4">
-                <div className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-xs leading-5 text-emerald-900">
-                  <p className="font-bold">Before you start</p>
-                  <p>You need a Meta Business portfolio, a Business app with Marketing API, a System User, and an Ad Account assigned to that user.</p>
-                  <p>The final token must include <code className="rounded bg-white px-1 py-0.5 font-mono font-bold">ads_read</code>. Buykori only reads campaign reports; it cannot create, edit, publish, or charge for ads.</p>
-                </div>
-
-                <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-                  {[
-                    {
-                      image: '/guides/meta-reporting/system-user.png',
-                      title: '1. Open or create a System User',
-                      text: 'Open Meta Business Settings → Users → System users. Select an existing Admin system user, or click Add and create one. This user will securely hold the reporting permissions.',
-                      alt: 'Meta Business Settings System users location',
-                      position: 'object-left-top'
-                    },
-                    {
-                      image: '/guides/meta-reporting/business-app.png',
-                      title: '2. Check your Business app',
-                      text: 'Open Meta for Developers and choose your Business app. Confirm Marketing API is added. The same app must also be assigned to the System User before token permissions can appear.',
-                      alt: 'Meta developer Business app with Marketing API enabled',
-                      position: 'object-left-top'
-                    },
-                    {
-                      image: '/guides/meta-reporting/assigned-assets.png',
-                      title: '3. Assign the app and Ad Account',
-                      text: 'Return to the System User and click Add assets. Assign the Business app, then assign the Ad Account with View performance access. You do not need Full control or permission to publish ads.',
-                      alt: 'Meta System User assigned business assets',
-                      position: 'object-left-top'
-                    },
-                    {
-                      image: '/guides/meta-reporting/generate-token.png',
-                      title: '4. Start token generation',
-                      text: 'With the same System User selected, click Generate token. Choose the Business app you assigned, select an expiration that fits your policy, and continue to permissions.',
-                      alt: 'Generate token button for a Meta System User',
-                      position: 'object-right-top'
-                    },
-                    {
-                      image: '/guides/meta-reporting/permission-warning.png',
-                      title: '5. Select ads_read',
-                      text: 'Tick ads_read and generate the token. If "No permissions available" appears, stop: the selected app is not assigned to this System User, or Marketing API is missing. Fix that first and generate again.',
-                      alt: 'Meta token screen showing a missing app permission warning',
-                      position: 'object-left-top'
-                    },
-                    {
-                      image: '/guides/meta-reporting/buykori-connect.png',
-                      title: '6. Connect it in Buykori',
-                      text: 'Copy the generated token once. Paste it below, click Find my Meta accounts, select the correct account, check the display name, currency and timezone, then click Connect & Verify.',
-                      alt: 'Buykori Meta Ad Account connection form',
-                      position: 'object-center'
-                    }
-                  ].map((step) => (
-                    <article key={step.title} className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-                      <div className="h-44 overflow-hidden border-b border-slate-100 bg-slate-100">
-                        <img src={step.image} alt={step.alt} loading="lazy" className={`h-full w-full object-cover ${step.position}`} />
-                      </div>
-                      <div className="p-3">
-                        <h3 className="text-xs font-bold text-slate-800">{step.title}</h3>
-                        <p className="mt-1 text-xs leading-4 text-slate-600">{step.text}</p>
-                      </div>
-                    </article>
-                  ))}
-                </div>
-
-                <div className="mt-4 grid grid-cols-1 gap-3 rounded-lg border border-indigo-100 bg-indigo-50 p-3 text-xs leading-4 text-slate-700 sm:grid-cols-2">
-                  <div>
-                    <p className="font-bold text-slate-800">What Buykori needs</p>
-                    <p>One System User token with <strong>ads_read</strong>, plus access to the Ad Account you select. The account ID is filled automatically after discovery.</p>
-                  </div>
-                  <div>
-                    <p className="font-bold text-rose-700">Do not use these</p>
-                    <p>Do not paste a Pixel ID, Conversions API token, Page token, personal password, or payment information here.</p>
-                  </div>
-                  <div className="sm:col-span-2">
-                    <p className="font-bold text-amber-700">If verification fails</p>
-                    <p>Check that the token has not expired, ads_read is present, the Ad Account is assigned to the same System User, and the selected account belongs to the Business portfolio connected to your app.</p>
-                  </div>
-                </div>
-              </div>
-            </details>
-          )}
-
-          <form onSubmit={handleConnectAdAccount} autoComplete="off" className="space-y-4 p-4 rounded-lg border border-slate-200 bg-slate-50/50">
-            <h4 className="font-bold text-xs text-indigo-600 uppercase tracking-wider pb-2 border-b border-slate-100">
-              Connect Ad Account
-            </h4>
-            
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-500 uppercase mb-1">Platform</label>
-                <select
-                  value={adPlatform}
-                  onChange={(e) => setAdPlatform(e.target.value as 'meta' | 'tiktok')}
-                  className="w-full p-2 text-xs bg-white border border-slate-200 rounded text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500 cursor-pointer"
-                >
-                  <option value="meta">Meta (Facebook Ads)</option>
-                  <option value="tiktok">TikTok Business Ads</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-500 uppercase mb-1">
-                  {adPlatform === 'meta' ? 'Meta Ad Account ID' : 'TikTok Advertiser ID'}
-                  {adPlatform === 'meta' && <span className="ml-1 normal-case text-indigo-500">(auto-filled)</span>}
-                </label>
-                <input
-                  type="text"
-                  name="buykori-ad-account-id"
-                  autoComplete="off"
-                  required
-                  placeholder={adPlatform === 'meta' ? 'act_123456789' : '71234567890123'}
-                  value={adAccountId}
-                  onChange={(e) => setAdAccountId(e.target.value)}
-                  className="w-full p-2 text-xs bg-white border border-slate-200 rounded font-mono text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-500 uppercase mb-1">Account Display Name</label>
-                <input
-                  type="text"
-                  name="buykori-ad-account-display-name"
-                  autoComplete="off"
-                  placeholder="e.g. Main Ad Account"
-                  value={adAccountName}
-                  onChange={(e) => setAdAccountName(e.target.value)}
-                  className="w-full p-2 text-xs bg-white border border-slate-200 rounded text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                />
-              </div>
-            </div>
-
-            <div className={`grid grid-cols-1 gap-3 ${adPlatform === 'meta' ? 'md:grid-cols-[minmax(0,1fr)_auto]' : ''}`}>
-              <div>
-                <label className="block text-xs font-semibold text-slate-500 uppercase mb-1">
-                  {adPlatform === 'meta' ? 'Meta System User Access Token' : 'TikTok Marketing API Access Token'}
-                </label>
-                <input
-                  type="password"
-                  name="buykori-ad-api-access-token"
-                  autoComplete="new-password"
-                  required
-                  placeholder="Paste ad API access token"
-                  value={adAccessToken}
-                  onChange={(e) => setAdAccessToken(e.target.value)}
-                  className="w-full p-2 text-xs bg-white border border-slate-200 rounded font-mono text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                />
-              </div>
-
-              {adPlatform === 'meta' && (
-                <button
-                  type="button"
-                  onClick={handleDiscoverMetaAccounts}
-                  disabled={discoveringMetaAccounts || !adAccessToken.trim()}
-                  className="self-end rounded-lg bg-indigo-600 px-4 py-2 text-xs font-bold text-white shadow-sm transition-colors hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-slate-300 md:whitespace-nowrap"
-                >
-                  {discoveringMetaAccounts ? 'Finding accounts...' : 'Find my Meta accounts'}
-                </button>
-              )}
-            </div>
-
-            {adPlatform === 'meta' && discoveredMetaAccounts.length > 0 && (
-              <div>
-                <label className="block text-xs font-semibold text-slate-500 uppercase mb-1">Choose Meta Ad Account</label>
-                <select
-                  value={adAccountId}
-                  onChange={(e) => handleSelectDiscoveredMetaAccount(e.target.value)}
-                  className="w-full p-2 text-xs bg-white border border-slate-200 rounded text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500 cursor-pointer"
-                >
-                  <option value="">Select an account from your token</option>
-                  {discoveredMetaAccounts.map((account) => (
-                    <option key={account.external_account_id} value={account.external_account_id}>
-                      {account.account_name} ({account.external_account_id})
-                    </option>
-                  ))}
-                </select>
-                <p className="mt-1 text-xs text-emerald-700">Selecting an account fills its ID, name, currency, and timezone automatically.</p>
-              </div>
-            )}
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-500 uppercase mb-1">Account Currency</label>
-                <select
-                  value={adCurrency}
-                  onChange={(e) => setAdCurrency(e.target.value)}
-                  className="w-full p-2 text-xs bg-white border border-slate-200 rounded text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500 cursor-pointer"
-                >
-                  <option value="USD">USD ($)</option>
-                  <option value="BDT">BDT (৳)</option>
-                  <option value="EUR">EUR (€)</option>
-                  <option value="GBP">GBP (£)</option>
-                  <option value="AED">AED (د.إ)</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-500 uppercase mb-1">Account Timezone</label>
-                <select
-                  value={adTimezone}
-                  onChange={(e) => setAdTimezone(e.target.value)}
-                  className="w-full p-2 text-xs bg-white border border-slate-200 rounded text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500 cursor-pointer"
-                >
-                  <option value="Asia/Dhaka">Asia/Dhaka (GMT+6)</option>
-                  <option value="UTC">UTC</option>
-                  <option value="America/New_York">America/New_York (EST)</option>
-                  <option value="America/Los_Angeles">America/Los_Angeles (PST)</option>
-                  <option value="Europe/London">Europe/London (GMT)</option>
-                  <option value="Asia/Dubai">Asia/Dubai (GST)</option>
-                </select>
-              </div>
-
-              <div className="flex items-end">
-                <button
-                  type="submit"
-                  disabled={savingAdAccount}
-                  className="w-full py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded shadow-md transition-colors cursor-pointer text-center"
-                >
-                  {savingAdAccount ? 'Verifying...' : 'Connect & Verify'}
-                </button>
-              </div>
-            </div>
-          </form>
-
-          {/* Connected Accounts List */}
-          <div className="space-y-3">
-            <h4 className="font-bold text-xs text-slate-700 uppercase tracking-wider">
-              Connected Ad Accounts
-            </h4>
-            
-            {loadingAdAccounts ? (
-              <div className="flex items-center justify-center py-4 text-slate-400 gap-2">
-                <span className="animate-spin h-3.5 w-3.5 border-2 border-indigo-500 border-t-transparent rounded-full" />
-                <span className="text-xs">Loading ad connections...</span>
-              </div>
-            ) : adAccounts.length === 0 ? (
-              <p className="text-xs text-slate-400 bg-slate-50/50 border border-slate-200 rounded-lg p-4 text-center">
-                No active ad account integrations connected. Fill the form above to add one.
-              </p>
-            ) : (
-              <div className="overflow-x-auto border border-slate-200 rounded-lg">
-                <table className="w-full text-xs text-slate-600 text-left min-w-[600px]">
-                  <thead className="bg-slate-50 text-xs font-bold uppercase tracking-wider text-slate-500 border-b border-slate-100">
-                    <tr>
-                      <th className="px-4 py-2.5">Platform</th>
-                      <th className="px-4 py-2.5">Account Details</th>
-                      <th className="px-4 py-2.5">Settings</th>
-                      <th className="px-4 py-2.5">Last Synced</th>
-                      <th className="px-4 py-2.5 text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {adAccounts.map((account) => (
-                      <tr key={account.id} className="hover:bg-slate-50/50">
-                        <td className="px-4 py-3 align-middle">
-                          <span className={`inline-flex px-1.5 py-0.5 rounded text-xs font-bold uppercase tracking-wider ${
-                            account.platform === 'meta' ? 'bg-blue-50 text-blue-700 border border-blue-200' : 'bg-slate-900 text-white border border-slate-900'
-                          }`}>
-                            {account.platform}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 align-middle">
-                          <div className="flex flex-col">
-                            <span className="font-bold text-slate-800">{account.account_name || 'Unnamed Account'}</span>
-                            <span className="font-mono text-xs text-slate-400">{account.external_account_id}</span>
-                          </div>
-                        </td>
-                        <td className="px-4 py-3 align-middle">
-                          <span className="text-xs font-medium text-slate-500">
-                            {account.account_currency} · {account.account_timezone}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 align-middle">
-                          <span className="text-xs text-slate-500">
-                            {account.last_synced_at ? new Date(account.last_synced_at).toLocaleString() : 'Never'}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 align-middle text-right">
-                          <button
-                            type="button"
-                            disabled={syncingAdAccountId === account.id}
-                            onClick={() => handleSyncAdAccount(account.id)}
-                            className="mr-1 inline-flex items-center justify-center gap-1 rounded border border-slate-200 px-2 py-1 text-xs font-semibold text-slate-500 transition-colors hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-600 disabled:opacity-50"
-                            title="Sync campaign insights now"
-                          >
-                            <RefreshCw className={`h-3.5 w-3.5 ${syncingAdAccountId === account.id ? 'animate-spin' : ''}`} />
-                            {syncingAdAccountId === account.id ? 'Syncing' : 'Sync now'}
-                          </button>
-                          <button
-                            type="button"
-                            disabled={deletingAdAccountId === account.id}
-                            onClick={() => handleDisconnectAdAccount(account.id)}
-                            className="inline-flex items-center justify-center rounded p-1 text-slate-400 transition-colors hover:bg-rose-50 hover:text-rose-600 disabled:opacity-50"
-                            title="Disconnect Account"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-        </section>
+        <AdAccountsSection
+          adPlatform={adPlatform}
+          setAdPlatform={setAdPlatform}
+          adAccountId={adAccountId}
+          setAdAccountId={setAdAccountId}
+          adAccountName={adAccountName}
+          setAdAccountName={setAdAccountName}
+          adAccessToken={adAccessToken}
+          setAdAccessToken={setAdAccessToken}
+          adCurrency={adCurrency}
+          setAdCurrency={setAdCurrency}
+          adTimezone={adTimezone}
+          setAdTimezone={setAdTimezone}
+          savingAdAccount={savingAdAccount}
+          handleConnectAdAccount={handleConnectAdAccount}
+          discoveringMetaAccounts={discoveringMetaAccounts}
+          discoveredMetaAccounts={discoveredMetaAccounts}
+          handleDiscoverMetaAccounts={handleDiscoverMetaAccounts}
+          handleSelectDiscoveredMetaAccount={handleSelectDiscoveredMetaAccount}
+          loadingAdAccounts={loadingAdAccounts}
+          adAccounts={adAccounts}
+          syncingAdAccountId={syncingAdAccountId}
+          deletingAdAccountId={deletingAdAccountId}
+          handleSyncAdAccount={handleSyncAdAccount}
+          handleDisconnectAdAccount={handleDisconnectAdAccount}
+        />
 
         {/* Masterwork Courier & Logistics Settings Panel */}
-        <section id="settings-courier" aria-labelledby="settings-courier-title" className="scroll-mt-28 space-y-5">
-          <div className="flex flex-col items-start justify-between gap-4 rounded-xl border border-slate-200 bg-white p-5 shadow-sm sm:flex-row sm:items-center">
-            <div>
-              <h2 id="settings-courier-title" className="text-sm font-bold text-slate-900">Courier partners</h2>
-              <p className="mt-1 text-xs text-slate-500">Toggle on the partners you ship with — active couriers show their credential form below.</p>
-            </div>
-            
-            <div className="flex items-center gap-2">
-              <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700">
-                ● Live API Sync Active
-              </span>
-            </div>
-          </div>
-
-          {/* Integrated Courier Partners Selection Grid */}
-          <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
-            <h3 className="mb-1 text-xs font-bold uppercase tracking-wider text-slate-700">Available courier services</h3>
-            <p className="mb-4 text-xs text-slate-500">Your existing courier logos and saved integrations stay unchanged.</p>
-
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              {/* SteadFast Toggle Box */}
-              <div className={`flex items-center justify-between p-3.5 rounded-xl border transition-all ${enabledCouriers.steadfast ? 'border-indigo-500 bg-indigo-50/40 shadow-xs' : 'border-slate-200 bg-white'}`}>
-                <div className="flex items-center gap-3">
-                  {/* Real SteadFast Brand Logo */}
-                  <img src="/couriers/steadfast.svg" alt="SteadFast Courier" className="h-10 w-auto object-contain shrink-0" />
-                  <div>
-                    <h4 className="text-xs font-bold text-slate-900">SteadFast</h4>
-                    <span className="text-[10px] font-semibold text-slate-500">Express Courier</span>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setEnabledCouriers(prev => ({ ...prev, steadfast: !prev.steadfast }))}
-                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${enabledCouriers.steadfast ? 'bg-indigo-600' : 'bg-slate-300'}`}
-                >
-                  <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${enabledCouriers.steadfast ? 'translate-x-5' : 'translate-x-0'}`} />
-                </button>
-              </div>
-
-              {/* Pathao Toggle Box */}
-              <div className={`flex items-center justify-between p-3.5 rounded-xl border transition-all ${enabledCouriers.pathao ? 'border-indigo-500 bg-indigo-50/40 shadow-xs' : 'border-slate-200 bg-white'}`}>
-                <div className="flex items-center gap-3">
-                  {/* Real Pathao Brand Logo */}
-                  <img src="/couriers/pathao.svg" alt="Pathao Courier" className="h-10 w-auto object-contain shrink-0" />
-                  <div>
-                    <h4 className="text-xs font-bold text-slate-900">Pathao Courier</h4>
-                    <span className="text-[10px] font-semibold text-slate-500">Nationwide Shipping</span>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setEnabledCouriers(prev => ({ ...prev, pathao: !prev.pathao }))}
-                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${enabledCouriers.pathao ? 'bg-indigo-600' : 'bg-slate-300'}`}
-                >
-                  <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${enabledCouriers.pathao ? 'translate-x-5' : 'translate-x-0'}`} />
-                </button>
-              </div>
-
-              {/* RedX Toggle Box */}
-              <div className={`flex items-center justify-between p-3.5 rounded-xl border transition-all ${enabledCouriers.redx ? 'border-indigo-500 bg-indigo-50/40 shadow-xs' : 'border-slate-200 bg-white'}`}>
-                <div className="flex items-center gap-3">
-                  {/* Real RedX Brand Logo */}
-                  <img src="/couriers/redx.svg" alt="RedX Logistics" className="h-10 w-auto object-contain shrink-0" />
-                  <div>
-                    <h4 className="text-xs font-bold text-slate-900">RedX Logistics</h4>
-                    <span className="text-[10px] font-semibold text-slate-500">Doorstep Delivery</span>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setEnabledCouriers(prev => ({ ...prev, redx: !prev.redx }))}
-                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${enabledCouriers.redx ? 'bg-indigo-600' : 'bg-slate-300'}`}
-                >
-                  <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${enabledCouriers.redx ? 'translate-x-5' : 'translate-x-0'}`} />
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {loadingCourier ? (
-            <div className="flex items-center justify-center py-6 text-slate-400 gap-2">
-              <span className="animate-spin h-4 w-4 border-2 border-indigo-500 border-t-transparent rounded-full" />
-              <span>Loading courier settings...</span>
-            </div>
-          ) : (
-            <form onSubmit={handleSaveCourierSettings} autoComplete="off" className="space-y-6">
-              
-              {/* Dynamic Accordion Forms for Enabled Couriers */}
-              <div className="space-y-5">
-                {/* SteadFast API Card */}
-                {enabledCouriers.steadfast && (
-                  <div className="space-y-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
-                    <div className="flex items-center justify-between pb-2 border-b border-indigo-100">
-                      <div className="flex items-center gap-2">
-                        <span className="flex h-6 w-6 items-center justify-center rounded-md bg-blue-600 text-xs font-bold text-white">S</span>
-                        <h4 className="font-bold text-xs text-indigo-700 uppercase tracking-wider">
-                          SteadFast Courier API Integration
-                        </h4>
-                      </div>
-                      <span className="text-[11px] font-semibold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-200">Active Form</span>
-                    </div>
-                    <p className="text-xs leading-relaxed text-slate-600">Copy the API Key and Secret Key from your SteadFast Merchant Panel &gt; API Settings.</p>
-                    
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-xs font-semibold text-slate-600 uppercase mb-1">SteadFast API Key</label>
-                        <input 
-                          type="text"
-                          name="buykori-steadfast-api-key"
-                          autoComplete="off"
-                          value={courierSettings.steadfast_api_key || ''}
-                          onChange={(e) => setCourierSettings((prev) => ({ ...prev, steadfast_api_key: e.target.value }))}
-                          placeholder="Enter SteadFast Api-Key"
-                          className="w-full p-2.5 text-xs bg-white border border-slate-300 rounded-lg font-mono text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-xs font-semibold text-slate-600 uppercase mb-1">SteadFast Secret Key</label>
-                        <input 
-                          type="password"
-                          name="buykori-steadfast-secret-key"
-                          autoComplete="new-password"
-                          value={courierSettings.steadfast_secret_key || ''}
-                          onChange={(e) => setCourierSettings((prev) => ({ ...prev, steadfast_secret_key: e.target.value }))}
-                          placeholder="Paste SteadFast Secret Key"
-                          className="w-full p-2.5 text-xs bg-white border border-slate-300 rounded-lg font-mono text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
-                        />
-                      </div>
-                    </div>
-                    <div className="rounded-lg border border-indigo-200 bg-indigo-50/80 p-3">
-                      <p className="text-xs font-bold uppercase tracking-wider text-indigo-900">SteadFast Webhook Setup</p>
-                      <p className="mt-1 text-xs text-slate-600">Copy the Webhook Callback URL to receive realtime shipment status updates from SteadFast.</p>
-                      <button type="button" onClick={() => handleCopyCourierWebhookSetup('steadfast')} disabled={copyingCourierSecret === 'steadfast'} className="mt-3 inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-3.5 py-2 text-xs font-bold text-white hover:bg-indigo-700 disabled:opacity-50 shadow-xs">
-                        <Copy className="h-3.5 w-3.5" />
-                        {copyingCourierSecret === 'steadfast' ? 'Preparing...' : courierSettings.steadfast_webhook_token_configured ? 'Copy Setup Again' : 'Copy Setup Secret'}
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {/* Pathao API Card */}
-                {enabledCouriers.pathao && (
-                  <div className="space-y-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
-                    <div className="flex items-center justify-between pb-2 border-b border-indigo-100">
-                      <div className="flex items-center gap-2">
-                        <span className="flex h-6 w-6 items-center justify-center rounded-md bg-rose-600 text-xs font-bold text-white">P</span>
-                        <h4 className="font-bold text-xs text-indigo-700 uppercase tracking-wider">
-                          Pathao Courier API Integration
-                        </h4>
-                      </div>
-                      <span className="text-[11px] font-semibold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-200">Active Form</span>
-                    </div>
-                    <p className="text-xs leading-relaxed text-slate-600">Enter your Client ID, Client Secret, Store ID, and registered account credentials from Pathao Merchant Panel.</p>
-                    
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div>
-                        <label className="block text-xs font-semibold text-slate-600 uppercase mb-1">Pathao Client ID</label>
-                        <input
-                          type="text"
-                          name="buykori-pathao-client-id"
-                          autoComplete="off"
-                          value={courierSettings.pathao_client_id || ''}
-                          onChange={(e) => setCourierSettings((prev) => ({ ...prev, pathao_client_id: e.target.value }))}
-                          placeholder="Client ID"
-                          className="w-full p-2.5 text-xs bg-white border border-slate-300 rounded-lg font-mono text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-semibold text-slate-600 uppercase mb-1">Store Owner Email</label>
-                        <input
-                          type="email"
-                          name="buykori-pathao-owner-email"
-                          autoComplete="off"
-                          value={courierSettings.pathao_email || ''}
-                          onChange={(e) => setCourierSettings((prev) => ({ ...prev, pathao_email: e.target.value }))}
-                          placeholder="owner@example.com"
-                          className="w-full p-2.5 text-xs bg-white border border-slate-300 rounded-lg font-mono text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div>
-                        <label className="block text-xs font-semibold text-slate-600 uppercase mb-1">Pathao Client Secret</label>
-                        <input
-                          type="password"
-                          name="buykori-pathao-client-secret"
-                          autoComplete="new-password"
-                          value={courierSettings.pathao_client_secret || ''}
-                          onChange={(e) => setCourierSettings((prev) => ({ ...prev, pathao_client_secret: e.target.value }))}
-                          placeholder="Paste Pathao Client Secret"
-                          className="w-full p-2.5 text-xs bg-white border border-slate-300 rounded-lg font-mono text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-semibold text-slate-600 uppercase mb-1">Store Password</label>
-                        <input
-                          type="password"
-                          name="buykori-pathao-store-password"
-                          autoComplete="new-password"
-                          value={courierSettings.pathao_password || ''}
-                          onChange={(e) => setCourierSettings((prev) => ({ ...prev, pathao_password: e.target.value }))}
-                          placeholder="Paste Pathao Store Password"
-                          className="w-full p-2.5 text-xs bg-white border border-slate-300 rounded-lg font-mono text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div>
-                        <label htmlFor="pathao-environment" className="block text-xs font-semibold text-slate-600 uppercase mb-1">Pathao Environment</label>
-                        <select
-                          id="pathao-environment"
-                          value={courierSettings.pathao_environment || 'live'}
-                          onChange={(e) => setCourierSettings((prev) => ({ ...prev, pathao_environment: e.target.value as 'live' | 'sandbox' }))}
-                          className="w-full p-2.5 text-xs bg-white border border-slate-300 rounded-lg text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 cursor-pointer"
-                        >
-                          <option value="live">Live Environment</option>
-                          <option value="sandbox">Sandbox / Test</option>
-                        </select>
-                      </div>
-                      <div>
-                        <label className="block text-xs font-semibold text-slate-600 uppercase mb-1">Pathao Store ID</label>
-                        <input
-                          type="text"
-                          value={courierSettings.pathao_store_id || ''}
-                          onChange={(e) => setCourierSettings((prev) => ({ ...prev, pathao_store_id: e.target.value }))}
-                          placeholder="Store ID"
-                          className="w-full p-2.5 text-xs bg-white border border-slate-300 rounded-lg font-mono text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="rounded-lg border border-indigo-200 bg-indigo-50/80 p-3">
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <div>
-                          <p className="text-xs font-bold uppercase tracking-wider text-indigo-900">Pathao Webhook Setup Secret</p>
-                          <p className="mt-1 text-xs leading-relaxed text-slate-600">Copy the generated secret and paste it into your Pathao Merchant Panel Webhook Integration.</p>
-                        </div>
-                        <span className={`rounded-full px-2 py-1 text-xs font-bold uppercase ${
-                          courierSettings.pathao_webhook_verified_at
-                            ? 'bg-emerald-100 text-emerald-700'
-                            : courierSettings.pathao_webhook_secret_configured
-                              ? 'bg-amber-100 text-amber-700'
-                              : 'bg-slate-200 text-slate-600'
-                        }`}>
-                          {courierSettings.pathao_webhook_verified_at
-                            ? 'Verified'
-                            : courierSettings.pathao_webhook_secret_configured
-                              ? 'Waiting for callback'
-                              : 'Not configured'}
-                        </span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={handleCopyPathaoWebhookSecret}
-                        disabled={copyingPathaoSecret}
-                        className="mt-3 inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-3.5 py-2 text-xs font-bold text-white hover:bg-indigo-700 disabled:opacity-50 shadow-xs"
-                      >
-                        <Copy className="h-3.5 w-3.5" />
-                        {copyingPathaoSecret ? 'Preparing secret...' : 'Copy Setup Secret'}
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {/* RedX API Card */}
-                {enabledCouriers.redx && (
-                  <div className="space-y-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
-                    <div className="flex items-center justify-between pb-2 border-b border-indigo-100">
-                      <div className="flex items-center gap-2">
-                        <span className="flex h-6 w-6 items-center justify-center rounded-md bg-red-600 text-xs font-bold text-white">R</span>
-                        <h4 className="font-bold text-xs text-indigo-700 uppercase tracking-wider">
-                          RedX Logistics API Integration
-                        </h4>
-                      </div>
-                      <span className="text-[11px] font-semibold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-200">Active Form</span>
-                    </div>
-                    <p className="text-xs leading-relaxed text-slate-600">Copy your OpenAPI Access Token from your RedX Merchant Panel &gt; API Settings.</p>
-                    
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div>
-                        <label className="block text-xs font-semibold text-slate-600 uppercase mb-1">RedX Access Token</label>
-                        <input
-                          type="password"
-                          name="buykori-redx-access-token"
-                          autoComplete="new-password"
-                          value={courierSettings.redx_access_token || ''}
-                          onChange={(e) => setCourierSettings((prev) => ({ ...prev, redx_access_token: e.target.value }))}
-                          placeholder="Paste RedX OpenAPI token"
-                          className="w-full p-2.5 text-xs bg-white border border-slate-300 rounded-lg font-mono text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-semibold text-slate-600 uppercase mb-1">Default Pickup Store ID (Optional)</label>
-                        <input
-                          type="text"
-                          value={courierSettings.redx_pickup_store_id || ''}
-                          onChange={(e) => setCourierSettings((prev) => ({ ...prev, redx_pickup_store_id: e.target.value }))}
-                          placeholder="e.g. 1"
-                          className="w-full p-2.5 text-xs bg-white border border-slate-300 rounded-lg font-mono text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-semibold text-slate-600 uppercase mb-1">Default Delivery Area ID</label>
-                        <input
-                          type="text"
-                          value={courierSettings.redx_delivery_area_id || ''}
-                          onChange={(e) => setCourierSettings((prev) => ({ ...prev, redx_delivery_area_id: e.target.value }))}
-                          placeholder="e.g. 12"
-                          className="w-full p-2.5 text-xs bg-white border border-slate-300 rounded-lg font-mono text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-semibold text-slate-600 uppercase mb-1">Default Delivery Area Name</label>
-                        <input
-                          type="text"
-                          value={courierSettings.redx_delivery_area_name || ''}
-                          onChange={(e) => setCourierSettings((prev) => ({ ...prev, redx_delivery_area_name: e.target.value }))}
-                          placeholder="e.g. Mirpur DOHS"
-                          className="w-full p-2.5 text-xs bg-white border border-slate-300 rounded-lg font-mono text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
-                        />
-                      </div>
-                    </div>
-                    <div className="rounded-lg border border-indigo-200 bg-indigo-50/80 p-3">
-                      <p className="text-xs font-bold uppercase tracking-wider text-indigo-900">RedX Webhook Setup</p>
-                      <p className="mt-1 text-xs text-slate-600">Copy the Callback URL with dedicated token to paste into your RedX merchant portal.</p>
-                      <button type="button" onClick={() => handleCopyCourierWebhookSetup('redx')} disabled={copyingCourierSecret === 'redx'} className="mt-3 inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-3.5 py-2 text-xs font-bold text-white hover:bg-indigo-700 disabled:opacity-50 shadow-xs">
-                        <Copy className="h-3.5 w-3.5" />
-                        {copyingCourierSecret === 'redx' ? 'Preparing...' : courierSettings.redx_webhook_secret_configured ? 'Copy Callback URL Again' : 'Copy Callback URL'}
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Primary Preferred Courier Provider Selection */}
-              <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-                <label htmlFor="default-courier-provider" className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-                  Primary Preferred Courier
-                </label>
-                <p className="text-xs text-slate-500 mb-3">Select which courier partner will be pre-selected by default when booking shipments in 1-click.</p>
-                <select 
-                  id="default-courier-provider"
-                  value={courierSettings.default_courier || 'steadfast'}
-                  onChange={(e) => setCourierSettings((prev) => ({ ...prev, default_courier: e.target.value }))}
-                  className="w-full sm:w-80 p-2.5 text-xs bg-white border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 cursor-pointer font-semibold text-slate-800"
-                >
-                  <option value="steadfast">SteadFast Courier</option>
-                  <option value="pathao">Pathao Courier</option>
-                  <option value="redx">RedX Courier</option>
-                </select>
-              </div>
-
-              {/* Submit Button */}
-              <div className="flex justify-end rounded-xl border border-slate-200 bg-slate-50/60 p-4">
-                <button
-                  type="submit"
-                  disabled={savingCourier}
-                  className="min-h-10 rounded-lg bg-indigo-600 px-5 py-2.5 text-xs font-bold text-white transition-colors hover:bg-indigo-700 disabled:opacity-50"
-                >
-                  {savingCourier ? 'Updating settings...' : 'Save courier settings'}
-                </button>
-              </div>
-            </form>
-          )}
-        </section>
+        <CourierSection
+          enabledCouriers={enabledCouriers}
+          setEnabledCouriers={setEnabledCouriers}
+          courierSettings={courierSettings}
+          setCourierSettings={setCourierSettings}
+          loadingCourier={loadingCourier}
+          savingCourier={savingCourier}
+          handleSaveCourierSettings={handleSaveCourierSettings}
+          copyingCourierSecret={copyingCourierSecret}
+          handleCopyCourierWebhookSetup={handleCopyCourierWebhookSetup}
+          copyingPathaoSecret={copyingPathaoSecret}
+          handleCopyPathaoWebhookSecret={handleCopyPathaoWebhookSecret}
+        />
 
         {/* WordPress Custom tracking rules */}
-        <section id="settings-cod" aria-labelledby="settings-cod-title" className="scroll-mt-28 rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">
-          <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-            <div>
-              <h2 id="settings-cod-title" className="font-bold text-slate-800 text-sm uppercase tracking-wide ">COD Purchase Timing</h2>
-              <p className="text-xs text-slate-400 ">
-                Choose when a COD Purchase event is sent. You can send it at once, or wait until you confirm the order.
-              </p>
-            </div>
-            <span className={`inline-flex w-fit rounded-full border px-2.5 py-1 text-xs font-bold uppercase tracking-wide ${
-              deferredEnabled
-                ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
-                : 'border-slate-200 bg-slate-50 text-slate-500'
-            }`}>
-              {deferredEnabled ? 'Protection on' : 'Protection off'}
-            </span>
-          </div>
+        <CodTimingSection
+          deferredEnabled={deferredEnabled}
+          autoConfirmLabel={autoConfirmLabel}
+          formattedConfirmStatus={formattedConfirmStatus}
+          onOpenPage={onOpenPage}
+        />
 
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-            <div className="rounded-lg border border-slate-200 bg-slate-50/70 p-3">
-              <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Purchase timing</p>
-              <p className="mt-1 text-sm font-black text-slate-900">{deferredEnabled ? 'Wait for your confirmation' : 'Send right away'}</p>
-            </div>
-            <div className="rounded-lg border border-slate-200 bg-slate-50/70 p-3">
-              <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Auto-confirm</p>
-              <p className="mt-1 text-sm font-black text-slate-900">{autoConfirmLabel}</p>
-            </div>
-            <div className="rounded-lg border border-slate-200 bg-slate-50/70 p-3">
-              <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Confirm status</p>
-              <p className="mt-1 text-sm font-black text-slate-900">{formattedConfirmStatus}</p>
-            </div>
-          </div>
+        <EventRoutingSection
+          rules={rules}
+          handleToggleRule={handleToggleRule}
+          handleRemoveRule={handleRemoveRule}
+          coreEventRoutes={coreEventRoutes}
+          enabledRouteCount={enabledRouteCount}
+          disabledRouteCount={disabledRouteCount}
+          selectedEventRoute={selectedEventRoute}
+          setSelectedEventRoute={setSelectedEventRoute}
+          customEventRoute={customEventRoute}
+          setCustomEventRoute={setCustomEventRoute}
+          isCustomRoute={isCustomRoute}
+          routeToAdd={routeToAdd}
+          submitEventRoute={submitEventRoute}
+          availablePresetRoutes={availablePresetRoutes}
+          eventPresets={eventPresets}
+          selectedPreset={selectedPreset}
+          setSelectedPreset={setSelectedPreset}
+          applyingPreset={applyingPreset}
+          applySelectedPreset={applySelectedPreset}
+        />
 
-          <div className="flex flex-col gap-2 rounded-lg border border-indigo-100 bg-indigo-50/60 p-3 text-xs text-indigo-950 sm:flex-row sm:items-center sm:justify-between">
-            <p className="leading-relaxed">
-              To confirm a COD order or change its waiting time, open COD Protection.
-            </p>
-            <button
-              type="button"
-              onClick={() => onOpenPage?.('pending-purchases')}
-              className="inline-flex shrink-0 items-center justify-center rounded-lg bg-indigo-600 px-3 py-2 text-xs font-bold text-white shadow-sm hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
-              disabled={!onOpenPage}
-            >
-              Open COD Protection
-            </button>
-          </div>
-        </section>
-
-        <section id="settings-routing" aria-labelledby="settings-routing-title" className="scroll-mt-28 rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-4  ">
-          <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-            <div>
-              <h2 id="settings-routing-title" className="font-bold text-slate-800 text-sm uppercase tracking-wide ">Choose which events to send</h2>
-              <p className="text-xs text-slate-400 ">Turn an event on, then choose Meta, TikTok, or GA4. Turn it off if you do not want the plugin to collect or send it.</p>
-            </div>
-            <div className="rounded-lg border border-emerald-100 bg-emerald-50 px-3 py-2 text-xs text-emerald-800 xl:max-w-[360px]">
-              <p className="font-bold uppercase tracking-wide text-xs text-emerald-700">WordPress is connected</p>
-              <p className="mt-1 leading-relaxed">
-                The plugin checks these choices every 5 minutes. Events that are off are stopped before they leave the website.
-              </p>
-              <p className="mt-1 font-semibold">{enabledRouteCount} events on, {disabledRouteCount} events off.</p>
-            </div>
-            <div className="flex flex-col gap-2 rounded-lg border border-slate-200 bg-slate-50/70 p-3   xl:w-[520px]">
-              <div className="grid grid-cols-1 gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
-                <select
-                  aria-label="Select event route to add"
-                  value={selectedEventRoute}
-                  onChange={(e) => setSelectedEventRoute(e.target.value)}
-                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20   "
-                >
-                  <option value="">Add event route...</option>
-                  {availablePresetRoutes.map((preset) => (
-                    <option key={preset.value} value={preset.value}>{preset.label}</option>
-                  ))}
-                  <option value="__custom__">Custom event name...</option>
-                </select>
-                <button
-                  type="button"
-                  onClick={submitEventRoute}
-                  disabled={!routeToAdd.trim()}
-                  className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-indigo-600 px-3 py-2 text-xs font-bold text-white shadow-sm transition-colors hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  <Plus className="h-3.5 w-3.5" />
-                  Add
-                </button>
-              </div>
-              {isCustomRoute && (
-                <input
-                  type="text"
-                  value={customEventRoute}
-                  onChange={(e) => setCustomEventRoute(e.target.value)}
-                  placeholder="Custom event, e.g. BookDemo or WholesaleLead"
-                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 font-mono text-xs text-slate-800 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20   "
-                />
-              )}
-              <p className="text-xs leading-normal text-slate-400 ">
-                Custom names can use letters, numbers, and underscores. WordPress must fire the same event name.
-              </p>
-            </div>
-          </div>
-
-          {eventPresets.length > 0 && (
-            <div className="rounded-xl border border-indigo-100 bg-indigo-50/60 p-4">
-              <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                <div>
-                  <p className="text-xs font-bold uppercase tracking-wide text-indigo-800">Store-type quick start</p>
-                  <p className="mt-1 text-xs text-indigo-700/80">
-                    Choose a ready-made event list for your type of store. Your custom events will not be changed.
-                  </p>
-                </div>
-                <div className="flex w-full flex-col gap-2 sm:flex-row lg:w-auto">
-                  <select
-                    value={selectedPreset}
-                    onChange={(event) => setSelectedPreset(event.target.value)}
-                    className="min-w-[240px] rounded-lg border border-indigo-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500/20"
-                  >
-                    <option value="">Choose your store type...</option>
-                    {eventPresets.map(preset => (
-                      <option key={preset.id} value={preset.id}>{preset.name}</option>
-                    ))}
-                  </select>
-                  <button
-                    type="button"
-                    onClick={() => void applySelectedPreset()}
-                    disabled={!selectedPreset || applyingPreset}
-                    className="rounded-lg bg-indigo-600 px-4 py-2 text-xs font-bold text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    {applyingPreset ? 'Applying...' : 'Use this event list'}
-                  </button>
-                </div>
-              </div>
-              {selectedPreset && (
-                <p className="mt-3 rounded-lg bg-white/80 px-3 py-2 text-xs text-slate-600">
-                  {eventPresets.find(preset => preset.id === selectedPreset)?.description}
-                  {' '}Routes: {eventPresets.find(preset => preset.id === selectedPreset)?.events.join(', ')}.
-                </p>
-              )}
-            </div>
-          )}
-
-          <div className="space-y-3 md:hidden">
-            {rules.map((rule, idx) => (
-              <div key={idx} className="rounded-xl border border-slate-200 bg-white p-4  ">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="font-mono text-sm font-bold text-slate-900 ">{rule.eventName}</p>
-                    <p className="mt-1 text-xs font-semibold uppercase tracking-wider text-slate-400">
-                      {coreEventRoutes.has(rule.eventName) ? 'Core route' : 'Custom route'}
-                    </p>
-                  </div>
-                  {!coreEventRoutes.has(rule.eventName) && (
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveRule(idx)}
-                      className="rounded-md p-1.5 text-slate-400 transition-colors hover:bg-rose-50 hover:text-rose-600"
-                      title={`Remove ${rule.eventName}`}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  )}
-                </div>
-                <div className="mt-4 grid grid-cols-3 gap-2 text-center text-xs font-bold uppercase tracking-wider text-slate-500">
-                  <label className="rounded-lg border border-slate-100 bg-slate-50 p-2 ">
-                    <span className="flex items-center justify-center gap-1"><PlatformLogo platform="Meta CAPI" className="h-4 w-4" />Meta</span>
-                    <input type="checkbox" checked={rule.metaEnabled} onChange={() => handleToggleRule(idx, 'metaEnabled')} className="mt-2 h-4 w-4 rounded accent-[#285ac7]" />
-                  </label>
-                  <label className="rounded-lg border border-slate-100 bg-slate-50 p-2 ">
-                    <span className="flex items-center justify-center gap-1"><PlatformLogo platform="TikTok Events API" className="h-4 w-4" />TikTok</span>
-                    <input type="checkbox" checked={rule.tiktokEnabled} onChange={() => handleToggleRule(idx, 'tiktokEnabled')} className="mt-2 h-4 w-4 rounded accent-[#285ac7]" />
-                  </label>
-                  <label className="rounded-lg border border-slate-100 bg-slate-50 p-2 ">
-                    <span className="flex items-center justify-center gap-1"><PlatformLogo platform="GA4" className="h-4 w-4" />GA4</span>
-                    <input type="checkbox" checked={rule.ga4Enabled} onChange={() => handleToggleRule(idx, 'ga4Enabled')} className="mt-2 h-4 w-4 rounded accent-[#285ac7]" />
-                  </label>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <div className="hidden overflow-x-auto md:block">
-            <table className="w-full text-xs text-slate-600 text-left min-w-[760px] ">
-              <thead className="bg-slate-50 text-xs font-bold uppercase tracking-wider text-slate-500 border-b border-slate-100   ">
-                <tr>
-                  <th className="px-4 py-3">Active event route</th>
-                  <th className="px-4 py-3 text-center">Meta CAPI</th>
-                  <th className="px-4 py-3 text-center">TikTok tracking</th>
-                  <th className="px-4 py-3 text-center">GA4 Measurement</th>
-                  <th className="px-4 py-3 text-right">Manage</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 ">
-                {rules.map((rule, idx) => (
-                  <tr key={idx} className="hover:bg-slate-50/50 ">
-                    <td className="px-4 py-3.5">
-                      <div className="flex flex-col">
-                        <span className="font-mono text-xs font-semibold text-slate-800 ">{rule.eventName}</span>
-                        {!coreEventRoutes.has(rule.eventName) && (
-                          <span className="mt-0.5 text-xs font-semibold uppercase tracking-wider text-indigo-500 ">Custom / optional route</span>
-                        )}
-                      </div>
-                    </td>
-                    
-                    <td className="px-4 py-3.5 text-center">
-                      <input 
-                        type="checkbox" 
-                        checked={rule.metaEnabled}
-                        onChange={() => handleToggleRule(idx, 'metaEnabled')}
-                        className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer" 
-                      />
-                    </td>
-                    
-                    <td className="px-4 py-3.5 text-center">
-                      <input 
-                        type="checkbox" 
-                        checked={rule.tiktokEnabled}
-                        onChange={() => handleToggleRule(idx, 'tiktokEnabled')}
-                        className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer" 
-                      />
-                    </td>
-
-                    <td className="px-4 py-3.5 text-center">
-                      <input 
-                        type="checkbox" 
-                        checked={rule.ga4Enabled}
-                        onChange={() => handleToggleRule(idx, 'ga4Enabled')}
-                        className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer" 
-                      />
-                    </td>
-                    <td className="px-4 py-3.5 text-right">
-                      {!coreEventRoutes.has(rule.eventName) ? (
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveRule(idx)}
-                          className="inline-flex items-center justify-center rounded-md p-1.5 text-slate-400 transition-colors hover:bg-rose-50 hover:text-rose-600  "
-                          title={`Remove ${rule.eventName}`}
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
-                      ) : (
-                        <span className="text-xs font-semibold uppercase tracking-wider text-slate-350 ">Core</span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
-
-        <section id="settings-custom-automations" aria-labelledby="settings-custom-automations-title" className="scroll-mt-28 rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-            <div>
-              <h2 id="settings-custom-automations-title" className="font-bold text-slate-800 text-sm uppercase tracking-wide">Create custom events</h2>
-              <p className="text-xs text-slate-400">Create an event for a timer, button click, form, page URL, scroll, or visible section. No coding is needed.</p>
-            </div>
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={addAutomationDraft}
-                className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-bold text-indigo-700 hover:bg-indigo-100"
-              >
-                <Plus className="h-3.5 w-3.5" />
-                Add custom event
-              </button>
-              <button
-                type="button"
-                onClick={saveAutomationDrafts}
-                disabled={savingAutomations}
-                className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-indigo-600 px-3 py-2 text-xs font-bold text-white shadow-sm hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                <Save className="h-3.5 w-3.5" />
-                {savingAutomations ? 'Saving...' : 'Save custom events'}
-              </button>
-            </div>
-          </div>
-
-          <div className="rounded-lg border border-blue-100 bg-blue-50 px-4 py-3 text-xs text-blue-800">
-            Example: <b>Stay15Seconds</b> + Timer 15 sec, or <b>WhatsAppClick</b> + Click selector <code className="font-mono">.whatsapp-btn</code>. Saving also adds the event route if it is missing.
-          </div>
-
-          {automationDrafts.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 p-6 text-center text-xs text-slate-500">
-              No custom events yet. Add one when you want to track a timer, click, form, page, scroll, or visible section.
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {automationDrafts.map((automation, index) => (
-                <div key={automation.id || index} className="rounded-xl border border-slate-200 bg-slate-50/60 p-4">
-                  <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                    <p className="text-xs text-slate-500">{automationTriggerHelp(automation)}</p>
-                    <span className={`inline-flex w-fit items-center rounded-full border px-2 py-1 text-xs font-bold uppercase tracking-wide ${automationRouteState(automation).className}`}>
-                      {automationRouteState(automation).label}
-                    </span>
-                  </div>
-                  <div className="grid grid-cols-1 gap-3 lg:grid-cols-[1fr_150px_1fr_auto]">
-                    <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                      Event name
-                      <input
-                        type="text"
-                        value={automation.name}
-                        onChange={(e) => updateAutomationDraft(index, { name: e.target.value.replace(/[^A-Za-z0-9_]/g, '') })}
-                        placeholder="Stay15Seconds"
-                        className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 font-mono text-xs text-slate-800 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
-                      />
-                    </label>
-                    <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                      Trigger
-                      <select
-                        value={automation.trigger}
-                        onChange={(e) => updateAutomationDraft(index, { trigger: e.target.value as CustomEventTrigger })}
-                        className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
-                      >
-                        <option value="timer">Timer</option>
-                        <option value="click">Click</option>
-                        <option value="url">URL match</option>
-                        <option value="form">Form submit</option>
-                        <option value="scroll">Scroll depth</option>
-                        <option value="visible">Element visible</option>
-                      </select>
-                    </label>
-                    <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                      {automation.trigger === 'timer' ? 'Seconds' : automation.trigger === 'scroll' ? 'Scroll percent' : automation.trigger === 'url' ? 'URL contains' : 'CSS selector'}
-                      <input
-                        type={automation.trigger === 'timer' || automation.trigger === 'scroll' ? 'number' : 'text'}
-                        min={1}
-                        max={automation.trigger === 'scroll' ? 100 : 3600}
-                        value={automation.trigger === 'url' ? automation.url_pattern : automation.trigger === 'timer' ? (automation.seconds || automation.selector || 15) : automation.trigger === 'scroll' ? (automation.scroll_depth || automation.selector || 50) : automation.selector}
-                        onChange={(e) => {
-                          if (automation.trigger === 'url') {
-                            updateAutomationDraft(index, { url_pattern: e.target.value });
-                          } else if (automation.trigger === 'timer') {
-                            const seconds = Number.parseInt(e.target.value, 10) || 15;
-                            updateAutomationDraft(index, { seconds, selector: String(seconds) });
-                          } else if (automation.trigger === 'scroll') {
-                            const scrollDepth = Number.parseInt(e.target.value, 10) || 50;
-                            updateAutomationDraft(index, { scroll_depth: scrollDepth, selector: String(scrollDepth) });
-                          } else {
-                            updateAutomationDraft(index, { selector: e.target.value });
-                          }
-                        }}
-                        placeholder={automation.trigger === 'url' ? '/thank-you' : automation.trigger === 'timer' ? '15' : automation.trigger === 'scroll' ? '50' : '.button-class'}
-                        className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 font-mono text-xs text-slate-800 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
-                      />
-                    </label>
-                    <div className="flex items-end justify-end gap-2">
-                      <label className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700">
-                        <input
-                          type="checkbox"
-                          checked={automation.enabled}
-                          onChange={(e) => updateAutomationDraft(index, { enabled: e.target.checked })}
-                          className="h-4 w-4 rounded accent-indigo-600"
-                        />
-                        Active
-                      </label>
-                      <button
-                        type="button"
-                        onClick={() => removeAutomationDraft(index)}
-                        className="rounded-lg border border-rose-100 bg-white p-2 text-rose-500 hover:bg-rose-50"
-                        title="Remove custom event"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </div>
-                  <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-3">
-                    <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                      Value
-                      <input
-                        type="number"
-                        value={automation.value || 0}
-                        onChange={(e) => updateAutomationDraft(index, { value: Number.parseFloat(e.target.value) || 0 })}
-                        className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-800 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
-                      />
-                    </label>
-                    <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                      Currency
-                      <input
-                        type="text"
-                        value={automation.currency || 'BDT'}
-                        onChange={(e) => updateAutomationDraft(index, { currency: e.target.value.toUpperCase() })}
-                        className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 font-mono text-xs text-slate-800 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
-                      />
-                    </label>
-                    <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                      Custom parameter label
-                      <input
-                        type="text"
-                        value={automation.custom_param || ''}
-                        onChange={(e) => updateAutomationDraft(index, { custom_param: e.target.value })}
-                        placeholder="e.g. landing_timer"
-                        className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 font-mono text-xs text-slate-800 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
-                      />
-                    </label>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </section>
+        <CustomAutomationsSection
+          automationDrafts={automationDrafts}
+          savingAutomations={savingAutomations}
+          addAutomationDraft={addAutomationDraft}
+          saveAutomationDrafts={saveAutomationDrafts}
+          updateAutomationDraft={updateAutomationDraft}
+          removeAutomationDraft={removeAutomationDraft}
+          automationTriggerHelp={automationTriggerHelp}
+          automationRouteState={automationRouteState}
+        />
       </div>
 
       {/* Left side parameters / WordPress connection */}
       <div className="space-y-6">
         
         {/* WordPress token health status */}
-        <section id="settings-wordpress" aria-labelledby="settings-wordpress-title" className="scroll-mt-28 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-          <div className="flex items-start justify-between gap-4 border-b border-slate-200 px-5 py-4">
-            <div>
-            <h2 id="settings-wordpress-title" className="text-sm font-bold text-slate-900">WordPress plugin connection</h2>
-            <p className="mt-1 text-xs text-slate-500">Connects your WordPress store to Buykori — all tracking choices are managed from this portal.</p>
-            </div>
-            <span className={`shrink-0 rounded-full border px-3 py-1 text-[11px] font-bold ${connection.status === 'Active' ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-amber-200 bg-amber-50 text-amber-700'}`}>
-              {connection.status === 'Active' ? 'Connected' : 'Reconnect'}
-            </span>
-          </div>
-
-          {(connection.reconnectRequired || connection.status !== 'Active') && (
-            <div className="mx-5 mt-5 rounded-lg border border-rose-200 bg-rose-50 p-3 text-xs text-rose-800">
-              <p className="font-bold">WordPress reconnection required</p>
-              <p className="mt-1">
-                {connection.connectionIssue || 'Open Buykori AdSync in WordPress and reconnect this site to restore event delivery.'}
-              </p>
-              {connection.siteHost && (
-                <a
-                  className="mt-2 inline-flex font-semibold text-rose-700 underline"
-                  href={`https://${connection.siteHost}/wp-admin/admin.php?page=buykori-adsync`}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  Open WordPress connection settings
-                </a>
-              )}
-            </div>
-          )}
-
-          <div className="mx-5 mt-5 space-y-3 rounded-lg border border-slate-200 bg-slate-50 p-4 font-mono text-xs text-slate-700">
-            <div>
-              <span className="block text-xs font-semibold text-slate-400  uppercase tracking-wider mb-0.5">Plugin connection key</span>
-              <div className="flex items-center gap-2 bg-white  px-2 py-1.5 rounded border border-slate-200 ">
-                <span className="truncate" aria-label="Masked API access key">{maskedApiAccessKey}</span>
-                <button 
-                  type="button"
-                  onClick={() => handleCopy(apiAccessKey, 'sett_wp_tok')}
-                  disabled={!apiAccessKey}
-                  className="ml-auto inline-flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600"
-                  aria-label="Copy API access key"
-                  title="Copy API access key"
-                >
-                  {copiedStates['sett_wp_tok'] ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
-                </button>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-              <div>
-                <span className="block text-xs text-slate-400  uppercase mb-0.5">Plugin detected version</span>
-                <span className="font-semibold text-slate-800 ">{pluginVersionStatus}</span>
-                {!installedVersionReported && connection.wpVersion ? (
-                  <span className="mt-0.5 block text-xs text-slate-400">{pluginVersionHelp}</span>
-                ) : null}
-              </div>
-              <div>
-                <span className="block text-xs text-slate-400  uppercase mb-0.5">Last plugin check-in</span>
-                <span className="font-semibold text-slate-800 ">{connection.lastHeartbeat ? new Date(connection.lastHeartbeat).toLocaleString() : 'Not reported yet'}</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="mx-5 my-4 rounded-lg border border-slate-200 bg-white p-3 text-xs">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 ">Latest plugin package</p>
-                <p className="mt-1 font-semibold text-slate-800 ">
-                  {pluginReleaseInfo ? `v${pluginReleaseInfo.version}` : 'Checking release...'}
-                </p>
-                {pluginReleaseInfo && (
-                  <p className="mt-0.5 text-xs text-slate-500 ">
-                    WordPress {pluginReleaseInfo.requires}+ / PHP {pluginReleaseInfo.requires_php}+ / {packageSizeKb} KB
-                  </p>
-                )}
-              </div>
-              <span className={
-                !installedVersionReported
-                  ? 'shrink-0 rounded-md border border-slate-200 bg-slate-50 px-2 py-1 text-xs font-semibold text-slate-500   '
-                  : updateAvailable
-                  ? 'shrink-0 rounded-md border border-amber-200 bg-amber-50 px-2 py-1 text-xs font-semibold text-amber-700   '
-                  : pluginReleaseInfo?.package_available
-                    ? 'shrink-0 rounded-md border border-emerald-200 bg-emerald-50 px-2 py-1 text-xs font-semibold text-emerald-700   '
-                    : 'shrink-0 rounded-md border border-slate-200 bg-slate-50 px-2 py-1 text-xs font-semibold text-slate-500   '
-              }>
-                {!installedVersionReported
-                  ? 'Version unknown'
-                  : updateAvailable
-                    ? 'Update available'
-                    : versionComparison !== null && versionComparison > 0
-                      ? 'Newer version installed'
-                      : pluginReleaseInfo?.package_available
-                      ? 'Up to date'
-                      : 'Unavailable'}
-              </span>
-            </div>
-          </div>
-
-          <button 
-            onClick={() => {
-              showToast("Verifying WordPress site binding...", false);
-              refreshWPHeartbeat()
-                .then(() => showToast("WordPress site binding is active.", false))
-                .catch((error) => showToast(error?.message || "WordPress reconnection is required.", true));
-            }}
-            className="mb-4 ml-auto mr-5 block min-h-10 rounded-lg border border-slate-200 bg-white px-5 py-2 text-xs font-bold text-slate-700 transition-colors hover:bg-slate-50"
-          >
-            Test WordPress Connection
-          </button>
-        </section>
+        <WordPressSection
+          connection={connection}
+          pluginReleaseInfo={pluginReleaseInfo}
+          installedVersionReported={installedVersionReported}
+          versionComparison={versionComparison}
+          updateAvailable={updateAvailable}
+          pluginVersionStatus={pluginVersionStatus}
+          pluginVersionHelp={pluginVersionHelp}
+          apiAccessKey={apiAccessKey}
+          maskedApiAccessKey={maskedApiAccessKey}
+          packageSizeKb={packageSizeKb}
+          copiedStates={copiedStates}
+          handleCopy={handleCopy}
+          showToast={showToast}
+          refreshWPHeartbeat={refreshWPHeartbeat}
+        />
 
         {/* Telegram Notification Settings Card */}
-        <section id="settings-whatsapp" aria-labelledby="settings-telegram-title" className="scroll-mt-28 space-y-4 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-            <div>
-              <h2 id="settings-telegram-title" className="text-sm font-bold text-slate-900">Telegram alerts</h2>
-              <p className="mt-1 max-w-2xl text-xs leading-relaxed text-slate-500">Connect Telegram privately to receive purchase and incomplete checkout alerts for this store. No phone number or recurring QR pairing is required.</p>
-            </div>
-            <span className={`inline-flex w-fit rounded-full border px-3 py-1 text-xs font-bold uppercase tracking-wide ${telegramStatus?.connected ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-amber-200 bg-amber-50 text-amber-700'}`}>
-              {telegramStatus?.connected ? 'Connected' : 'Not connected'}
-            </span>
-          </div>
-
-          {telegramStatus?.botUsername ? (
-            <div className="flex flex-col gap-3 rounded-xl border border-sky-200 bg-sky-50 p-4 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <p className="text-xs font-bold uppercase tracking-wider text-sky-700">Official Buykori order-alert bot</p>
-                <a
-                  href={`https://t.me/${telegramStatus.botUsername}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="mt-1 inline-flex text-sm font-black text-sky-950 underline decoration-sky-300 underline-offset-2"
-                >
-                  Buykori Order Alert
-                </a>
-                <p className="mt-0.5 max-w-full truncate font-mono text-xs text-sky-700 sm:max-w-[360px]">@{telegramStatus.botUsername}</p>
-                <p className="mt-1 text-xs text-sky-800">Use only this bot for purchase and incomplete-checkout notifications.</p>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  onClick={() => handleCopy(`@${telegramStatus.botUsername}`, 'telegram-bot-username')}
-                  className="inline-flex items-center justify-center gap-2 rounded-lg border border-sky-200 bg-white px-3 py-2 text-xs font-bold text-sky-800 hover:bg-sky-100"
-                >
-                  <Copy className="h-4 w-4" /> Copy bot name
-                </button>
-                <a
-                  href={`https://t.me/${telegramStatus.botUsername}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center justify-center gap-2 rounded-lg bg-sky-500 px-3 py-2 text-xs font-bold text-white hover:bg-sky-600"
-                >
-                  <MessageCircle className="h-4 w-4" /> Open Telegram bot
-                </a>
-              </div>
-            </div>
-          ) : telegramStatus?.available !== false ? (
-            <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
-              The official Telegram bot link is not configured yet. Please contact Buykori support.
-            </div>
-          ) : null}
-
-          {telegramStatus?.connected ? (
-            <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4">
-              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <p className="text-xs font-black text-emerald-950">Telegram alerts are active</p>
-                  <p className="mt-1 text-xs text-emerald-800">Connected as {telegramStatus.telegramUsername ? `@${telegramStatus.telegramUsername}` : telegramStatus.telegramFirstName || 'Telegram user'}.</p>
-                  <p className="mt-1 text-xs text-emerald-700">Only notifications for this store will be sent to the verified chat.</p>
-                </div>
-                <button type="button" onClick={disconnectTelegram} disabled={telegramBusy} className="rounded-lg border border-rose-200 bg-white px-3 py-2 text-xs font-bold text-rose-600 hover:bg-rose-50 disabled:opacity-60">Disconnect</button>
-              </div>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              <div className="rounded-xl border border-indigo-100 bg-indigo-50/60 p-4">
-                <p className="text-xs font-black text-indigo-950">Connect in three simple steps</p>
-                <ol className="mt-3 grid gap-3 text-xs leading-relaxed text-indigo-900 md:grid-cols-3">
-                  <li className="rounded-lg bg-white p-3"><b className="block text-indigo-600">1. Generate code</b>Create a private, one-time security code here.</li>
-                  <li className="rounded-lg bg-white p-3"><b className="block text-indigo-600">2. Open the official bot</b>Use the blue button above, press Start, and send the security code.</li>
-                  <li className="rounded-lg bg-white p-3"><b className="block text-indigo-600">3. Verified</b>The bot confirms this store and alerts begin automatically.</li>
-                </ol>
-              </div>
-
-              {telegramStatus?.available === false ? (
-                <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">Telegram notifications are temporarily unavailable. Please contact Buykori support.</div>
-              ) : telegramLinkCode ? (
-                <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                  <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-                    <div>
-                      <p className="text-xs font-bold uppercase tracking-wider text-slate-400">One-time security code</p>
-                      <p className="mt-1 font-mono text-3xl font-black tracking-[0.16em] text-slate-950">{telegramLinkCode.code}</p>
-                      <p className="mt-1 text-xs text-slate-500">Expires in {telegramLinkCode.expiresInMinutes} minutes and works once.</p>
-                    </div>
-                    <div className="grid gap-2 sm:grid-cols-3">
-                      <button type="button" onClick={() => handleCopy(telegramLinkCode.code, 'telegram-link-code')} className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100"><Copy className="h-4 w-4" /> Copy code</button>
-                      {(telegramLinkCode.deepLinkUrl || telegramLinkCode.botUrl) && <a href={telegramLinkCode.deepLinkUrl || telegramLinkCode.botUrl || '#'} target="_blank" rel="noreferrer" className="inline-flex items-center justify-center gap-2 rounded-lg bg-sky-500 px-3 py-2 text-xs font-bold text-white hover:bg-sky-600"><MessageCircle className="h-4 w-4" /> Open bot with code</a>}
-                      <button type="button" onClick={() => loadTelegramStatus()} className="inline-flex items-center justify-center gap-2 rounded-lg border border-indigo-200 bg-white px-3 py-2 text-xs font-bold text-indigo-700 hover:bg-indigo-50"><RefreshCw className="h-4 w-4" /> Check</button>
-                    </div>
-                  </div>
-                  <p className="mt-3 text-xs text-slate-600">Recommended: click <b>Open bot with code</b> and press <b>Start</b> in Telegram. If the code is not sent automatically, paste <b>{telegramLinkCode.code}</b>. This page checks the connection automatically.</p>
-                </div>
-              ) : (
-                <button type="button" onClick={generateTelegramLinkCode} disabled={telegramBusy} className="w-full rounded-xl bg-indigo-600 px-4 py-3 text-sm font-black text-white shadow-sm hover:bg-indigo-700 disabled:opacity-60">
-                  {telegramBusy ? 'Generating secure code...' : 'Connect Telegram'}
-                </button>
-              )}
-            </div>
-          )}
-        </section>
+        <TelegramAlertsSection
+          telegramStatus={telegramStatus}
+          telegramLinkCode={telegramLinkCode}
+          telegramBusy={telegramBusy}
+          handleCopy={handleCopy}
+          loadTelegramStatus={loadTelegramStatus}
+          generateTelegramLinkCode={generateTelegramLinkCode}
+          disconnectTelegram={disconnectTelegram}
+        />
 
       </div>
       </div>
