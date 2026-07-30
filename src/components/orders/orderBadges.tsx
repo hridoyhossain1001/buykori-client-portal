@@ -63,10 +63,14 @@ export function getCapiStatusBadge(sent: boolean) {
   );
 }
 
+const STEADFAST_TRACKING = 'https://portal.packzy.com/tracking/';
+const REDX_TRACKING = 'https://redx.com.bd/track-delivery/?trackingId=';
+const PATHAO_TRACKING = 'https://pathao.com/courier/tracking?tracking_id=';
+
 export function getCourierTrackingUrl(provider: string, trackingId: string) {
   const id = encodeURIComponent(trackingId);
-  if (provider === 'steadfast') return `https://portal.packzy.com/tracking/${id}`;
-  if (provider === 'redx') return `https://redx.com.bd/track-delivery/?trackingId=${id}`;
-  if (provider === 'pathao') return `https://pathao.com/courier/tracking?tracking_id=${id}`;
+  if (provider === 'steadfast') return STEADFAST_TRACKING + id;
+  if (provider === 'redx') return REDX_TRACKING + id;
+  if (provider === 'pathao') return PATHAO_TRACKING + id;
   return '';
 }
