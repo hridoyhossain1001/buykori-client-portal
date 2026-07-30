@@ -40,7 +40,7 @@ const WordPressSection: React.FC<WordPressSectionProps> = ({
           <div className="flex items-start justify-between gap-4 border-b border-slate-200 px-5 py-4">
             <div>
             <h2 id="settings-wordpress-title" className="text-sm font-bold text-slate-900">WordPress plugin connection</h2>
-            <p className="mt-1 text-xs text-slate-500">Connects your WordPress store to Buykori \u2014 all tracking choices are managed from this portal.</p>
+            <p className="mt-1 text-xs text-slate-500">Connects your WordPress store to Buykori — all tracking choices are managed from this portal.</p>
             </div>
             <span className={`shrink-0 rounded-full border px-3 py-1 text-[11px] font-bold ${connection.status === 'Active' ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-amber-200 bg-amber-50 text-amber-700'}`}>
               {connection.status === 'Active' ? 'Connected' : 'Reconnect'}
