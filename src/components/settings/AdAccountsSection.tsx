@@ -4,7 +4,8 @@ import { AdAccount } from '../../types';
 
 export interface DiscoveredMetaAccount {
   external_account_id: string;
-  account_name?: string;
+  account_name: string;
+  account_status?: number | null;
   account_currency?: string;
   account_timezone?: string;
 }
@@ -27,13 +28,13 @@ interface AdAccountsSectionProps {
   discoveringMetaAccounts: boolean;
   discoveredMetaAccounts: DiscoveredMetaAccount[];
   handleDiscoverMetaAccounts: () => void;
-  handleSelectDiscoveredMetaAccount: (accountId: string) => void;
+  handleSelectDiscoveredMetaAccount: (externalAccountId: string) => void;
   loadingAdAccounts: boolean;
   adAccounts: AdAccount[];
-  syncingAdAccountId: string | null;
-  deletingAdAccountId: string | null;
-  handleSyncAdAccount: (accountId: string) => void;
-  handleDisconnectAdAccount: (accountId: string) => void;
+  syncingAdAccountId: number | null;
+  deletingAdAccountId: number | null;
+  handleSyncAdAccount: (id: number) => void;
+  handleDisconnectAdAccount: (id: number) => void;
 }
 
 const AdAccountsSection: React.FC<AdAccountsSectionProps> = ({
