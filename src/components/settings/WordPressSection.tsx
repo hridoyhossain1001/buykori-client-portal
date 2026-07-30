@@ -19,6 +19,9 @@ interface WordPressSectionProps {
   refreshWPHeartbeat: () => Promise<void>;
 }
 
+const SECURE_PROTOCOL = 'https:';
+const WP_ADSYNC_ADMIN_PATH = '/wp-admin/admin.php?page=buykori-adsync';
+
 const WordPressSection: React.FC<WordPressSectionProps> = ({
   connection,
   pluginReleaseInfo,
@@ -35,6 +38,8 @@ const WordPressSection: React.FC<WordPressSectionProps> = ({
   showToast,
   refreshWPHeartbeat,
 }) => {
+  const wpAdminUrl = `${SECURE_PROTOCOL}//${connection.siteHost}${WP_ADSYNC_ADMIN_PATH}`;
+
   return (
         <section id="settings-wordpress" aria-labelledby="settings-wordpress-title" className="scroll-mt-28 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
           <div className="flex items-start justify-between gap-4 border-b border-slate-200 px-5 py-4">
@@ -56,7 +61,7 @@ const WordPressSection: React.FC<WordPressSectionProps> = ({
               {connection.siteHost && (
                 <a
                   className="mt-2 inline-flex font-semibold text-rose-700 underline"
-                  href={`https://${connection.siteHost}/wp-admin/admin.php?page=buykori-adsync`}
+                  href={wpAdminUrl}
                   target="_blank"
                   rel="noreferrer"
                 >
