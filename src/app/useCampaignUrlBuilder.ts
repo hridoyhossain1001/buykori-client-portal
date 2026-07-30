@@ -22,11 +22,8 @@ export function useCampaignUrlBuilder(profile: UserProfile | null, showToast: Sh
 
   useEffect(() => {
     if (profile && !urlBuilderBaseUrl) {
-      setUrlBuilderBaseUrl(
-        profile.email
-          ? `https://${profile.name.toLowerCase().replace(/\s+/g, '')}.com`
-          : 'https://your-site.com'
-      );
+      const slug = profile.name.toLowerCase().replace(/\s+/g, '');
+      setUrlBuilderBaseUrl(profile.email ? `https://${slug}.com` : 'https://your-site.com');
     }
   }, [profile]);
 
