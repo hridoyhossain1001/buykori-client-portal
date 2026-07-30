@@ -1,84 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Truck, 
-  CheckCircle2, 
-  XCircle, 
-  Search, 
-  ExternalLink, 
-  ShieldAlert, 
-  Package, 
-  Send,
-  Loader2,
-  RefreshCw,
-  Plus,
-  FileText,
-  User,
-  Phone,
-  MapPin,
-  DollarSign,
-  Wifi,
-  ChevronDown,
-  ChevronUp,
-  Printer,
-  Copy,
-  Info
-} from 'lucide-react';
-import { CourierBookingPayload, CourierOrder, CourierSettings, DeferredData, DeferredOrder, DeferredOrderProduct, FulfillmentOrder } from '../types';
+import { Package, RefreshCw, ShieldAlert, Truck } from 'lucide-react';
+import { CourierBookingPayload, CourierOrder, CourierSettings, DeferredData, DeferredOrder, FulfillmentOrder } from '../types';
 import { CourierLabelModal } from './CourierLabelModal';
 import { InvoiceModal } from './InvoiceModal';
-import { Button } from './common/Button';
-import { Modal } from './common/Modal';
 import { loadCourierOrders, loadPathaoStores, type PathaoStore } from '../services/courierApi';
 import { FraudVerdictBadge, getFraudVerdictKey } from './FraudVerdictBadge';
-
-// â”€â”€â”€ BD Phone Normalizer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// Accepts any Bangladeshi phone format and returns clean 01XXXXXXXXX (11 digits)
-// Handles: +8801XXXXXXXXX, 8801XXXXXXXXX, 01XXXXXXXXX, 1XXXXXXXXX
-function normalizeBDPhone(phone: string): string {
-  // Strip spaces, dashes, and parentheses
-  let clean = phone.replace(/[\s\-\(\)]/g, '');
-  // Strip leading country code +880 or 880
-  if (clean.startsWith('+880')) clean = clean.substring(4);
-  else if (clean.startsWith('880')) clean = clean.substring(3);
-  // Ensure starts with 0 (i.e. 1XXXXXXXXX â†’ 01XXXXXXXXX)
-  if (clean.length === 10 && !clean.startsWith('0')) {
-    clean = '0' + clean;
-  }
-  return clean; // Returns formatted 01XXXXXXXXX local string
-}
-
-function usablePhone(value: unknown): string {
-  const normalized = normalizeBDPhone(String(value || '').trim());
-  return /^01\d{9}$/.test(normalized) ? normalized : '';
-}
-
-function formatHeldAge(ageHours: unknown): string {
-  const hours = Math.max(0, Number(ageHours) || 0);
-  const minutes = Math.max(1, Math.round(hours * 60));
-  if (minutes < 60) return `${minutes} min ago`;
-  if (hours < 24) {
-    const wholeHours = Math.floor(hours);
-    const remainingMinutes = Math.round((hours - wholeHours) * 60);
-    return remainingMinutes > 0 ? `${wholeHours}h ${remainingMinutes}m ago` : `${wholeHours}h ago`;
-  }
-  const days = Math.floor(hours / 24);
-  const remainingHours = Math.floor(hours % 24);
-  return remainingHours > 0 ? `${days}d ${remainingHours}h ago` : `${days}d ago`;
-}
-
-function productMeta(product: DeferredOrderProduct): Array<{ label: string; value: string; category?: boolean }> {
-  const meta: Array<{ label: string; value: string; category?: boolean }> = [];
-  const category = String(product?.category || product?.content_category || '').trim();
-  if (category) meta.push({ label: 'Category', value: category, category: true });
-
-  if (product?.attributes && typeof product.attributes === 'object' && !Array.isArray(product.attributes)) {
-    Object.entries(product.attributes).forEach(([key, value]) => {
-      const text = String(value || '').trim();
-      if (text) meta.push({ label: key, value: text });
-    });
-  }
-  return meta;
-}
+import { usablePhone } from './orders/ordersUtils';
+import OrdersSummaryCards from './orders/OrdersSummaryCards';
+import PendingOrdersPanel from './orders/PendingOrdersPanel';
+import ShippedOrdersPanel from './orders/ShippedOrdersPanel';
+import CourierBookingModal from './orders/CourierBookingModal';
+import CancelCourierOrderModal from './orders/CancelCourierOrderModal';
 
 interface OrdersViewProps {
   deferredData: DeferredData;
@@ -156,8 +88,7 @@ export function OrdersView({
   const [recipientName, setRecipientName] = useState<string>('');
   const [recipientPhone, setRecipientPhone] = useState<string>('');
   const [recipientAddress, setRecipientAddress] = useState<string>('');
-  const [itemId, setItemId] = useState<number>(0); // Pending Event ID
-  
+
   // Pathao Store and Package details states
   const [pathaoStores, setPathaoStores] = useState<PathaoStore[]>([]);
   const [selectedStoreId, setSelectedStoreId] = useState<number | string | ''>('');
@@ -203,9 +134,9 @@ export function OrdersView({
   }, [pendingSearch, pendingFraudFilter, pendingSort]);
 
   const toggleSelectShippedOrder = (orderId: number) => {
-    setSelectedShippedOrderIds(prev => 
-      prev.includes(orderId) 
-        ? prev.filter(id => id !== orderId) 
+    setSelectedShippedOrderIds(prev =>
+      prev.includes(orderId)
+        ? prev.filter(id => id !== orderId)
         : [...prev, orderId]
     );
   };
@@ -355,15 +286,6 @@ export function OrdersView({
     if (selectedPathaoZone !== '') fetchPathaoLocations('areas', Number(selectedPathaoZone));
   }, [selectedPathaoZone]);
 
-  const openSendModal = (order: DeferredOrder) => {
-    setSelectedOrder(order);
-    setRecipientName(order.recipientName || (order.customer.includes('@') ? '' : order.customer));
-    setRecipientPhone(order.recipientPhone || (order.customer.match(/^\+?[0-9\s-]{10,15}$/) ? order.customer : ''));
-    setRecipientAddress(order.recipientAddress || '');
-    setCodAmount(order.amount);
-    setIsSendModalOpen(true);
-  };
-
   const handleSendToCourierSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!recipientName.trim() || !recipientPhone.trim() || !recipientAddress.trim()) {
@@ -452,7 +374,7 @@ export function OrdersView({
     }
   };
 
-  // â”€â”€â”€ Cancel Courier Order â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // Cancel Courier Order
   const handleCancelCourierOrder = async (order: CourierOrder) => {
     setOrderToCancel(order);
   };
@@ -497,12 +419,12 @@ export function OrdersView({
 
   // Filtered courier orders
   const filteredCourierOrders = courierOrders.filter(order => {
-    const matchesSearch = 
+    const matchesSearch =
       order.order_id.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (order.recipient_phone && order.recipient_phone.includes(searchQuery)) ||
       (order.recipient_name && order.recipient_name.toLowerCase().includes(searchQuery.toLowerCase())) ||
       (order.courier_tracking_id && order.courier_tracking_id.toLowerCase().includes(searchQuery.toLowerCase()));
-      
+
     const matchesProvider = providerFilter === 'all' ? true : order.courier_provider === providerFilter;
     const matchesStatus = statusFilter === 'all' ? true : order.courier_status === statusFilter;
 
@@ -524,7 +446,7 @@ export function OrdersView({
   ];
 
   const filteredShippedIds = filteredCourierOrders.map(o => o.id);
-  const areAllFilteredSelected = filteredShippedIds.length > 0 && 
+  const areAllFilteredSelected = filteredShippedIds.length > 0 &&
     filteredShippedIds.every(id => selectedShippedOrderIds.includes(id));
 
   const toggleSelectAllFilteredShipped = () => {
@@ -535,76 +457,6 @@ export function OrdersView({
     }
   };
 
-  const getStatusBadge = (status: string) => {
-    const s = String(status || 'pending').toLowerCase();
-    if (s === 'booking_queued' || s === 'booking_processing') {
-      return (
-        <span className="inline-flex min-w-[86px] justify-center rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-xs font-bold text-sky-700">
-          {s === 'booking_processing' ? 'Booking Now' : 'Booking Queued'}
-        </span>
-      );
-    }
-    if (s === 'booking_failed') {
-      return (
-        <span className="inline-flex min-w-[86px] justify-center rounded-full border border-rose-200 bg-rose-50 px-2 py-0.5 text-xs font-bold text-rose-700">
-          Booking Failed
-        </span>
-      );
-    }
-    if (s === 'delivered' || s === 'completed') {
-      return (
-        <span className="inline-flex min-w-[86px] justify-center rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs font-bold text-emerald-700">
-          Delivered
-        </span>
-      );
-    }
-    if (s === 'returned' || s === 'partial_returned') {
-      return (
-        <span className="inline-flex min-w-[86px] justify-center rounded-full border border-rose-200 bg-rose-50 px-2 py-0.5 text-xs font-bold text-rose-700">
-          Returned
-        </span>
-      );
-    }
-    if (s === 'cancelled') {
-      return (
-        <span className="inline-flex min-w-[86px] justify-center rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-xs font-bold text-slate-700">
-          Cancelled
-        </span>
-      );
-    }
-    if (s === 'in_transit' || s === 'picked_up' || s === 'shipped') {
-      return (
-        <span className="inline-flex min-w-[86px] justify-center rounded-full border border-indigo-200 bg-indigo-50 px-2 py-0.5 text-xs font-bold text-indigo-700">
-          In Transit
-        </span>
-      );
-    }
-    return (
-      <span className="inline-flex min-w-[86px] justify-center rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-xs font-bold text-amber-700">
-        Pending
-      </span>
-    );
-  };
-
-  const getCapiStatusBadge = (sent: boolean) => {
-    return sent ? (
-      <span className="inline-flex min-w-[86px] justify-center rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs font-bold text-emerald-700">
-        Synced
-      </span>
-    ) : (
-      <span className="inline-flex min-w-[86px] justify-center rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-xs font-bold text-slate-500">
-        Waiting
-      </span>
-    );
-  };
-
-  const getCourierTrackingUrl = (provider: string, trackingId: string) => {
-    const id = encodeURIComponent(trackingId);
-    if (provider === 'steadfast') return `https://portal.packzy.com/tracking/${id}`;
-    if (provider === 'redx') return `https://redx.com.bd/track-delivery/?trackingId=${id}`;
-    if (provider === 'pathao') return `https://pathao.com/courier/tracking?tracking_id=${id}`;
-    return '';
-  };
   const filteredRedxAreas = redxAreas
     .filter(area => {
       const needle = redxAreaSearch.trim().toLowerCase();
@@ -687,67 +539,15 @@ export function OrdersView({
         </p>
       </header>
 
-      <section className="overflow-hidden rounded-[14px] border border-slate-200 bg-white p-2.5 shadow-sm md:hidden">
-        <div className={`flex items-center justify-between ${pendingOverviewOpen ? 'border-b border-slate-100 pb-2' : ''}`}>
-          <div className="flex items-center gap-2">
-            <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-blue-50 text-[#2f80df]">
-              <Truck className="h-3.5 w-3.5" />
-            </span>
-            <span className="text-[11px] font-bold text-slate-900">Courier overview</span>
-            <span className="rounded-full bg-blue-50 px-2 py-0.5 text-[8px] font-black text-[#285ac7]">
-              {codVerificationOrders.length} pending
-            </span>
-          </div>
-          <button
-            type="button"
-            onClick={() => setPendingOverviewOpen((current) => !current)}
-            aria-expanded={pendingOverviewOpen}
-            aria-label={pendingOverviewOpen ? 'Hide courier overview details' : 'Show courier overview details'}
-            className={`flex h-7 items-center justify-center gap-1 rounded-lg border px-2 transition ${
-              pendingOverviewOpen
-                ? 'border-blue-200 bg-blue-50 text-[#2f80df]'
-                : 'border-slate-200 bg-white text-slate-500'
-            }`}
-          >
-            <Info className="h-3.5 w-3.5" />
-            <ChevronDown className={`h-3 w-3 transition-transform ${pendingOverviewOpen ? 'rotate-180' : ''}`} />
-          </button>
-        </div>
-        {pendingOverviewOpen && (
-          <div className="grid grid-cols-2 pt-1">
-            {[
-              ['Pending orders', codVerificationOrders.length, `BDT ${pendingValueTotal.toLocaleString()} waiting`, 'text-slate-900'],
-              ['Held over 7 days', heldOverWeek, heldOverWeek > 0 ? 'Needs review' : 'No ageing orders', 'text-orange-600'],
-              ['Booked this month', bookedThisMonth, 'Connected couriers', 'text-slate-900'],
-              ['High fraud risk', highRiskPending, highRiskPending > 0 ? 'Review before booking' : 'All orders look safe', highRiskPending > 0 ? 'text-rose-600' : 'text-emerald-600'],
-            ].map(([label, value, helper, tone], index) => (
-              <div
-                key={String(label)}
-                className={`min-w-0 px-2.5 py-2 ${index % 2 === 1 ? 'border-l border-slate-100' : ''} ${index > 1 ? 'border-t border-slate-100' : ''}`}
-              >
-                <p className="whitespace-nowrap text-[7.5px] font-bold uppercase tracking-[0.09em] text-slate-500">{label}</p>
-                <p className={`mt-0.5 text-[16px] font-black leading-none tracking-tight ${tone}`}>{value}</p>
-                <p className="mt-1 text-[8px] font-medium leading-[11px] text-slate-500">{helper}</p>
-              </div>
-            ))}
-          </div>
-        )}
-      </section>
-
-      <section className="hidden overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm md:grid md:grid-cols-2 lg:grid-cols-4">
-        {[
-          ['Pending orders', codVerificationOrders.length, `BDT ${pendingValueTotal.toLocaleString()} waiting to ship`, 'text-slate-900'],
-          ['Held over 7 days', heldOverWeek, heldOverWeek > 0 ? 'Needs review' : 'No ageing orders', 'text-amber-700'],
-          ['Booked this month', bookedThisMonth, 'Across connected couriers', 'text-slate-900'],
-          ['High fraud risk', highRiskPending, highRiskPending > 0 ? 'Review before booking' : 'All pending orders look safe', highRiskPending > 0 ? 'text-rose-700' : 'text-emerald-700'],
-        ].map(([label, value, helper, tone]) => (
-          <div key={String(label)} className="border-b border-slate-100 px-5 py-4 last:border-b-0 sm:border-r lg:border-b-0">
-            <p className="text-xs font-bold uppercase tracking-wider text-slate-400">{label}</p>
-            <p className={`mt-1 text-lg font-black ${tone}`}>{value}</p>
-            <p className="mt-1 text-xs text-slate-400">{helper}</p>
-          </div>
-        ))}
-      </section>
+      <OrdersSummaryCards
+        pendingCount={codVerificationOrders.length}
+        pendingValueTotal={pendingValueTotal}
+        heldOverWeek={heldOverWeek}
+        bookedThisMonth={bookedThisMonth}
+        highRiskPending={highRiskPending}
+        pendingOverviewOpen={pendingOverviewOpen}
+        setPendingOverviewOpen={setPendingOverviewOpen}
+      />
 
       {/* Tab bar header */}
       <div className="flex w-full max-w-full rounded-xl border border-slate-200 bg-white p-1 shadow-sm md:w-fit">
@@ -779,8 +579,8 @@ export function OrdersView({
           <span className="hidden sm:inline">Shipped Courier Log</span>
           <span className={`rounded-full px-1.5 py-0.5 text-xs font-black ${activeTab === 'shipped' ? 'bg-white text-indigo-700' : 'bg-slate-100 text-slate-600'}`}>{courierOrders.length}</span>
         </button>
-        
-        <button 
+
+        <button
           onClick={() => {
             fetchDeferred();
             fetchCourierOrders();
@@ -795,410 +595,31 @@ export function OrdersView({
       </div>
 
       {activeTab === 'pending' && (
-        <div id="orders-pending" className="scroll-mt-24 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-          <div className="border-b border-slate-200 p-3 md:hidden">
-            <div className="grid grid-cols-[minmax(0,1fr)_112px] gap-2">
-              <div className="relative min-w-0">
-                <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-slate-400" />
-                <input
-                  value={pendingSearch}
-                  onChange={(event) => setPendingSearch(event.target.value)}
-                  placeholder="Search order ID, name or phone…"
-                  className="h-9 w-full rounded-lg border border-slate-200 pl-9 pr-2 text-[10px] outline-none focus:border-[#2f80df]"
-                />
-              </div>
-              <select
-                value={pendingFraudFilter}
-                onChange={(event) => setPendingFraudFilter(event.target.value)}
-                aria-label="Filter pending orders by fraud level"
-                className="h-9 min-w-0 rounded-lg border border-slate-200 bg-white px-2 text-[9px] font-bold text-slate-700"
-              >
-                <option value="all">All fraud levels</option>
-                <option value="EXCELLENT">Best customers</option>
-                <option value="GOOD">Good customers</option>
-                <option value="MODERATE">Moderate risk</option>
-                <option value="RISKY">Risky customers</option>
-                <option value="HIGH_RISK">High risk</option>
-                <option value="NEW_CUSTOMER">New customers</option>
-                <option value="UNKNOWN">Check unavailable</option>
-              </select>
-            </div>
-            <div className="mt-2 grid grid-cols-[104px_1fr_116px] items-center gap-2">
-              <select
-                value={pendingSort}
-                onChange={(event) => setPendingSort(event.target.value as 'oldest' | 'newest')}
-                aria-label="Sort pending courier orders"
-                className="h-8 min-w-0 rounded-lg border border-slate-200 bg-white px-2 text-[9px] font-bold text-slate-700"
-              >
-                <option value="newest">Latest first ▼</option>
-                <option value="oldest">Oldest first ▼</option>
-              </select>
-              <span className="truncate text-[9px] font-bold text-slate-400">{selectedPendingOrderIds.length} selected</span>
-              <button
-                type="button"
-                disabled={selectedPendingOrderIds.length === 0}
-                onClick={openFirstSelectedPendingOrder}
-                className="inline-flex h-8 items-center justify-center gap-1 rounded-lg bg-[#2f80df] px-2 text-[9px] font-bold text-white disabled:border disabled:border-slate-200 disabled:bg-slate-50 disabled:text-slate-400"
-              >
-                <Truck className="h-3 w-3" />
-                Book selected
-              </button>
-            </div>
-          </div>
-
-          <div className="hidden flex-col gap-3 border-b border-slate-200 p-4 md:flex lg:flex-row lg:items-center">
-            <div className="relative min-w-0 flex-1">
-              <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
-              <input
-                value={pendingSearch}
-                onChange={(event) => setPendingSearch(event.target.value)}
-                placeholder="Search order ID, name or phone…"
-                className="h-10 w-full rounded-lg border border-slate-200 pl-10 pr-3 text-sm outline-none focus:border-indigo-400"
-              />
-            </div>
-            <select
-              value={pendingFraudFilter}
-              onChange={(event) => setPendingFraudFilter(event.target.value)}
-              aria-label="Filter pending orders by fraud level"
-              className="h-10 rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700"
-            >
-              <option value="all">All fraud levels</option>
-              <option value="EXCELLENT">Best customers</option>
-              <option value="GOOD">Good customers</option>
-              <option value="MODERATE">Moderate risk</option>
-              <option value="RISKY">Risky customers</option>
-              <option value="HIGH_RISK">High risk</option>
-              <option value="NEW_CUSTOMER">New customers</option>
-              <option value="UNKNOWN">Check unavailable</option>
-            </select>
-            <select
-              value={pendingSort}
-              onChange={(event) => setPendingSort(event.target.value as 'oldest' | 'newest')}
-              aria-label="Sort pending courier orders"
-              className="h-10 rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700"
-            >
-              <option value="newest">Latest first</option>
-              <option value="oldest">Oldest first</option>
-            </select>
-            <span className="text-xs font-bold text-slate-500">{selectedPendingOrderIds.length} selected</span>
-            <button
-              type="button"
-              disabled={selectedPendingOrderIds.length === 0}
-              onClick={openFirstSelectedPendingOrder}
-              className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-indigo-600 px-4 text-xs font-bold text-white hover:bg-indigo-700 disabled:opacity-50"
-            >
-              <Truck className="h-4 w-4" />
-              Book selected
-            </button>
-          </div>
-
-          <div className="divide-y divide-slate-100 md:hidden">
-            {pendingPageOrders.length === 0 ? (
-              <div className="px-4 py-8 text-center text-slate-400">
-                <CheckCircle2 className="mx-auto mb-2 h-8 w-8 text-emerald-400" />
-                <p className="text-xs font-semibold">No COD orders are waiting for your review.</p>
-              </div>
-            ) : pendingPageOrders.map((order) => {
-              const isExpanded = expandedOrderId === order.orderId;
-              const products = order.products || [];
-              const selected = selectedPendingOrderIds.includes(order.orderId);
-              const productSubtotal = Number(order.productSubtotal ?? products.reduce((sum, product) => sum + (Number(product.price || 0) * Number(product.quantity || 1)), 0));
-              const deliveryAndAdjustments = Number(order.deliveryCharge || 0) + Number(order.otherAdjustment || 0);
-              return (
-                <article key={order.orderId} className={`px-3 py-2.5 ${selected ? 'bg-blue-50/40' : 'bg-white'}`}>
-                  <div className="flex items-start gap-2">
-                    <input
-                      type="checkbox"
-                      checked={selected}
-                      onChange={(event) => togglePendingOrder(order.orderId, event.target.checked)}
-                      aria-label={`Select pending courier order ${order.orderId}`}
-                      className="mt-0.5 h-4 w-4 shrink-0 rounded accent-[#2f80df]"
-                    />
-                    <button type="button" onClick={() => toggleExpand(order.orderId)} className="min-w-0 flex-1 text-left" aria-expanded={isExpanded}>
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="min-w-0">
-                          <p className="flex items-center gap-1 font-mono text-[12px] font-bold leading-none text-slate-900">
-                            #{order.orderId}
-                            {isExpanded ? <ChevronUp className="h-3 w-3 text-[#2f80df]" /> : <ChevronDown className="h-3 w-3 text-slate-400" />}
-                          </p>
-                          <p className="mt-1 truncate text-[10px] font-semibold text-slate-800">
-                            {order.recipientName || 'Customer unavailable'}
-                            <span className="ml-1 font-normal text-slate-400">· {usablePhone(order.recipientPhone) || usablePhone(order.customer) || 'No phone'}</span>
-                          </p>
-                        </div>
-                        <span className="shrink-0 text-right">
-                          <strong className="block text-[13px] font-black leading-none text-slate-900">BDT {Number(order.amount || 0).toLocaleString()}</strong>
-                          <span className={`mt-1 block text-[8px] font-bold ${(Number(order.ageHours) || 0) >= 168 ? 'text-orange-600' : 'text-slate-400'}`}>
-                            {formatHeldAge(order.ageHours)}
-                          </span>
-                        </span>
-                      </div>
-                      <div className="mt-2 flex items-center justify-between gap-2">
-                        {renderCourierVerdict(order.fraudDetails, order.fraudScore, true)}
-                        <span className="text-[8px] font-medium text-slate-400">{isExpanded ? 'Hide details' : 'View details'}</span>
-                      </div>
-                    </button>
-                  </div>
-
-                  {isExpanded && (
-                    <div className="mt-2 grid gap-2 border-t border-slate-100 pt-2">
-                      <div className="rounded-lg bg-slate-50 p-2.5">
-                        <p className="text-[8px] font-bold uppercase tracking-wider text-slate-400">Customer details</p>
-                        <div className="mt-1.5 grid grid-cols-[44px_1fr] gap-x-2 gap-y-1 text-[9px]">
-                          <span className="font-bold text-slate-400">Name</span>
-                          <strong className="truncate text-slate-700">{order.recipientName || 'Customer unavailable'}</strong>
-                          <span className="font-bold text-slate-400">Phone</span>
-                          <span className="font-mono font-semibold text-slate-700">{usablePhone(order.recipientPhone) || 'No phone'}</span>
-                          <span className="font-bold text-slate-400">Address</span>
-                          <span className="leading-3 text-slate-700">{order.recipientAddress || 'Address unavailable'}</span>
-                        </div>
-                      </div>
-                      {products.length > 0 && (
-                        <div className="rounded-lg border border-slate-200 p-2.5">
-                          <p className="text-[8px] font-bold uppercase tracking-wider text-slate-400">Order items · {products.length}</p>
-                          <div className="mt-1.5 space-y-1.5">
-                            {products.slice(0, 3).map((product, index) => (
-                              <div key={index} className="flex items-start justify-between gap-2 text-[9px]">
-                                <span className="min-w-0 truncate font-semibold text-slate-700">{product.name || product.content_name || 'Product'} · Qty {product.quantity || 1}</span>
-                                <strong className="shrink-0 text-slate-700">BDT {Number(product.price || 0).toLocaleString()}</strong>
-                              </div>
-                            ))}
-                          </div>
-                          <div className="mt-2 space-y-1 border-t border-slate-100 pt-2 text-[9px]">
-                            <div className="flex justify-between text-slate-500"><span>Product subtotal</span><strong className="text-slate-700">BDT {productSubtotal.toLocaleString()}</strong></div>
-                            <div className="flex justify-between text-slate-500"><span>Delivery & adjustments</span><strong className="text-slate-700">BDT {deliveryAndAdjustments.toLocaleString()}</strong></div>
-                            <div className="flex justify-between border-t border-slate-100 pt-1 font-bold text-slate-800"><span>Total order value</span><strong className="text-[#285ac7]">BDT {Number(order.orderTotal ?? order.amount ?? 0).toLocaleString()}</strong></div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  <div className="mt-2 grid grid-cols-2 gap-2">
-                    <button onClick={() => openInvoice(order)} className="h-8 rounded-lg border border-slate-200 bg-white px-2 text-[9px] font-bold text-slate-700">Invoice</button>
-                    <button onClick={() => openPendingCourierModal(order)} className="h-8 rounded-lg bg-[#2f80df] px-2 text-[9px] font-bold text-white">Book courier</button>
-                  </div>
-                </article>
-              );
-            })}
-          </div>
-
-          <div className="hidden overflow-x-auto min-h-64 md:block">
-            <table className="w-full text-left text-xs text-slate-600 divide-y divide-slate-100 min-w-[750px]  ">
-              <thead className="bg-slate-50 text-xs font-bold uppercase tracking-wider text-slate-500  ">
-                <tr>
-                  <th className="w-12 px-4 py-3">
-                    <input
-                      type="checkbox"
-                      checked={pendingPageOrders.length > 0 && pendingPageOrders.every((order) => selectedPendingOrderIds.includes(order.orderId))}
-                      onChange={(event) => setSelectedPendingOrderIds(event.target.checked ? pendingPageOrders.map((order) => order.orderId) : [])}
-                      aria-label="Select all visible pending courier orders"
-                      className="accent-indigo-600"
-                    />
-                  </th>
-                  <th className="px-6 py-3">Order ID</th>
-                  <th className="px-6 py-3">Customer Info</th>
-                  <th className="px-6 py-3">Value</th>
-                  <th className="px-6 py-3">Fraud Check</th>
-                  <th className="px-6 py-3">Time Held</th>
-                  <th className="px-6 py-3 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 ">
-                {pendingPageOrders.length === 0 ? (
-                  <tr>
-                    <td colSpan={7} className="px-6 py-12 text-center text-slate-400 font-medium ">
-                      <CheckCircle2 className="w-8 h-8 mx-auto text-emerald-400 mb-2" />
-                      No COD orders are waiting for your review.
-                    </td>
-                  </tr>
-                ) : (
-                  pendingPageOrders.map((order) => {
-                    const isExpanded = expandedOrderId === order.orderId;
-                    const products = order.products || [];
-                    const isSelected = selectedPendingOrderIds.includes(order.orderId);
-                    return (
-                      <React.Fragment key={order.orderId}>
-                        <tr className={`hover:bg-slate-50/50 transition-colors ${isExpanded || isSelected ? 'bg-indigo-50/20' : ''}`}>
-                          <td className="px-4 py-3">
-                            <input
-                              type="checkbox"
-                              checked={isSelected}
-                              onChange={(event) => togglePendingOrder(order.orderId, event.target.checked)}
-                              aria-label={`Select pending courier order ${order.orderId}`}
-                              className="accent-indigo-600"
-                            />
-                          </td>
-                          <td className="px-6 py-3">
-                            <button
-                              onClick={() => toggleExpand(order.orderId)}
-                              className="flex items-center gap-1.5 font-mono font-bold text-slate-800  hover:text-indigo-600  transition-colors cursor-pointer"
-                            >
-                              {isExpanded ? <ChevronUp className="w-3.5 h-3.5 text-indigo-500" /> : <ChevronDown className="w-3.5 h-3.5 text-slate-400" />}
-                              {order.orderId}
-                            </button>
-                          </td>
-                          <td className="px-6 py-3">
-                            <div className="flex flex-col gap-0.5">
-                              {order.recipientName && order.recipientName !== '-' && (
-                                <button
-                                  type="button"
-                                  onClick={() => toggleExpand(order.orderId)}
-                                  className="w-fit text-left font-semibold text-slate-700 hover:text-indigo-600   transition-colors cursor-pointer"
-                                  aria-expanded={isExpanded}
-                                  title="View customer and order details"
-                                >
-                                  {order.recipientName}
-                                </button>
-                              )}
-                            </div>
-                          </td>
-                          <td className="px-6 py-3 font-semibold text-slate-800 ">BDT {Number(order.amount || 0).toLocaleString()}</td>
-                          <td className="px-6 py-3">
-                            {renderCourierVerdict(order.fraudDetails, order.fraudScore)}
-                          </td>
-                          <td className="px-6 py-3 text-slate-400 font-mono ">{formatHeldAge(order.ageHours)}</td>
-                          <td className="px-6 py-3 text-right space-x-2 whitespace-nowrap">
-                            <button 
-                              onClick={() => openInvoice(order)}
-                              className="btn-touch-expand px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700    text-xs font-bold rounded shadow-sm transition-colors cursor-pointer inline-flex items-center gap-1"
-                              title="View and Print Invoice"
-                            >
-                              <FileText className="w-2.5 h-2.5" /> Invoice
-                            </button>
-                            <button
-                              onClick={() => openPendingCourierModal(order)}
-                              className="btn-touch-expand px-2.5 py-1 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded shadow-sm transition-colors cursor-pointer inline-flex items-center gap-1"
-                            >
-                              <Send className="w-2.5 h-2.5" /> Book Courier
-                            </button>
-                          </td>
-                        </tr>
-
-                        {/* Expanded Detail Row */}
-                        {isExpanded && (
-                          <tr className="bg-slate-50/80">
-                            <td colSpan={7} className="px-6 py-3">
-                              <div className="grid grid-cols-1 gap-3 lg:grid-cols-[minmax(260px,.9fr)_minmax(0,1.2fr)]">
-                                <section className="max-h-[210px] overflow-y-auto rounded-xl border border-slate-200 bg-white p-4">
-                                  <div className="mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-500">
-                                    <span>Customer details</span>
-                                    <span className="text-slate-300">·</span>
-                                    <span className="font-mono">#{order.orderId}</span>
-                                  </div>
-                                  <dl className="grid grid-cols-[64px_minmax(0,1fr)] gap-x-3 gap-y-2 text-xs">
-                                    <dt className="font-bold uppercase text-slate-400">Name</dt>
-                                    <dd className="truncate font-semibold text-slate-800">{order.recipientName || '-'}</dd>
-                                    <dt className="font-bold uppercase text-slate-400">Phone</dt>
-                                    <dd className="flex min-w-0 items-center gap-1.5">
-                                      <span className="truncate font-mono font-semibold text-slate-800">{usablePhone(order.recipientPhone) || '-'}</span>
-                                      {usablePhone(order.recipientPhone) && (
-                                        <button
-                                          type="button"
-                                          onClick={() => copyPhone(order.recipientPhone)}
-                                          className="shrink-0 rounded p-1 text-indigo-500 hover:bg-indigo-50"
-                                          title="Copy phone number"
-                                          aria-label="Copy phone number"
-                                        >
-                                          <Copy className="h-3 w-3" />
-                                        </button>
-                                      )}
-                                    </dd>
-                                    <dt className="font-bold uppercase text-slate-400">Address</dt>
-                                    <dd className="line-clamp-2 font-semibold leading-relaxed text-slate-800" title={order.recipientAddress}>
-                                      {order.recipientAddress || '-'}
-                                    </dd>
-                                  </dl>
-                                </section>
-
-                                <section className="max-h-[210px] overflow-y-auto rounded-xl border border-slate-200 bg-white p-4">
-                                  <div className="mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-500">
-                                    <span>Order items</span>
-                                    <span className="text-slate-300">·</span>
-                                    <span>{products.length} item{products.length === 1 ? '' : 's'}</span>
-                                  </div>
-                                  {products.length === 0 ? (
-                                    <p className="py-3 text-center text-xs text-slate-400">Product details not available.</p>
-                                  ) : (
-                                    <div className="space-y-2">
-                                      {products.slice(0, 3).map((product, index) => (
-                                        <div key={index} className="flex items-start justify-between gap-4 border-b border-dashed border-slate-100 pb-2 last:border-0">
-                                          <div className="min-w-0">
-                                            <p className="truncate text-xs font-semibold text-slate-800" title={product.name || product.content_name}>
-                                              {product.name || product.content_name || 'Product'}
-                                            </p>
-                                            <p className="mt-1 text-xs text-slate-400">Qty {product.quantity || 1}</p>
-                                          </div>
-                                          <strong className="shrink-0 text-xs text-slate-800">
-                                            BDT {Number(product.price || 0).toLocaleString()}
-                                          </strong>
-                                        </div>
-                                      ))}
-                                      {products.length > 3 && (
-                                        <p className="text-xs font-semibold text-indigo-600">+{products.length - 3} more items</p>
-                                      )}
-                                    </div>
-                                  )}
-                                  <div className="mt-3 space-y-1.5 border-t border-slate-100 pt-3 text-xs">
-                                    <div className="flex items-center justify-between text-slate-500">
-                                      <span>Product subtotal</span>
-                                      <strong className="text-slate-700">BDT {Number(order.productSubtotal ?? order.amount ?? 0).toLocaleString()}</strong>
-                                    </div>
-                                    <div className="flex items-center justify-between text-slate-500">
-                                      <span>Delivery & adjustments</span>
-                                      <strong className="text-slate-700">BDT {Number((order.deliveryCharge || 0) + (order.otherAdjustment || 0)).toLocaleString()}</strong>
-                                    </div>
-                                    <div className="flex items-center justify-between border-t border-slate-100 pt-1.5 font-bold text-slate-800">
-                                      <span>Total order value</span>
-                                      <strong className="text-indigo-700">BDT {Number(order.orderTotal ?? order.amount ?? 0).toLocaleString()}</strong>
-                                    </div>
-                                  </div>
-                                </section>
-                              </div>
-                            </td>
-                          </tr>
-                        )}
-                      </React.Fragment>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
-          <div className="flex items-center justify-between border-t border-slate-100 px-5 py-3">
-            <p className="text-xs text-slate-400">
-              Showing {pendingFilteredOrders.length === 0 ? 0 : (pendingPageSafe - 1) * pendingPageSize + 1}–{Math.min(pendingPageSafe * pendingPageSize, pendingFilteredOrders.length)} of {pendingFilteredOrders.length} pending orders
-            </p>
-            <div className="flex items-center gap-1">
-              <button
-                type="button"
-                disabled={pendingPageSafe <= 1}
-                onClick={() => setPendingPage((page) => Math.max(1, page - 1))}
-                className="h-8 min-w-8 rounded-lg border border-slate-200 px-2 text-xs font-bold text-slate-600 disabled:opacity-40"
-              >
-                ‹
-              </button>
-              {Array.from({ length: pendingTotalPages }, (_, index) => index + 1).slice(0, 5).map((page) => (
-                <button
-                  type="button"
-                  key={page}
-                  onClick={() => setPendingPage(page)}
-                  className={`h-8 min-w-8 rounded-lg px-2 text-xs font-bold ${page === pendingPageSafe ? 'bg-indigo-600 text-white' : 'border border-slate-200 text-slate-600'}`}
-                >
-                  {page}
-                </button>
-              ))}
-              <button
-                type="button"
-                disabled={pendingPageSafe >= pendingTotalPages}
-                onClick={() => setPendingPage((page) => Math.min(pendingTotalPages, page + 1))}
-                className="h-8 min-w-8 rounded-lg border border-slate-200 px-2 text-xs font-bold text-slate-600 disabled:opacity-40"
-              >
-                ›
-              </button>
-            </div>
-          </div>
-        </div>
+        <PendingOrdersPanel
+          pendingSearch={pendingSearch}
+          setPendingSearch={setPendingSearch}
+          pendingFraudFilter={pendingFraudFilter}
+          setPendingFraudFilter={setPendingFraudFilter}
+          pendingSort={pendingSort}
+          setPendingSort={setPendingSort}
+          selectedPendingOrderIds={selectedPendingOrderIds}
+          setSelectedPendingOrderIds={setSelectedPendingOrderIds}
+          togglePendingOrder={togglePendingOrder}
+          openFirstSelectedPendingOrder={openFirstSelectedPendingOrder}
+          pendingPageOrders={pendingPageOrders}
+          pendingFilteredCount={pendingFilteredOrders.length}
+          pendingPageSize={pendingPageSize}
+          pendingPageSafe={pendingPageSafe}
+          pendingTotalPages={pendingTotalPages}
+          setPendingPage={setPendingPage}
+          goToPendingPage={(page) => setPendingPage(page)}
+          expandedOrderId={expandedOrderId}
+          toggleExpand={toggleExpand}
+          openInvoice={openInvoice}
+          openPendingCourierModal={openPendingCourierModal}
+          renderCourierVerdict={renderCourierVerdict}
+          copyPhone={copyPhone}
+        />
       )}
 
       {activeTab === 'pending' && heldOverWeek > 0 && (
@@ -1209,785 +630,101 @@ export function OrdersView({
       )}
 
       {activeTab === 'shipped' && (
-        <div id="orders-shipped" className="scroll-mt-24 flex flex-col space-y-3 rounded-xl border border-slate-200 bg-white p-3 shadow-sm md:space-y-4 md:p-5">
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-            <div>
-              <h2 className="text-xs font-black uppercase tracking-wide text-slate-800 md:text-sm">Shipped Orders & Delivery Tracking</h2>
-              <p className="hidden text-xs text-slate-400 sm:block">
-                Track delivery statuses on SteadFast, Pathao, or RedX. Delivered orders send purchase data; returned orders send refund data.
-              </p>
-            </div>
-          </div>
-
-          <div className="hidden grid-cols-5 gap-2 md:grid">
-            {shippedStatItems.map(item => (
-              <div key={item.label} className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
-                <p className={`text-base font-bold leading-none ${item.tone}`}>{item.value}</p>
-                <p className="mt-1 text-xs font-bold uppercase tracking-wider text-slate-400">{item.label}</p>
-              </div>
-            ))}
-          </div>
-
-          <div className="grid grid-cols-5 gap-1.5 md:hidden" aria-label="Shipment status summary">
-            {shippedStatItems.map(item => (
-              <div key={item.label} className="min-w-0 rounded-lg border border-slate-200 bg-slate-50 px-1 py-2 text-center">
-                <span className={`mx-auto block h-1.5 w-1.5 rounded-full ${item.dot}`} />
-                <p className={`mt-1 font-mono text-[12px] font-black leading-none ${item.tone}`}>{item.value}</p>
-                <p className="mt-1 truncate text-[7px] font-black uppercase tracking-[0.04em] text-slate-500">{item.shortLabel}</p>
-              </div>
-            ))}
-          </div>
-
-          {/* Filters Bar */}
-          <div className="flex flex-wrap gap-2 rounded-lg border border-slate-100 bg-slate-50 p-2">
-            <div className="relative min-w-full flex-1 sm:min-w-[200px]">
-              <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-slate-400" />
-              <input
-                type="text"
-                value={searchQuery}
-                placeholder="Search by Order ID, tracking or recipient..."
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="h-9 w-full rounded-lg border border-slate-200 bg-white pl-9 pr-4 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500"
-              />
-            </div>
-            
-            <div className="min-w-0 flex-1 sm:w-[140px] sm:flex-none">
-              <select
-                value={providerFilter}
-                onChange={(e) => setProviderFilter(e.target.value)}
-                aria-label="Filter shipped orders by courier"
-                className="h-9 w-full cursor-pointer rounded-lg border border-slate-200 bg-white px-2 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500"
-              >
-                <option value="all">All Couriers</option>
-                <option value="steadfast">SteadFast</option>
-                <option value="pathao">Pathao</option>
-                <option value="redx">RedX</option>
-              </select>
-            </div>
-
-            <div className="min-w-0 flex-1 sm:w-[140px] sm:flex-none">
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                aria-label="Filter shipped orders by status"
-                className="h-9 w-full cursor-pointer rounded-lg border border-slate-200 bg-white px-2 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500"
-              >
-                <option value="all">All Statuses</option>
-                <option value="pending">Pending</option>
-                <option value="in_transit">In Transit</option>
-                <option value="delivered">Delivered</option>
-                <option value="returned">Returned</option>
-                <option value="cancelled">Cancelled</option>
-              </select>
-            </div>
-          </div>
-
-          {/* Bulk Action Bar */}
-          {selectedShippedOrderIds.length > 0 && (
-            <div className="flex items-center justify-between p-3.5 bg-indigo-50  rounded-xl border border-indigo-200  animate-fade-in mb-3">
-              <div className="flex items-center gap-2">
-                <span className="flex h-2 w-2 rounded-full bg-indigo-600 " />
-                <span className="text-xs font-bold text-slate-800 ">
-                  {selectedShippedOrderIds.length} {selectedShippedOrderIds.length === 1 ? 'order' : 'orders'} selected for bulk actions
-                </span>
-              </div>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => {
-                    const selectedOrders = courierOrders.filter(o => selectedShippedOrderIds.includes(o.id));
-                    openBulkLabels(selectedOrders);
-                  }}
-                  className="px-3.5 py-1.5 bg-violet-600 hover:bg-violet-700 text-white text-xs font-bold rounded-lg shadow-md hover:shadow-lg transition-all cursor-pointer flex items-center gap-1.5"
-                >
-                  <Package className="w-3.5 h-3.5" />
-                  Bulk Print Labels ({selectedShippedOrderIds.length})
-                </button>
-                <button
-                  onClick={() => {
-                    const selectedOrders = courierOrders.filter(o => selectedShippedOrderIds.includes(o.id));
-                    openBulkInvoices(selectedOrders);
-                  }}
-                  className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-lg shadow-md hover:shadow-lg transition-all cursor-pointer flex items-center gap-1.5"
-                >
-                  <Printer className="w-3.5 h-3.5" />
-                  Bulk Print Invoices ({selectedShippedOrderIds.length})
-                </button>
-                <button
-                  onClick={() => setSelectedShippedOrderIds([])}
-                  className="px-3 py-1.5 border border-slate-200 text-slate-600 hover:bg-slate-100    rounded-lg text-xs font-semibold transition-all cursor-pointer"
-                >
-                  Clear Selection
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Table */}
-          <div className="space-y-3 md:hidden">
-            {loadingOrders ? (
-              <div className="rounded-lg border border-slate-200 bg-white px-4 py-8 text-center text-slate-400  ">
-                <Loader2 className="mx-auto mb-2 h-6 w-6 animate-spin text-indigo-500" />
-                <p className="text-xs font-semibold">Fetching shipment details...</p>
-              </div>
-            ) : filteredCourierOrders.length === 0 ? (
-              <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center text-slate-400  ">
-                <Truck className="mx-auto h-7 w-7 text-slate-300" />
-                <p className="mt-2 text-xs font-bold text-slate-600 ">No courier orders found</p>
-              </div>
-            ) : filteredCourierOrders.map((order) => {
-              const isCancellable = !['cancelled', 'delivered', 'returned'].includes((order.courier_status || '').toLowerCase());
-              const isCancelling = cancellingOrderId === order.id;
-              return (
-                <div key={order.id} className={`rounded-xl border bg-white p-4 shadow-sm ${
-                  (order.courier_status || '').toLowerCase() === 'booking_failed' ? 'border-rose-200' : 'border-slate-200'
-                }`}>
-                  <div className="flex items-start justify-between gap-3">
-                    <label className="flex items-start gap-3">
-                      <input
-                        type="checkbox"
-                        checked={selectedShippedOrderIds.includes(order.id)}
-                        onChange={() => toggleSelectShippedOrder(order.id)}
-                        className="mt-1 rounded accent-indigo-600"
-                      />
-                      <span>
-                        <span className="block font-mono text-sm font-bold text-slate-900 ">#{order.order_id}</span>
-                        <span className="mt-1 block text-xs font-bold capitalize text-slate-800 ">{order.courier_provider}</span>
-                        <span className="mt-0.5 block font-mono text-xs text-slate-500">{order.courier_tracking_id || 'No tracking'}</span>
-                      </span>
-                    </label>
-                    <span className="font-bold text-slate-900 ">BDT {Number(order.cod_amount || 0).toLocaleString()}</span>
-                  </div>
-                  <div className="mt-4 rounded-lg bg-slate-50 p-3 text-xs ">
-                    <p className="font-bold text-slate-900 ">{order.recipient_name || 'Customer'}</p>
-                    <p className="mt-1 font-mono text-slate-500">{order.recipient_phone || 'No phone'}</p>
-                    <p className="mt-0.5 line-clamp-2 text-slate-500">{order.recipient_address || 'No address'}</p>
-                  </div>
-                  <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
-                    <div>{getStatusBadge(order.courier_status)}</div>
-                    <div className="text-right">{getCapiStatusBadge(order.purchase_event_sent)}</div>
-                    <span className="font-mono text-slate-500">{new Date(order.created_at).toLocaleDateString()}</span>
-                    <span className="text-right text-slate-500">{order.delivery_charge > 0 ? `Charge BDT ${order.delivery_charge}` : 'No charge'}</span>
-                  </div>
-                  <div className="mt-4 flex flex-wrap justify-end gap-2">
-                    <button onClick={() => openInvoice(order)} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-bold text-slate-700">
-                      <FileText className="h-3.5 w-3.5" />
-                      Invoice
-                    </button>
-                    <button onClick={() => openLabel(order)} className="inline-flex items-center gap-1.5 rounded-lg border border-violet-200 bg-violet-50 px-3 py-2 text-xs font-bold text-violet-700">
-                      <Package className="h-3.5 w-3.5" />
-                      Label
-                    </button>
-                    {isCancellable ? (
-                      <button onClick={() => handleCancelCourierOrder(order)} disabled={isCancelling} className="inline-flex items-center gap-1.5 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-bold text-rose-700 disabled:opacity-50">
-                        {isCancelling ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <XCircle className="h-3.5 w-3.5" />}
-                        {isCancelling ? 'Cancelling...' : 'Cancel'}
-                      </button>
-                    ) : (
-                      <span className="self-center text-xs italic text-slate-400">{(order.courier_status || '').toLowerCase()}</span>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          <div className="hidden min-h-64 overflow-x-auto rounded-lg border border-slate-200 md:block">
-            <table className="w-full min-w-[820px] divide-y divide-slate-100 text-left text-xs text-slate-600">
-              <thead className="bg-slate-50 text-xs font-bold uppercase tracking-wider text-slate-500">
-                <tr>
-                  <th className="w-10 px-4 py-3 text-center">
-                    <input 
-                      type="checkbox" 
-                      checked={areAllFilteredSelected} 
-                      onChange={toggleSelectAllFilteredShipped}
-                      className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 w-3.5 h-3.5 cursor-pointer accent-indigo-600"
-                    />
-                  </th>
-                  <th className="px-4 py-3">Order & recipient</th>
-                  <th className="px-4 py-3">Courier</th>
-                  <th className="px-4 py-3">Amount / booked</th>
-                  <th className="px-4 py-3">Delivery status</th>
-                  <th className="px-4 py-3">Purchase sync</th>
-                  <th className="px-4 py-3 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 ">
-                {loadingOrders ? (
-                  <tr>
-                    <td colSpan={7} className="px-6 py-12 text-center text-slate-400">
-                      <Loader2 className="w-6 h-6 mx-auto animate-spin text-indigo-500 mb-2" />
-                      Fetching shipment details...
-                    </td>
-                  </tr>
-                ) : filteredCourierOrders.length === 0 ? (
-                  <tr>
-                    <td colSpan={7} className="px-6 py-12 text-center text-slate-400 font-medium">
-                      <div className="mx-auto flex max-w-sm flex-col items-center gap-2">
-                        <Truck className="h-7 w-7 text-slate-300" />
-                        <p className="font-bold text-slate-600 ">No courier orders found</p>
-                        <p className="text-xs font-normal text-slate-400">Confirmed COD orders will appear here after they are booked with a courier.</p>
-                      </div>
-                    </td>
-                  </tr>
-                ) : (
-                  filteredCourierOrders.map((order) => {
-                    const isCancellable = !['cancelled', 'delivered', 'returned'].includes(
-                      (order.courier_status || '').toLowerCase()
-                    );
-                    const isCancelling = cancellingOrderId === order.id;
-                    return (
-                    <tr key={order.id} className={`transition-colors hover:bg-slate-50/70 ${
-                      (order.courier_status || '').toLowerCase() === 'booking_failed' ? 'bg-rose-50/30' : ''
-                    }`}>
-                      <td className="px-4 py-3 text-center align-top">
-                        <input 
-                          type="checkbox" 
-                          checked={selectedShippedOrderIds.includes(order.id)} 
-                          onChange={() => toggleSelectShippedOrder(order.id)}
-                          className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 w-3.5 h-3.5 cursor-pointer accent-indigo-600"
-                        />
-                      </td>
-                      <td className="px-4 py-3 align-top">
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-2">
-                            <span className="font-mono text-sm font-bold text-slate-900">#{order.order_id}</span>
-                            <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-xs font-bold uppercase text-slate-500">
-                              {order.courier_provider}
-                            </span>
-                          </div>
-                          <p className="mt-1 font-bold text-slate-800">{order.recipient_name || '-'}</p>
-                          <p className="font-mono text-xs text-slate-500">{order.recipient_phone || '-'}</p>
-                          <p className="mt-0.5 max-w-[260px] truncate text-xs text-slate-400" title={order.recipient_address}>
-                            {order.recipient_address || '-'}
-                          </p>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 align-top">
-                        <div className="flex flex-col">
-                          <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
-                            Tracking
-                          </span>
-                          {order.courier_tracking_id ? (
-                            <span className="mt-1 flex items-center gap-1 font-mono text-xs font-semibold text-slate-700">
-                              {order.courier_tracking_id}
-                              <a
-                                href={getCourierTrackingUrl(order.courier_provider, order.courier_tracking_id)}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="text-indigo-500 hover:text-indigo-700 inline"
-                              >
-                                <ExternalLink className="w-2.5 h-2.5 inline" />
-                              </a>
-                            </span>
-                          ) : (
-                            <span className="mt-1 text-xs text-slate-400">No tracking yet</span>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 align-top">
-                        <div className="flex flex-col text-xs leading-tight">
-                          <span className="font-bold text-slate-900">BDT {Number(order.cod_amount || 0).toLocaleString()}</span>
-                          {order.delivery_charge > 0 && (
-                            <span className="mt-0.5 text-xs font-medium text-slate-400">Charge BDT {order.delivery_charge}</span>
-                          )}
-                          <span className="mt-1 font-mono text-xs text-slate-400">
-                            {new Date(order.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} · {new Date(order.created_at).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 align-top">{getStatusBadge(order.courier_status)}</td>
-                      <td className="px-4 py-3 align-top">{getCapiStatusBadge(order.purchase_event_sent)}</td>
-                      <td className="px-4 py-3 text-right align-top">
-                        <div className="flex justify-end gap-1.5 whitespace-nowrap">
-                        <button 
-                          onClick={() => openInvoice(order)}
-                          className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition-colors hover:bg-slate-100"
-                          title="View and Print Invoice"
-                          aria-label="View and print invoice"
-                        >
-                          <FileText className="h-3.5 w-3.5" />
-                        </button>
-                        <button
-                          onClick={() => openLabel(order)}
-                          className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-violet-200 bg-violet-50 text-violet-700 transition-colors hover:bg-violet-100"
-                          title="Preview and Print Courier Label"
-                          aria-label="Preview and print courier label"
-                        >
-                          <Package className="h-3.5 w-3.5" />
-                        </button>
-                        {isCancellable ? (
-                          <button
-                            id={`cancel-courier-order-${order.id}`}
-                            onClick={() => handleCancelCourierOrder(order)}
-                            disabled={isCancelling}
-                            title={`Cancel this ${order.courier_provider} order`}
-                            className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-rose-200 bg-rose-50 text-rose-700 transition-colors hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-50"
-                            aria-label={`Cancel ${order.courier_provider} order`}
-                          >
-                            {isCancelling ? (
-                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                            ) : (
-                              <XCircle className="h-3.5 w-3.5" />
-                            )}
-                          </button>
-                        ) : (
-                          <span className="self-center px-1 text-xs italic text-slate-400">
-                            {(order.courier_status || '').toLowerCase() === 'cancelled' ? 'Cancelled' :
-                             (order.courier_status || '').toLowerCase() === 'delivered' ? 'Delivered' : 'Returned'}
-                          </span>
-                        )}
-                        </div>
-                      </td>
-                    </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
+        <ShippedOrdersPanel
+          courierOrders={courierOrders}
+          filteredCourierOrders={filteredCourierOrders}
+          loadingOrders={loadingOrders}
+          shippedStatItems={shippedStatItems}
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
+          providerFilter={providerFilter}
+          setProviderFilter={setProviderFilter}
+          statusFilter={statusFilter}
+          setStatusFilter={setStatusFilter}
+          selectedShippedOrderIds={selectedShippedOrderIds}
+          setSelectedShippedOrderIds={setSelectedShippedOrderIds}
+          toggleSelectShippedOrder={toggleSelectShippedOrder}
+          areAllFilteredSelected={areAllFilteredSelected}
+          toggleSelectAllFilteredShipped={toggleSelectAllFilteredShipped}
+          cancellingOrderId={cancellingOrderId}
+          handleCancelCourierOrder={handleCancelCourierOrder}
+          openInvoice={openInvoice}
+          openLabel={openLabel}
+          openBulkInvoices={openBulkInvoices}
+          openBulkLabels={openBulkLabels}
+        />
       )}
 
       {/* Book to Courier Form Modal */}
       {isSendModalOpen && selectedOrder && (
-        <Modal
+        <CourierBookingModal
+          selectedOrder={selectedOrder}
           onClose={() => setIsSendModalOpen(false)}
-          labelledBy="courier-booking-title"
-          overlayClassName="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-3 backdrop-blur-sm animate-fade-in sm:p-4"
-          panelClassName="flex max-h-[calc(100vh-1.5rem)] w-full max-w-lg flex-col space-y-2 overflow-y-auto overscroll-contain rounded-2xl border border-slate-200 bg-white p-3 shadow-2xl animate-slide-in-up sm:max-h-[calc(100vh-2rem)]"
-        >
-            
-            {/* Modal Header */}
-            <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-              <div className="flex items-center gap-2">
-                <Truck className="w-5 h-5 text-indigo-600 " />
-                <h3 id="courier-booking-title" className="font-bold text-slate-800  text-base">Book Consignment with Courier</h3>
-              </div>
-              <Button
-                variant="icon"
-                size="lg"
-                onClick={() => setIsSendModalOpen(false)}
-                aria-label="Close courier booking dialog"
-              >
-                <XCircle className="w-5 h-5" />
-              </Button>
-            </div>
-
-            {/* Modal Body Form */}
-            <form onSubmit={handleSendToCourierSubmit} className="space-y-2">
-              
-              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                {/* Order Meta details read-only */}
-                <div className="rounded-lg border border-slate-100 bg-slate-50 p-2">
-                  <span className="block text-xs text-slate-400 uppercase font-bold tracking-wider">Order Reference ID</span>
-                  <span className="font-mono font-bold text-sm text-slate-800 ">{selectedOrder.orderId || selectedOrder.order_id}</span>
-                </div>
-                <div className="rounded-lg border border-slate-100 bg-slate-50 p-2">
-                  <span className="block text-xs text-slate-400 uppercase font-bold tracking-wider">Original Value</span>
-                  <span className="font-bold text-sm text-slate-800 ">BDT {(selectedOrder.amount || selectedOrder.cod_amount || 0).toLocaleString()}</span>
-                </div>
-              </div>
-
-              {/* Order Items (Products) */}
-              <div className="space-y-1.5">
-                <label className="block text-xs font-bold text-slate-500  uppercase tracking-wider">Order Items</label>
-                <div className="bg-white  rounded-lg border border-slate-200  overflow-hidden">
-                  {(!selectedOrder?.products || selectedOrder.products.length === 0) ? (
-                    <div className="px-4 py-3 text-center">
-                      <p className="text-xs text-slate-400">Product details not available</p>
-                    </div>
-                  ) : (
-                    <table className="w-full text-xs">
-                      <thead className="bg-slate-50 ">
-                        <tr>
-                          <th className="px-3 py-1.5 text-left text-xs font-bold uppercase text-slate-400">Product</th>
-                          <th className="px-3 py-1.5 text-center text-xs font-bold uppercase text-slate-400">Qty</th>
-                          <th className="px-3 py-1.5 text-right text-xs font-bold uppercase text-slate-400">Price</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-100 ">
-                        {selectedOrder.products.map((p, i: number) => {
-                          const meta = productMeta(p);
-                          return (
-                            <tr key={i} className="hover:bg-slate-50/50 ">
-                              <td className="max-w-[260px] px-3 py-1.5">
-                                <p className="font-medium leading-snug text-slate-700" title={p.name}>{p.name}</p>
-                                {meta.length > 0 && (
-                                  <div className="mt-1 flex flex-wrap gap-1">
-                                    {meta.map((item) => (
-                                      <span key={`${item.label}-${item.value}`} className={`rounded px-1.5 py-0.5 text-xs font-bold ${item.category ? 'bg-slate-100 text-slate-600' : 'bg-indigo-50 text-indigo-700'}`}>
-                                        {item.label}: {item.value}
-                                      </span>
-                                    ))}
-                                  </div>
-                                )}
-                              </td>
-                              <td className="px-3 py-1.5 text-center font-bold text-slate-600 ">{p.quantity}</td>
-                              <td className="px-3 py-1.5 text-right font-semibold text-slate-700 ">{Number(p.price || 0) > 0 ? `BDT ${Number(p.price || 0).toLocaleString()}` : '-'}</td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  )}
-                </div>
-              </div>
-
-              {/* Courier Selection */}
-              <div>
-                <label className="block text-xs font-bold text-slate-500  uppercase tracking-wider mb-1">Select Courier Partner</label>
-                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                  <label className={`flex cursor-pointer items-center justify-between rounded-xl border p-2 transition-all duration-200 ${
-                    courierProvider === 'steadfast' 
-                      ? 'border-indigo-600 bg-indigo-50/10 text-indigo-700   ' 
-                      : 'border-slate-200 hover:bg-slate-50  '
-                  }`}>
-                    <div className="flex flex-col">
-                      <span className="text-xs font-bold text-slate-800 ">SteadFast Courier</span>
-                      <span className="text-xs text-slate-400 mt-0.5">Automated API Booking</span>
-                    </div>
-                    <input 
-                      type="radio" 
-                      name="provider" 
-                      value="steadfast"
-                      checked={courierProvider === 'steadfast'}
-                      onChange={() => setCourierProvider('steadfast')}
-                      className="accent-indigo-600 cursor-pointer h-4 w-4"
-                    />
-                  </label>
-
-                  <label className={`flex cursor-pointer items-center justify-between rounded-xl border p-2 transition-all duration-200 ${
-                    courierProvider === 'pathao' 
-                      ? 'border-indigo-600 bg-indigo-50/10 text-indigo-700   ' 
-                      : 'border-slate-200 hover:bg-slate-50  '
-                  }`}>
-                    <div className="flex flex-col">
-                      <span className="text-xs font-bold text-slate-800 ">Pathao Courier</span>
-                      <span className="text-xs text-slate-400 mt-0.5">OAuth-secured Aladdin Booking</span>
-                    </div>
-                    <input 
-                      type="radio" 
-                      name="provider" 
-                      value="pathao"
-                      checked={courierProvider === 'pathao'}
-                      onChange={() => setCourierProvider('pathao')}
-                      className="accent-indigo-600 cursor-pointer h-4 w-4"
-                    />
-                  </label>
-
-                  <label className={`flex cursor-pointer items-center justify-between rounded-xl border p-2 transition-all duration-200 ${
-                    courierProvider === 'redx'
-                      ? 'border-indigo-600 bg-indigo-50/10 text-indigo-700   '
-                      : 'border-slate-200 hover:bg-slate-50  '
-                  }`}>
-                    <div className="flex flex-col">
-                      <span className="text-xs font-bold text-slate-800 ">RedX Courier</span>
-                      <span className="text-xs text-slate-400 mt-0.5">Token-secured OpenAPI Booking</span>
-                    </div>
-                    <input
-                      type="radio"
-                      name="provider"
-                      value="redx"
-                      checked={courierProvider === 'redx'}
-                      onChange={() => setCourierProvider('redx')}
-                      className="accent-indigo-600 cursor-pointer h-4 w-4"
-                    />
-                  </label>
-                </div>
-              </div>
-
-              {/* Recipient details */}
-              <div className="space-y-2 pt-1">
-                <h4 className="text-xs font-bold text-indigo-600  uppercase tracking-wider border-b border-slate-100  pb-1">
-                  Recipient Information
-                </h4>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-500  uppercase mb-1">Customer Name</label>
-                    <div className="relative">
-                      <User className="absolute left-2.5 top-2.5 w-3.5 h-3.5 text-slate-400" />
-                      <input
-                        type="text"
-                        required
-                        value={recipientName}
-                        onChange={(e) => setRecipientName(e.target.value)}
-                        placeholder="e.g. Hridoy Hossain"
-                        className="w-full pl-8 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500   "
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-500  uppercase mb-1">Phone Number</label>
-                    <div className="relative">
-                      <Phone className="absolute left-2.5 top-2.5 w-3.5 h-3.5 text-slate-400" />
-                      <input
-                        type="tel"
-                        required
-                        value={recipientPhone}
-                        onChange={(e) => setRecipientPhone(e.target.value)}
-                        onBlur={(e) => {
-                          // Auto-normalize BD phone format on field blur
-                          const normalized = normalizeBDPhone(e.target.value);
-                          setRecipientPhone(normalized);
-                        }}
-                        placeholder="e.g. 01712345678 or +8801712345678"
-                        className="w-full pl-8 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500   "
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-500  uppercase mb-1">Delivery Address</label>
-                  <div className="relative">
-                    <MapPin className="absolute left-2.5 top-2.5 w-3.5 h-3.5 text-slate-400" />
-                    <textarea
-                      required
-                      value={recipientAddress}
-                      onChange={(e) => setRecipientAddress(e.target.value)}
-                      placeholder="Enter complete shipping details (Street, District, Area)..."
-                      rows={2}
-                      className="w-full pl-8 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500   "
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-500  uppercase mb-1">Cash on Delivery Amount to Collect (BDT)</label>
-                    <div className="relative">
-                      <DollarSign className="absolute left-2.5 top-2.5 w-3.5 h-3.5 text-slate-400" />
-                      <input
-                        type="number"
-                        required
-                        value={codAmount}
-                        onChange={(e) => setCodAmount(Number(e.target.value))}
-                        className="w-full pl-8 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500    font-bold"
-                      />
-                    </div>
-                  </div>
-                  
-                  {/* Pathao stores are fetched from the courier API when credentials are available. */}
-                  {courierProvider === 'pathao' && (
-                    <div className="space-y-3 md:col-span-2">
-                      <label className="block text-xs font-semibold text-slate-500  uppercase mb-1">Pathao Store</label>
-                      {loadingStores ? (
-                        <div className="py-2 px-3 bg-slate-50  border border-slate-200  rounded-lg text-xs text-slate-500 flex items-center gap-1.5">
-                          <Truck className="w-3.5 h-3.5 shrink-0 animate-pulse" />
-                          Stores loading...
-                        </div>
-                      ) : pathaoStores.length > 0 ? (
-                        <select
-                          value={selectedStoreId}
-                          onChange={(e) => setSelectedStoreId(Number(e.target.value))}
-                          className="w-full py-2 px-3 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500   "
-                        >
-                          {pathaoStores.map((store) => (
-                            <option key={store.store_id} value={store.store_id}>
-                              {store.store_name} (ID: {store.store_id})
-                            </option>
-                          ))}
-                        </select>
-                      ) : (
-                        <div className="py-2 px-3 bg-red-50  border border-red-200  rounded-lg text-xs text-red-600  font-semibold flex items-center gap-1.5">
-                          <Truck className="w-3.5 h-3.5 shrink-0" />
-                          Pathao is not connected yet. Add its API details in Settings.
-                        </div>
-                      )}
-                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                        <select
-                          value={selectedPathaoCity}
-                          onChange={(e) => setSelectedPathaoCity(e.target.value ? Number(e.target.value) : '')}
-                          disabled={loadingPathaoLocations || pathaoCities.length === 0}
-                          className="w-full py-2 px-3 text-xs bg-slate-50 border border-slate-200 rounded-lg disabled:opacity-60"
-                        >
-                          <option value="">Auto-detect city</option>
-                          {pathaoCities.map((city) => <option key={city.city_id} value={city.city_id}>{city.city_name}</option>)}
-                        </select>
-                        <select
-                          value={selectedPathaoZone}
-                          onChange={(e) => setSelectedPathaoZone(e.target.value ? Number(e.target.value) : '')}
-                          disabled={selectedPathaoCity === '' || pathaoZones.length === 0}
-                          className="w-full py-2 px-3 text-xs bg-slate-50 border border-slate-200 rounded-lg disabled:opacity-60"
-                        >
-                          <option value="">Auto-detect zone</option>
-                          {pathaoZones.map((zone) => <option key={zone.zone_id} value={zone.zone_id}>{zone.zone_name}</option>)}
-                        </select>
-                        <select
-                          value={selectedPathaoArea}
-                          onChange={(e) => setSelectedPathaoArea(e.target.value ? Number(e.target.value) : '')}
-                          disabled={selectedPathaoZone === '' || pathaoAreas.length === 0}
-                          className="w-full py-2 px-3 text-xs bg-slate-50 border border-slate-200 rounded-lg disabled:opacity-60"
-                        >
-                          <option value="">Auto-detect area</option>
-                          {pathaoAreas.map((area) => <option key={area.area_id} value={area.area_id}>{area.area_name}</option>)}
-                        </select>
-                      </div>
-                    </div>
-                  )}
-                  {courierProvider === 'redx' && (
-                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-3 md:col-span-2">
-                      <div>
-                        <label className="block text-xs font-semibold text-slate-500  uppercase mb-1">RedX Delivery Area</label>
-                        {loadingRedxAreas ? (
-                          <div className="py-2 px-3 text-xs bg-slate-50 border border-slate-200 rounded-lg   ">Loading areas...</div>
-                        ) : (
-                          <div className="space-y-1.5">
-                            <input
-                              type="search"
-                              value={redxAreaSearch}
-                              onChange={(e) => setRedxAreaSearch(e.target.value)}
-                              placeholder="Search area, post code, or ID"
-                              className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs"
-                            />
-                            <select
-                              required
-                              value={redxDeliveryAreaId}
-                              onChange={(e) => {
-                                const area = redxAreas.find((item) => String(item.id) === e.target.value);
-                                setRedxDeliveryAreaId(e.target.value);
-                                if (area) {
-                                  setRedxDeliveryAreaName(area.name);
-                                  setRedxAreaSearch(area.name);
-                                }
-                              }}
-                              className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs"
-                            >
-                              <option value="">Select from matches</option>
-                              {filteredRedxAreas.map((area) => <option key={area.id} value={area.id}>{area.name}{area.post_code ? ` (${area.post_code})` : ''} - ID {area.id}</option>)}
-                            </select>
-                          </div>
-                        )}
-                      </div>
-                      <div>
-                        <label className="block text-xs font-semibold text-slate-500  uppercase mb-1">RedX Delivery Area Name</label>
-                        <input required type="text" value={redxDeliveryAreaName} onChange={(e) => setRedxDeliveryAreaName(e.target.value)} className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs" />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-semibold text-slate-500  uppercase mb-1">RedX Pickup Store ID</label>
-                        <input type="number" value={redxPickupStoreId} onChange={(e) => setRedxPickupStoreId(e.target.value)} className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs" />
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-500  uppercase mb-1">Parcel Weight (KG)</label>
-                    <select
-                      value={itemWeight}
-                      onChange={(e) => setItemWeight(Number(e.target.value))}
-                      className="w-full p-1.5 text-xs bg-slate-50  border border-slate-200  rounded-lg text-slate-800  focus:outline-none focus:ring-1 focus:ring-indigo-500 cursor-pointer"
-                    >
-                      <option value={0.5}>0.5 KG (Standard)</option>
-                      <option value={1.0}>1.0 KG</option>
-                      <option value={2.0}>2.0 KG</option>
-                      <option value={3.0}>3.0 KG</option>
-                      <option value={4.0}>4.0 KG</option>
-                      <option value={5.0}>5.0 KG</option>
-                    </select>
-                  </div>
-                  
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-500  uppercase mb-1">Parcel Quantity</label>
-                    <input
-                      type="number"
-                      required
-                      min={1}
-                      value={itemQuantity}
-                      onChange={(e) => setItemQuantity(Math.max(1, Number(e.target.value)))}
-                      className="w-full p-1.5 text-xs bg-slate-50  border border-slate-200  rounded-lg text-slate-800  focus:outline-none focus:ring-1 focus:ring-indigo-500 font-bold"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Submit Buttons */}
-              <div className="flex justify-end gap-3 border-t border-slate-100 pt-2">
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  type="button"
-                  onClick={() => setIsSendModalOpen(false)}
-                  className="text-slate-500"
-                >
-                  Cancel
-                </Button>
-                <Button
-                  variant="primary"
-                  size="sm"
-                  type="submit"
-                  loading={submittingCourier}
-                  className="px-5 shadow-md"
-                >
-                  {submittingCourier ? (
-                    <>
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      Booking on Courier...
-                    </>
-                  ) : (
-                    <>
-                      <Send className="w-3.5 h-3.5" /> Book on Courier
-                    </>
-                  )}
-                </Button>
-              </div>
-
-            </form>
-
-        </Modal>
+          onSubmit={handleSendToCourierSubmit}
+          submittingCourier={submittingCourier}
+          courierProvider={courierProvider}
+          setCourierProvider={setCourierProvider}
+          recipientName={recipientName}
+          setRecipientName={setRecipientName}
+          recipientPhone={recipientPhone}
+          setRecipientPhone={setRecipientPhone}
+          recipientAddress={recipientAddress}
+          setRecipientAddress={setRecipientAddress}
+          codAmount={codAmount}
+          setCodAmount={setCodAmount}
+          itemWeight={itemWeight}
+          setItemWeight={setItemWeight}
+          itemQuantity={itemQuantity}
+          setItemQuantity={setItemQuantity}
+          loadingStores={loadingStores}
+          pathaoStores={pathaoStores}
+          selectedStoreId={selectedStoreId}
+          setSelectedStoreId={setSelectedStoreId}
+          loadingPathaoLocations={loadingPathaoLocations}
+          pathaoCities={pathaoCities}
+          pathaoZones={pathaoZones}
+          pathaoAreas={pathaoAreas}
+          selectedPathaoCity={selectedPathaoCity}
+          setSelectedPathaoCity={setSelectedPathaoCity}
+          selectedPathaoZone={selectedPathaoZone}
+          setSelectedPathaoZone={setSelectedPathaoZone}
+          selectedPathaoArea={selectedPathaoArea}
+          setSelectedPathaoArea={setSelectedPathaoArea}
+          loadingRedxAreas={loadingRedxAreas}
+          redxAreas={redxAreas}
+          filteredRedxAreas={filteredRedxAreas}
+          redxAreaSearch={redxAreaSearch}
+          setRedxAreaSearch={setRedxAreaSearch}
+          redxDeliveryAreaId={redxDeliveryAreaId}
+          setRedxDeliveryAreaId={setRedxDeliveryAreaId}
+          redxDeliveryAreaName={redxDeliveryAreaName}
+          setRedxDeliveryAreaName={setRedxDeliveryAreaName}
+          redxPickupStoreId={redxPickupStoreId}
+          setRedxPickupStoreId={setRedxPickupStoreId}
+        />
       )}
 
       {orderToCancel && (
-        <Modal
-          onClose={() => setOrderToCancel(null)}
-          labelledBy="cancel-courier-title"
-          overlayClassName="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm"
-          panelClassName="w-full max-w-sm rounded-xl border border-slate-200 bg-white p-5 shadow-2xl"
-        >
-            <div className="space-y-1">
-              <h3 id="cancel-courier-title" className="text-sm font-bold text-slate-900 ">Cancel courier order?</h3>
-              <p className="text-xs leading-relaxed text-slate-500 ">
-                {orderToCancel.courier_provider === 'steadfast'
-                  ? 'This cancels the order locally. Please also cancel it from the SteadFast merchant panel.'
-                  : `Cancel order ${orderToCancel.order_id} on ${cancelProviderName}? Pending or pickup orders can usually be cancelled.`}
-              </p>
-            </div>
-            <div className="mt-5 flex justify-end gap-2">
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => setOrderToCancel(null)}
-                className="text-slate-600"
-              >
-                Keep Order
-              </Button>
-              <Button
-                variant="danger"
-                size="sm"
-                onClick={confirmCancelCourierOrder}
-                className="bg-rose-900 hover:bg-rose-950"
-              >
-                Cancel Order
-              </Button>
-            </div>
-        </Modal>
+        <CancelCourierOrderModal
+          orderToCancel={orderToCancel}
+          cancelProviderName={cancelProviderName}
+          onKeep={() => setOrderToCancel(null)}
+          onConfirm={confirmCancelCourierOrder}
+        />
       )}
 
       {isInvoiceModalOpen && (
-        <InvoiceModal 
-          isOpen={isInvoiceModalOpen} 
+        <InvoiceModal
+          isOpen={isInvoiceModalOpen}
           onClose={() => {
             setIsInvoiceModalOpen(false);
             setInvoiceOrder(null);
             setInvoiceOrders(null);
-          }} 
-          order={invoiceOrder} 
+          }}
+          order={invoiceOrder}
           orders={invoiceOrders}
-          storeName={storeName} 
-          storeEmail={storeEmail} 
+          storeName={storeName}
+          storeEmail={storeEmail}
         />
       )}
 
