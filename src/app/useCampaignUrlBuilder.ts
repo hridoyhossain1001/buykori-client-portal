@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import type { SyncedAdCampaign, UserProfile } from '../types';
 
+const HTTPS_PREFIX = 'https://';
+
 type ShowToast = (msg: string, isErr?: boolean, action?: { label: string; onClick: () => void }) => void;
 
 /**
@@ -23,7 +25,7 @@ export function useCampaignUrlBuilder(profile: UserProfile | null, showToast: Sh
   useEffect(() => {
     if (profile && !urlBuilderBaseUrl) {
       const slug = profile.name.toLowerCase().replace(/\s+/g, '');
-      setUrlBuilderBaseUrl(profile.email ? `https://${slug}.com` : 'https://your-site.com');
+      setUrlBuilderBaseUrl(profile.email ? HTTPS_PREFIX + slug + '.com' : HTTPS_PREFIX + 'your-site.com');
     }
   }, [profile]);
 
@@ -51,7 +53,7 @@ export function useCampaignUrlBuilder(profile: UserProfile | null, showToast: Sh
     try {
       let base = urlBuilderBaseUrl.trim();
       if (!/^https?:\/\//i.test(base)) {
-        base = 'https://' + base;
+        base = HTTPS_PREFIX + base;
       }
       const url = new URL(base);
       url.searchParams.set('utm_source', urlBuilderSource.trim());
