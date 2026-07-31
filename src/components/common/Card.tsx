@@ -2,7 +2,7 @@ import { forwardRef, type HTMLAttributes, type ReactNode } from 'react';
 
 type CardPadding = 'none' | 'sm' | 'md' | 'lg';
 
-interface CardProps extends HTMLAttributes<HTMLDivElement> {
+interface CardProps extends Omit<HTMLAttributes<HTMLDivElement>, 'title'> {
   /** Optional heading rendered above the card body. */
   title?: ReactNode;
   /** Secondary line rendered under the title. */
