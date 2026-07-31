@@ -1,6 +1,6 @@
-﻿import React from 'react';
 import { Sparkles, XCircle, CheckCircle, Info } from 'lucide-react';
 import { Suggestion } from '../types';
+import { Badge, Button, Card } from './common';
 
 interface SuggestionsViewProps {
   suggestions: Suggestion[];
@@ -10,6 +10,19 @@ interface SuggestionsViewProps {
   toggleResolveSuggestion: (id: string, isNowResolved: boolean) => Promise<void>;
   dismissSuggestion: (id: string) => Promise<void>;
 }
+
+const severityTone = (severity: Suggestion['severity']) => {
+  if (severity === 'Critical') return 'rose' as const;
+  if (severity === 'Warning') return 'warning' as const;
+  return 'indigo' as const;
+};
+
+const severityAccent = (suggestion: Suggestion) => {
+  if (suggestion.resolved) return 'border-green-200/50 opacity-60';
+  if (suggestion.severity === 'Critical') return 'border-l-4 border-l-rose-500';
+  if (suggestion.severity === 'Warning') return 'border-l-4 border-l-amber-500';
+  return 'border-l-4 border-l-indigo-400';
+};
 
 export function SuggestionsView({
   suggestions,
@@ -44,7 +57,7 @@ export function SuggestionsView({
   return (
     <div className="space-y-2 md:space-y-6">
       
-      {/* Top tracking health optimization header */}
+      {/* Top tracking health optimization header (bespoke hero, intentionally not a Card) */}
       <div className="flex flex-col items-start justify-between gap-3 rounded-xl border border-indigo-200 bg-indigo-50/60 p-3.5 shadow-inner md:flex-row md:items-center md:gap-6 md:p-6">
         <div className="flex items-start gap-2.5">
           <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-indigo-100 bg-white text-indigo-600 md:h-8 md:w-8">
@@ -79,7 +92,10 @@ export function SuggestionsView({
       </div>
 
       {/* Live Diagnostics scan trigger CTA */}
-      <div className="flex flex-col items-stretch justify-between gap-3 rounded-xl border border-slate-200 bg-white p-3 shadow-sm sm:flex-row sm:items-center md:p-4">
+      <Card
+        padding="none"
+        className="flex flex-col items-stretch justify-between gap-3 p-3 shadow-sm sm:flex-row sm:items-center md:p-4"
+      >
         <div className="flex items-center gap-3">
           <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600 md:h-10 md:w-10 md:border md:border-indigo-200 md:bg-indigo-100">
             <Sparkles className="h-4 w-4 md:h-5 md:w-5" />
@@ -90,10 +106,12 @@ export function SuggestionsView({
           </div>
         </div>
 
-        <button
-          disabled={aiReviewing}
+        <Button
+          variant="primary"
+          size="lg"
+          loading={aiReviewing}
           onClick={handleAiReview}
-          className="flex min-h-11 w-full shrink-0 cursor-pointer items-center justify-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-bold text-white shadow-sm transition-colors hover:bg-indigo-700 disabled:bg-indigo-400 sm:w-auto md:min-h-10 md:text-xs"
+          className="w-full shrink-0 sm:w-auto md:min-h-10 md:text-xs"
         >
           {aiReviewing ? (
             <>
@@ -106,13 +124,13 @@ export function SuggestionsView({
               <span>Check My Setup</span>
             </>
           )}
-        </button>
-      </div>
+        </Button>
+      </Card>
 
       {/* Suggestions lists */}
       <div className="space-y-2 md:space-y-4">
         {unresolvedSuggestions.length === 0 && (
-          <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+          <Card padding="none" className="overflow-hidden shadow-sm">
             <div className="flex items-start gap-2.5 p-3">
               <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-emerald-50 text-emerald-600">
                 <CheckCircle className="h-4 w-4" />
@@ -141,31 +159,22 @@ export function SuggestionsView({
               <Info className="mt-0.5 h-3 w-3 shrink-0" />
               <p>This result uses the latest data on this page. Check again after changing Settings or updating the WordPress plugin.</p>
             </div>
-          </div>
+          </Card>
         )}
 
         {/* Suggestions cards mapping */}
         <div className="grid grid-cols-1 gap-4">
           {uniqueSuggestions.map((s) => (
-            <div 
-              key={s.id} 
-              className={`rounded-xl border bg-white  p-5 shadow-sm space-y-4 transition-all ${
-                s.resolved ? 'border-green-200/50  opacity-60' : 
-                s.severity === 'Critical' ? 'border-l-4 border-l-rose-500 border-slate-200 ' :
-                s.severity === 'Warning' ? 'border-l-4 border-l-amber-500 border-slate-200 ' :
-                'border-l-4 border-l-indigo-400 border-slate-200 '
-              }`}
+            <Card
+              key={s.id}
+              className={`space-y-4 shadow-sm transition-all ${severityAccent(s)}`}
             >
               <div className="flex justify-between items-start">
                 <div>
                   <div className="flex items-center gap-2">
-                    <span className={`px-2 py-0.5 rounded text-xs font-bold uppercase tracking-wider ${
-                      s.severity === 'Critical' ? 'bg-rose-50 text-rose-700 border border-rose-200   ' : 
-                      s.severity === 'Warning' ? 'bg-amber-50 text-amber-700 border border-amber-200   ' : 
-                      'bg-indigo-50 text-indigo-700 border border-indigo-200   '
-                    }`}>
+                    <Badge tone={severityTone(s.severity)} pill={false} className="uppercase tracking-wider">
                       {s.severity}
-                    </span>
+                    </Badge>
                     {s.platform && (
                       <span className="text-xs text-slate-400  font-mono font-semibold">{s.platform} module</span>
                     )}
@@ -174,6 +183,8 @@ export function SuggestionsView({
                 </div>
 
                 <div className="flex gap-1">
+                  {/* TODO(FE-10): move to a Button "soft" variant once it exists; the
+                      tonal green/indigo fills would clash with the current variants. */}
                   <button 
                     onClick={() => toggleResolveSuggestion(s.id, !s.resolved)}
                     className={`min-h-10 cursor-pointer rounded border px-2.5 py-1 text-xs font-semibold ${
@@ -185,14 +196,14 @@ export function SuggestionsView({
                     {s.resolved ? '✓ Resolved' : 'Mark Fixed'}
                   </button>
                   
-                  <button 
-                    type="button"
+                  <Button
+                    variant="icon"
+                    size="md"
                     onClick={() => dismissSuggestion(s.id)}
-                    className="inline-flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded text-slate-400 hover:bg-slate-50 hover:text-slate-600"
                     aria-label={`Dismiss ${s.title}`}
                   >
                     <XCircle className="w-4 h-4" />
-                  </button>
+                  </Button>
                 </div>
               </div>
 
@@ -202,7 +213,7 @@ export function SuggestionsView({
                 <span className="font-bold text-xs text-indigo-700  uppercase tracking-wider block mb-1">How to fix</span>
                 <p className="whitespace-pre-line leading-relaxed">{s.fixAction}</p>
               </div>
-            </div>
+            </Card>
           ))}
         </div>
       </div>
