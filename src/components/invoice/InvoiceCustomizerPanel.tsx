@@ -28,6 +28,13 @@ export function InvoiceCustomizerPanel({
   handleOrderCourierIdChange,
   handleOrderDeliveryChargeChange,
 }: InvoiceCustomizerPanelProps) {
+  // TODO(FE-01): the single-order lookup below omits the 'N/A' fallback that the
+  // settings map is built with, so an order with no id falls back to the default
+  // values instead of its own. Kept verbatim from the pre-split file; fix separately.
+  const legacyOrderKey = ordersList.length === 1
+    ? String(ordersList[0].orderId || ordersList[0].order_id)
+    : '';
+
   return (
     <div className="w-full lg:w-80 p-6 bg-slate-50  space-y-4 print:hidden shrink-0 overflow-y-auto max-h-[70vh]">
       <h4 className="text-xs font-bold text-slate-700  uppercase tracking-wider flex items-center gap-1.5">
@@ -92,12 +99,11 @@ export function InvoiceCustomizerPanel({
             <h5 className="text-xs font-bold text-slate-600  uppercase tracking-wide mb-2">Order Customizations</h5>
             <div className="space-y-3">
               <div>
-                <label className={LABEL_CLASS}>Delivery Charge (\u09F3)</label>
+                <label className={LABEL_CLASS}>Delivery Charge (৳)</label>
                 <input
                   type="number"
-                  {/* TODO(FE-01): this key omits the 'N/A' fallback the settings map is built with. Kept verbatim; fix separately. */}
-                  value={orderSettings[String(ordersList[0].orderId || ordersList[0].order_id)]?.deliveryCharge ?? DEFAULT_DELIVERY_CHARGE}
-                  onChange={(e) => handleOrderDeliveryChargeChange(String(ordersList[0].orderId || ordersList[0].order_id), Number(e.target.value))}
+                  value={orderSettings[legacyOrderKey]?.deliveryCharge ?? DEFAULT_DELIVERY_CHARGE}
+                  onChange={(e) => handleOrderDeliveryChargeChange(legacyOrderKey, Number(e.target.value))}
                   className={FIELD_CLASS}
                 />
               </div>
@@ -105,8 +111,8 @@ export function InvoiceCustomizerPanel({
                 <label className={LABEL_CLASS}>Courier Consignment ID</label>
                 <input
                   type="text"
-                  value={orderSettings[String(ordersList[0].orderId || ordersList[0].order_id)]?.courierId ?? ''}
-                  onChange={(e) => handleOrderCourierIdChange(String(ordersList[0].orderId || ordersList[0].order_id), e.target.value)}
+                  value={orderSettings[legacyOrderKey]?.courierId ?? ''}
+                  onChange={(e) => handleOrderCourierIdChange(legacyOrderKey, e.target.value)}
                   placeholder="e.g. 26E0531XXXX"
                   className={FIELD_CLASS}
                 />
@@ -139,7 +145,7 @@ export function InvoiceCustomizerPanel({
                         />
                       </div>
                       <div>
-                        <label className="block text-xs font-bold text-slate-400 uppercase mb-0.5">Delivery (\u09F3)</label>
+                        <label className="block text-xs font-bold text-slate-400 uppercase mb-0.5">Delivery (৳)</label>
                         <input
                           type="number"
                           value={settings.deliveryCharge}
