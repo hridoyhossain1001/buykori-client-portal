@@ -1,7 +1,8 @@
 export interface ProductItem {
-  name: string;
-  quantity: number;
-  price: number;
+  name?: string;
+  content_name?: string;
+  quantity?: number;
+  price?: number;
 }
 
 export interface InvoiceOrder {

@@ -33,7 +33,10 @@ export function InvoiceSheet({ ord, settings, biz }: InvoiceSheetProps) {
   const codTotal = ord.amount || ord.cod_amount || 0;
 
   // Subtotal & Total calculations
-  const calculatedSubtotal = products.reduce((acc, p) => acc + (p.price * p.quantity), 0);
+  const calculatedSubtotal = products.reduce(
+    (acc, product) => acc + (product.price ?? 0) * (product.quantity ?? 1),
+    0,
+  );
   const finalTotal = codTotal;
   const subtotal = calculatedSubtotal > 0 ? calculatedSubtotal : Math.max(0, codTotal - deliveryCharge);
   const discount = calculatedSubtotal > 0 ? Math.max(0, (calculatedSubtotal + deliveryCharge) - finalTotal) : 0;
@@ -115,22 +118,28 @@ export function InvoiceSheet({ ord, settings, biz }: InvoiceSheetProps) {
                 <td className="px-3 py-2 text-right font-semibold font-mono invoice-print-10">৳{subtotal.toLocaleString()}</td>
               </tr>
             ) : (
-              products.map((p, i) => (
-                <tr key={i} className="hover:bg-slate-50/50 ">
-                  <td className="px-3 py-2 font-medium text-slate-800  print:text-black invoice-print-10">
-                    {p.name}
-                  </td>
-                  <td className="px-3 py-2 text-center font-mono text-slate-500  print:text-black invoice-print-10">
-                    ৳{p.price.toLocaleString()}
-                  </td>
-                  <td className="px-3 py-2 text-center font-bold text-slate-600  print:text-black invoice-print-10">
-                    {p.quantity}
-                  </td>
-                  <td className="px-3 py-2 text-right font-semibold font-mono text-slate-800  print:text-black invoice-print-10">
-                    ৳{(p.price * p.quantity).toLocaleString()}
-                  </td>
-                </tr>
-              ))
+              products.map((p, i) => {
+                const productName = p.name || p.content_name || 'Product';
+                const productPrice = p.price ?? 0;
+                const productQuantity = p.quantity ?? 1;
+
+                return (
+                  <tr key={i} className="hover:bg-slate-50/50 ">
+                    <td className="px-3 py-2 font-medium text-slate-800  print:text-black invoice-print-10">
+                      {productName}
+                    </td>
+                    <td className="px-3 py-2 text-center font-mono text-slate-500  print:text-black invoice-print-10">
+                      ৳{productPrice.toLocaleString()}
+                    </td>
+                    <td className="px-3 py-2 text-center font-bold text-slate-600  print:text-black invoice-print-10">
+                      {productQuantity}
+                    </td>
+                    <td className="px-3 py-2 text-right font-semibold font-mono text-slate-800  print:text-black invoice-print-10">
+                      ৳{(productPrice * productQuantity).toLocaleString()}
+                    </td>
+                  </tr>
+                );
+              })
             )}
           </tbody>
         </table>
