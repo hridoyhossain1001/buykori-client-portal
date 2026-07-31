@@ -1,11 +1,18 @@
 import React from 'react';
-import { Check, LockKeyhole, UserRound } from 'lucide-react';
+import { Check, Mail, UserRound } from 'lucide-react';
 import type { UserProfile } from '../../types';
 
 interface ProfileFormProps {
   profile: UserProfile;
   profName: string;
   setProfName: (v: string) => void;
+  profEmail: string;
+  setProfEmail: (v: string) => void;
+  profEmailCodeRequested: boolean;
+  profEmailCode: string;
+  setProfEmailCode: (v: string) => void;
+  profEmailCurrentPassword: string;
+  setProfEmailCurrentPassword: (v: string) => void;
   profNotifEmail: string;
   setProfNotifEmail: (v: string) => void;
   profUpdating: boolean;
@@ -16,6 +23,13 @@ export function ProfileForm({
   profile,
   profName,
   setProfName,
+  profEmail,
+  setProfEmail,
+  profEmailCodeRequested,
+  profEmailCode,
+  setProfEmailCode,
+  profEmailCurrentPassword,
+  setProfEmailCurrentPassword,
   profNotifEmail,
   setProfNotifEmail,
   profUpdating,
@@ -54,16 +68,43 @@ export function ProfileForm({
                 <input
                   id="account-profile-email"
                   type="email"
-                  value={profile.email}
-                  readOnly
-                  aria-readonly="true"
-                  className="w-full rounded-lg border border-slate-200 bg-slate-50 p-2.5 pr-9 text-xs text-slate-500"
+                  value={profEmail}
+                  onChange={(e) => setProfEmail(e.target.value)}
+                  autoComplete="email"
+                  className="w-full rounded-lg border border-slate-200 bg-white p-2.5 pr-9 text-xs outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
                 />
-                <LockKeyhole className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                <Mail className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
               </div>
-              <p className="mt-1 text-[11px] text-slate-400">Contact support to change your sign-in email.</p>
+              <p className="mt-1 text-[11px] text-slate-400">Changing this address requires a verification code and your current password.</p>
             </div>
           </div>
+
+          {profEmail.trim().toLowerCase() !== profile.email.trim().toLowerCase() && profEmailCodeRequested && (
+            <div className="grid grid-cols-1 gap-4 rounded-lg border border-indigo-100 bg-indigo-50/60 p-4 md:grid-cols-2">
+              <div>
+                <label htmlFor="account-email-code" className="mb-1 block text-xs font-semibold uppercase text-slate-500">Verification Code</label>
+                <input
+                  id="account-email-code"
+                  value={profEmailCode}
+                  onChange={(e) => setProfEmailCode(e.target.value)}
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  className="w-full rounded-lg border border-slate-200 bg-white p-2.5 text-xs outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+                />
+              </div>
+              <div>
+                <label htmlFor="account-email-current-password" className="mb-1 block text-xs font-semibold uppercase text-slate-500">Current Password</label>
+                <input
+                  id="account-email-current-password"
+                  type="password"
+                  value={profEmailCurrentPassword}
+                  onChange={(e) => setProfEmailCurrentPassword(e.target.value)}
+                  autoComplete="current-password"
+                  className="w-full rounded-lg border border-slate-200 bg-white p-2.5 text-xs outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+                />
+              </div>
+            </div>
+          )}
 
           <div>
             <label htmlFor="account-notification-email" className="block text-xs font-semibold text-slate-400  uppercase mb-1">Notification Email</label>
@@ -84,7 +125,11 @@ export function ProfileForm({
             disabled={profUpdating}
             className="min-h-10 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white text-xs font-bold rounded-lg transition-colors shadow-sm cursor-pointer"
           >
-            {profUpdating ? 'Saving…' : 'Save changes'}
+            {profUpdating
+              ? 'Saving…'
+              : profEmail.trim().toLowerCase() !== profile.email.trim().toLowerCase()
+                ? (profEmailCodeRequested ? 'Verify Email & Save' : 'Send Code to New Email')
+                : 'Save changes'}
           </button>
         </div>
       </form>
