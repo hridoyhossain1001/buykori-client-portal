@@ -62,6 +62,16 @@ test('mock API honors the audited error and analytics contracts', async () => {
       ['district', 'page_view', 'add_to_cart', 'initiate_checkout', 'purchase', 'revenue', 'currency']
     );
 
+    const campaigns = await (await fetch(`${baseUrl}/api/v1/analytics/campaigns`)).json();
+    assert.deepEqual(
+      Object.keys(campaigns.campaigns[0]),
+      ['source', 'campaign', 'view_content', 'add_to_cart', 'initiate_checkout', 'purchase', 'revenue', 'currency']
+    );
+
+    const recoverySummary = await (await fetch(`${baseUrl}/api/events/recovery-summary`)).json();
+    assert.equal(typeof recoverySummary.matched_events, 'number');
+    assert.equal(recoverySummary.matched_events <= recoverySummary.server_events, true);
+
     const signalDoctor = await (await fetch(`${baseUrl}/api/v1/analytics/signal-doctor`)).json();
     assert.deepEqual(
       Object.keys(signalDoctor.signal_rates),

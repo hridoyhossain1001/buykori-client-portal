@@ -54,3 +54,6 @@ jobs:
 
       - name: Test - mock API contracts
         run: npm run test:mock-api
+
+      - name: Test - invoice print sanitization
+        run: npm run test:print

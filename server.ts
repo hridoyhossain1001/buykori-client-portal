@@ -15,6 +15,7 @@ import {
   generateAPILogs 
 } from "./src/lib/mock-data.js";
 import { CAPIEvent, APILog, Suggestion, Platform, EventRule, PlatformConfig, OutboxItem } from "./src/types.js";
+import type { AnalyticsCampaigns, RecoverySummary } from "./src/types.js";
 
 const isProductionRuntime = process.env.NODE_ENV === "production";
 const allowProductionMockServer = process.env.BUYKORI_ALLOW_MOCK_SERVER_PRODUCTION === "1";
@@ -572,13 +573,16 @@ async function startServer() {
   app.get("/api/events/recovery-summary", (req, res) => {
     const browserEvents = events.filter(event => event.payload?.action_source === "website").length;
     const serverEvents = events.length;
+    const matchedEvents = Math.min(browserEvents, serverEvents);
     const recoveredEvents = Math.max(0, serverEvents - browserEvents);
-    res.json({
+    const payload: RecoverySummary = {
       browser_events: browserEvents,
       server_events: serverEvents,
+      matched_events: matchedEvents,
       recovered_events: recoveredEvents,
       recovery_rate: serverEvents ? Math.round((recoveredEvents / serverEvents) * 1000) / 10 : 0,
-    });
+    };
+    res.json(payload);
   });
 
   // Outbound API Logs
@@ -1128,13 +1132,14 @@ async function startServer() {
   });
 
   app.get("/api/v1/analytics/campaigns", (req, res) => {
-    res.json({
+    const payload: AnalyticsCampaigns = {
       campaigns: [
-        { name: "Meta Prospecting", source: "facebook", events: 842, revenue: 68400, roas: 3.8 },
-        { name: "TikTok Retargeting", source: "tiktok", events: 516, revenue: 42100, roas: 2.9 },
-        { name: "Google Shopping", source: "google", events: 394, revenue: 30750, roas: 2.4 },
+        { source: "facebook", campaign: "Meta Prospecting", view_content: 842, add_to_cart: 391, initiate_checkout: 214, purchase: 96, revenue: 68400, currency: "BDT" },
+        { source: "tiktok", campaign: "TikTok Retargeting", view_content: 516, add_to_cart: 233, initiate_checkout: 118, purchase: 54, revenue: 42100, currency: "BDT" },
+        { source: "google", campaign: "Google Shopping", view_content: 394, add_to_cart: 168, initiate_checkout: 87, purchase: 41, revenue: 30750, currency: "BDT" },
       ],
-    });
+    };
+    res.json(payload);
   });
 
   app.get("/api/v1/analytics/hourly", (req, res) => {
