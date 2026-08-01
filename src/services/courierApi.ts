@@ -1,3 +1,4 @@
+import { apiFetch } from '../lib/http';
 import type { CourierOrder, DeferredOrderProduct } from '../types';
 
 export interface PathaoStore {
@@ -7,6 +8,17 @@ export interface PathaoStore {
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
+
+const readObject = async (response: Response): Promise<Record<string, unknown>> => {
+  const payload: unknown = await response.json().catch(() => ({}));
+  return isRecord(payload) ? payload : {};
+};
+
+/** Surfaces the server-provided `detail`, matching operationsApi / accountApi behaviour. */
+const requestError = async (response: Response, fallback: string) => {
+  const body = await readObject(response);
+  return new Error(typeof body.detail === 'string' ? body.detail : fallback);
+};
 
 const normalizeCourierOrder = (value: unknown): CourierOrder | null => {
   if (!isRecord(value)) return null;
@@ -45,14 +57,14 @@ export const normalizePathaoStoresPayload = (payload: unknown): PathaoStore[] =>
   }));
 };
 
-export async function loadCourierOrders(): Promise<CourierOrder[]> {
-  const response = await fetch('/api/courier/orders');
-  if (!response.ok) throw new Error('Failed to fetch courier orders.');
+export async function loadCourierOrders(signal?: AbortSignal): Promise<CourierOrder[]> {
+  const response = await apiFetch('/api/courier/orders', { signal });
+  if (!response.ok) throw await requestError(response, 'Failed to fetch courier orders.');
   return normalizeCourierOrdersPayload(await response.json());
 }
 
-export async function loadPathaoStores(): Promise<PathaoStore[]> {
-  const response = await fetch('/api/courier/pathao/stores');
-  if (!response.ok) throw new Error('Failed to fetch Pathao stores.');
+export async function loadPathaoStores(signal?: AbortSignal): Promise<PathaoStore[]> {
+  const response = await apiFetch('/api/courier/pathao/stores', { signal });
+  if (!response.ok) throw await requestError(response, 'Failed to fetch Pathao stores.');
   return normalizePathaoStoresPayload(await response.json());
 }

@@ -1,3 +1,4 @@
+import { apiFetch } from '../lib/http';
 import type { DeferredData, SidebarStatus, StoreInfo } from '../types';
 
 interface ActionResponse {
@@ -23,8 +24,8 @@ const requestError = async (response: Response, fallback: string) => {
   return new Error(typeof body.detail === 'string' ? body.detail : fallback);
 };
 
-export async function fetchDeferredData(): Promise<DeferredData> {
-  const response = await fetch('/api/deferred');
+export async function fetchDeferredData(signal?: AbortSignal): Promise<DeferredData> {
+  const response = await apiFetch('/api/deferred', { signal });
   if (!response.ok) throw await requestError(response, `Could not load verification queue (${response.status}).`);
   return await response.json() as DeferredData;
 }
@@ -33,7 +34,7 @@ export async function runDeferredOrderAction(
   action: 'confirm' | 'cancel' | 'restore',
   orderId: string,
 ): Promise<ActionResponse> {
-  const response = await fetch(`/api/deferred/${action}`, {
+  const response = await apiFetch(`/api/deferred/${action}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ order_id: orderId }),
@@ -46,7 +47,7 @@ export async function runDeferredBulkAction(
   action: 'confirm-bulk' | 'cancel-bulk',
   orderIds: string[],
 ): Promise<ActionResponse> {
-  const response = await fetch(`/api/deferred/${action}`, {
+  const response = await apiFetch(`/api/deferred/${action}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ order_ids: orderIds }),
@@ -60,7 +61,7 @@ export async function saveDeferredSettings(settings: {
   autoConfirmDays: number;
   autoConfirmStatus: string;
 }) {
-  const response = await fetch('/api/deferred/settings', {
+  const response = await apiFetch('/api/deferred/settings', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(settings),
@@ -68,8 +69,8 @@ export async function saveDeferredSettings(settings: {
   if (!response.ok) throw await requestError(response, 'Failed to save COD Protection settings.');
 }
 
-export async function fetchClientStores(): Promise<StoreInfo[]> {
-  const response = await fetch('/api/stores');
+export async function fetchClientStores(signal?: AbortSignal): Promise<StoreInfo[]> {
+  const response = await apiFetch('/api/stores', { signal });
   if (!response.ok) throw await requestError(response, 'Could not load stores.');
   const body = await readObject(response);
   if (!Array.isArray(body.stores)) return [];
@@ -88,7 +89,7 @@ export async function fetchClientStores(): Promise<StoreInfo[]> {
 }
 
 export async function saveClientStoreDomain(domain: string): Promise<StoreDomainResponse> {
-  const response = await fetch('/api/store/domain', {
+  const response = await apiFetch('/api/store/domain', {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ domain: domain.trim() || null }),
@@ -99,7 +100,7 @@ export async function saveClientStoreDomain(domain: string): Promise<StoreDomain
 }
 
 export async function switchClientStore(clientId: number) {
-  const response = await fetch('/api/switch-store', {
+  const response = await apiFetch('/api/switch-store', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ target_client_id: clientId }),
@@ -108,13 +109,13 @@ export async function switchClientStore(clientId: number) {
 }
 
 export async function markClientSidebarSeen(section: 'order_verification' | 'orders_delivery') {
-  const response = await fetch('/api/sidebar/mark-seen', {
+  const response = await apiFetch('/api/sidebar/mark-seen', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ section }),
   });
   if (!response.ok) throw await requestError(response, 'Could not update sidebar status.');
 
-  const statusResponse = await fetch('/api/sidebar/status');
+  const statusResponse = await apiFetch('/api/sidebar/status');
   return statusResponse.ok ? await statusResponse.json() as SidebarStatus : null;
 }

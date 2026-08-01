@@ -15,14 +15,17 @@
     "test:courier": "tsx --test src/services/courierApi.test.ts",
     "test:operations": "tsx --test src/services/operationsApi.test.ts",
     "test:account": "tsx --test src/services/accountApi.test.ts",
-    "test:account-ui": "tsx --test src/components/account/ProfileForm.test.tsx"
+    "test:account-ui": "tsx --test src/components/account/ProfileForm.test.tsx",
+    "test:http": "tsx --test src/lib/http.test.ts",
+    "test:mock-api": "tsx --test server.test.ts",
+    "test:print": "tsx --test src/lib/print.test.ts"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.1.14",
     "@vitejs/plugin-react": "^5.0.4",
+    "body-parser": "^1.20.6",
     "dotenv": "^17.2.3",
     "express": "^4.22.2",
-    "body-parser": "^1.20.6",
     "jsbarcode": "^3.12.3",
     "lucide-react": "^0.546.0",
     "qrcode": "^1.5.4",
@@ -40,6 +43,7 @@
     "@types/react-dom": "^19.2.4",
     "autoprefixer": "^10.4.21",
     "esbuild": "^0.25.0",
+    "linkedom": "^0.18.13",
     "tailwindcss": "^4.1.14",
     "tsx": "^4.21.0",
     "typescript": "~5.8.2",

@@ -1,3 +1,4 @@
+import { apiFetch } from '../lib/http';
 import type {
   AnalyticsAudience,
   AnalyticsCampaigns,
@@ -17,12 +18,16 @@ export interface AnalyticsBundle {
 
 const readJson = async <T>(response: Response) => await response.json() as T;
 
-export async function fetchAnalyticsBundle(days: number): Promise<AnalyticsBundle> {
+/**
+ * API-06 / UI-02: every request now carries a timeout, and callers can pass an
+ * AbortSignal so a rapid `days` change cannot let a stale bundle overwrite a fresher one.
+ */
+export async function fetchAnalyticsBundle(days: number, signal?: AbortSignal): Promise<AnalyticsBundle> {
   const [overviewResponse, campaignsResponse, audienceResponse, signalResponse] = await Promise.all([
-    fetch(`/api/v1/analytics/overview?days=${days}`),
-    fetch(`/api/v1/analytics/campaigns?days=${days}`),
-    fetch(`/api/v1/analytics/audience?days=${days}`),
-    fetch(`/api/v1/analytics/signal-doctor?days=${days}`),
+    apiFetch(`/api/v1/analytics/overview?days=${days}`, { signal }),
+    apiFetch(`/api/v1/analytics/campaigns?days=${days}`, { signal }),
+    apiFetch(`/api/v1/analytics/audience?days=${days}`, { signal }),
+    apiFetch(`/api/v1/analytics/signal-doctor?days=${days}`, { signal }),
   ]);
 
   const failedSections: string[] = [];
@@ -63,10 +68,10 @@ export async function fetchAnalyticsBundle(days: number): Promise<AnalyticsBundl
   return bundle;
 }
 
-export async function fetchDashboardAnalytics(days: number) {
+export async function fetchDashboardAnalytics(days: number, signal?: AbortSignal) {
   const [trendResponse, recoveryResponse] = await Promise.all([
-    fetch(`/api/events/trend?days=${days}`),
-    fetch(`/api/events/recovery-summary?days=${days}`),
+    apiFetch(`/api/events/trend?days=${days}`, { signal }),
+    apiFetch(`/api/events/recovery-summary?days=${days}`, { signal }),
   ]);
   const trendPayload = trendResponse.ok
     ? await readJson<{ trend?: TrendPoint[] }>(trendResponse)

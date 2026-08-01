@@ -39,6 +39,7 @@ import { ConnectionErrorBanner, ConsoleSkeleton, PageSuspenseFallback } from './
 import { GlobalToast, type GlobalToastState } from './app/GlobalToast';
 import { DemoResetModal } from './app/DemoResetModal';
 import { useCampaignUrlBuilder } from './app/useCampaignUrlBuilder';
+import { isAbortError } from './lib/http';
 
 export default function App() {
   const isPluginConnectRoute = window.location.pathname === '/plugin/connect';
@@ -62,6 +63,8 @@ export default function App() {
   const [eventsLastFetchedAt, setEventsLastFetchedAt] = useState<string | null>(null);
   const eventsRequestIdRef = useRef(0);
   const activePageRef = useRef(activePage);
+  const systemDataAbortRef = useRef<AbortController | null>(null);
+  const storesAbortRef = useRef<AbortController | null>(null);
   const [apiLogs, setApiLogs] = useState<APILog[]>([]);
   const [outboxItems, setOutboxItems] = useState<OutboxItem[]>([]);
   const [retryingOutboxIds, setRetryingOutboxIds] = useState<number[]>([]);
@@ -325,53 +328,55 @@ export default function App() {
     }, 2000);
   };
 
-  const fetchDeferred = async () => {
+  const fetchDeferred = async (signal?: AbortSignal) => {
     try {
-      const data = await fetchDeferredData();
+      const data = await fetchDeferredData(signal);
       setDeferredData(data);
       setDeferredEnabled(Boolean(data.deferredEnabled));
       setAutoConfirmDays(Number(data.autoConfirmDays || 0));
       setAutoConfirmStatus(data.autoConfirmStatus || 'completed');
       setDeferredLoadError(null);
     } catch (err) {
+      if (isAbortError(err)) return;
       console.error("Failed to fetch COD Protection", err);
       setDeferredData(prev => prev || { pendingList: [], pendingCount: 0, pendingValue: 0 });
       setDeferredLoadError(err instanceof Error ? err.message : 'Could not load the verification queue.');
     }
   };
 
-  const refreshIncompleteCheckoutStates = async () => {
-    const res = await fetch('/api/incomplete-checkouts/refresh', { method: 'POST' });
+  const refreshIncompleteCheckoutStates = async (signal?: AbortSignal) => {
+    const res = await fetch('/api/incomplete-checkouts/refresh', { method: 'POST', signal });
     if (!res.ok && res.status !== 403) {
       const body = await res.json().catch(() => ({}));
       throw new Error(body.detail || `Could not refresh incomplete checkouts (${res.status}).`);
     }
   };
 
-  const fetchIncompleteCheckouts = async (options: { refresh?: boolean } = {}) => {
+  const fetchIncompleteCheckouts = async (options: { refresh?: boolean; signal?: AbortSignal } = {}) => {
     try {
       if (options.refresh) {
-        await refreshIncompleteCheckoutStates();
+        await refreshIncompleteCheckoutStates(options.signal);
       }
-      const res = await fetch('/api/incomplete-checkouts');
+      const res = await fetch('/api/incomplete-checkouts', { signal: options.signal });
       if (res.ok) {
         setIncompleteCheckoutData(await res.json());
       } else if (res.status === 403) {
         setIncompleteCheckoutData({ items: [], counts: {}, restricted: true });
       }
     } catch (err) {
+      if (isAbortError(err)) return;
       console.error('Failed to fetch incomplete checkouts', err);
     }
   };
 
-  const fetchEvents = async () => {
+  const fetchEvents = async (signal?: AbortSignal) => {
     const requestId = ++eventsRequestIdRef.current;
     setEventsLoading(true);
     setEventsLoadError(null);
     try {
       const [eventsRes, outboxRes] = await Promise.all([
-        fetch('/api/events?limit=100'),
-        fetch('/api/outbox?limit=100'),
+        fetch('/api/events?limit=100', { signal }),
+        fetch('/api/outbox?limit=100', { signal }),
       ]);
       if (isAuthFailure([eventsRes])) {
         redirectToClientLogin();
@@ -423,6 +428,7 @@ export default function App() {
       );
       setEventsLastFetchedAt(new Date().toISOString());
     } catch (error) {
+      if (isAbortError(error)) return;
       if (requestId === eventsRequestIdRef.current) {
         setEventsLoadError(error instanceof Error ? error.message : 'Event history could not load.');
       }
@@ -432,37 +438,38 @@ export default function App() {
     }
   };
 
-  const fetchApiLogs = async () => {
-    const res = await fetch('/api/api-logs?limit=100');
+  const fetchApiLogs = async (signal?: AbortSignal) => {
+    const res = await fetch('/api/api-logs?limit=100', { signal });
     if (res.ok) {
       const data = await res.json();
       setApiLogs(data.logs || []);
     }
   };
 
-  const fetchTrendData = async (days = 7) => {
+  const fetchTrendData = async (days = 7, signal?: AbortSignal) => {
     try {
-      const data = await fetchDashboardAnalytics(days);
+      const data = await fetchDashboardAnalytics(days, signal);
       if (data.trend) setTrendData(data.trend);
       if (data.recoverySummary) setRecoverySummary(data.recoverySummary);
     } catch (err) {
+      if (isAbortError(err)) return;
       console.error("Failed to fetch trend data", err);
     }
   };
 
-  const fetchOutbox = async () => {
-    const res = await fetch('/api/outbox?limit=25');
+  const fetchOutbox = async (signal?: AbortSignal) => {
+    const res = await fetch('/api/outbox?limit=25', { signal });
     if (res.ok) {
       const data = await res.json();
       setOutboxItems(data.items || []);
     }
   };
 
-  const fetchSettingsData = async () => {
+  const fetchSettingsData = async (signal?: AbortSignal) => {
     const [resCreds, resRules, resAutomations] = await Promise.all([
-      fetch('/api/credentials'),
-      fetch('/api/rules'),
-      fetch('/api/custom-event-automations'),
+      fetch('/api/credentials', { signal }),
+      fetch('/api/rules', { signal }),
+      fetch('/api/custom-event-automations', { signal }),
     ]);
     if (isAuthFailure([resCreds, resRules, resAutomations])) {
       redirectToClientLogin();
@@ -477,17 +484,17 @@ export default function App() {
     setCustomEventAutomations(automationData.automations || []);
   };
 
-  const loadActivePageData = async (page: string) => {
+  const loadActivePageData = async (page: string, signal?: AbortSignal) => {
     if (page === 'pending-purchases' || page === 'orders') {
-      await fetchDeferred();
+      await fetchDeferred(signal);
     } else if (page === 'incomplete-checkouts') {
-      await fetchIncompleteCheckouts({ refresh: true });
+      await fetchIncompleteCheckouts({ refresh: true, signal });
     } else if (page === 'event-logs') {
-      await Promise.all([fetchEvents(), fetchOutbox()]);
+      await Promise.all([fetchEvents(signal), fetchOutbox(signal)]);
     } else if (page === 'api-logs') {
-      await fetchApiLogs();
+      await fetchApiLogs(signal);
     } else if (page === 'settings') {
-      await fetchSettingsData();
+      await fetchSettingsData(signal);
     }
   };
 
@@ -532,18 +539,22 @@ export default function App() {
 
   // --- Fetch API Handlers ---
   const loadSystemData = async (showShimmer = true) => {
+    systemDataAbortRef.current?.abort();
+    const controller = new AbortController();
+    systemDataAbortRef.current = controller;
+    const { signal } = controller;
     if (showShimmer) setLoading(true);
     try {
       // Route-specific payloads load when their workspace opens.
       const [
         resProf, resConn, resSugg, resSidebar, resPlugin, resTrend
       ] = await Promise.all([
-        fetch('/api/profile'),
-        fetch('/api/connection'),
-        fetch('/api/suggestions'),
-        fetch('/api/sidebar/status'),
-        fetch('/api/v1/plugin/info'),
-        fetch(`/api/events/trend?days=${analyticsDays}`)
+        fetch('/api/profile', { signal }),
+        fetch('/api/connection', { signal }),
+        fetch('/api/suggestions', { signal }),
+        fetch('/api/sidebar/status', { signal }),
+        fetch('/api/v1/plugin/info', { signal }),
+        fetch(`/api/events/trend?days=${analyticsDays}`, { signal })
       ]);
 
       if (isAuthFailure([resProf, resConn])) {
@@ -580,21 +591,26 @@ export default function App() {
       setProfWhatsappNumber(dProf.ownerWhatsappNumber || '');
 
       setErrState(null);
-      await loadActivePageData(activePageRef.current).catch(error => {
+      await loadActivePageData(activePageRef.current, signal).catch(error => {
+        if (isAbortError(error)) return;
         console.error(`Failed to load ${activePageRef.current} workspace`, error);
       });
     } catch (e: unknown) {
+      if (isAbortError(e)) return;
       console.error(e);
       setErrState(errorMessage(e, "Something went wrong. Please refresh or try again."));
     } finally {
-      if (showShimmer) setLoading(false);
+      if (systemDataAbortRef.current === controller) {
+        systemDataAbortRef.current = null;
+        setLoading(false);
+      }
     }
   };
 
-  const loadAnalyticsData = async (days = 7) => {
+  const loadAnalyticsData = async (days = 7, signal?: AbortSignal) => {
     try {
       setAnalyticsError(null);
-      const data = await fetchAnalyticsBundle(days);
+      const data = await fetchAnalyticsBundle(days, signal);
       if (data.overview) setAnalyticsOverview(data.overview);
       if (data.campaigns) setAnalyticsCampaigns(data.campaigns);
       if (data.audience) setAnalyticsAudience(data.audience);
@@ -603,6 +619,7 @@ export default function App() {
         setAnalyticsError(`Some ad insight data could not load: ${data.failedSections.join(', ')}.`);
       }
     } catch (err) {
+      if (isAbortError(err)) return;
       console.error("Failed to load analytics data", err);
       setAnalyticsError("Ad insight data could not load. Please refresh and try again.");
     }
@@ -612,26 +629,39 @@ export default function App() {
     if (isPluginConnectRoute) return;
     loadSystemData(true);
     fetchStores();
+    return () => {
+      systemDataAbortRef.current?.abort();
+      storesAbortRef.current?.abort();
+    };
   }, []);
 
   useEffect(() => {
     if (isPluginConnectRoute) return;
+    const controller = new AbortController();
     if (profile) {
       if (activePage === 'analytics') {
-        loadAnalyticsData(analyticsDays);
+        loadAnalyticsData(analyticsDays, controller.signal);
       } else if (activePage === 'dashboard') {
-        Promise.all([fetchTrendData(analyticsDays), fetchEvents()]).catch(err => {
+        Promise.all([fetchTrendData(analyticsDays, controller.signal), fetchEvents(controller.signal)]).catch(err => {
+          if (isAbortError(err)) return;
           console.error('Failed to load dashboard activity', err);
         });
       }
     }
+    return () => controller.abort();
   }, [analyticsDays, profile, activePage]);
 
   const fetchStores = async () => {
+    storesAbortRef.current?.abort();
+    const controller = new AbortController();
+    storesAbortRef.current = controller;
     try {
-      setStores(await fetchClientStores());
+      setStores(await fetchClientStores(controller.signal));
     } catch (err) {
+      if (isAbortError(err)) return;
       console.error('Failed to fetch stores', err);
+    } finally {
+      if (storesAbortRef.current === controller) storesAbortRef.current = null;
     }
   };
 
@@ -680,29 +710,37 @@ export default function App() {
   };
 
   useEffect(() => {
+    const controller = new AbortController();
     if (activePage === 'pending-purchases') {
       markSidebarSeen('order_verification');
     } else if (activePage === 'orders') {
       markSidebarSeen('orders_delivery');
     }
     if (activePage !== 'dashboard') {
-      loadActivePageData(activePage).catch(err => {
+      loadActivePageData(activePage, controller.signal).catch(err => {
+        if (isAbortError(err)) return;
         console.error(`Failed to load ${activePage} workspace`, err);
       });
     }
+    return () => controller.abort();
   }, [activePage]);
 
   useEffect(() => {
     if (activePage !== 'event-logs' || !liveMode) return;
+    const controller = new AbortController();
     const refreshEventHistory = () => {
       if (document.hidden) return;
-      Promise.all([fetchEvents(), fetchOutbox()]).catch(err => {
+      Promise.all([fetchEvents(controller.signal), fetchOutbox(controller.signal)]).catch(err => {
+        if (isAbortError(err)) return;
         console.error('Failed to refresh Event History', err);
       });
     };
     refreshEventHistory();
     const intervalId = window.setInterval(refreshEventHistory, 5000);
-    return () => window.clearInterval(intervalId);
+    return () => {
+      controller.abort();
+      window.clearInterval(intervalId);
+    };
   }, [activePage, liveMode]);
 
   // Periodic polling for Incomplete Checkouts and COD holds
@@ -710,23 +748,29 @@ export default function App() {
     if (activePage !== 'incomplete-checkouts' && activePage !== 'pending-purchases' && activePage !== 'orders') {
       return;
     }
+    const controller = new AbortController();
 
     const pollData = () => {
       if (document.hidden) return;
 
       if (activePage === 'incomplete-checkouts') {
-        fetchIncompleteCheckouts({ refresh: true }).catch(err => {
+        fetchIncompleteCheckouts({ refresh: true, signal: controller.signal }).catch(err => {
+          if (isAbortError(err)) return;
           console.error('Failed to auto-refresh incomplete checkouts', err);
         });
       } else if (activePage === 'pending-purchases' || activePage === 'orders') {
-        fetchDeferred().catch(err => {
+        fetchDeferred(controller.signal).catch(err => {
+          if (isAbortError(err)) return;
           console.error('Failed to auto-refresh COD holds/orders', err);
         });
       }
     };
 
     const intervalId = window.setInterval(pollData, 15000);
-    return () => window.clearInterval(intervalId);
+    return () => {
+      controller.abort();
+      window.clearInterval(intervalId);
+    };
   }, [activePage]);
 
   // Handle platform credential update

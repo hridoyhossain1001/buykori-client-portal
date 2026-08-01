@@ -32,6 +32,16 @@ const SETTINGS_SECTION_PATHS: Record<string, string> = {
   'settings-whatsapp': '/settings/alerts-notifications',
 };
 
+/**
+ * Host-level prefixes that all serve the same SPA shell.
+ *
+ * API-09: `vercel.json` rewrites `/client/dashboard/:path*` to index.html, but this resolver
+ * previously only matched the exact `/client/dashboard` path. Deep links such as
+ * `/client/dashboard/settings` therefore resolved to `null` and rendered the not-found view
+ * even though the host had served the app correctly.
+ */
+const APP_PREFIXES = ['/app', '/client/dashboard'];
+
 const PAGE_BY_PATH = new Map(Object.entries(PAGE_PATHS).map(([pageId, path]) => [path, pageId]));
 const SETTINGS_SECTION_BY_PATH = new Map(
   Object.entries(SETTINGS_SECTION_PATHS).map(([sectionId, path]) => [path, sectionId])
@@ -41,6 +51,14 @@ const normalizePath = (pathname: string) => {
   const clean = String(pathname || '/').split('?')[0].split('#')[0];
   if (clean === '/') return clean;
   return clean.replace(/\/+$/, '') || '/';
+};
+
+const stripAppPrefix = (path: string) => {
+  for (const prefix of APP_PREFIXES) {
+    if (path === prefix) return '/';
+    if (path.startsWith(`${prefix}/`)) return path.slice(prefix.length) || '/';
+  }
+  return path;
 };
 
 export const clientPathForPage = (pageId: string) => PAGE_PATHS[pageId] || null;
@@ -53,14 +71,18 @@ export const clientPathForSection = (pageId: string, sectionId: string) => {
 export const resolveClientRoute = (pathname: string): ClientRouteMatch | null => {
   const path = normalizePath(pathname);
 
-  if (path === '/' || path === '/index.html' || path === '/app' || path === '/client/dashboard') {
+  if (path === '/' || path === '/index.html') {
     return { pageId: 'dashboard', sectionId: null, canonicalPath: PAGE_PATHS.dashboard };
   }
 
-  const routePath = path.startsWith('/app/') ? path.slice('/app'.length) : path;
+  const routePath = stripAppPrefix(path);
+
+  if (routePath === '/' || routePath === '/index.html') {
+    return { pageId: 'dashboard', sectionId: null, canonicalPath: PAGE_PATHS.dashboard };
+  }
 
   if (/^\/order-success\/[^/]+$/.test(routePath)) {
-    return { pageId: 'order-success', sectionId: null, canonicalPath: path };
+    return { pageId: 'order-success', sectionId: null, canonicalPath: routePath };
   }
 
   if (routePath === '/settings') {

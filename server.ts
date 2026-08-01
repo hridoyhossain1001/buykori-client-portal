@@ -15,6 +15,7 @@ import {
   generateAPILogs 
 } from "./src/lib/mock-data.js";
 import { CAPIEvent, APILog, Suggestion, Platform, EventRule, PlatformConfig, OutboxItem } from "./src/types.js";
+import type { AnalyticsCampaigns, RecoverySummary } from "./src/types.js";
 
 const isProductionRuntime = process.env.NODE_ENV === "production";
 const allowProductionMockServer = process.env.BUYKORI_ALLOW_MOCK_SERVER_PRODUCTION === "1";
@@ -70,6 +71,21 @@ interface MockIncompleteCheckout {
   updated_at: string;
   items: string[];
   orderId?: string;
+}
+
+/** CP-03: shared validation for the deferred COD endpoints. */
+function readOrderId(body: unknown): string | null {
+  const value = (body as Record<string, unknown> | null | undefined)?.order_id;
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
+}
+
+function readOrderIds(body: unknown): string[] | null {
+  const value = (body as Record<string, unknown> | null | undefined)?.order_ids;
+  if (!Array.isArray(value)) return null;
+  const ids = value.filter((id): id is string => typeof id === "string" && id.trim().length > 0);
+  return ids.length === value.length ? ids : null;
 }
 
 async function startServer() {
@@ -132,6 +148,8 @@ async function startServer() {
       timestamp: new Date(Date.now() - 12.8 * 3600000).toISOString()
     }
   ];
+  /** API-05: archive backing /api/deferred/restore, which the frontend already calls. */
+  let archivedOrders: Array<{ action: "confirm" | "cancel"; order: MockPendingOrder }> = [];
   let confirmedTotal = 12;
   let cancelledTotal = 2;
   let confirmedToday = 2;
@@ -512,35 +530,59 @@ async function startServer() {
     });
   });
 
+  /**
+   * CP-13: this used to fabricate its buckets. Events were assigned to a day with
+   * `eventIndex % days === index % days`, which has nothing to do with when the event
+   * happened, and the totals were then floored with `Math.max(dayEvents.length, 4 + index)`
+   * so the chart always sloped upward regardless of the data.
+   *
+   * Buckets are now derived from the real `event.timestamp`. Empty days report zero.
+   */
   app.get("/api/events/trend", (req, res) => {
     const days = Math.max(1, Math.min(30, Number(req.query.days || 7)));
-    const trend = Array.from({ length: days }, (_, index) => {
-      const date = new Date();
-      date.setDate(date.getDate() - (days - index - 1));
-      const dayEvents = events.filter((event, eventIndex) => eventIndex % days === index % days);
-      const success = dayEvents.filter(event => event.status === "Success").length;
-      const failed = dayEvents.filter(event => event.status === "Failed").length;
-      return {
-        date: date.toISOString().slice(0, 10),
-        total: Math.max(dayEvents.length, 4 + index),
-        success: Math.max(success, 3 + index),
-        failed,
-        value: 1200 + index * 380,
-      };
-    });
+    const buckets = new Map<string, { total: number; success: number; failed: number; value: number }>();
+
+    const today = new Date();
+    for (let offset = days - 1; offset >= 0; offset -= 1) {
+      const day = new Date(today);
+      day.setDate(today.getDate() - offset);
+      buckets.set(day.toISOString().slice(0, 10), { total: 0, success: 0, failed: 0, value: 0 });
+    }
+
+    for (const event of events) {
+      const bucket = buckets.get(String(event.timestamp || "").slice(0, 10));
+      if (!bucket) continue;
+      bucket.total += 1;
+      if (event.status === "Success") bucket.success += 1;
+      if (event.status === "Failed") bucket.failed += 1;
+      const value = Number((event.payload as any)?.custom_data?.value || 0);
+      if (Number.isFinite(value)) bucket.value += value;
+    }
+
+    const trend = Array.from(buckets, ([date, bucket]) => ({
+      date,
+      total: bucket.total,
+      success: bucket.success,
+      failed: bucket.failed,
+      value: Math.round(bucket.value * 100) / 100,
+    }));
+
     res.json({ trend });
   });
 
   app.get("/api/events/recovery-summary", (req, res) => {
     const browserEvents = events.filter(event => event.payload?.action_source === "website").length;
     const serverEvents = events.length;
+    const matchedEvents = Math.min(browserEvents, serverEvents);
     const recoveredEvents = Math.max(0, serverEvents - browserEvents);
-    res.json({
+    const payload: RecoverySummary = {
       browser_events: browserEvents,
       server_events: serverEvents,
+      matched_events: matchedEvents,
       recovered_events: recoveredEvents,
       recovery_rate: serverEvents ? Math.round((recoveredEvents / serverEvents) * 1000) / 10 : 0,
-    });
+    };
+    res.json(payload);
   });
 
   // Outbound API Logs
@@ -637,6 +679,16 @@ async function startServer() {
       return res.status(400).json({ error: "Platform and Event Name are required fields." });
     }
 
+    // CP-02: an unrecognised platform used to fall through to `targetConfig.enabled`
+    // on an undefined value, which threw and surfaced as an opaque 500.
+    const targetConfig = credentials[platform as Platform];
+    if (!targetConfig) {
+      return res.status(400).json({
+        error: `Unknown platform '${String(platform)}'.`,
+        supportedPlatforms: Object.keys(credentials),
+      });
+    }
+
     const timestamp = Math.floor(Date.now() / 1000);
     const ipAddr = ip || "192.168.1.134";
     const ua = userAgent || "CAPI Campaign Sandbox Agent v1.0";
@@ -657,8 +709,6 @@ async function startServer() {
       } : customParams
     };
 
-    // Determine return signals & insert event directly to logging history
-    const targetConfig = credentials[platform as Platform];
     const isPluginActive = connection.status === 'Active';
 
     let code = 200;
@@ -974,7 +1024,7 @@ async function startServer() {
     const name = String(req.body?.name || "New Store").trim();
     const domain = String(req.body?.domain || "").trim();
     const store = {
-      id: Math.max(...stores.map(item => item.id)) + 1,
+      id: Math.max(0, ...stores.map(item => item.id)) + 1,
       name,
       domain,
       is_current: false,
@@ -1052,10 +1102,16 @@ async function startServer() {
     });
   });
 
+  /**
+   * API-05: `analyticsApi.fetchAnalyticsBundle` reads `overview.funnel`, which this
+   * endpoint never returned, so the funnel chart rendered empty in local dev.
+   */
   app.get("/api/v1/analytics/overview", (req, res) => {
     const total = events.length;
     const success = events.filter(event => event.status === "Success").length;
     const failed = events.filter(event => event.status === "Failed").length;
+    const countByName = (name: string) => events.filter(event => event.name === name).length;
+
     res.json({
       total_events: total,
       success_events: success,
@@ -1065,17 +1121,25 @@ async function startServer() {
       conversion_rate: 4.8,
       event_growth: 12.4,
       revenue_growth: 9.6,
+      funnel: [
+        { step: "PageView", count: countByName("PageView") },
+        { step: "ViewContent", count: countByName("ViewContent") },
+        { step: "AddToCart", count: countByName("AddToCart") },
+        { step: "InitiateCheckout", count: countByName("InitiateCheckout") },
+        { step: "Purchase", count: countByName("Purchase") },
+      ],
     });
   });
 
   app.get("/api/v1/analytics/campaigns", (req, res) => {
-    res.json({
+    const payload: AnalyticsCampaigns = {
       campaigns: [
-        { name: "Meta Prospecting", source: "facebook", events: 842, revenue: 68400, roas: 3.8 },
-        { name: "TikTok Retargeting", source: "tiktok", events: 516, revenue: 42100, roas: 2.9 },
-        { name: "Google Shopping", source: "google", events: 394, revenue: 30750, roas: 2.4 },
+        { source: "facebook", campaign: "Meta Prospecting", view_content: 842, add_to_cart: 391, initiate_checkout: 214, purchase: 96, revenue: 68400, currency: "BDT" },
+        { source: "tiktok", campaign: "TikTok Retargeting", view_content: 516, add_to_cart: 233, initiate_checkout: 118, purchase: 54, revenue: 42100, currency: "BDT" },
+        { source: "google", campaign: "Google Shopping", view_content: 394, add_to_cart: 168, initiate_checkout: 87, purchase: 41, revenue: 30750, currency: "BDT" },
       ],
-    });
+    };
+    res.json(payload);
   });
 
   app.get("/api/v1/analytics/hourly", (req, res) => {
@@ -1088,8 +1152,53 @@ async function startServer() {
     });
   });
 
+  /**
+   * API-05: the frontend reads top_districts / device_mix / browser_mix /
+   * district_funnel / visitor_district_funnel. This endpoint only returned
+   * `countries` and `devices`, so every audience panel rendered empty.
+   * The legacy keys are kept so nothing that still reads them breaks.
+   */
   app.get("/api/v1/analytics/audience", (req, res) => {
+    const topDistricts = [
+      { label: "Dhaka", count: 412, percentage: 58.2 },
+      { label: "Chattogram", count: 138, percentage: 19.5 },
+      { label: "Sylhet", count: 74, percentage: 10.5 },
+      { label: "Khulna", count: 44, percentage: 6.2 },
+      { label: "Rajshahi", count: 39, percentage: 5.6 },
+    ];
+
     res.json({
+      top_districts: topDistricts,
+      device_mix: [
+        { label: "Mobile", count: 580, percentage: 82 },
+        { label: "Desktop", count: 106, percentage: 15 },
+        { label: "Tablet", count: 21, percentage: 3 },
+      ],
+      browser_mix: [
+        { label: "Chrome", count: 494, percentage: 70 },
+        { label: "Safari", count: 127, percentage: 18 },
+        { label: "Firefox", count: 49, percentage: 7 },
+        { label: "Other", count: 37, percentage: 5 },
+      ],
+      district_funnel: topDistricts.map(district => ({
+        district: district.label,
+        page_view: district.count * 3,
+        add_to_cart: Math.round(district.count * 1.4),
+        initiate_checkout: Math.round(district.count * 0.8),
+        purchase: Math.round(district.count * 0.35),
+        revenue: Math.round(district.count * 0.35) * 2450,
+        currency: "BDT",
+      })),
+      visitor_district_funnel: topDistricts.map(district => ({
+        district: district.label,
+        page_view: district.count * 4,
+        add_to_cart: Math.round(district.count * 1.5),
+        initiate_checkout: Math.round(district.count * 0.85),
+        purchase: Math.round(district.count * 0.35),
+        revenue: Math.round(district.count * 0.35) * 2450,
+        currency: "BDT",
+      })),
+      // Legacy keys retained for backwards compatibility.
       countries: [
         { name: "Bangladesh", value: 78 },
         { name: "United States", value: 12 },
@@ -1103,14 +1212,34 @@ async function startServer() {
     });
   });
 
+  /** API-05: the frontend reads `issues` and `signal_rates`; only `score`/`checks` existed. */
   app.get("/api/v1/analytics/signal-doctor", (req, res) => {
+    const checks = [
+      { label: "Meta CAPI connection", status: "pass", detail: "Active heartbeat found." },
+      { label: "Deduplication keys", status: "pass", detail: "Recent events include stable event IDs." },
+      { label: "TikTok payload quality", status: "warning", detail: "Add product category when available." },
+    ];
+
     res.json({
       score: 86,
-      checks: [
-        { label: "Meta CAPI connection", status: "pass", detail: "Active heartbeat found." },
-        { label: "Deduplication keys", status: "pass", detail: "Recent events include stable event IDs." },
-        { label: "TikTok payload quality", status: "warning", detail: "Add product category when available." },
-      ],
+      checks,
+      issues: checks
+        .filter(check => check.status !== "pass")
+        .map(check => ({
+          severity: check.status === "warning" ? "medium" : "high",
+          title: check.label,
+          message: check.detail,
+          recommendation: "Review the affected integration and send a fresh test event.",
+        })),
+      signal_rates: {
+        event_id: 98.2,
+        user_match: 94.6,
+        email_or_phone: 91.4,
+        click_id: 88.1,
+        content_ids: 96.3,
+        value: 95.8,
+        utm: 84.7,
+      },
     });
   });
 
@@ -1132,9 +1261,21 @@ async function startServer() {
   });
 
   app.post("/api/deferred/settings", (req, res) => {
-    deferredEnabled = req.body.deferredEnabled;
-    autoConfirmDays = Number(req.body.autoConfirmDays);
-    autoConfirmStatus = req.body.autoConfirmStatus;
+    const body = req.body || {};
+    if (typeof body.deferredEnabled !== "boolean") {
+      return res.status(400).json({ detail: "`deferredEnabled` must be a boolean." });
+    }
+    const days = Number(body.autoConfirmDays);
+    if (!Number.isFinite(days) || days < 0 || days > 90) {
+      return res.status(400).json({ detail: "`autoConfirmDays` must be a number between 0 and 90." });
+    }
+    if (typeof body.autoConfirmStatus !== "string" || !body.autoConfirmStatus.trim()) {
+      return res.status(400).json({ detail: "`autoConfirmStatus` must be a non-empty string." });
+    }
+
+    deferredEnabled = body.deferredEnabled;
+    autoConfirmDays = days;
+    autoConfirmStatus = body.autoConfirmStatus;
     res.json({
       success: true,
       deferredEnabled,
@@ -1143,38 +1284,108 @@ async function startServer() {
     });
   });
 
+  // CP-03: `order_id` was read straight off the body and an unknown id silently
+  // reported success while incrementing the counters.
   app.post("/api/deferred/confirm", (req, res) => {
-    const { order_id } = req.body;
-    pendingOrders = pendingOrders.filter(o => o.orderId !== order_id);
+    const orderId = readOrderId(req.body);
+    if (!orderId) {
+      return res.status(400).json({ detail: "`order_id` must be a non-empty string." });
+    }
+    const target = pendingOrders.find(order => order.orderId === orderId);
+    if (!target) {
+      return res.status(404).json({ detail: `Order '${orderId}' is not in the pending queue.` });
+    }
+    pendingOrders = pendingOrders.filter(order => order.orderId !== orderId);
+    archivedOrders.unshift({ action: "confirm", order: target });
     confirmedTotal++;
     confirmedToday++;
-    res.json({ success: true });
+    res.json({ success: true, confirmed: 1 });
   });
 
   app.post("/api/deferred/cancel", (req, res) => {
-    const { order_id } = req.body;
-    pendingOrders = pendingOrders.filter(o => o.orderId !== order_id);
+    const orderId = readOrderId(req.body);
+    if (!orderId) {
+      return res.status(400).json({ detail: "`order_id` must be a non-empty string." });
+    }
+    const target = pendingOrders.find(order => order.orderId === orderId);
+    if (!target) {
+      return res.status(404).json({ detail: `Order '${orderId}' is not in the pending queue.` });
+    }
+    pendingOrders = pendingOrders.filter(order => order.orderId !== orderId);
+    archivedOrders.unshift({ action: "cancel", order: target });
     cancelledTotal++;
-    res.json({ success: true });
+    res.json({ success: true, cancelled: 1 });
   });
 
+  /**
+   * API-05: `operationsApi.runDeferredOrderAction` supports a 'restore' action and
+   * posts to /api/deferred/restore, which did not exist and returned the SPA HTML
+   * shell (see CP-17) instead of a 404.
+   */
+  app.post("/api/deferred/restore", (req, res) => {
+    const orderId = readOrderId(req.body);
+    if (!orderId) {
+      return res.status(400).json({ detail: "`order_id` must be a non-empty string." });
+    }
+    const index = archivedOrders.findIndex(entry => entry.order.orderId === orderId);
+    if (index === -1) {
+      return res.status(404).json({ detail: `Order '${orderId}' is not in the confirmed/cancelled archive.` });
+    }
+    const [entry] = archivedOrders.splice(index, 1);
+    pendingOrders.unshift(entry.order);
+    if (entry.action === "confirm") {
+      confirmedTotal = Math.max(0, confirmedTotal - 1);
+      confirmedToday = Math.max(0, confirmedToday - 1);
+    } else {
+      cancelledTotal = Math.max(0, cancelledTotal - 1);
+    }
+    res.json({ success: true, restored: 1 });
+  });
+
+  // CP-03: `order_ids.includes(...)` threw a TypeError and produced a 500 whenever
+  // the body was missing, a string, or an object. Totals also counted requested ids
+  // rather than rows actually removed.
   app.post("/api/deferred/confirm-bulk", (req, res) => {
-    const { order_ids } = req.body;
-    pendingOrders = pendingOrders.filter(o => !order_ids.includes(o.orderId));
-    confirmedTotal += order_ids.length;
-    confirmedToday += order_ids.length;
-    res.json({ success: true });
+    const orderIds = readOrderIds(req.body);
+    if (!orderIds) {
+      return res.status(400).json({ detail: "`order_ids` must be an array of non-empty order id strings." });
+    }
+    const matched = pendingOrders.filter(order => orderIds.includes(order.orderId));
+    pendingOrders = pendingOrders.filter(order => !orderIds.includes(order.orderId));
+    for (const order of matched) archivedOrders.unshift({ action: "confirm", order });
+    confirmedTotal += matched.length;
+    confirmedToday += matched.length;
+    res.json({ success: true, confirmed: matched.length, failed: orderIds.length - matched.length });
   });
 
   app.post("/api/deferred/cancel-bulk", (req, res) => {
-    const { order_ids } = req.body;
-    pendingOrders = pendingOrders.filter(o => !order_ids.includes(o.orderId));
-    cancelledTotal += order_ids.length;
-    res.json({ success: true });
+    const orderIds = readOrderIds(req.body);
+    if (!orderIds) {
+      return res.status(400).json({ detail: "`order_ids` must be an array of non-empty order id strings." });
+    }
+    const matched = pendingOrders.filter(order => orderIds.includes(order.orderId));
+    pendingOrders = pendingOrders.filter(order => !orderIds.includes(order.orderId));
+    for (const order of matched) archivedOrders.unshift({ action: "cancel", order });
+    cancelledTotal += matched.length;
+    res.json({ success: true, cancelled: matched.length, failed: orderIds.length - matched.length });
   });
 
   app.get('/static/client-portal/assets/brand-logo.png', (_req, res) => {
     res.sendFile(path.join(process.cwd(), 'public', 'brand-logo.png'));
+  });
+
+  /**
+   * CP-17: any unmatched /api/* request used to fall through to the Vite middleware
+   * (dev) or the `app.get('*')` catch-all (prod) and come back as the SPA HTML shell
+   * with status 200. Callers then failed on `response.json()` with a confusing parse
+   * error instead of seeing the real problem: the route does not exist.
+   *
+   * Must stay mounted after every API route and before the SPA handlers.
+   */
+  app.use("/api", (req, res) => {
+    res.status(404).json({
+      detail: `Unknown API route: ${req.method} ${req.originalUrl}`,
+    });
   });
 
   // Mount Vite development middleware after API endpoints the template suggests
