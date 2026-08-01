@@ -1,3 +1,4 @@
+import { apiFetch } from '../lib/http';
 import { jsonHeadersWithClientCsrf } from '../lib/clientAppUtils';
 import type { ClientConnection, UserProfile } from '../types';
 
@@ -25,7 +26,7 @@ const requireOk = async (response: Response, fallback: string) => {
 };
 
 export async function requestProfileEmailCode(email: string) {
-  const response = await fetch('/api/profile/email-code', {
+  const response = await apiFetch('/api/profile/email-code', {
     method: 'POST',
     headers: jsonHeadersWithClientCsrf(),
     body: JSON.stringify({ email }),
@@ -34,7 +35,7 @@ export async function requestProfileEmailCode(email: string) {
 }
 
 export async function updateClientProfile(input: ProfileUpdateInput): Promise<UserProfile> {
-  const response = await fetch('/api/profile', {
+  const response = await apiFetch('/api/profile', {
     method: 'POST',
     headers: jsonHeadersWithClientCsrf(),
     body: JSON.stringify(input),
@@ -48,12 +49,12 @@ export async function updateClientProfile(input: ProfileUpdateInput): Promise<Us
 }
 
 export async function resetDemoProfile() {
-  const response = await fetch('/api/profile/reset-demo', { method: 'POST' });
+  const response = await apiFetch('/api/profile/reset-demo', { method: 'POST' });
   await requireOk(response, 'Reset failed. Please try again.');
 }
 
 export async function revokeClientConnection(): Promise<ClientConnection> {
-  const response = await fetch('/api/connection/revoke', {
+  const response = await apiFetch('/api/connection/revoke', {
     method: 'POST',
     headers: jsonHeadersWithClientCsrf(),
   });
@@ -66,7 +67,7 @@ export async function revokeClientConnection(): Promise<ClientConnection> {
 }
 
 export async function requestAccountDeletion(): Promise<string> {
-  const response = await fetch('/api/account/delete-request', {
+  const response = await apiFetch('/api/account/delete-request', {
     method: 'POST',
     headers: jsonHeadersWithClientCsrf(),
   });
@@ -78,7 +79,7 @@ export async function requestAccountDeletion(): Promise<string> {
 }
 
 export async function updateClientPassword(currentPassword: string, newPassword: string) {
-  const response = await fetch('/api/account/password', {
+  const response = await apiFetch('/api/account/password', {
     method: 'POST',
     headers: jsonHeadersWithClientCsrf(),
     body: JSON.stringify({ currentPassword, newPassword }),
@@ -87,7 +88,7 @@ export async function updateClientPassword(currentPassword: string, newPassword:
 }
 
 export async function sendPasswordResetEmail(email: string) {
-  const response = await fetch('/api/v1/auth/client/password/forgot', {
+  const response = await apiFetch('/api/v1/auth/client/password/forgot', {
     method: 'POST',
     headers: jsonHeadersWithClientCsrf(),
     body: JSON.stringify({ email }),
