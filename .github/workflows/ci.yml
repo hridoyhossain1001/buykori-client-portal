@@ -48,3 +48,9 @@ jobs:
 
       - name: Test - account profile UI
         run: npm run test:account-ui
+
+      - name: Test - HTTP cancellation and timeouts
+        run: npm run test:http
+
+      - name: Test - mock API contracts
+        run: npm run test:mock-api

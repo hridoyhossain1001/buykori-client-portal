@@ -46,10 +46,18 @@ test('resolves settings section deep links', () => {
   );
   assert.equal(resolveClientRoute('/settings')?.canonicalPath, '/settings/store-connection');
   assert.equal(resolveClientRoute('/app/settings/conversions-api')?.canonicalPath, '/settings/conversions-api');
+  assert.equal(resolveClientRoute('/client/dashboard/settings/conversions-api')?.canonicalPath, '/settings/conversions-api');
   assert.equal(clientPathForPage('settings'), '/settings/store-connection');
 });
 
 test('rejects unrelated application paths', () => {
   assert.equal(resolveClientRoute('/plugin/connect'), null);
   assert.equal(resolveClientRoute('/unknown'), null);
+});
+
+test('resolves prefixed order-success deep links', () => {
+  assert.equal(
+    resolveClientRoute('/app/order-success/BKP-PREFIXED-123')?.canonicalPath,
+    '/order-success/BKP-PREFIXED-123'
+  );
 });

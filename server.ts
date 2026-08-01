@@ -1118,11 +1118,11 @@ async function startServer() {
       event_growth: 12.4,
       revenue_growth: 9.6,
       funnel: [
-        { label: "PageView", count: countByName("PageView") },
-        { label: "ViewContent", count: countByName("ViewContent") },
-        { label: "AddToCart", count: countByName("AddToCart") },
-        { label: "InitiateCheckout", count: countByName("InitiateCheckout") },
-        { label: "Purchase", count: countByName("Purchase") },
+        { step: "PageView", count: countByName("PageView") },
+        { step: "ViewContent", count: countByName("ViewContent") },
+        { step: "AddToCart", count: countByName("AddToCart") },
+        { step: "InitiateCheckout", count: countByName("InitiateCheckout") },
+        { step: "Purchase", count: countByName("Purchase") },
       ],
     });
   });
@@ -1176,17 +1176,22 @@ async function startServer() {
         { label: "Other", count: 37, percentage: 5 },
       ],
       district_funnel: topDistricts.map(district => ({
-        label: district.label,
-        view_content: district.count * 3,
+        district: district.label,
+        page_view: district.count * 3,
         add_to_cart: Math.round(district.count * 1.4),
         initiate_checkout: Math.round(district.count * 0.8),
         purchase: Math.round(district.count * 0.35),
+        revenue: Math.round(district.count * 0.35) * 2450,
+        currency: "BDT",
       })),
       visitor_district_funnel: topDistricts.map(district => ({
-        label: district.label,
-        visitors: district.count * 4,
-        purchases: Math.round(district.count * 0.35),
-        conversion_rate: Math.round((0.35 / 4) * 1000) / 10,
+        district: district.label,
+        page_view: district.count * 4,
+        add_to_cart: Math.round(district.count * 1.5),
+        initiate_checkout: Math.round(district.count * 0.85),
+        purchase: Math.round(district.count * 0.35),
+        revenue: Math.round(district.count * 0.35) * 2450,
+        currency: "BDT",
       })),
       // Legacy keys retained for backwards compatibility.
       countries: [
@@ -1213,13 +1218,22 @@ async function startServer() {
     res.json({
       score: 86,
       checks,
-      issues: checks.filter(check => check.status !== "pass"),
+      issues: checks
+        .filter(check => check.status !== "pass")
+        .map(check => ({
+          severity: check.status === "warning" ? "medium" : "high",
+          title: check.label,
+          message: check.detail,
+          recommendation: "Review the affected integration and send a fresh test event.",
+        })),
       signal_rates: {
-        PageView: 98.2,
-        ViewContent: 94.6,
-        AddToCart: 91.4,
-        InitiateCheckout: 88.1,
-        Purchase: 96.3,
+        event_id: 98.2,
+        user_match: 94.6,
+        email_or_phone: 91.4,
+        click_id: 88.1,
+        content_ids: 96.3,
+        value: 95.8,
+        utm: 84.7,
       },
     });
   });
@@ -1385,7 +1399,7 @@ async function startServer() {
   }
 
   app.listen(PORT, HOST, () => {
-    console.log(`CAPI mock portal serving on {{http://${HOST}}}:${PORT}`);
+    console.log(`CAPI mock portal serving on http://${HOST}:${PORT}`);
   });
 }
 

@@ -1,5 +1,6 @@
 const CSRF_COOKIE = 'buykori_client_csrf';
 const CSRF_HEADER = 'X-Client-CSRF-Token';
+const API_TIMEOUT_MS = 15_000;
 
 const readCookie = (name: string) => {
   const prefix = `${name}=`;
@@ -16,6 +17,21 @@ const readCookie = (name: string) => {
 };
 
 const isMutation = (method: string) => !['GET', 'HEAD', 'OPTIONS'].includes(method.toUpperCase());
+
+const combineSignals = (signals: AbortSignal[]): AbortSignal => {
+  if (signals.length === 1) return signals[0];
+  if (typeof AbortSignal.any === 'function') return AbortSignal.any(signals);
+
+  const controller = new AbortController();
+  for (const signal of signals) {
+    if (signal.aborted) {
+      controller.abort(signal.reason);
+      break;
+    }
+    signal.addEventListener('abort', () => controller.abort(signal.reason), { once: true });
+  }
+  return controller.signal;
+};
 
 const isSameOriginApiRequest = (input: RequestInfo | URL) => {
   try {
@@ -97,7 +113,28 @@ export const installApiFetch = () => {
       };
     };
 
-    const response = await current(input, await withClientDefaults());
+    // API-06: every same-origin API request gets a deadline, including legacy
+    // call sites that still call fetch() directly. A caller-provided signal is
+    // preserved and combined with the timeout so effect cleanup can cancel too.
+    const send = async (forceRefreshCsrf = false) => {
+      const requestInit = await withClientDefaults(forceRefreshCsrf);
+      const timeoutController = new AbortController();
+      const timeoutId = window.setTimeout(
+        () => timeoutController.abort(new DOMException('API request timed out.', 'TimeoutError')),
+        API_TIMEOUT_MS
+      );
+      const callerSignal = requestInit.signal || request?.signal;
+      const signal = callerSignal
+        ? combineSignals([callerSignal, timeoutController.signal])
+        : timeoutController.signal;
+      try {
+        return await current(input, { ...requestInit, signal });
+      } finally {
+        window.clearTimeout(timeoutId);
+      }
+    };
+
+    const response = await send();
     if (response.status === 401 && window.location.pathname !== '/client') {
       window.location.assign('/client');
       return response;
@@ -110,7 +147,7 @@ export const installApiFetch = () => {
         const refreshedCsrf = readCookie(CSRF_COOKIE);
         if (refreshedCsrf && refreshedCsrf !== csrf) {
           csrf = refreshedCsrf;
-          return current(input, await withClientDefaults(true));
+          return send(true);
         }
       }
     }
