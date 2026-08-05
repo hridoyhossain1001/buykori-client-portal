@@ -14,9 +14,10 @@ import { PluginUpdateModal } from './components/PluginUpdateModal';
 import { CAPIEvent, APILog, Suggestion, Platform, EventRule, PlatformConfig, UserProfile, ClientConnection, OutboxItem, PluginReleaseInfo, CustomEventAutomation, CourierOrder, DeferredData, IncompleteCheckoutData, RecoveryOrderPayload, SidebarStatus, StoreInfo, AnalyticsAudience, AnalyticsCampaigns, AnalyticsOverview, CampaignDispatchResponse, RecoverySummary, SignalDoctor, TrendPoint } from './types';
 import { clientPathForPage, clientPathForSection, isClientPageId, resolveClientRoute } from './lib/clientRoutes';
 import { comparePluginVersions, errorMessage, normalizePluginVersion, uniqueSuggestions } from './lib/clientAppUtils';
+import { copyText } from './lib/clipboard';
 import { fetchAnalyticsBundle, fetchDashboardAnalytics } from './services/analyticsApi';
 import { fetchClientStores, fetchDeferredData, markClientSidebarSeen, runDeferredBulkAction, runDeferredOrderAction, saveClientStoreDomain, saveDeferredSettings, switchClientStore } from './services/operationsApi';
-import { requestAccountDeletion, requestProfileEmailCode, resetDemoProfile, revokeClientConnection, sendPasswordResetEmail, updateClientPassword, updateClientProfile } from './services/accountApi';
+import { requestAccountDeletion, requestProfileEmailCode, revokeClientConnection, sendPasswordResetEmail, updateClientPassword, updateClientProfile } from './services/accountApi';
 import {
   AccountView,
   AnalyticsView,
@@ -37,7 +38,6 @@ import {
 import { PageErrorBoundary } from './app/PageErrorBoundary';
 import { ConnectionErrorBanner, ConsoleSkeleton, PageSuspenseFallback } from './app/AppShellStates';
 import { GlobalToast, type GlobalToastState } from './app/GlobalToast';
-import { DemoResetModal } from './app/DemoResetModal';
 import { useCampaignUrlBuilder } from './app/useCampaignUrlBuilder';
 import { isAbortError } from './lib/http';
 
@@ -78,6 +78,12 @@ export default function App() {
   const [autoConfirmDays, setAutoConfirmDays] = useState<number>(0);
   const [autoConfirmStatus, setAutoConfirmStatus] = useState<string>('completed');
   const [savingDeferredSettings, setSavingDeferredSettings] = useState<boolean>(false);
+  // Guards against duplicate COD mutations: a second click while the first
+  // confirm/skip/restore request is still in flight would double-submit.
+  const [codBusyOrderIds, setCodBusyOrderIds] = useState<string[]>([]);
+  const [codBulkBusy, setCodBulkBusy] = useState<boolean>(false);
+  // Same guard for per-suggestion resolve/dismiss.
+  const [suggestionBusyIds, setSuggestionBusyIds] = useState<string[]>([]);
 
   // Multiple Store Management
   const [stores, setStores] = useState<StoreInfo[]>([]);
@@ -97,7 +103,6 @@ export default function App() {
   const [loading, setLoading] = useState<boolean>(true);
   const [aiReviewing, setAiReviewing] = useState<boolean>(false);
   const [errState, setErrState] = useState<string | null>(null);
-  const [showDemoResetConfirm, setShowDemoResetConfirm] = useState<boolean>(false);
   const [pluginUpdateOpen, setPluginUpdateOpen] = useState<boolean>(false);
   const shownPluginUpdateRef = useRef<string>('');
 
@@ -156,12 +161,32 @@ export default function App() {
   const [productGuideOpen, setProductGuideOpen] = useState<boolean>(false);
   const [deferredLoadError, setDeferredLoadError] = useState<string | null>(null);
 
-  const showToast = (msg: string, isErr = false, action?: { label: string; onClick: () => void }) => {
+  // A single pending auto-dismiss timer. Kept in a ref so a newer toast can
+  // cancel the previous timer before it hides the message now on screen.
+  const toastTimerRef = useRef<number | null>(null);
+
+  const clearToastTimer = useCallback(() => {
+    if (toastTimerRef.current !== null) {
+      window.clearTimeout(toastTimerRef.current);
+      toastTimerRef.current = null;
+    }
+  }, []);
+
+  const dismissToast = useCallback(() => {
+    clearToastTimer();
+    setGlobalToast(prev => ({ ...prev, show: false }));
+  }, [clearToastTimer]);
+
+  const showToast = useCallback((msg: string, isErr = false, action?: { label: string; onClick: () => void }) => {
+    clearToastTimer();
     setGlobalToast({ show: true, msg, err: isErr, actionLabel: action?.label, onAction: action?.onClick });
-    setTimeout(() => {
+    toastTimerRef.current = window.setTimeout(() => {
+      toastTimerRef.current = null;
       setGlobalToast(prev => ({ ...prev, show: false }));
     }, 4000);
-  };
+  }, [clearToastTimer]);
+
+  useEffect(() => clearToastTimer, [clearToastTimer]);
 
   const campaignUrlBuilder = useCampaignUrlBuilder(profile, showToast);
 
@@ -319,11 +344,16 @@ export default function App() {
     return responses.some(res => res.status === 401 || res.status === 403);
   };
 
-  // Helper code copy
-  const handleCopy = (text: string, labelId: string) => {
-    navigator.clipboard.writeText(text);
+  // Helper code copy. The "Copied" badge is only shown once the clipboard write
+  // has actually resolved, so a denied/failed write reports an error instead.
+  const handleCopy = async (text: string, labelId: string) => {
+    const copied = await copyText(text);
+    if (!copied) {
+      showToast('Could not copy to clipboard.', true);
+      return;
+    }
     setCopiedStates(prev => ({ ...prev, [labelId]: true }));
-    setTimeout(() => {
+    window.setTimeout(() => {
       setCopiedStates(prev => ({ ...prev, [labelId]: false }));
     }, 2000);
   };
@@ -930,16 +960,22 @@ export default function App() {
   };
 
   const handleConfirmOrder = async (orderId: string) => {
+    if (codBusyOrderIds.includes(orderId)) return;
+    setCodBusyOrderIds(prev => [...prev, orderId]);
     try {
       const data = await runDeferredOrderAction('confirm', orderId);
       showToast(data.message || "Order verified & queued successfully.", false);
       await Promise.all([fetchDeferred(), loadSystemData(false)]);
     } catch (err: unknown) {
       showToast(errorMessage(err, "Verification action failed."), true);
+    } finally {
+      setCodBusyOrderIds(prev => prev.filter(id => id !== orderId));
     }
   };
 
   const handleCancelOrder = async (orderId: string) => {
+    if (codBusyOrderIds.includes(orderId)) return;
+    setCodBusyOrderIds(prev => [...prev, orderId]);
     try {
       const data = await runDeferredOrderAction('cancel', orderId);
       showToast(data.message || "Event skipped.", false, {
@@ -949,21 +985,28 @@ export default function App() {
       await Promise.all([fetchDeferred(), loadSystemData(false)]);
     } catch (err: unknown) {
       showToast(errorMessage(err, "Skip action failed."), true);
+    } finally {
+      setCodBusyOrderIds(prev => prev.filter(id => id !== orderId));
     }
   };
 
   const handleRestoreSkippedOrder = async (orderId: string) => {
+    if (codBusyOrderIds.includes(orderId)) return;
+    setCodBusyOrderIds(prev => [...prev, orderId]);
     try {
       const data = await runDeferredOrderAction('restore', orderId);
       showToast(data.message || "Event restored to verification queue.", false);
       await Promise.all([fetchDeferred(), loadSystemData(false)]);
     } catch (err: unknown) {
       showToast(errorMessage(err, "Could not restore skipped event."), true);
+    } finally {
+      setCodBusyOrderIds(prev => prev.filter(id => id !== orderId));
     }
   };
 
   const handleBulkConfirm = async () => {
-    if (selectedOrderIds.length === 0) return;
+    if (selectedOrderIds.length === 0 || codBulkBusy) return;
+    setCodBulkBusy(true);
     try {
       const data = await runDeferredBulkAction('confirm-bulk', selectedOrderIds);
       showToast(`${Number(data.confirmed || 0)} orders verified${data.failed ? `, ${data.failed} failed` : ''}.`, Boolean(data.failed));
@@ -971,11 +1014,14 @@ export default function App() {
       await Promise.all([fetchDeferred(), loadSystemData(false)]);
     } catch (err: unknown) {
       showToast(errorMessage(err, "Bulk verification failed."), true);
+    } finally {
+      setCodBulkBusy(false);
     }
   };
 
   const handleBulkCancel = async () => {
-    if (selectedOrderIds.length === 0) return;
+    if (selectedOrderIds.length === 0 || codBulkBusy) return;
+    setCodBulkBusy(true);
     try {
       const data = await runDeferredBulkAction('cancel-bulk', selectedOrderIds);
       showToast(`${Number(data.cancelled || 0)} events skipped${data.failed ? `, ${data.failed} failed` : ''}.`, Boolean(data.failed));
@@ -983,6 +1029,8 @@ export default function App() {
       await Promise.all([fetchDeferred(), loadSystemData(false)]);
     } catch (err: unknown) {
       showToast(errorMessage(err, "Bulk skip failed."), true);
+    } finally {
+      setCodBulkBusy(false);
     }
   };
 
@@ -1017,6 +1065,8 @@ export default function App() {
 
   // Resolve Suggestion Card
   const toggleResolveSuggestion = async (id: string, isNowResolved: boolean) => {
+    if (suggestionBusyIds.includes(id)) return;
+    setSuggestionBusyIds(prev => [...prev, id]);
     try {
       const res = await fetch('/api/suggestions/toggle-resolve', {
         method: 'POST',
@@ -1029,11 +1079,15 @@ export default function App() {
       }
     } catch {
       showToast("Could not update suggestion.", true);
+    } finally {
+      setSuggestionBusyIds(prev => prev.filter(x => x !== id));
     }
   };
 
   // Dismiss Suggestion Card
   const dismissSuggestion = async (id: string) => {
+    if (suggestionBusyIds.includes(id)) return;
+    setSuggestionBusyIds(prev => [...prev, id]);
     try {
       const res = await fetch('/api/suggestions/dismiss', {
         method: 'POST',
@@ -1046,6 +1100,8 @@ export default function App() {
       }
     } catch {
       showToast("Failed to dismiss suggestion.", true);
+    } finally {
+      setSuggestionBusyIds(prev => prev.filter(x => x !== id));
     }
   };
 
@@ -1160,21 +1216,6 @@ export default function App() {
     } finally {
       setDispatchingTest(false);
     }
-  };
-
-  const confirmDemoReset = async () => {
-    setShowDemoResetConfirm(false);
-    try {
-      await resetDemoProfile();
-      showToast("Demo data reset.", false);
-      loadSystemData(true);
-    } catch (error) {
-      showToast(errorMessage(error, "Reset failed. Please try again."), true);
-    }
-  };
-
-  const handleDemoReset = async () => {
-    setShowDemoResetConfirm(true);
   };
 
   // Danger actions confirmers
@@ -1316,7 +1357,8 @@ export default function App() {
     if (serverStats) {
       const total = Number(serverStats.attempts || 0);
       const successful = Number(serverStats.successful || 0);
-      const rate = total > 0 ? Math.round((successful / total) * 100) : 0;
+      // null, never 100 — "no attempts" is not a perfect score.
+      const rate = total > 0 ? Math.round((successful / total) * 100) : null;
       const lastTime = serverStats.last_event_at
         ? new Date(serverStats.last_event_at).toLocaleTimeString()
         : 'N/A';
@@ -1325,7 +1367,7 @@ export default function App() {
     const pEvs = events.filter(e => e.platform === p);
     const total = pEvs.length;
     const succs = pEvs.filter(e => e.status === 'Success').length;
-    const rate = total > 0 ? Math.round((succs / total) * 100) : 100;
+    const rate = total > 0 ? Math.round((succs / total) * 100) : null;
     const lastTime = pEvs[0] ? new Date(pEvs[0].timestamp).toLocaleTimeString() : 'N/A';
     return { total, rate, lastTime };
   };
@@ -1393,13 +1435,6 @@ export default function App() {
         />
       )}
 
-      {showDemoResetConfirm && (
-        <DemoResetModal
-          onClose={() => setShowDemoResetConfirm(false)}
-          onConfirm={confirmDemoReset}
-        />
-      )}
-
       <PluginUpdateModal
         open={pluginUpdateOpen}
         installedVersion={installedPluginVersion}
@@ -1413,7 +1448,7 @@ export default function App() {
       <div className={`flex-1 flex flex-col min-w-0 transition-all duration-200 ${sidebarCollapsed ? 'md:pl-[72px]' : 'md:pl-[288px]'}`}>
         {connection && (
           <Header 
-            title={pageTitleFor(activePage)} 
+            title={pageTitleFor(activePage)}
             connection={connection}
             onRefreshConnection={refreshWPHeartbeat}
             searchVal={searchVal}
@@ -1478,6 +1513,8 @@ export default function App() {
                 handleBulkCancel={handleBulkCancel}
                 handleConfirmOrder={handleConfirmOrder}
                 handleCancelOrder={handleCancelOrder}
+                codBusyOrderIds={codBusyOrderIds}
+                codBulkBusy={codBulkBusy}
                 deferredEnabled={deferredEnabled}
                 setDeferredEnabled={setDeferredEnabled}
                 autoConfirmDays={autoConfirmDays}
@@ -1614,6 +1651,7 @@ export default function App() {
                 handleAiReview={handleAiReview}
                 toggleResolveSuggestion={toggleResolveSuggestion}
                 dismissSuggestion={dismissSuggestion}
+                suggestionBusyIds={suggestionBusyIds}
               />
             )}
 
@@ -1712,7 +1750,6 @@ export default function App() {
                 setConfirmDeleteText={setConfirmDeleteText}
                 handleTokenRevoke={handleTokenRevoke}
                 handleDeleteAccountRequest={handleDeleteAccountRequest}
-                handleDemoReset={handleDemoReset}
                 showToast={showToast}
               />
             )}
@@ -1730,7 +1767,7 @@ export default function App() {
       {/* Persistent notifications overlay alert */}
       <GlobalToast
         toast={globalToast}
-        onDismiss={() => setGlobalToast(prev => ({ ...prev, show: false }))}
+        onDismiss={dismissToast}
       />
 
       {/* Create Store Modal */}

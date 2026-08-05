@@ -6,6 +6,7 @@ import { InvoiceModal } from './InvoiceModal';
 import { loadCourierOrders, loadPathaoStores, type PathaoStore } from '../services/courierApi';
 import { FraudVerdictBadge, getFraudVerdictKey } from './FraudVerdictBadge';
 import { usablePhone } from './orders/ordersUtils';
+import { copyTextWithFeedback } from '../lib/clipboard';
 import OrdersSummaryCards from './orders/OrdersSummaryCards';
 import PendingOrdersPanel from './orders/PendingOrdersPanel';
 import ShippedOrdersPanel from './orders/ShippedOrdersPanel';
@@ -43,12 +44,10 @@ export function OrdersView({
   const copyPhone = async (phone: unknown) => {
     const value = usablePhone(phone);
     if (!value) return;
-    try {
-      await navigator.clipboard.writeText(value);
-      showToast('Phone number copied.');
-    } catch {
-      showToast('Could not copy phone number.', true);
-    }
+    await copyTextWithFeedback(value, showToast, {
+      success: 'Phone number copied.',
+      error: 'Could not copy phone number.',
+    });
   };
 
   useEffect(() => {
@@ -196,9 +195,12 @@ export function OrdersView({
         setRedxDeliveryAreaId(data.redx_delivery_area_id || '');
         setRedxDeliveryAreaName(data.redx_delivery_area_name || '');
         setRedxPickupStoreId(data.redx_pickup_store_id || '');
+      } else {
+        showToast("Could not load courier settings. Booking options may be incomplete.", true);
       }
     } catch (err) {
       console.error(err);
+      showToast("Could not load courier settings. Check your connection and try again.", true);
     }
   };
 

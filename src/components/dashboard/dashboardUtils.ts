@@ -41,6 +41,93 @@ export function shortPlatformName(platform: string) {
   return platform;
 }
 
+/**
+ * Delivery health for one platform.
+ *
+ * The verdict must depend on the SUCCESS RATE, not merely on whether any events
+ * exist. Keying it on `total > 0` reported a platform delivering 10% of its
+ * events as green "Healthy", which is the opposite of what the merchant needs
+ * to know. `null` rate means "no attempts yet" — never a score.
+ */
+export type PlatformHealthTone = 'healthy' | 'degraded' | 'failing' | 'idle';
+
+export interface PlatformHealth {
+  tone: PlatformHealthTone;
+  /** Short verdict for the badge/pill. */
+  label: string;
+  /** Displayed score, or an em dash when there is nothing to score. */
+  display: string;
+}
+
+export const HEALTHY_DELIVERY_THRESHOLD = 95;
+export const DEGRADED_DELIVERY_THRESHOLD = 80;
+
+export function platformHealth(total: number, rate: number | null): PlatformHealth {
+  if (total <= 0 || rate === null) {
+    return { tone: 'idle', label: 'Waiting', display: '—' };
+  }
+  const display = `${rate}%`;
+  if (rate >= HEALTHY_DELIVERY_THRESHOLD) return { tone: 'healthy', label: 'Healthy', display };
+  if (rate >= DEGRADED_DELIVERY_THRESHOLD) return { tone: 'degraded', label: 'Degraded', display };
+  return { tone: 'failing', label: 'Failing', display };
+}
+
+/** Tailwind classes per tone, so desktop and mobile cannot drift apart. */
+export const PLATFORM_HEALTH_TEXT: Record<PlatformHealthTone, string> = {
+  healthy: 'text-emerald-600',
+  degraded: 'text-amber-600',
+  failing: 'text-rose-600',
+  idle: 'text-slate-400',
+};
+
+export const PLATFORM_HEALTH_PILL: Record<PlatformHealthTone, string> = {
+  healthy: 'bg-emerald-50 text-emerald-600',
+  degraded: 'bg-amber-50 text-amber-700',
+  failing: 'bg-rose-50 text-rose-700',
+  idle: 'bg-slate-100 text-slate-400',
+};
+
+export const PLATFORM_HEALTH_ICON: Record<PlatformHealthTone, string> = {
+  healthy: 'text-emerald-500',
+  degraded: 'text-amber-500',
+  failing: 'text-rose-500',
+  idle: 'text-slate-300',
+};
+
+/**
+ * Quota pressure for the usage meters.
+ *
+ * The desktop panel previously hardcoded a green meter, so a merchant at 100%
+ * saw the same healthy colour as one at 5% while their events were being
+ * rejected with HTTP 429. Exhaustion has to be stated in words, not implied by
+ * a bar that happens to be full.
+ */
+export type QuotaTone = 'ok' | 'warning' | 'critical' | 'exhausted';
+
+export const QUOTA_WARNING_THRESHOLD = 75;
+export const QUOTA_CRITICAL_THRESHOLD = 90;
+
+export function quotaTone(percent: number): QuotaTone {
+  if (percent >= 100) return 'exhausted';
+  if (percent >= QUOTA_CRITICAL_THRESHOLD) return 'critical';
+  if (percent >= QUOTA_WARNING_THRESHOLD) return 'warning';
+  return 'ok';
+}
+
+export const QUOTA_BAR: Record<QuotaTone, string> = {
+  ok: 'bg-gradient-to-r from-[#285ac7] to-[#12b886]',
+  warning: 'bg-gradient-to-r from-amber-400 to-orange-500',
+  critical: 'bg-gradient-to-r from-orange-500 to-rose-500',
+  exhausted: 'bg-rose-600',
+};
+
+export const QUOTA_TEXT: Record<QuotaTone, string> = {
+  ok: 'text-emerald-600',
+  warning: 'text-amber-600',
+  critical: 'text-rose-600',
+  exhausted: 'text-rose-700',
+};
+
 export function chartGeometry(values: number[], width = 320, height = 86) {
   const safeValues = values.length > 0 ? values : [0, 0];
   const max = Math.max(...safeValues, 1);

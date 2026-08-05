@@ -53,7 +53,6 @@ interface AccountViewProps {
   setConfirmDeleteText: (v: string) => void;
   handleTokenRevoke: () => Promise<void>;
   handleDeleteAccountRequest: () => void;
-  handleDemoReset: () => Promise<void>;
   showToast: (msg: string, isErr?: boolean, action?: { label: string; onClick: () => void }) => void;
 }
 
@@ -87,7 +86,6 @@ export function AccountView({
   setConfirmDeleteText,
   handleTokenRevoke,
   handleDeleteAccountRequest,
-  handleDemoReset,
   showToast,
 }: AccountViewProps) {
   const [paymentPlan, setPaymentPlan] = useState<PlanTier | null>(null);
@@ -116,7 +114,6 @@ export function AccountView({
   const isGrowth = currentPlanLower.includes('growth');
   const isScale = currentPlanLower.includes('scale');
   const isAgency = currentPlanLower.includes('agency');
-  const isDemo = (connection?.siteHost || '').includes('demo');
   const usagePercent = profile.eventsQuota > 0
     ? Math.min(100, (profile.eventsUsed / profile.eventsQuota) * 100)
     : 0;
@@ -404,9 +401,7 @@ export function AccountView({
             isGrowth={isGrowth}
             isScale={isScale}
             isAgency={isAgency}
-            isDemo={isDemo}
             openPayment={openPayment}
-            handleDemoReset={handleDemoReset}
           />
           <PaymentHistorySection
             profile={profile}

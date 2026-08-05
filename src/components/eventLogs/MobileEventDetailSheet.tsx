@@ -1,6 +1,8 @@
 import { Check, Copy, Loader2 } from 'lucide-react';
+import { useRef } from 'react';
 import { OutboxItem } from '../../types';
 import { MobileEventIcon } from './eventLogBadges';
+import { useDialogBehavior } from '../common/useDialogBehavior';
 import {
   GroupedEvent,
   deliverySummary,
@@ -27,6 +29,17 @@ export function MobileEventDetailSheet({
   copiedStates,
   handleCopy,
 }: MobileEventDetailSheetProps) {
+  const sheetRef = useRef<HTMLElement | null>(null);
+
+  // The sheet is mounted only while it is open, so `open` is constant here.
+  // The shared Modal is not used because this is a bottom sheet with its own
+  // slide-up panel layout.
+  const { handleTabKeyDown } = useDialogBehavior({
+    open: true,
+    onClose,
+    containerRef: sheetRef,
+  });
+
   return (
     <div className="fixed inset-0 z-[70] md:hidden">
       <button
@@ -36,9 +49,12 @@ export function MobileEventDetailSheet({
         className="absolute inset-0 bg-slate-950/35"
       />
       <section
+        ref={sheetRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="mobile-event-detail-title"
+        tabIndex={-1}
+        onKeyDown={handleTabKeyDown}
         className="absolute inset-x-0 bottom-0 max-h-[78vh] overflow-y-auto rounded-t-3xl bg-white px-4 pb-5 pt-3 shadow-2xl"
       >
         <button

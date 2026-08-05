@@ -1,5 +1,7 @@
 import { CheckCircle2, Copy, MessageCircle, Phone, ShoppingCart, UserRoundX } from 'lucide-react';
 import type { IncompleteCheckoutItem } from '../../types';
+import { EmptyState } from '../common';
+import { copyTextWithFeedback } from '../../lib/clipboard';
 import { STATUS_STYLES, getWhatsAppLink, normalizeWhatsAppPhone } from './incompleteCheckoutUtils';
 
 const ICON_BUTTON = 'inline-flex h-7 w-7 items-center justify-center rounded-lg';
@@ -22,10 +24,12 @@ export function IncompleteCheckoutMobileList({
   return (
     <div className="divide-y divide-slate-100 md:hidden">
       {items.length === 0 ? (
-        <div className="m-3 rounded-lg border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center text-slate-400">
-          <Phone className="mx-auto h-7 w-7 text-slate-300" />
-          <p className="mt-2 text-xs font-bold text-slate-600">No recoverable checkouts yet</p>
-        </div>
+        <EmptyState
+          icon={Phone}
+          title="No recoverable checkouts yet"
+          description="Customers who leave checkout with a phone number appear here after 5 minutes."
+          compact
+        />
       ) : items.map(item => {
         const product = item.products?.[0];
         const source = item.campaignData?.utm_source || 'Direct';
@@ -73,7 +77,7 @@ export function IncompleteCheckoutMobileList({
                     <MessageCircle className="h-3 w-3" />
                   </a>
                 )}
-                <button title="Copy phone" aria-label="Copy phone" onClick={() => { navigator.clipboard.writeText(item.phone); showToast('Phone number copied.'); }} className={`${ICON_BUTTON} border border-slate-200 bg-white text-slate-500 hover:bg-slate-50`}><Copy className="h-3 w-3" /></button>
+                <button title="Copy phone" aria-label="Copy phone" onClick={() => { void copyTextWithFeedback(item.phone, showToast, { success: 'Phone number copied.', error: 'Could not copy phone number.' }); }} className={`${ICON_BUTTON} border border-slate-200 bg-white text-slate-500 hover:bg-slate-50`}><Copy className="h-3 w-3" /></button>
                 {['open', 'incomplete', 'contacted'].includes(item.status) && <button disabled={updatingId === item.id} title="Create order" aria-label="Create order" onClick={() => onOpenCreateOrder(item)} className={`${ICON_BUTTON} border border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 disabled:opacity-50`}><ShoppingCart className="h-3 w-3" /></button>}
                 {!['recovered', 'contacted'].includes(item.status) && <button disabled={updatingId === item.id} title="Mark contacted" aria-label="Mark contacted" onClick={() => onUpdateStatus(item.id, 'contacted')} className={`${ICON_BUTTON} border border-emerald-200 text-emerald-600 hover:bg-emerald-50 disabled:opacity-50`}><CheckCircle2 className="h-3 w-3" /></button>}
                 {!['recovered', 'ignored'].includes(item.status) && <button disabled={updatingId === item.id} title="Ignore draft" aria-label="Ignore draft" onClick={() => onUpdateStatus(item.id, 'ignored')} className={`${ICON_BUTTON} border border-rose-200 text-rose-600 hover:bg-rose-50 disabled:opacity-50`}><UserRoundX className="h-3 w-3" /></button>}
