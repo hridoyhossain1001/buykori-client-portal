@@ -38,9 +38,12 @@ export function useCampaignUrlBuilder(profile: UserProfile | null, showToast: Sh
         if (res.ok) {
           const data = await res.json();
           setSyncedAdCampaigns(Array.isArray(data) ? data : []);
+        } else {
+          showToast('Could not load your synced ad campaigns. You can still build a URL manually.', true);
         }
       } catch (err) {
         console.error('Failed to load synced ad campaigns', err);
+        showToast('Could not load your synced ad campaigns. You can still build a URL manually.', true);
       } finally {
         setLoadingSyncedAdCampaigns(false);
       }

@@ -1,14 +1,13 @@
 import { CheckCircle2, Flag } from 'lucide-react';
 import type { UserProfile } from '../../types';
 import { PlatformLogo } from '../common/PlatformLogo';
-import { compactNumber, eventContext, relativeEventTime, shortPlatformName } from './dashboardUtils';
+import { PLATFORM_HEALTH_PILL, QUOTA_BAR, compactNumber, eventContext, platformHealth, quotaTone, relativeEventTime, shortPlatformName } from './dashboardUtils';
 import type { useDashboardMetrics } from './useDashboardMetrics';
 
 const CARD = 'rounded-[18px] border border-slate-200 bg-white px-3.5 py-3 shadow-[0_4px_14px_rgba(15,23,42,0.03)]';
 const SECTION_TITLE = 'text-[13px] font-bold text-slate-800';
 const SECTION_LINK = 'text-[10px] font-bold text-[#2375d8]';
 const METER_TRACK = 'mt-1.5 h-[5px] overflow-hidden rounded-full bg-slate-100';
-const METER_BAR = 'h-full rounded-full bg-[#2f80df]';
 
 interface MobileDashboardProps {
   profile: UserProfile;
@@ -49,13 +48,19 @@ export function MobileDashboard({
   return (
     <div className="space-y-3 md:hidden">
       <section className={CARD}>
+        {quotaTone(usagePercent) === 'exhausted' && (
+          <div className="mb-2.5 rounded-lg border border-rose-200 bg-rose-50 p-2.5" role="alert">
+            <strong className="block text-[11px] font-bold text-rose-900">Event limit reached</strong>
+            <p className="mt-0.5 text-[10px] leading-relaxed text-rose-800">New events are being rejected. Upgrade to resume tracking.</p>
+          </div>
+        )}
         <div>
           <div className="flex items-center justify-between text-[11px]">
             <span className="font-semibold text-slate-500">Events this month</span>
             <strong className="text-slate-800">{compactNumber(profile.eventsUsed)} <span className="font-medium text-slate-400">/ {compactNumber(profile.eventsQuota)}</span></strong>
           </div>
           <div className={METER_TRACK}>
-            <div className={METER_BAR} style={{ width: `${usagePercent}%` }} />
+            <div className={`h-full rounded-full ${QUOTA_BAR[quotaTone(usagePercent)]}`} style={{ width: `${usagePercent}%` }} />
           </div>
         </div>
         <div className="mt-2.5">
@@ -64,7 +69,7 @@ export function MobileDashboard({
             <strong className="text-slate-800">{compactNumber(ordersUsed)} <span className="font-medium text-slate-400">/ {orderQuota ? compactNumber(orderQuota) : '∞'}</span></strong>
           </div>
           <div className={METER_TRACK}>
-            <div className={METER_BAR} style={{ width: `${orderPercent}%` }} />
+            <div className={`h-full rounded-full ${orderQuota > 0 ? QUOTA_BAR[quotaTone(orderPercent)] : QUOTA_BAR.ok}`} style={{ width: `${orderPercent}%` }} />
           </div>
         </div>
         <div className="mt-2.5 flex items-center justify-between text-[11px]">
@@ -119,26 +124,29 @@ export function MobileDashboard({
           <button onClick={() => setActivePage('settings')} className={SECTION_LINK}>Manage</button>
         </div>
         <div className="mt-1">
-          {platformRows.map((row, index) => (
-            <button
-              key={row.label}
-              onClick={() => setActivePage('event-logs')}
-              className={`flex w-full items-center gap-2.5 py-2.5 text-left ${index > 0 ? 'border-t border-slate-100' : ''}`}
-            >
-              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-stone-100">
-                <PlatformLogo platform={row.platform} className="h-4 w-4" />
-              </span>
-              <span className="min-w-0 flex-1">
-                <strong className="block text-[12px] leading-none text-slate-800">{row.label}</strong>
-                <span className="mt-1 block truncate text-[10px] leading-none text-slate-400">
-                  {row.total.toLocaleString()} events · synced {row.lastTime || 'waiting'}
+          {platformRows.map((row, index) => {
+            const health = platformHealth(row.total, row.rate);
+            return (
+              <button
+                key={row.label}
+                onClick={() => setActivePage('event-logs')}
+                className={`flex w-full items-center gap-2.5 py-2.5 text-left ${index > 0 ? 'border-t border-slate-100' : ''}`}
+              >
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-stone-100">
+                  <PlatformLogo platform={row.platform} className="h-4 w-4" />
                 </span>
-              </span>
-              <span className={`rounded-full px-2 py-1 text-[10px] font-bold ${row.total > 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-400'}`}>
-                {row.total > 0 ? `${row.rate}%` : '—'}
-              </span>
-            </button>
-          ))}
+                <span className="min-w-0 flex-1">
+                  <strong className="block text-[12px] leading-none text-slate-800">{row.label}</strong>
+                  <span className="mt-1 block truncate text-[10px] leading-none text-slate-400">
+                    {row.total.toLocaleString()} events · {health.label.toLowerCase()} · synced {row.lastTime || 'waiting'}
+                  </span>
+                </span>
+                <span className={`rounded-full px-2 py-1 text-[10px] font-bold ${PLATFORM_HEALTH_PILL[health.tone]}`}>
+                  {health.display}
+                </span>
+              </button>
+            );
+          })}
         </div>
       </section>
 
@@ -183,7 +191,7 @@ export function MobileDashboard({
         <div className="mt-3 h-[116px]">
           {chartData.length > 0 ? (
             <>
-              <svg className="h-[90px] w-full" viewBox="0 0 320 86" preserveAspectRatio="none" role="img" aria-label={`${deliveryRate}% event delivery rate`}>
+              <svg className="h-[90px] w-full" viewBox="0 0 320 86" preserveAspectRatio="none" role="img" aria-label={deliveryRate === null ? 'Event delivery rate: no attempts yet' : `${deliveryRate}% event delivery rate`}>
                 <defs>
                   <linearGradient id="mobileDeliveryGradient" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%" stopColor="#2f80df" stopOpacity=".25" />

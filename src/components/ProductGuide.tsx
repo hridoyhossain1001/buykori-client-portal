@@ -1,5 +1,6 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight, X, Sparkles } from 'lucide-react';
+import { useDialogBehavior } from './common/useDialogBehavior';
 
 type GuideLanguage = 'bn' | 'en';
 
@@ -236,6 +237,15 @@ export function ProductGuide({ open, onClose, setActivePage, setMobileSidebarOpe
   const [language, setLanguage] = useState<GuideLanguage>('bn');
   const [stepIndex, setStepIndex] = useState(0);
   const [targetRect, setTargetRect] = useState<DOMRect | null>(null);
+  const cardRef = useRef<HTMLElement | null>(null);
+
+  // Dialog semantics without the shared Modal: that component locks body
+  // scrolling, which would defeat the scrollIntoView() call driving each step.
+  const { handleTabKeyDown } = useDialogBehavior({
+    open,
+    onClose,
+    containerRef: cardRef,
+  });
 
   const step = guideSteps[stepIndex];
   const isFirst = stepIndex === 0;
@@ -339,7 +349,13 @@ export function ProductGuide({ open, onClose, setActivePage, setMobileSidebarOpe
       )}
 
       <section
-        aria-label="Product guide"
+        ref={cardRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="product-guide-title"
+        aria-describedby="product-guide-body"
+        tabIndex={-1}
+        onKeyDown={handleTabKeyDown}
         className="absolute w-[min(360px,calc(100vw-32px))] rounded-xl border border-slate-200 bg-white p-4 shadow-2xl"
         style={cardPosition}
       >
@@ -352,7 +368,7 @@ export function ProductGuide({ open, onClose, setActivePage, setMobileSidebarOpe
               <p className="text-xs font-bold uppercase tracking-wider text-slate-500">
                 {language === 'bn' ? 'Guide' : 'Guide'}
               </p>
-              <h2 className="text-sm font-bold text-slate-900">{copy.title}</h2>
+              <h2 id="product-guide-title" className="text-sm font-bold text-slate-900">{copy.title}</h2>
             </div>
           </div>
           <button
@@ -387,7 +403,7 @@ export function ProductGuide({ open, onClose, setActivePage, setMobileSidebarOpe
           </span>
         </div>
 
-        <p className="mt-4 text-sm leading-6 text-slate-600">{copy.body}</p>
+        <p id="product-guide-body" className="mt-4 text-sm leading-6 text-slate-600">{copy.body}</p>
 
         <div className="mt-5 h-1.5 overflow-hidden rounded-full bg-slate-100">
           <div

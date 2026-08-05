@@ -1,6 +1,7 @@
 ﻿import React from 'react';
 import { Download, AlertTriangle, Activity, CheckCircle2, Clock3 } from 'lucide-react';
 import { APILog } from '../types';
+import { EmptyState } from './common';
 import { PlatformBadge, PlatformLogo } from './common/PlatformLogo';
 
 interface ApiLogsViewProps {
@@ -88,10 +89,12 @@ export function ApiLogsView({
       <section aria-labelledby="api-logs-title" className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-x-auto  ">
         <div className="space-y-3 p-4 md:hidden">
           {filteredApiLogsForTable.length === 0 ? (
-            <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center  ">
-              <Activity className="mx-auto h-7 w-7 text-slate-300" />
-              <p className="mt-2 text-xs font-bold text-slate-600 ">No API logs yet</p>
-            </div>
+            <EmptyState
+              icon={Activity}
+              title="No API logs yet"
+              description="Outbound requests to Meta, TikTok and GA4 appear here once tracking starts."
+              compact
+            />
           ) : filteredApiLogsForTable.slice(0, 40).map(l => {
             const isExpanded = expandedApiLogId === l.id;
             const hasErr = l.statusCode >= 400;
@@ -150,12 +153,13 @@ export function ApiLogsView({
             <tbody className="divide-y divide-slate-100 ">
               {filteredApiLogsForTable.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-8 text-center text-slate-400 font-medium">
-                    <div className="mx-auto flex max-w-sm flex-col items-center gap-2">
-                      <Activity className="h-7 w-7 text-slate-300" />
-                      <p className="font-bold text-slate-600 ">No API logs yet</p>
-                      <p className="text-xs font-normal text-slate-400">Logs will appear after tracking events are sent to Meta, TikTok, or GA4.</p>
-                    </div>
+                  <td colSpan={6} className="px-6 py-4">
+                    <EmptyState
+                      icon={Activity}
+                      title="No API logs yet"
+                      description="Logs will appear after tracking events are sent to Meta, TikTok, or GA4."
+                      compact
+                    />
                   </td>
                 </tr>
               ) : (

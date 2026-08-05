@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Globe2, Send, Truck, Zap } from 'lucide-react';
 import { AdAccount, Platform, PlatformConfig, EventRule, ClientConnection, PluginReleaseInfo, CustomEventAutomation, CourierSettings } from '../types';
+import { copyText } from '../lib/clipboard';
 import StoreDomainSection from './settings/StoreDomainSection';
 import AdPlatformsSection from './settings/AdPlatformsSection';
 import AdAccountsSection from './settings/AdAccountsSection';
@@ -399,9 +400,12 @@ export function SettingsView({
       if (res.ok) {
         const data = await res.json();
         setAdAccounts(data);
+      } else {
+        showToast("Could not load your ad accounts. Please try again.", true);
       }
     } catch (err) {
       console.error("Failed to load ad accounts", err);
+      showToast("Could not load your ad accounts. Check your connection and try again.", true);
     } finally {
       setLoadingAdAccounts(false);
     }
@@ -487,9 +491,12 @@ export function SettingsView({
             pathao_client_secret: data.pathao_client_secret || '',
             pathao_password: data.pathao_password || ''
           });
+        } else {
+          showToast("Could not load your courier settings. Please refresh to try again.", true);
         }
       } catch (err) {
         console.error("Failed to load courier settings", err);
+        showToast("Could not load your courier settings. Check your connection and refresh.", true);
       } finally {
         setLoadingCourier(false);
       }
@@ -535,14 +542,20 @@ export function SettingsView({
         showToast(data.detail || 'Failed to generate Pathao webhook secret.', true);
         return;
       }
-      await navigator.clipboard.writeText(data.secret);
+      const copied = await copyText(data.secret);
       setCourierSettings((prev) => ({
         ...prev,
         pathao_webhook_secret: '',
         pathao_webhook_secret_configured: true,
         pathao_webhook_verified_at: data.verified_at || ''
       }));
-      showToast('Pathao setup secret copied. Paste it into the Pathao Webhook Integration Secret field.', false);
+      // The secret is only returned once. If the clipboard write failed we must
+      // say so instead of claiming a copy the user does not actually have.
+      if (copied) {
+        showToast('Pathao setup secret copied. Paste it into the Pathao Webhook Integration Secret field.', false);
+      } else {
+        showToast('Secret generated but could not be copied. Generate it again to retry the copy.', true);
+      }
     } catch (err) {
       showToast('Failed to copy Pathao webhook secret.', true);
     } finally {
@@ -562,12 +575,17 @@ export function SettingsView({
       const value = provider === 'redx'
         ? data.callback_url
         : `Callback URL: ${data.callback_url}\nAuth Token: ${data.secret}`;
-      await navigator.clipboard.writeText(value);
+      const copied = await copyText(value);
       setCourierSettings((prev) => ({
         ...prev,
         [`${provider === 'steadfast' ? 'steadfast_webhook_token' : 'redx_webhook_secret'}_configured`]: true
       }));
-      showToast(`${provider === 'steadfast' ? 'SteadFast' : 'RedX'} webhook setup copied.`, false);
+      const providerLabel = provider === 'steadfast' ? 'SteadFast' : 'RedX';
+      if (copied) {
+        showToast(`${providerLabel} webhook setup copied.`, false);
+      } else {
+        showToast(`${providerLabel} webhook setup generated but could not be copied. Generate it again to retry the copy.`, true);
+      }
     } catch (err) {
       showToast(`Failed to copy ${provider} webhook setup.`, true);
     } finally {

@@ -48,11 +48,6 @@ export async function updateClientProfile(input: ProfileUpdateInput): Promise<Us
   return payload.profile as UserProfile;
 }
 
-export async function resetDemoProfile() {
-  const response = await apiFetch('/api/profile/reset-demo', { method: 'POST' });
-  await requireOk(response, 'Reset failed. Please try again.');
-}
-
 export async function revokeClientConnection(): Promise<ClientConnection> {
   const response = await apiFetch('/api/connection/revoke', {
     method: 'POST',

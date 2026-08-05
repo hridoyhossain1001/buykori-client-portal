@@ -4,7 +4,8 @@ import { chartGeometry } from './dashboardUtils';
 
 export interface PlatformStats {
   total: number;
-  rate: number;
+  /** Success rate, or null when there are no attempts to score. */
+  rate: number | null;
   lastTime: string;
 }
 
@@ -82,8 +83,12 @@ export function useDashboardMetrics({
   const mobileRecentEvents = recentEvents.slice(0, 4);
   const showGettingStarted = events.length === 0 && profile.eventsUsed === 0;
   const deliveryAttempts = platformRows.reduce((total, row) => total + row.total, 0);
-  const successfulDeliveries = platformRows.reduce((total, row) => total + Math.round(row.total * row.rate / 100), 0);
-  const deliveryRate = deliveryAttempts > 0 ? Math.round((successfulDeliveries / deliveryAttempts) * 100) : 0;
+  const successfulDeliveries = platformRows.reduce(
+    (total, row) => total + (row.rate === null ? 0 : Math.round((row.total * row.rate) / 100)),
+    0,
+  );
+  // null rather than 0 so callers can say "No attempts" instead of "0%".
+  const deliveryRate = deliveryAttempts > 0 ? Math.round((successfulDeliveries / deliveryAttempts) * 100) : null;
   const deliveryChart = useMemo(
     () => chartGeometry(chartData.map(point => point.delivered)),
     [chartData],

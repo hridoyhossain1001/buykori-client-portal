@@ -1,4 +1,4 @@
-import { Check, RotateCcw } from 'lucide-react';
+import { Check } from 'lucide-react';
 import type { UserProfile } from '../../types';
 import { growthPlanFeatures, scalePlanFeatures, type PlanTier } from './accountTypes';
 
@@ -8,9 +8,7 @@ interface PlanBillingSectionProps {
   isGrowth: boolean;
   isScale: boolean;
   isAgency: boolean;
-  isDemo: boolean;
   openPayment: (plan: PlanTier) => void;
-  handleDemoReset: () => Promise<void>;
 }
 
 export function PlanBillingSection({
@@ -19,9 +17,7 @@ export function PlanBillingSection({
   isGrowth,
   isScale,
   isAgency,
-  isDemo,
   openPayment,
-  handleDemoReset,
 }: PlanBillingSectionProps) {
   return (
     <div className="order-1 space-y-5">
@@ -67,24 +63,6 @@ export function PlanBillingSection({
           </section>
         ))}
       </div>
-
-      {/* Reset demo sandbox context values widget */}
-      {isDemo && (
-        <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm space-y-3  ">
-          <div>
-            <h4 className="font-bold text-slate-800  text-xs uppercase tracking-wider">Demo Controls</h4>
-            <p className="text-xs text-slate-400 ">Restore test values for demos</p>
-          </div>
-
-          <button
-            onClick={handleDemoReset}
-            className="w-full py-2 bg-slate-100 hover:bg-slate-200    text-slate-800  rounded text-xs font-semibold border border-slate-200 flex items-center justify-center gap-1.5 cursor-pointer"
-          >
-            <RotateCcw className="w-3.5 h-3.5" />
-            Reset Demo Data
-          </button>
-        </div>
-      )}
     </div>
   );
 }

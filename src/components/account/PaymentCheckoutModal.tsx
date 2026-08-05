@@ -1,5 +1,7 @@
 import { ArrowRight, CheckCircle2, Clock3, Copy, Loader2, LockKeyhole, RotateCcw, ShieldAlert, Smartphone, X } from 'lucide-react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Modal } from '../common/Modal';
+import { copyText } from '../../lib/clipboard';
 import { PLAN_PRICING, type PaymentBrand, type PaymentIntent, type PaymentProvider, type PlanTier } from './accountTypes';
 
 interface PaymentCheckoutModalProps {
@@ -47,6 +49,26 @@ export function PaymentCheckoutModal({
   createPayment,
   submitExpiredPaymentForReview,
 }: PaymentCheckoutModalProps) {
+  // Copy feedback is local to this modal: it has no showToast prop, and the
+  // shared paymentFeedback banner renders a spinner (progress semantics), so it
+  // would misrepresent a finished copy.
+  const [copyStatus, setCopyStatus] = useState<{ key: string; ok: boolean } | null>(null);
+  const copyResetRef = useRef<number | null>(null);
+
+  useEffect(() => () => {
+    if (copyResetRef.current !== null) window.clearTimeout(copyResetRef.current);
+  }, []);
+
+  const handleCopy = useCallback(async (key: string, value: string) => {
+    const ok = await copyText(value);
+    setCopyStatus({ key, ok });
+    if (copyResetRef.current !== null) window.clearTimeout(copyResetRef.current);
+    copyResetRef.current = window.setTimeout(() => {
+      copyResetRef.current = null;
+      setCopyStatus(null);
+    }, 2500);
+  }, []);
+
   return (
     <Modal
       onClose={onClose}
@@ -195,7 +217,7 @@ export function PaymentCheckoutModal({
                         <p className="relative mt-2 font-mono text-2xl font-black tracking-[0.05em] text-white">{paymentIntent.receivingPhone}</p>
                       </div>
                       <div className="flex flex-col items-end gap-1.5 shrink-0">
-                        <button type="button" onClick={() => navigator.clipboard.writeText(paymentIntent.receivingPhone)} className="relative flex items-center gap-1 rounded-lg border border-white/60 bg-white px-2.5 py-1.5 text-xs font-bold shadow-sm transition hover:-translate-y-0.5 hover:bg-slate-50" style={{ color: paymentBrand.text }}><Copy className="h-3.5 w-3.5" /> Copy</button>
+                        <button type="button" onClick={() => { void handleCopy('phone', paymentIntent.receivingPhone); }} className="relative flex items-center gap-1 rounded-lg border border-white/60 bg-white px-2.5 py-1.5 text-xs font-bold shadow-sm transition hover:-translate-y-0.5 hover:bg-slate-50" style={{ color: paymentBrand.text }}><Copy className="h-3.5 w-3.5" /> {copyStatus?.key === 'phone' ? (copyStatus.ok ? 'Copied' : 'Copy failed') : 'Copy'}</button>
                         {paymentQrUrl && (
                           <div className="flex flex-col items-center rounded-xl border border-white/30 bg-white p-1 shadow-md">
                             <img src={paymentQrUrl} alt="Payment Number QR Code" className="h-14 w-14 rounded-md object-contain" />
@@ -254,7 +276,12 @@ export function PaymentCheckoutModal({
               </div>
               <div className="flex items-center justify-center gap-2 text-xs text-slate-400">
                 <span>Reference code: {paymentIntent.paymentReference || 'N/A'}</span>
-                <button type="button" onClick={() => navigator.clipboard.writeText(paymentIntent.paymentReference || paymentIntent.reference)} className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700" aria-label="Copy payment reference"><Copy className="h-3 w-3" /></button>
+                <button type="button" onClick={() => { void handleCopy('reference', paymentIntent.paymentReference || paymentIntent.reference); }} className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700" aria-label="Copy payment reference"><Copy className="h-3 w-3" /></button>
+                {copyStatus?.key === 'reference' && (
+                  <span className={copyStatus.ok ? 'text-emerald-600' : 'text-rose-600'}>
+                    {copyStatus.ok ? 'Copied' : 'Copy failed'}
+                  </span>
+                )}
               </div>
             </>
           )}

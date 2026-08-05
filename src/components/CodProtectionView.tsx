@@ -5,6 +5,7 @@ import {
   ChevronDown,
   Clock3,
   Info,
+  Loader2,
   Search,
   Settings2,
   ShieldCheck,
@@ -21,6 +22,10 @@ interface CodProtectionViewProps {
   handleBulkCancel: () => Promise<void>;
   handleConfirmOrder: (orderId: string) => Promise<void>;
   handleCancelOrder: (orderId: string) => Promise<void>;
+  /** Order IDs with a confirm/skip request currently in flight. */
+  codBusyOrderIds: string[];
+  /** True while a bulk confirm/skip request is in flight. */
+  codBulkBusy: boolean;
   deferredEnabled: boolean;
   setDeferredEnabled: (val: boolean) => void;
   autoConfirmDays: number;
@@ -72,6 +77,8 @@ export function CodProtectionView({
   handleBulkCancel,
   handleConfirmOrder,
   handleCancelOrder,
+  codBusyOrderIds,
+  codBulkBusy,
   deferredEnabled,
   setDeferredEnabled,
   autoConfirmDays,
@@ -323,16 +330,16 @@ export function CodProtectionView({
             <span className="text-[9px] font-bold text-slate-400">{selectedOrderIds.length} selected</span>
             <button
               type="button"
-              disabled={selectedOrderIds.length === 0}
+              disabled={selectedOrderIds.length === 0 || codBulkBusy}
               onClick={handleBulkConfirm}
               className="inline-flex h-8 items-center justify-center gap-1 rounded-lg bg-[#2f80df] px-2 text-[9px] font-bold text-white disabled:border disabled:border-slate-200 disabled:bg-slate-50 disabled:text-slate-400"
             >
-              <Check className="h-3 w-3" />
+              {codBulkBusy ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />}
               Confirm orders
             </button>
             <button
               type="button"
-              disabled={selectedOrderIds.length === 0}
+              disabled={selectedOrderIds.length === 0 || codBulkBusy}
               onClick={handleBulkCancel}
               className="h-8 rounded-lg border border-slate-200 bg-white px-2 text-[9px] font-bold text-slate-600 disabled:bg-slate-50 disabled:text-slate-400"
             >
@@ -364,16 +371,16 @@ export function CodProtectionView({
           <span className="text-xs font-bold text-slate-500">{selectedOrderIds.length} selected</span>
           <button
             type="button"
-            disabled={selectedOrderIds.length === 0}
+            disabled={selectedOrderIds.length === 0 || codBulkBusy}
             onClick={handleBulkConfirm}
             className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-indigo-600 px-5 text-xs font-bold text-white hover:bg-indigo-700 disabled:opacity-50"
           >
-            <Check className="h-4 w-4" />
+            {codBulkBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
             Confirm {selectedOrderIds.length || ''} order{selectedOrderIds.length === 1 ? '' : 's'}
           </button>
           <button
             type="button"
-            disabled={selectedOrderIds.length === 0}
+            disabled={selectedOrderIds.length === 0 || codBulkBusy}
             onClick={handleBulkCancel}
             className="h-10 rounded-lg border border-slate-200 bg-white px-4 text-xs font-bold text-slate-600 hover:bg-slate-50 disabled:opacity-50"
           >
@@ -420,8 +427,11 @@ export function CodProtectionView({
                   </span>
                 </div>
                 <div className="mt-2 grid grid-cols-2 gap-2">
-                  <button type="button" onClick={() => handleConfirmOrder(order.orderId)} className="h-8 rounded-lg bg-[#2f80df] text-[10px] font-bold text-white">Confirm</button>
-                  <button type="button" onClick={() => handleCancelOrder(order.orderId)} className="h-8 rounded-lg border border-slate-200 text-[10px] font-bold text-slate-700">Skip</button>
+                  <button type="button" disabled={codBusyOrderIds.includes(order.orderId)} onClick={() => handleConfirmOrder(order.orderId)} className="inline-flex h-8 items-center justify-center gap-1 rounded-lg bg-[#2f80df] text-[10px] font-bold text-white disabled:opacity-50">
+                    {codBusyOrderIds.includes(order.orderId) && <Loader2 className="h-3 w-3 animate-spin" />}
+                    Confirm
+                  </button>
+                  <button type="button" disabled={codBusyOrderIds.includes(order.orderId)} onClick={() => handleCancelOrder(order.orderId)} className="h-8 rounded-lg border border-slate-200 text-[10px] font-bold text-slate-700 disabled:opacity-50">Skip</button>
                 </div>
               </article>
             );
@@ -489,10 +499,12 @@ export function CodProtectionView({
                       <p className="mt-1 text-xs text-slate-400">Pending review</p>
                     </td>
                     <td className="whitespace-nowrap px-5 py-3 text-right">
-                      <button type="button" onClick={() => handleConfirmOrder(order.orderId)} className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-indigo-600 px-3 text-xs font-bold text-white">
-                        <Check className="h-3.5 w-3.5" /> Confirm
+                      <button type="button" disabled={codBusyOrderIds.includes(order.orderId)} onClick={() => handleConfirmOrder(order.orderId)} className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-indigo-600 px-3 text-xs font-bold text-white disabled:opacity-50">
+                        {codBusyOrderIds.includes(order.orderId)
+                          ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          : <Check className="h-3.5 w-3.5" />} Confirm
                       </button>
-                      <button type="button" onClick={() => handleCancelOrder(order.orderId)} className="ml-2 h-8 rounded-lg border border-slate-200 px-3 text-xs font-bold text-slate-600">
+                      <button type="button" disabled={codBusyOrderIds.includes(order.orderId)} onClick={() => handleCancelOrder(order.orderId)} className="ml-2 h-8 rounded-lg border border-slate-200 px-3 text-xs font-bold text-slate-600 disabled:opacity-50">
                         Skip
                       </button>
                     </td>

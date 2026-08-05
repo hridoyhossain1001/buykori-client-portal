@@ -14,12 +14,12 @@ type PlatformBadgeProps = PlatformLogoProps & {
 type LogoKind = 'meta' | 'facebook' | 'tiktok' | 'ga4' | 'google-ads' | 'x' | 'generic';
 
 const logoAssets: Partial<Record<LogoKind, string>> = {
-  meta: '/platforms/meta.svg',
-  facebook: '/platforms/facebook.svg',
-  tiktok: '/platforms/tiktok.png',
-  ga4: '/platforms/ga4.svg',
-  'google-ads': '/platforms/google-ads.svg',
-  x: '/platforms/x.svg',
+  meta: '/static/client-portal/platforms/meta.svg',
+  facebook: '/static/client-portal/platforms/facebook.svg',
+  tiktok: '/static/client-portal/platforms/tiktok.png',
+  ga4: '/static/client-portal/platforms/ga4.svg',
+  'google-ads': '/static/client-portal/platforms/google-ads.svg',
+  x: '/static/client-portal/platforms/x.svg',
 };
 
 function platformKind(platform: string): LogoKind {

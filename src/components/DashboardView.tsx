@@ -13,9 +13,9 @@ interface DashboardViewProps {
   events: CAPIEvent[];
   trendData: TrendPoint[];
   recoverySummary: RecoverySummary | null;
-  metaStats: { total: number; rate: number; lastTime: string };
-  tiktokStats: { total: number; rate: number; lastTime: string };
-  ga4Stats: { total: number; rate: number; lastTime: string };
+  metaStats: { total: number; rate: number | null; lastTime: string };
+  tiktokStats: { total: number; rate: number | null; lastTime: string };
+  ga4Stats: { total: number; rate: number | null; lastTime: string };
   optScore: number;
   resolvedCount: number;
   totalSuggCount: number;
@@ -89,6 +89,7 @@ export function DashboardView({
             pendingOrderCount={pendingOrderCount}
             openSuggestions={metrics.openSuggestions}
             optScore={optScore}
+            usagePercent={metrics.usagePercent}
             setActivePage={setActivePage}
           />
         </div>
@@ -101,6 +102,7 @@ export function DashboardView({
             ordersUsed={metrics.ordersUsed}
             orderQuota={metrics.orderQuota}
             orderPercent={metrics.orderPercent}
+            setActivePage={setActivePage}
           />
         </div>
 

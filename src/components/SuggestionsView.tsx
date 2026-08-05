@@ -9,6 +9,8 @@ interface SuggestionsViewProps {
   handleAiReview: () => Promise<void>;
   toggleResolveSuggestion: (id: string, isNowResolved: boolean) => Promise<void>;
   dismissSuggestion: (id: string) => Promise<void>;
+  /** Suggestion IDs with a resolve/dismiss request currently in flight. */
+  suggestionBusyIds: string[];
 }
 
 export function SuggestionsView({
@@ -17,7 +19,8 @@ export function SuggestionsView({
   aiReviewing,
   handleAiReview,
   toggleResolveSuggestion,
-  dismissSuggestion
+  dismissSuggestion,
+  suggestionBusyIds
 }: SuggestionsViewProps) {
   const uniqueSuggestions = Array.from(
     suggestions.reduce((map, suggestion) => {
@@ -174,21 +177,23 @@ export function SuggestionsView({
                 </div>
 
                 <div className="flex gap-1">
-                  <button 
+                  <button
                     onClick={() => toggleResolveSuggestion(s.id, !s.resolved)}
-                    className={`min-h-10 cursor-pointer rounded border px-2.5 py-1 text-xs font-semibold ${
-                      s.resolved 
-                        ? 'bg-green-50 border-green-200 text-green-700 hover:bg-green-100   ' 
+                    disabled={suggestionBusyIds.includes(s.id)}
+                    className={`min-h-10 cursor-pointer rounded border px-2.5 py-1 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-50 ${
+                      s.resolved
+                        ? 'bg-green-50 border-green-200 text-green-700 hover:bg-green-100   '
                         : 'bg-indigo-50 border-indigo-100 text-indigo-700 hover:bg-indigo-100   '
                     }`}
                   >
                     {s.resolved ? '✓ Resolved' : 'Mark Fixed'}
                   </button>
-                  
-                  <button 
+
+                  <button
                     type="button"
                     onClick={() => dismissSuggestion(s.id)}
-                    className="inline-flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded text-slate-400 hover:bg-slate-50 hover:text-slate-600"
+                    disabled={suggestionBusyIds.includes(s.id)}
+                    className="inline-flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded text-slate-400 hover:bg-slate-50 hover:text-slate-600 disabled:cursor-not-allowed disabled:opacity-50"
                     aria-label={`Dismiss ${s.title}`}
                   >
                     <XCircle className="w-4 h-4" />

@@ -1,6 +1,7 @@
 import React from 'react';
-import { AlertTriangle, CheckCircle, Download } from 'lucide-react';
+import { AlertTriangle, CheckCircle, Download, MonitorSmartphone } from 'lucide-react';
 import type { AnalyticsAudience } from '../../types';
+import { EmptyState } from '../common';
 import { formatMoney, numberText } from './analyticsFormat';
 
 type AreaRow = { label: string; count: number; percentage: number };
@@ -331,7 +332,14 @@ export function CustomersSection({
                 </div>
               );
             })}
-            {!deviceMix.length && !browserMix.length && <p className="py-8 text-center text-[10px] text-slate-400">Device and browser data will appear after tracking starts.</p>}
+            {!deviceMix.length && !browserMix.length && (
+              <EmptyState
+                icon={MonitorSmartphone}
+                title="No device data yet"
+                description="Device and browser data will appear after tracking starts."
+                compact
+              />
+            )}
             {desktopShare >= 60 && (
               <div className="rounded-xl border border-orange-200 bg-orange-50 px-3 py-3 text-[10px] leading-4 text-orange-800">
                 <AlertTriangle className="mr-1 inline h-3.5 w-3.5" />
