@@ -18,6 +18,7 @@
     "test:account-ui": "tsx --test src/components/account/ProfileForm.test.tsx",
     "test:locked-feature-ui": "tsx --test src/components/LockedFeatureModal.test.tsx",
     "test:quota-format": "tsx --test src/components/dashboard/dashboardUtils.test.ts",
+    "test:error-state": "tsx --test src/components/common/ErrorState.test.tsx",
     "test:payment-ui": "tsx --test src/components/account/accountTypes.test.ts",
     "test:http": "tsx --test src/lib/http.test.ts",
     "test:mock-api": "tsx --test server.test.ts",

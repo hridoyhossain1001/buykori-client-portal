@@ -22,6 +22,49 @@ export class ApiTimeoutError extends Error {
 export const isAbortError = (error: unknown) =>
   Boolean(error) && (error as { name?: string }).name === 'AbortError';
 
+/**
+ * UX-02: turn a thrown fetch error into one sentence a merchant can act on.
+ *
+ * Panels used to swallow failures (`.catch(() => {})`), so a dead network read
+ * as "no data" — indistinguishable from a genuinely empty account. Every panel
+ * now routes its error through here so the wording stays consistent, and so no
+ * raw `TypeError: Failed to fetch` reaches a merchant.
+ *
+ * Caller-initiated aborts are not failures; check `isAbortError` first and skip
+ * rendering an error at all.
+ */
+export function describeFetchError(error: unknown): string {
+  if (error instanceof ApiTimeoutError) return error.message;
+
+  const name = (error as { name?: string } | null)?.name;
+  // installApiFetch aborts with a DOMException named TimeoutError.
+  if (name === 'TimeoutError') {
+    return 'The request timed out. Please check your connection and try again.';
+  }
+  if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+    return 'You appear to be offline. Reconnect and try again.';
+  }
+  // fetch() rejects with a TypeError for DNS, CORS and connection failures.
+  if (error instanceof TypeError) {
+    return "We couldn't reach the server. Check your connection and try again.";
+  }
+  return 'Something went wrong loading this. Please try again.';
+}
+
+/**
+ * The same idea for a response that arrived but was not ok. Status text is not
+ * shown verbatim because it is inconsistent across proxies and never localised.
+ */
+export function describeResponseError(response: { status: number }): string {
+  const { status } = response;
+  if (status === 401) return 'Your session expired. Sign in again to continue.';
+  if (status === 403) return 'You do not have access to this. Contact support if that looks wrong.';
+  if (status === 404) return 'We could not find this data. It may have been removed.';
+  if (status === 429) return 'Too many requests. Wait a moment and try again.';
+  if (status >= 500) return 'The server had a problem. Please try again in a moment.';
+  return 'Something went wrong loading this. Please try again.';
+}
+
 const createTimeoutSignal = (timeoutMs: number): AbortSignal | undefined => {
   if (!(timeoutMs > 0)) return undefined;
   if (typeof AbortSignal === 'undefined' || typeof AbortSignal.timeout !== 'function') return undefined;
