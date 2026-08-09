@@ -225,6 +225,7 @@ export function Sidebar({
           name: 'Courier Shipping',
           icon: Truck,
           count: deliveryBadgeCount,
+          locked: !profile.growthFeaturesEnabled,
         },
         {
           id: 'incomplete-checkouts',

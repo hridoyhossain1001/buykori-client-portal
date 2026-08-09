@@ -128,6 +128,7 @@ export interface UserProfile {
   ordersQuota?: number;
   renewalDate: string;
   growthFeaturesEnabled?: boolean;
+  paidFeaturesEnabled?: boolean;
   planFeatures?: Array<{
     key: string;
     label: string;

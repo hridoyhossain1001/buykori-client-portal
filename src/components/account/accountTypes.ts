@@ -1,9 +1,9 @@
 export const PLAN_PRICING = Object.freeze({
-  growth: { label: 'Growth Plan', events: '500k Events / mo', price: 'BDT 899 / mo' },
-  scale: { label: 'Scale Plan', events: '1M Events / mo', price: 'BDT 2,499 / mo' }
+  starter: { label: 'Starter Plan', events: '200k events and 500 orders / mo', price: 'BDT 499 / mo' },
+  growth: { label: 'Growth Plan', events: '500k events and 2,000 orders / mo', price: 'BDT 799 / mo' },
 });
 
-export type PlanTier = 'growth' | 'scale';
+export type PlanTier = 'starter' | 'growth';
 
 export type PaymentProvider = 'bkash' | 'nagad';
 
@@ -53,24 +53,37 @@ export type PaymentHistoryItem = {
   isTest: boolean;
 };
 
-export const growthPlanFeatures = [
+export const freePlanFeatures = [
   '1 WooCommerce store',
-  'Up to 500,000 tracked events each month',
+  'Up to 10,000 tracked events and 50 orders each month',
+  'Meta Pixel and Conversions API',
+  'Browser and server event deduplication',
+  'Dashboard, event logs, and campaign URL tools',
+];
+
+export const starterPlanFeatures = [
+  '1 WooCommerce store',
+  'Up to 200,000 tracked events and 500 orders each month',
   'Meta CAPI, TikTok Events API, and GA4',
   'Browser and server event deduplication',
   'Telegram order and recovery alerts',
   'Incomplete checkout recovery',
-  'Manual courier booking tools',
+  'COD controls and manual courier booking tools',
   'Up to 60 days of event history',
 ];
 
-export const scalePlanFeatures = [
-  'Up to 3 WooCommerce stores',
-  'Up to 1,000,000 tracked events each month',
-  'Everything included in Growth',
-  'Multiple pixels and tracking routes',
-  'Advanced event quality checks',
-  'Higher order and automation capacity',
-  'Priority support and onboarding help',
+export const growthPlanFeatures = [
+  '1 WooCommerce store',
+  'Up to 500,000 tracked events and 2,000 orders each month',
+  'Everything included in Starter',
+  'Higher event and order capacity',
   'Up to 60 days of event history',
+];
+
+export const proPlanFeatures = [
+  'Up to 3 WooCommerce stores',
+  'Up to 1,000,000 tracked events and 5,000 orders each month',
+  'Everything included in Growth',
+  'One independent Meta, TikTok, and GA4 setup per store',
+  'Priority support and onboarding help',
 ];

@@ -5,7 +5,6 @@ import { downloadTextFile, paymentCategory, statusClasses, statusLabel } from '.
 
 interface PaymentHistorySectionProps {
   profile: UserProfile;
-  isScale: boolean;
   paymentHistory: PaymentHistoryItem[];
   paymentHistoryLoading: boolean;
   paymentStatusFilter: 'all' | 'paid' | 'cancelled' | 'expired';
@@ -17,7 +16,6 @@ interface PaymentHistorySectionProps {
 
 export function PaymentHistorySection({
   profile,
-  isScale,
   paymentHistory,
   paymentHistoryLoading,
   paymentStatusFilter,
@@ -26,6 +24,14 @@ export function PaymentHistorySection({
   setPaymentPage,
   onRefresh,
 }: PaymentHistorySectionProps) {
+  const currentPlan = (profile.plan || '').toLowerCase();
+  const renewalPrice = currentPlan.includes('starter')
+    ? 'BDT 499'
+    : currentPlan.includes('growth')
+      ? 'BDT 799'
+      : currentPlan.includes('free')
+        ? 'Free'
+        : 'Custom billing';
   const paymentCounts = {
     all: paymentHistory.length,
     paid: paymentHistory.filter(payment => paymentCategory(payment.status) === 'paid').length,
@@ -125,7 +131,7 @@ export function PaymentHistorySection({
         <div className="px-5 py-4">
           <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Next renewal</p>
           <p className="mt-1 text-sm font-bold text-slate-900">{profile.renewalDate || 'Not scheduled'}</p>
-          <p className="mt-1 text-[11px] text-slate-400">{profile.plan} · {isScale ? 'BDT 2,499' : 'BDT 899'}</p>
+          <p className="mt-1 text-[11px] text-slate-400">{profile.plan} · {renewalPrice}</p>
         </div>
       </div>
 

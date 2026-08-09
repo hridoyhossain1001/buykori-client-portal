@@ -111,8 +111,10 @@ export function AccountView({
   const paymentExpired = paymentSecondsLeft <= 0 && !!paymentIntent;
   const paymentSenderValid = /^01[3-9]\d{8}$/.test(paymentSender.replace(/\D/g, ''));
   const currentPlanLower = (profile.plan || '').toLowerCase();
+  const isFree = currentPlanLower.includes('free');
+  const isStarter = currentPlanLower.includes('starter');
   const isGrowth = currentPlanLower.includes('growth');
-  const isScale = currentPlanLower.includes('scale');
+  const isPro = currentPlanLower.includes('pro') || currentPlanLower.includes('scale');
   const isAgency = currentPlanLower.includes('agency');
   const usagePercent = profile.eventsQuota > 0
     ? Math.min(100, (profile.eventsUsed / profile.eventsQuota) * 100)
@@ -398,14 +400,15 @@ export function AccountView({
           <PlanBillingSection
             profile={profile}
             usagePercent={usagePercent}
+            isFree={isFree}
+            isStarter={isStarter}
             isGrowth={isGrowth}
-            isScale={isScale}
+            isPro={isPro}
             isAgency={isAgency}
             openPayment={openPayment}
           />
           <PaymentHistorySection
             profile={profile}
-            isScale={isScale}
             paymentHistory={paymentHistory}
             paymentHistoryLoading={paymentHistoryLoading}
             paymentStatusFilter={paymentStatusFilter}
