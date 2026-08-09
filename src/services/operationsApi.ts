@@ -1,5 +1,5 @@
 import { apiFetch } from '../lib/http';
-import type { DeferredData, SidebarStatus, StoreInfo } from '../types';
+import type { DeferredData, OrderIntakeHealth, SidebarStatus, StoreInfo, StoreOrderLedgerItem } from '../types';
 
 interface ActionResponse {
   message?: string;
@@ -28,6 +28,19 @@ export async function fetchDeferredData(signal?: AbortSignal): Promise<DeferredD
   const response = await apiFetch('/api/deferred', { signal });
   if (!response.ok) throw await requestError(response, `Could not load verification queue (${response.status}).`);
   return await response.json() as DeferredData;
+}
+
+export async function fetchStoreOrderLedger(signal?: AbortSignal): Promise<StoreOrderLedgerItem[]> {
+  const response = await apiFetch('/api/v1/orders?limit=20', { signal });
+  if (!response.ok) throw await requestError(response, `Could not load captured orders (${response.status}).`);
+  const body = await readObject(response);
+  return Array.isArray(body.orders) ? body.orders as StoreOrderLedgerItem[] : [];
+}
+
+export async function fetchOrderIntakeHealth(signal?: AbortSignal): Promise<OrderIntakeHealth> {
+  const response = await apiFetch('/api/v1/orders/intake-health?hours=24', { signal });
+  if (!response.ok) throw await requestError(response, `Could not load Order Intake health (${response.status}).`);
+  return await response.json() as OrderIntakeHealth;
 }
 
 export async function runDeferredOrderAction(

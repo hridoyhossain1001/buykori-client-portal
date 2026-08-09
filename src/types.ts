@@ -360,6 +360,33 @@ export interface DeferredData {
   operationsPendingList?: DeferredOrder[];
 }
 
+export interface StoreOrderLedgerItem {
+  id: number;
+  orderId: string;
+  source: string;
+  createdVia?: string | null;
+  trigger?: string | null;
+  status?: string | null;
+  paymentMethod?: string | null;
+  currency?: string | null;
+  total?: number | null;
+  itemCount: number;
+  dataQuality: 'complete' | 'missing_items' | 'missing_value' | 'missing_customer' | string;
+  syncStatus: string;
+  occurredAt?: string | null;
+  lastSeenAt?: string | null;
+}
+
+export interface OrderIntakeHealth {
+  status: 'healthy' | 'warning' | 'idle';
+  windowHours: number;
+  total: number;
+  complete: number;
+  incomplete: number;
+  byQuality: Record<string, number>;
+  lastOrderAt?: string | null;
+}
+
 export interface IncompleteCheckoutProduct {
   id?: string;
   content_id?: string;

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Package, RefreshCw, ShieldAlert, Truck } from 'lucide-react';
-import { CourierBookingPayload, CourierOrder, CourierSettings, DeferredData, DeferredOrder, FulfillmentOrder } from '../types';
+import { CourierBookingPayload, CourierOrder, CourierSettings, DeferredData, DeferredOrder, FulfillmentOrder, OrderIntakeHealth, StoreOrderLedgerItem } from '../types';
 import { CourierLabelModal } from './CourierLabelModal';
 import { InvoiceModal } from './InvoiceModal';
 import { loadCourierOrders, loadPathaoStores, type PathaoStore } from '../services/courierApi';
@@ -12,6 +12,7 @@ import PendingOrdersPanel from './orders/PendingOrdersPanel';
 import ShippedOrdersPanel from './orders/ShippedOrdersPanel';
 import CourierBookingModal from './orders/CourierBookingModal';
 import CancelCourierOrderModal from './orders/CancelCourierOrderModal';
+import { fetchOrderIntakeHealth, fetchStoreOrderLedger } from '../services/operationsApi';
 
 interface OrdersViewProps {
   deferredData: DeferredData;
@@ -31,6 +32,9 @@ export function OrdersView({
   storeEmail,
 }: OrdersViewProps) {
   const [activeTab, setActiveTab] = useState<'pending' | 'shipped'>('pending');
+  const [capturedOrders, setCapturedOrders] = useState<StoreOrderLedgerItem[]>([]);
+  const [intakeHealth, setIntakeHealth] = useState<OrderIntakeHealth | null>(null);
+  const [intakeError, setIntakeError] = useState<string | null>(null);
 
   const [courierOrders, setCourierOrders] = useState<CourierOrder[]>([]);
   const [courierSettings, setCourierSettings] = useState<CourierSettings | null>(null);
@@ -49,6 +53,21 @@ export function OrdersView({
       error: 'Could not copy phone number.',
     });
   };
+
+  const fetchIntakeOverview = async () => {
+    try {
+      const [orders, health] = await Promise.all([fetchStoreOrderLedger(), fetchOrderIntakeHealth()]);
+      setCapturedOrders(orders);
+      setIntakeHealth(health);
+      setIntakeError(null);
+    } catch (error) {
+      setIntakeError(error instanceof Error ? error.message : 'Order Intake status could not be loaded.');
+    }
+  };
+
+  useEffect(() => {
+    void fetchIntakeOverview();
+  }, []);
 
   useEffect(() => {
     const handleSectionJump = (event: Event) => {
@@ -541,6 +560,35 @@ export function OrdersView({
         </p>
       </header>
 
+      <section className={`rounded-xl border px-4 py-3 ${intakeHealth?.status === 'warning' || intakeError ? 'border-amber-200 bg-amber-50' : 'border-emerald-200 bg-emerald-50'}`}>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <p className="text-sm font-black text-slate-900">Universal Order Intake</p>
+            <p className="mt-0.5 text-xs text-slate-600">
+              {intakeError || (intakeHealth?.total
+                ? `${intakeHealth.total} orders captured in 24h · ${intakeHealth.incomplete} need data review`
+                : 'Waiting for the first order from the connected store.')}
+            </p>
+          </div>
+          <span className={`rounded-full px-2 py-1 text-[11px] font-black uppercase ${intakeHealth?.status === 'healthy' ? 'bg-emerald-600 text-white' : intakeHealth?.status === 'warning' ? 'bg-amber-500 text-white' : 'bg-slate-200 text-slate-600'}`}>
+            {intakeHealth?.status || (intakeError ? 'unavailable' : 'loading')}
+          </span>
+        </div>
+        {capturedOrders.length > 0 && (
+          <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+            {capturedOrders.slice(0, 4).map((order) => (
+              <div key={order.id} className="rounded-lg border border-white/80 bg-white px-3 py-2 shadow-sm">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-xs font-black text-slate-800">#{order.orderId}</span>
+                  <span className={`text-[10px] font-bold ${order.dataQuality === 'complete' ? 'text-emerald-700' : 'text-amber-700'}`}>{order.dataQuality.replaceAll('_', ' ')}</span>
+                </div>
+                <p className="mt-1 text-xs text-slate-500">{order.status || 'unknown'} · {order.currency || ''} {order.total ?? '—'} · {order.itemCount} item(s)</p>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
       <OrdersSummaryCards
         pendingCount={codVerificationOrders.length}
         pendingValueTotal={pendingValueTotal}
@@ -586,6 +634,7 @@ export function OrdersView({
           onClick={() => {
             fetchDeferred();
             fetchCourierOrders();
+            void fetchIntakeOverview();
             showToast("Syncing data feeds...", false);
           }}
           className="inline-flex h-10 w-10 self-center items-center justify-center rounded-lg text-slate-400 hover:bg-slate-50 hover:text-slate-600 cursor-pointer"
