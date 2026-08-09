@@ -255,7 +255,6 @@ export function AccountView({
           planTier: paymentPlan,
           provider: paymentProvider,
           senderPhone: paymentSender.replace(/\D/g, ''),
-          amount: PLAN_PRICING[paymentPlan].price,
         }),
       });
       if (!response.ok) {
