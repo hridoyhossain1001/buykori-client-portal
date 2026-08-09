@@ -1,7 +1,7 @@
 import { CheckCircle2, Flag } from 'lucide-react';
 import type { UserProfile } from '../../types';
 import { PlatformLogo } from '../common/PlatformLogo';
-import { PLATFORM_HEALTH_PILL, QUOTA_BAR, compactNumber, eventContext, platformHealth, quotaTone, relativeEventTime, shortPlatformName } from './dashboardUtils';
+import { PLATFORM_HEALTH_PILL, QUOTA_BAR, compactNumber, eventContext, formatQuotaLimit, platformHealth, quotaTone, relativeEventTime, shortPlatformName } from './dashboardUtils';
 import type { useDashboardMetrics } from './useDashboardMetrics';
 
 const CARD = 'rounded-[18px] border border-slate-200 bg-white px-3.5 py-3 shadow-[0_4px_14px_rgba(15,23,42,0.03)]';
@@ -57,7 +57,7 @@ export function MobileDashboard({
         <div>
           <div className="flex items-center justify-between text-[11px]">
             <span className="font-semibold text-slate-500">Events this month</span>
-            <strong className="text-slate-800">{compactNumber(profile.eventsUsed)} <span className="font-medium text-slate-400">/ {compactNumber(profile.eventsQuota)}</span></strong>
+            <strong className="text-slate-800">{compactNumber(profile.eventsUsed)} <span className="font-medium text-slate-400">/ {formatQuotaLimit(profile.eventsQuota)}</span></strong>
           </div>
           <div className={METER_TRACK}>
             <div className={`h-full rounded-full ${QUOTA_BAR[quotaTone(usagePercent)]}`} style={{ width: `${usagePercent}%` }} />
@@ -66,7 +66,7 @@ export function MobileDashboard({
         <div className="mt-2.5">
           <div className="flex items-center justify-between text-[11px]">
             <span className="font-semibold text-slate-500">Orders this month</span>
-            <strong className="text-slate-800">{compactNumber(ordersUsed)} <span className="font-medium text-slate-400">/ {orderQuota ? compactNumber(orderQuota) : '∞'}</span></strong>
+            <strong className="text-slate-800">{compactNumber(ordersUsed)} <span className="font-medium text-slate-400">/ {formatQuotaLimit(orderQuota)}</span></strong>
           </div>
           <div className={METER_TRACK}>
             <div className={`h-full rounded-full ${orderQuota > 0 ? QUOTA_BAR[quotaTone(orderPercent)] : QUOTA_BAR.ok}`} style={{ width: `${orderPercent}%` }} />

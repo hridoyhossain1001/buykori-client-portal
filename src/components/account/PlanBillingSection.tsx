@@ -1,5 +1,6 @@
 import { Check } from 'lucide-react';
 import type { UserProfile } from '../../types';
+import { formatQuotaLimit, isUnlimitedQuota } from '../dashboard/dashboardUtils';
 import {
   freePlanFeatures,
   growthPlanFeatures,
@@ -96,10 +97,10 @@ export function PlanBillingSection({
         <div>
           <div className="flex items-center justify-between gap-3">
             <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Monthly usage</p>
-            <span className="text-[10px] font-bold text-emerald-700">{usagePercent.toFixed(2)}% used</span>
+            <span className="text-[10px] font-bold text-emerald-700">{isUnlimitedQuota(profile.eventsQuota) ? 'Unlimited' : `${usagePercent.toFixed(2)}% used`}</span>
           </div>
-          <p className="mt-1 text-sm font-bold text-slate-900">{profile.eventsUsed.toLocaleString()} / {profile.eventsQuota.toLocaleString()} events</p>
-          <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-100"><div className="h-full rounded-full bg-emerald-500" style={{ width: `${usagePercent}%` }} /></div>
+          <p className="mt-1 text-sm font-bold text-slate-900">{profile.eventsUsed.toLocaleString()} / {formatQuotaLimit(profile.eventsQuota)} events</p>
+          <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-100"><div className="h-full rounded-full bg-emerald-500" style={{ width: `${isUnlimitedQuota(profile.eventsQuota) ? 0 : usagePercent}%` }} /></div>
           <p className="mt-1.5 text-[11px] text-slate-400">Resets {profile.renewalDate || 'at the end of the billing period'}</p>
         </div>
       </section>

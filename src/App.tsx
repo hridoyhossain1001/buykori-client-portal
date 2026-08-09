@@ -1255,8 +1255,8 @@ export default function App() {
       showToast("New passwords do not match.", true);
       return;
     }
-    if (passNew.length < 8 || passNew.length > 16) {
-      showToast("New password must be between 8 and 16 characters.", true);
+    if (passNew.length < 8 || passNew.length > 128) {
+      showToast("New password must be between 8 and 128 characters.", true);
       return;
     }
     try {

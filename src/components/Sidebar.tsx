@@ -31,6 +31,8 @@ import type { LucideIcon } from 'lucide-react';
 import { StoreInfo, UserProfile } from '../types';
 import { Button } from './common/Button';
 import { Modal } from './common/Modal';
+import { LockedFeatureModal, resolveLockedFeature, type LockedFeature } from './LockedFeatureModal';
+import { compactNumber, formatQuotaLimit, quotaPercent } from './dashboard/dashboardUtils';
 
 interface SidebarItem {
   id: string;
@@ -85,7 +87,7 @@ export function Sidebar({
   onCreateStore,
 }: SidebarProps) {
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
-  const [showLockedFeature, setShowLockedFeature] = useState(false);
+  const [lockedFeature, setLockedFeature] = useState<LockedFeature | null>(null);
   const logoutTriggerRef = useRef<HTMLButtonElement>(null);
   const [storeSwitcherOpen, setStoreSwitcherOpen] = useState(false);
   const [switchingStore, setSwitchingStore] = useState<number | null>(null);
@@ -256,14 +258,7 @@ export function Sidebar({
     },
   ];
 
-  const formatQuota = (num: number) => {
-    if (num >= 1000) return (num / 1000).toFixed(1) + 'k';
-    return num.toString();
-  };
-
-  const usagePercent = profile.eventsQuota > 0
-    ? Math.min((profile.eventsUsed / profile.eventsQuota) * 100, 100)
-    : 0;
+  const usagePercent = quotaPercent(profile.eventsUsed, profile.eventsQuota);
   const quotaColor = usagePercent >= 85
     ? 'bg-gradient-to-r from-orange-500 to-rose-600'
     : usagePercent >= 60
@@ -452,7 +447,7 @@ export function Sidebar({
                         data-guide={`nav-${item.id}`}
                         onClick={() => {
                           if (item.locked) {
-                            setShowLockedFeature(true);
+                            setLockedFeature(resolveLockedFeature(item.id, item.name));
                             setMobileOpen(false);
                             return;
                           }
@@ -571,7 +566,7 @@ export function Sidebar({
         {collapsed ? (
           <div className="flex flex-col items-center gap-1.5 rounded-xl border border-slate-800 bg-slate-800/60 px-1.5 py-2 shadow-sm" title="Monthly Event Usage">
             <span className={`text-xs font-mono font-bold leading-none ${textQuotaColor}`}>
-              {formatQuota(profile.eventsUsed)}
+              {compactNumber(profile.eventsUsed)}
             </span>
             <div className="h-1.5 w-10 overflow-hidden rounded-full bg-slate-900 ring-1 ring-white/10">
               <div className={`h-full rounded-full ${quotaColor}`} style={{ width: `${usagePercent}%` }} />
@@ -583,7 +578,7 @@ export function Sidebar({
               <div>
                 <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-emerald-400">Events usage</p>
                 <p className="mt-0.5 text-xs text-slate-300">
-                  {formatQuota(profile.eventsUsed)} of {formatQuota(profile.eventsQuota)} events
+                  {compactNumber(profile.eventsUsed)} of {formatQuotaLimit(profile.eventsQuota)} events
                 </p>
               </div>
               <span className="rounded-full bg-emerald-500/20 px-2 py-0.5 text-xs font-black text-emerald-300 ring-1 ring-emerald-500/40">
@@ -695,19 +690,7 @@ export function Sidebar({
           </div>
       </Modal>
     )}
-    {showLockedFeature && (
-      <Modal
-        onClose={() => setShowLockedFeature(false)}
-        labelledBy="locked-feature-title"
-        overlayClassName="fixed inset-0 z-[70] flex items-center justify-center bg-slate-900/40 px-4 backdrop-blur-sm"
-        panelClassName="w-full max-w-sm rounded-xl border border-slate-200 bg-white p-5 shadow-2xl"
-      >
-          <LockKeyhole className="h-6 w-6 text-amber-500" />
-          <h3 id="locked-feature-title" className="mt-3 text-sm font-bold text-slate-900">Growth feature locked</h3>
-          <p className="mt-1 text-xs leading-relaxed text-slate-500">Incomplete Orders is available with a Growth trial or paid plan.</p>
-          <Button variant="primary" size="sm" onClick={() => setShowLockedFeature(false)} className="mt-5 w-full">Got it</Button>
-      </Modal>
-    )}
+    <LockedFeatureModal feature={lockedFeature} onClose={() => setLockedFeature(null)} />
     </>
   );
 }
