@@ -50,7 +50,8 @@ function resolveVerdict(
   scoreValue?: number,
 ): VerdictKey {
   const raw = String(details?.courier_verdict || '').toUpperCase() as VerdictKey;
-  if (raw && raw !== 'UNKNOWN' && raw in VERDICTS) return raw;
+  const failedProviders = details?.courier_summary?.failed || [];
+  if (raw && raw !== 'UNKNOWN' && raw !== 'NEW_CUSTOMER' && raw in VERDICTS) return raw;
 
   const score = Number(scoreValue) || 0;
   if (score >= 75 || details?.velocity_limit || details?.gibberish_name || details?.disposable_email) {
@@ -58,8 +59,8 @@ function resolveVerdict(
   }
   if (score >= 50) return 'RISKY';
   if (score >= 35) return 'MODERATE';
-  if (raw === 'UNKNOWN') return 'UNKNOWN';
-  return 'NEW_CUSTOMER';
+  if (raw === 'NEW_CUSTOMER' && failedProviders.length === 0) return 'NEW_CUSTOMER';
+  return 'UNKNOWN';
 }
 
 export function getFraudVerdictKey(

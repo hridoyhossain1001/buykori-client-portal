@@ -505,9 +505,12 @@ export function OrdersView({
       return matchesSearch && matchesFraud;
     })
     .sort((a, b) => {
-      const aHours = Number(a.ageHours) || 0;
-      const bHours = Number(b.ageHours) || 0;
-      return pendingSort === 'oldest' ? bHours - aHours : aHours - bHours;
+      const aTime = new Date(a.orderOccurredAt || a.timestamp || 0).getTime();
+      const bTime = new Date(b.orderOccurredAt || b.timestamp || 0).getTime();
+      if (aTime !== bTime) return pendingSort === 'oldest' ? aTime - bTime : bTime - aTime;
+      return pendingSort === 'oldest'
+        ? String(a.orderId).localeCompare(String(b.orderId), undefined, { numeric: true })
+        : String(b.orderId).localeCompare(String(a.orderId), undefined, { numeric: true });
     });
   const pendingPageSize = 10;
   const pendingTotalPages = Math.max(1, Math.ceil(pendingFilteredOrders.length / pendingPageSize));
