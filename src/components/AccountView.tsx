@@ -4,6 +4,8 @@ import QRCode from 'qrcode';
 import type { ClientConnection, UserProfile } from '../types';
 import {
   PLAN_PRICING,
+  extractPaymentIntent,
+  paymentIntentSecondsRemaining,
   type PaymentHistoryItem,
   type PaymentIntent,
   type PaymentProvider,
@@ -261,9 +263,18 @@ export function AccountView({
         return;
       }
       const payload = await response.json();
-      const intent: PaymentIntent = payload?.intent || payload?.data || payload;
+      const intent = extractPaymentIntent(payload);
+      if (!intent) {
+        showToast('The payment session response was incomplete. Please try again.', true);
+        return;
+      }
+      const secondsRemaining = paymentIntentSecondsRemaining(intent);
+      if (secondsRemaining <= 0) {
+        showToast('The payment session expired before it could start. Please try again.', true);
+        return;
+      }
       setPaymentIntent(intent);
-      setPaymentSecondsLeft(300);
+      setPaymentSecondsLeft(secondsRemaining);
     } catch {
       showToast('Network error while starting the payment session.', true);
     } finally {
@@ -285,7 +296,7 @@ export function AccountView({
         return;
       }
       const payload = await response.json();
-      const intent: PaymentIntent | null = payload?.intent || payload?.data || null;
+      const intent = extractPaymentIntent(payload);
       if (intent) {
         applyPaymentStatus(intent);
       } else {

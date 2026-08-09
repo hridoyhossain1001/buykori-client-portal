@@ -53,6 +53,36 @@ export type PaymentHistoryItem = {
   isTest: boolean;
 };
 
+const isRecord = (value: unknown): value is Record<string, unknown> => (
+  typeof value === 'object' && value !== null && !Array.isArray(value)
+);
+
+export function extractPaymentIntent(payload: unknown): PaymentIntent | null {
+  if (!isRecord(payload)) return null;
+  const candidate = payload.payment ?? payload.intent ?? payload.data ?? payload;
+  if (!isRecord(candidate)) return null;
+
+  const requiredFields: Array<keyof PaymentIntent> = [
+    'reference',
+    'paymentReference',
+    'planTier',
+    'totalAmount',
+    'receivingPhone',
+    'status',
+    'expiresAt',
+  ];
+  const complete = requiredFields.every(field => (
+    typeof candidate[field] === 'string' && candidate[field].trim().length > 0
+  ));
+  return complete ? candidate as PaymentIntent : null;
+}
+
+export function paymentIntentSecondsRemaining(intent: PaymentIntent, nowMs = Date.now()): number {
+  const expiresAtMs = Date.parse(intent.expiresAt);
+  if (!Number.isFinite(expiresAtMs)) return 0;
+  return Math.max(0, Math.ceil((expiresAtMs - nowMs) / 1000));
+}
+
 export const freePlanFeatures = [
   '1 WooCommerce store',
   'Up to 10,000 tracked events and 50 orders each month',
