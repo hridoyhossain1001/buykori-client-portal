@@ -15,18 +15,25 @@ export const initialProfile: UserProfile = {
   growthFeaturesEnabled: true,
   planFeatures: [
     {
+      key: "courier_shipping",
+      label: "Courier shipping",
+      description: "Confirmed orders can be booked with connected courier partners and tracked from the portal.",
+      included: true,
+      minimumPlan: "Starter",
+    },
+    {
       key: "client_alerts",
       label: "Telegram order alerts",
       description: "Purchase and recovery notifications can be sent securely to the store owner by Telegram.",
       included: true,
-      minimumPlan: "Growth",
+      minimumPlan: "Starter",
     },
     {
       key: "incomplete_checkout_recovery",
       label: "Incomplete checkout recovery",
       description: "Abandoned checkout leads can be reviewed, contacted, and recovered from the portal.",
       included: true,
-      minimumPlan: "Growth",
+      minimumPlan: "Starter",
     },
   ],
   renewalDate: "2026-06-24",

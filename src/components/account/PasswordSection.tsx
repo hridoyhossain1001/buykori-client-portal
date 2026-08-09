@@ -40,7 +40,7 @@ export function PasswordSection({
         <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600"><LockKeyhole className="h-4 w-4" /></span>
         <div>
           <h3 className="text-sm font-bold text-slate-900">Password</h3>
-          <p className="mt-0.5 text-xs text-slate-500">Use a unique password between 8 and 16 characters.</p>
+          <p className="mt-0.5 text-xs text-slate-500">Use a unique password between 8 and 128 characters.</p>
         </div>
       </div>
 
@@ -86,7 +86,7 @@ export function PasswordSection({
                 value={field.value}
                 placeholder={field.placeholder}
                 minLength={field.id === 'account-current-password' ? undefined : 8}
-                maxLength={field.id === 'account-current-password' ? undefined : 16}
+                maxLength={field.id === 'account-current-password' ? undefined : 128}
                 autoComplete={field.autoComplete}
                 onChange={event => field.setValue(event.target.value)}
                 className="w-full rounded-lg border border-slate-200 bg-white p-2.5 pr-10 text-xs outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"

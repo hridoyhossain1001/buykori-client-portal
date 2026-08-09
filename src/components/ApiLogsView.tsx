@@ -1,7 +1,8 @@
 ﻿import React from 'react';
 import { Download, AlertTriangle, Activity, CheckCircle2, Clock3 } from 'lucide-react';
 import { APILog } from '../types';
-import { EmptyState } from './common';
+import { EmptyState, ErrorState } from './common';
+import { describeFetchError, describeResponseError, isAbortError } from '../lib/http';
 import { PlatformBadge, PlatformLogo } from './common/PlatformLogo';
 
 interface ApiLogsViewProps {
@@ -29,20 +30,48 @@ export function ApiLogsView({
   handleExportData
 }: ApiLogsViewProps) {
   const [platformHealth, setPlatformHealth] = React.useState<PlatformHealth[]>([]);
+  const [healthError, setHealthError] = React.useState<string | null>(null);
+  const [healthLoading, setHealthLoading] = React.useState(true);
+
+  const loadPlatformHealth = React.useCallback(async (signal?: AbortSignal) => {
+    setHealthLoading(true);
+    try {
+      const response = await fetch('/api/delivery/health', { signal });
+      if (!response.ok) {
+        setHealthError(describeResponseError(response));
+        return;
+      }
+      const data = await response.json();
+      setPlatformHealth(data?.platforms ?? []);
+      setHealthError(null);
+    } catch (error) {
+      if (isAbortError(error)) return;
+      setHealthError(describeFetchError(error));
+    } finally {
+      if (!signal?.aborted) setHealthLoading(false);
+    }
+  }, []);
 
   React.useEffect(() => {
-    let active = true;
-    fetch('/api/delivery/health')
-      .then((response) => response.ok ? response.json() : null)
-      .then((data) => {
-        if (active && data?.platforms) setPlatformHealth(data.platforms);
-      })
-      .catch(() => {});
-    return () => { active = false; };
-  }, []);
+    const controller = new AbortController();
+    loadPlatformHealth(controller.signal);
+    return () => controller.abort();
+  }, [loadPlatformHealth]);
 
   return (
     <div className="space-y-6">
+
+      {healthError && platformHealth.length === 0 && (
+        <section className="rounded-xl border border-slate-200 bg-white shadow-sm" aria-label="Platform delivery health">
+          <ErrorState
+            compact
+            title="Couldn't load delivery health"
+            description={healthError}
+            onRetry={() => { void loadPlatformHealth(); }}
+            retrying={healthLoading}
+          />
+        </section>
+      )}
 
       {platformHealth.length > 0 && (
         <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4" aria-label="Platform delivery health">

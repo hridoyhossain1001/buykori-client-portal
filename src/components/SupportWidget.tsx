@@ -1,7 +1,9 @@
 import React from 'react';
 import { FileText, Loader2, MessageCircle, Paperclip, RefreshCw, Send, X } from 'lucide-react';
 import { Button } from './common/Button';
+import { ErrorState } from './common/ErrorState';
 import { Modal } from './common/Modal';
+import { describeFetchError, describeResponseError, isAbortError } from '../lib/http';
 
 type Ticket = {
   id: number;
@@ -26,22 +28,35 @@ export function SupportWidget({ showToast }: { showToast: (message: string, isEr
   const [tickets, setTickets] = React.useState<Ticket[]>([]);
   const [submitting, setSubmitting] = React.useState(false);
   const [refreshing, setRefreshing] = React.useState(false);
+  const [ticketsError, setTicketsError] = React.useState<string | null>(null);
   const supportTriggerRef = React.useRef<HTMLButtonElement>(null);
   const subjectInputRef = React.useRef<HTMLInputElement>(null);
 
-  const loadTickets = React.useCallback(async () => {
-    const response = await fetch('/api/support/tickets');
-    if (response.ok) {
+  const loadTickets = React.useCallback(async (signal?: AbortSignal) => {
+    try {
+      const response = await fetch('/api/support/tickets', { signal });
+      if (!response.ok) {
+        setTicketsError(describeResponseError(response));
+        return;
+      }
       const data = await response.json();
       setTickets(data.tickets || []);
+      setTicketsError(null);
+    } catch (error) {
+      if (isAbortError(error)) return;
+      setTicketsError(describeFetchError(error));
     }
   }, []);
 
   React.useEffect(() => {
     if (!open) return;
-    loadTickets().catch(() => {});
-    const timer = window.setInterval(() => loadTickets().catch(() => {}), 20_000);
-    return () => window.clearInterval(timer);
+    const controller = new AbortController();
+    void loadTickets(controller.signal);
+    const timer = window.setInterval(() => { void loadTickets(controller.signal); }, 20_000);
+    return () => {
+      controller.abort();
+      window.clearInterval(timer);
+    };
   }, [open, loadTickets]);
 
   const selectFiles = (selected: File[]) => {
@@ -148,7 +163,19 @@ export function SupportWidget({ showToast }: { showToast: (message: string, isEr
                 </div>
                 <div className="mt-3 space-y-2">
                   {tickets.slice(0, 5).map(ticket => <div key={ticket.id} className="rounded-lg border border-slate-200 p-3"><div className="flex items-center justify-between gap-2"><p className="truncate text-xs font-bold text-slate-800"><FileText className="mr-1 inline h-3.5 w-3.5" />#{ticket.id} {ticket.subject}</p><span className={`rounded-full px-2 py-0.5 text-xs font-bold uppercase ${statusClass(ticket.status)}`}>{ticket.status.replace('_', ' ')}</span></div>{ticket.adminNote && <div className="mt-2 rounded-md bg-emerald-50 px-2.5 py-2 text-xs leading-4 text-emerald-800"><span className="font-bold">Buykori Support:</span> {ticket.adminNote}</div>}</div>)}
-                  {!tickets.length && <p className="text-xs text-slate-400">No support requests yet.</p>}
+                  {tickets.length > 0 && ticketsError && (
+                    <p role="alert" className="text-xs text-rose-600">{ticketsError} Showing the last loaded requests.</p>
+                  )}
+                  {!tickets.length && ticketsError && (
+                    <ErrorState
+                      compact
+                      title="Couldn't load your requests"
+                      description={ticketsError}
+                      onRetry={() => { void refreshTickets(); }}
+                      retrying={refreshing}
+                    />
+                  )}
+                  {!tickets.length && !ticketsError && <p className="text-xs text-slate-400">No support requests yet.</p>}
                 </div>
               </div>
             </div>

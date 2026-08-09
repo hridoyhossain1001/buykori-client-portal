@@ -39,7 +39,8 @@ import { PageErrorBoundary } from './app/PageErrorBoundary';
 import { ConnectionErrorBanner, ConsoleSkeleton, PageSuspenseFallback } from './app/AppShellStates';
 import { GlobalToast, type GlobalToastState } from './app/GlobalToast';
 import { useCampaignUrlBuilder } from './app/useCampaignUrlBuilder';
-import { isAbortError } from './lib/http';
+import { ErrorState } from './components/common';
+import { describeFetchError, describeResponseError, isAbortError } from './lib/http';
 
 export default function App() {
   const isPluginConnectRoute = window.location.pathname === '/plugin/connect';
@@ -103,6 +104,8 @@ export default function App() {
   const [loading, setLoading] = useState<boolean>(true);
   const [aiReviewing, setAiReviewing] = useState<boolean>(false);
   const [errState, setErrState] = useState<string | null>(null);
+  const [workspaceLoadError, setWorkspaceLoadError] = useState<{ page: string; message: string } | null>(null);
+  const [workspaceRetrying, setWorkspaceRetrying] = useState<boolean>(false);
   const [pluginUpdateOpen, setPluginUpdateOpen] = useState<boolean>(false);
   const shownPluginUpdateRef = useRef<string>('');
 
@@ -371,6 +374,7 @@ export default function App() {
       console.error("Failed to fetch COD Protection", err);
       setDeferredData(prev => prev || { pendingList: [], pendingCount: 0, pendingValue: 0 });
       setDeferredLoadError(err instanceof Error ? err.message : 'Could not load the verification queue.');
+      throw err;
     }
   };
 
@@ -392,10 +396,13 @@ export default function App() {
         setIncompleteCheckoutData(await res.json());
       } else if (res.status === 403) {
         setIncompleteCheckoutData({ items: [], counts: {}, restricted: true });
+      } else {
+        throw new Error(describeResponseError(res));
       }
     } catch (err) {
       if (isAbortError(err)) return;
       console.error('Failed to fetch incomplete checkouts', err);
+      throw err;
     }
   };
 
@@ -470,10 +477,9 @@ export default function App() {
 
   const fetchApiLogs = async (signal?: AbortSignal) => {
     const res = await fetch('/api/api-logs?limit=100', { signal });
-    if (res.ok) {
-      const data = await res.json();
-      setApiLogs(data.logs || []);
-    }
+    if (!res.ok) throw new Error(describeResponseError(res));
+    const data = await res.json();
+    setApiLogs(data.logs || []);
   };
 
   const fetchTrendData = async (days = 7, signal?: AbortSignal) => {
@@ -484,6 +490,7 @@ export default function App() {
     } catch (err) {
       if (isAbortError(err)) return;
       console.error("Failed to fetch trend data", err);
+      throw err;
     }
   };
 
@@ -525,6 +532,25 @@ export default function App() {
       await fetchApiLogs(signal);
     } else if (page === 'settings') {
       await fetchSettingsData(signal);
+    }
+  };
+
+  const retryActiveWorkspace = async () => {
+    const page = activePageRef.current;
+    setWorkspaceRetrying(true);
+    setWorkspaceLoadError(null);
+    try {
+      if (page === 'dashboard') {
+        await Promise.all([fetchTrendData(analyticsDays), fetchEvents()]);
+      } else {
+        await loadActivePageData(page);
+      }
+    } catch (error) {
+      if (!isAbortError(error)) {
+        setWorkspaceLoadError({ page, message: errorMessage(error, describeFetchError(error)) });
+      }
+    } finally {
+      setWorkspaceRetrying(false);
     }
   };
 
@@ -624,6 +650,10 @@ export default function App() {
       await loadActivePageData(activePageRef.current, signal).catch(error => {
         if (isAbortError(error)) return;
         console.error(`Failed to load ${activePageRef.current} workspace`, error);
+        const page = activePageRef.current;
+        if (page !== 'orders' && page !== 'event-logs' && page !== 'analytics') {
+          setWorkspaceLoadError({ page, message: errorMessage(error, describeFetchError(error)) });
+        }
       });
     } catch (e: unknown) {
       if (isAbortError(e)) return;
@@ -672,9 +702,11 @@ export default function App() {
       if (activePage === 'analytics') {
         loadAnalyticsData(analyticsDays, controller.signal);
       } else if (activePage === 'dashboard') {
+        setWorkspaceLoadError(current => current?.page === 'dashboard' ? null : current);
         Promise.all([fetchTrendData(analyticsDays, controller.signal), fetchEvents(controller.signal)]).catch(err => {
           if (isAbortError(err)) return;
           console.error('Failed to load dashboard activity', err);
+          setWorkspaceLoadError({ page: 'dashboard', message: errorMessage(err, describeFetchError(err)) });
         });
       }
     }
@@ -747,9 +779,13 @@ export default function App() {
       markSidebarSeen('orders_delivery');
     }
     if (activePage !== 'dashboard') {
+      setWorkspaceLoadError(current => current?.page === activePage ? null : current);
       loadActivePageData(activePage, controller.signal).catch(err => {
         if (isAbortError(err)) return;
         console.error(`Failed to load ${activePage} workspace`, err);
+        if (activePage !== 'orders' && activePage !== 'event-logs' && activePage !== 'analytics') {
+          setWorkspaceLoadError({ page: activePage, message: errorMessage(err, describeFetchError(err)) });
+        }
       });
     }
     return () => controller.abort();
@@ -1255,8 +1291,8 @@ export default function App() {
       showToast("New passwords do not match.", true);
       return;
     }
-    if (passNew.length < 8 || passNew.length > 16) {
-      showToast("New password must be between 8 and 16 characters.", true);
+    if (passNew.length < 8 || passNew.length > 128) {
+      showToast("New password must be between 8 and 128 characters.", true);
       return;
     }
     try {
@@ -1471,6 +1507,18 @@ export default function App() {
           <ConsoleSkeleton />
         ) : !errState && (
           <div className="bk-console-page flex-1 space-y-4 p-4 sm:p-5 md:space-y-6 md:p-6">
+
+            {workspaceLoadError?.page === activePage && (
+              <section className="rounded-xl border border-rose-200 bg-white shadow-sm">
+                <ErrorState
+                  compact
+                  title={`Couldn't load ${pageTitleFor(activePage)}`}
+                  description={workspaceLoadError.message}
+                  onRetry={() => { void retryActiveWorkspace(); }}
+                  retrying={workspaceRetrying}
+                />
+              </section>
+            )}
 
             {/* --- CORE VIEWS DISPATCHER --- */}
             <PageErrorBoundary pageKey={activePage}>
