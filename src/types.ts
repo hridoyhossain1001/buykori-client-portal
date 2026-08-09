@@ -321,6 +321,7 @@ export interface DeferredOrder {
   };
   ageHours?: number | string;
   timestamp?: string;
+  orderOccurredAt?: string;
   operationsOnly?: boolean;
   recipientName?: string;
   recipientPhone?: string;

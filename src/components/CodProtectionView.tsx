@@ -92,7 +92,7 @@ export function CodProtectionView({
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [summaryInfoOpen, setSummaryInfoOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [sortOrder, setSortOrder] = useState<'oldest' | 'newest'>('oldest');
+  const [sortOrder, setSortOrder] = useState<'oldest' | 'newest'>('newest');
 
   React.useEffect(() => {
     if (!summaryInfoOpen) return undefined;
@@ -125,9 +125,12 @@ export function CodProtectionView({
         ].some((value) => String(value || '').toLowerCase().includes(query));
       })
       .sort((a, b) => {
-        const aHours = Number(a.ageHours) || 0;
-        const bHours = Number(b.ageHours) || 0;
-        return sortOrder === 'oldest' ? bHours - aHours : aHours - bHours;
+        const aTime = new Date(a.orderOccurredAt || a.timestamp || 0).getTime();
+        const bTime = new Date(b.orderOccurredAt || b.timestamp || 0).getTime();
+        if (aTime !== bTime) return sortOrder === 'oldest' ? aTime - bTime : bTime - aTime;
+        return sortOrder === 'oldest'
+          ? String(a.orderId).localeCompare(String(b.orderId), undefined, { numeric: true })
+          : String(b.orderId).localeCompare(String(a.orderId), undefined, { numeric: true });
       });
   }, [pendingList, searchQuery, sortOrder]);
 
@@ -178,7 +181,7 @@ export function CodProtectionView({
                 ['Pending', pendingCount, 'Waiting for you', 'text-slate-900'],
                 ['Held revenue', currency(pendingValue), 'Not sent to platforms', 'text-slate-900'],
                 ['Verified today', confirmedToday, 'Confirmed purchases', 'text-emerald-600'],
-                ['Oldest waiting', formatHeldTime(oldestPending), 'Needs your review', 'text-orange-600'],
+                ['Oldest in review', formatHeldTime(oldestPending), 'Needs your review', 'text-orange-600'],
               ].map(([label, value, helper, tone], index) => (
                 <div
                   key={String(label)}
@@ -211,7 +214,7 @@ export function CodProtectionView({
             ['Pending', pendingCount, 'Waiting for you', 'text-slate-900'],
             ['Held revenue', currency(pendingValue), 'Not sent to platforms', 'text-slate-900'],
             ['Verified today', confirmedToday, 'Confirmed purchases', 'text-emerald-700'],
-            ['Oldest waiting', formatHeldTime(oldestPending), 'Needs your review', 'text-amber-700'],
+            ['Oldest in review', formatHeldTime(oldestPending), 'Needs your review', 'text-amber-700'],
           ].map(([label, value, helper, tone]) => (
             <div key={String(label)} className="border-t border-slate-100 pt-3 lg:border-l lg:border-t-0 lg:pl-5 lg:pt-0">
               <p className="text-xs font-bold uppercase tracking-wider text-slate-400">{label}</p>
@@ -456,7 +459,7 @@ export function CodProtectionView({
                 <th className="px-4 py-3">Product</th>
                 <th className="px-4 py-3">Amount</th>
                 <th className="px-4 py-3">Fraud risk</th>
-                <th className="px-4 py-3">Waiting</th>
+                <th className="px-4 py-3">In review</th>
                 <th className="px-5 py-3 text-right">Decision</th>
               </tr>
             </thead>
