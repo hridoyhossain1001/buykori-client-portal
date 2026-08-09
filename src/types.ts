@@ -126,6 +126,16 @@ export interface UserProfile {
   eventsQuota: number;
   ordersUsed?: number;
   ordersQuota?: number;
+  launchOffer?: {
+    code: string;
+    customerLimit: number;
+    foundingCustomer: boolean;
+    active: boolean;
+    paidCyclesUsed: number;
+    cyclesRemaining: number;
+    starterPrice: string;
+    regularStarterPrice: string;
+  };
   renewalDate: string;
   growthFeaturesEnabled?: boolean;
   paidFeaturesEnabled?: boolean;

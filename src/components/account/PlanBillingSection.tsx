@@ -6,6 +6,7 @@ import {
   growthPlanFeatures,
   proPlanFeatures,
   starterPlanFeatures,
+  starterPriceForOffer,
   type PlanTier,
 } from './accountTypes';
 
@@ -30,10 +31,13 @@ export function PlanBillingSection({
   isAgency,
   openPayment,
 }: PlanBillingSectionProps) {
+  const starterOffer = profile.launchOffer;
+  const starterOfferActive = Boolean(starterOffer?.active);
+  const starterPrice = starterPriceForOffer(starterOffer);
   const currentPrice = isFree
     ? 'Free'
     : isStarter
-      ? 'BDT 499 / month'
+      ? `${starterPrice} / month`
       : isGrowth
         ? 'BDT 799 / month'
         : isPro
@@ -46,6 +50,7 @@ export function PlanBillingSection({
       label: 'Free',
       subtitle: 'Try Meta server-side tracking',
       price: 'BDT 0',
+      offer: null,
       features: freePlanFeatures,
       active: isFree,
       recommended: false,
@@ -55,7 +60,10 @@ export function PlanBillingSection({
       tier: 'starter' as const,
       label: 'Starter',
       subtitle: 'A complete toolkit for one small store',
-      price: 'BDT 499',
+      price: starterPrice,
+      offer: starterOfferActive
+        ? `Founding 100 offer · ${starterOffer?.cyclesRemaining || 0} discounted paid month${starterOffer?.cyclesRemaining === 1 ? '' : 's'} remaining · then BDT 499/month`
+        : null,
       features: starterPlanFeatures.slice(0, 5),
       active: isStarter,
       recommended: !isStarter && !isGrowth && !isPro && !isAgency,
@@ -66,6 +74,7 @@ export function PlanBillingSection({
       label: 'Growth',
       subtitle: 'More capacity for a growing store',
       price: 'BDT 799',
+      offer: null,
       features: growthPlanFeatures,
       active: isGrowth,
       recommended: false,
@@ -76,6 +85,7 @@ export function PlanBillingSection({
       label: 'Pro',
       subtitle: 'Up to 3 independent store workspaces',
       price: 'Contact us',
+      offer: null,
       features: proPlanFeatures,
       active: isPro,
       recommended: false,
@@ -115,6 +125,7 @@ export function PlanBillingSection({
             </div>
             <p className="mt-1 text-xs text-slate-500">{plan.subtitle}</p>
             <p className="mt-5 text-2xl font-bold text-slate-900">{plan.price}{!plan.contact && <span className="text-xs font-normal text-slate-500"> / month</span>}</p>
+            {plan.offer && <p className="mt-1.5 rounded-md bg-amber-50 px-2.5 py-2 text-[11px] font-semibold leading-relaxed text-amber-800">{plan.offer}</p>}
             <ul className="mt-5 flex-1 space-y-3">
               {plan.features.map(feature => <li key={feature} className="flex items-start gap-2 text-xs text-slate-600"><Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" /><span>{feature}</span></li>)}
             </ul>
