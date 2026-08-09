@@ -1,6 +1,6 @@
 import { AlertTriangle } from 'lucide-react';
 import type { UserProfile } from '../../types';
-import { QUOTA_BAR, QUOTA_TEXT, compactNumber, panelClass, quotaTone } from './dashboardUtils';
+import { QUOTA_BAR, QUOTA_TEXT, compactNumber, formatQuotaLimit, isUnlimitedQuota, panelClass, quotaTone } from './dashboardUtils';
 
 const METER_TRACK = 'mt-3 h-2 overflow-hidden rounded-full bg-slate-100';
 const METER_LABEL = 'text-xs font-semibold text-slate-500';
@@ -58,17 +58,17 @@ export function UsagePanel({ profile, usagePercent, ordersUsed, orderQuota, orde
       <div className="mt-6 space-y-6">
         <div>
           <div className="flex items-end justify-between gap-3">
-            <div><span className={METER_LABEL}>Events usage</span><p className={METER_VALUE}>{compactNumber(profile.eventsUsed)} <span className="text-xs font-medium text-slate-400">/ {compactNumber(profile.eventsQuota)} events</span></p></div>
-            <strong className={`text-sm ${QUOTA_TEXT[eventsTone]}`}>{usagePercent.toFixed(1)}%</strong>
+            <div><span className={METER_LABEL}>Events usage</span><p className={METER_VALUE}>{compactNumber(profile.eventsUsed)} <span className="text-xs font-medium text-slate-400">/ {formatQuotaLimit(profile.eventsQuota)} events</span></p></div>
+            {!isUnlimitedQuota(profile.eventsQuota) && <strong className={`text-sm ${QUOTA_TEXT[eventsTone]}`}>{usagePercent.toFixed(1)}%</strong>}
           </div>
-          <div className={METER_TRACK}><div className={`h-full rounded-full ${QUOTA_BAR[eventsTone]}`} style={{ width: `${usagePercent}%` }} /></div>
+          {!isUnlimitedQuota(profile.eventsQuota) && <div className={METER_TRACK}><div className={`h-full rounded-full ${QUOTA_BAR[eventsTone]}`} style={{ width: `${usagePercent}%` }} /></div>}
         </div>
         <div>
           <div className="flex items-end justify-between gap-3">
-            <div><span className={METER_LABEL}>Orders usage</span><p className={METER_VALUE}>{ordersUsed.toLocaleString()} <span className="text-xs font-medium text-slate-400">/ {orderQuota ? compactNumber(orderQuota) : 'Unlimited'} orders</span></p></div>
+            <div><span className={METER_LABEL}>Orders usage</span><p className={METER_VALUE}>{ordersUsed.toLocaleString()} <span className="text-xs font-medium text-slate-400">/ {formatQuotaLimit(orderQuota)} orders</span></p></div>
             {orderQuota > 0 && <strong className={`text-sm ${QUOTA_TEXT[ordersTone]}`}>{orderPercent.toFixed(1)}%</strong>}
           </div>
-          <div className={METER_TRACK}><div className={`h-full rounded-full ${QUOTA_BAR[ordersTone]}`} style={{ width: `${orderPercent}%` }} /></div>
+          {orderQuota > 0 && <div className={METER_TRACK}><div className={`h-full rounded-full ${QUOTA_BAR[ordersTone]}`} style={{ width: `${orderPercent}%` }} /></div>}
         </div>
       </div>
       <div className="mt-6 flex items-center justify-between border-t border-slate-100 pt-4">

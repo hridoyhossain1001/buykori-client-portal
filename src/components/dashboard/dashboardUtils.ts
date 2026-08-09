@@ -3,9 +3,40 @@ import type { CAPIEvent } from '../../types';
 export const panelClass = 'rounded-2xl border border-slate-200/90 bg-white shadow-[0_8px_30px_rgba(15,23,42,0.04)]';
 
 export function compactNumber(value: number) {
+  if (!Number.isFinite(value)) return '0';
   if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1).replace(/\.0$/, '')}M`;
   if (value >= 1_000) return `${(value / 1_000).toFixed(1).replace(/\.0$/, '')}K`;
   return value.toLocaleString();
+}
+
+/**
+ * Format a plan quota's denominator for the usage meters.
+ *
+ * The backend uses `0` as the "unlimited" sentinel for Agency/custom plans, so a
+ * raw render produced "/ 0 events" (and the old Sidebar formatter turned
+ * 1,000,000 into "1000.0k"). One shared formatter keeps every meter honest:
+ * a real ceiling reads compactly (1M, 12.5K), and unlimited reads "Unlimited"
+ * — never "0", "∞", or a NaN. `quota <= 0` (or non-finite) means unlimited.
+ */
+export function formatQuotaLimit(quota: number): string {
+  if (!Number.isFinite(quota) || quota <= 0) return 'Unlimited';
+  return compactNumber(quota);
+}
+
+/** True when a quota is the unlimited sentinel (0) rather than a finite ceiling. */
+export function isUnlimitedQuota(quota: number): boolean {
+  return !Number.isFinite(quota) || quota <= 0;
+}
+
+/**
+ * Usage percentage clamped to 0–100.
+ *
+ * Unlimited quotas (0) return 0 so the meter bar stays empty instead of dividing
+ * by zero into NaN/Infinity and rendering a full or broken bar.
+ */
+export function quotaPercent(used: number, quota: number): number {
+  if (isUnlimitedQuota(quota) || !Number.isFinite(used)) return 0;
+  return Math.min(100, Math.max(0, (used / quota) * 100));
 }
 
 export function eventContext(event: CAPIEvent) {

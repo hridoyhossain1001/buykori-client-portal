@@ -18,5 +18,6 @@ export { Input, Textarea } from './Input';
 export { Select, type SelectOption } from './Select';
 export { Skeleton, SkeletonTable, SkeletonCards } from './Skeleton';
 export { EmptyState } from './EmptyState';
+export { ErrorState } from './ErrorState';
 export { StatCard } from './StatCard';
 export { Table, TableHead, TableBody, TableRow, TableHeaderCell, TableCell } from './Table';
