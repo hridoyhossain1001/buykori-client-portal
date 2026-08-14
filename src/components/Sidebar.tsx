@@ -91,13 +91,21 @@ export function Sidebar({
   const logoutTriggerRef = useRef<HTMLButtonElement>(null);
   const [storeSwitcherOpen, setStoreSwitcherOpen] = useState(false);
   const [switchingStore, setSwitchingStore] = useState<number | null>(null);
-  const [openSubmenus, setOpenSubmenus] = useState<Record<string, boolean>>({});
+  // Keep section links visible by default so clients can discover every
+  // destination without having to expand each navigation item first.
+  const [openSubmenus, setOpenSubmenus] = useState<Record<string, boolean>>({
+    analytics: true,
+    orders: true,
+    'campaign-builder': true,
+    'setup-guide': true,
+    settings: true,
+  });
   const [activeSubsection, setActiveSubsection] = useState<string | null>(null);
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({
     'YOUR STORE': true,
     'YOUR ORDERS': true,
-    GROW: false,
-    SYSTEM: false,
+    GROW: true,
+    SYSTEM: true,
   });
   const storeSwitcherRef = useRef<HTMLDivElement>(null);
 
@@ -120,8 +128,8 @@ export function Sidebar({
       { id: 'analytics-audience', label: 'Customers' },
     ],
     orders: [
-      { id: 'orders-pending', label: 'Pending queue' },
-      { id: 'orders-shipped', label: 'Shipped log' },
+      { id: 'orders-pending', label: 'Order Manage' },
+      { id: 'orders-shipped', label: 'Courier Status' },
     ],
     'campaign-builder': [
       { id: 'campaign-url-builder', label: 'URL builder' },
@@ -217,14 +225,14 @@ export function Sidebar({
       items: [
         {
           id: 'pending-purchases',
-          name: 'COD Protection',
+          name: 'Purchase Event Hold',
           icon: ShieldCheck,
           subtitle: 'Verify COD orders before sending Purchase events',
           count: orderVerificationCount,
         },
         {
           id: 'orders',
-          name: 'Courier Shipping',
+          name: 'Orders & Shipping',
           icon: Truck,
           count: deliveryBadgeCount,
           locked: !profile.growthFeaturesEnabled,

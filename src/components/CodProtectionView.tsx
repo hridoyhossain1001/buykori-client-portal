@@ -204,7 +204,7 @@ export function CodProtectionView({
               <ShieldCheck className="h-5 w-5" />
             </span>
             <div>
-              <h2 className="text-base font-bold text-slate-900">COD Protection</h2>
+              <h2 className="text-base font-bold text-slate-900">Purchase Event Hold</h2>
               <p className="mt-1 max-w-sm text-xs leading-relaxed text-slate-500">
                 Purchases stay on hold until you confirm each COD order.
               </p>

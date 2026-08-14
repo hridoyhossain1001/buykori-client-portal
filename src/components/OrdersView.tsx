@@ -557,7 +557,7 @@ export function OrdersView({
         </div>
       )}
       <header className="hidden md:block">
-        <h1 className="text-2xl font-black tracking-tight text-slate-900">Courier Shipping</h1>
+        <h1 className="text-2xl font-black tracking-tight text-slate-900">Orders & Shipping</h1>
         <p className="mt-1 text-sm text-slate-500">
           Review pending orders, create invoices and book couriers — without leaving the page.
         </p>
