@@ -35,8 +35,8 @@ export const IncompleteCheckoutsView = lazyWithReload(() => import('../component
 export const pageTitles: Record<string, string> = {
   dashboard: 'Dashboard',
   analytics: 'Insights',
-  'pending-purchases': 'COD Protection',
-  orders: 'Courier Shipping',
+  'pending-purchases': 'Purchase Event Hold',
+  orders: 'Orders & Shipping',
   'incomplete-checkouts': 'Incomplete Orders',
   'campaign-builder': 'Campaign Tools',
   suggestions: 'Setup Health',
