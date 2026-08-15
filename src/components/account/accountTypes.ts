@@ -5,17 +5,6 @@ export const PLAN_PRICING = Object.freeze({
 
 export type PlanTier = 'starter' | 'growth';
 
-export type StarterOfferLike = {
-  active?: boolean;
-  starterPrice?: string;
-  regularStarterPrice?: string;
-  cyclesRemaining?: number;
-};
-
-export function starterPriceForOffer(offer?: StarterOfferLike): string {
-  return offer?.active ? `BDT ${Number(offer.starterPrice || 299).toLocaleString()}` : 'BDT 499';
-}
-
 export type PaymentProvider = 'bkash' | 'nagad';
 
 export type PaymentBrand = {

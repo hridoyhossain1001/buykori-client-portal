@@ -1,12 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import {
-  extractPaymentIntent,
-  paymentIntentSecondsRemaining,
-  starterPriceForOffer,
-  type PaymentIntent,
-} from './accountTypes';
+import { extractPaymentIntent, paymentIntentSecondsRemaining, type PaymentIntent } from './accountTypes';
 
 const payment: PaymentIntent = {
   reference: 'BKP-ABC123',
@@ -42,10 +37,4 @@ test('derives the countdown from the backend expiry timestamp', () => {
   assert.equal(paymentIntentSecondsRemaining(payment, now), 292);
   assert.equal(paymentIntentSecondsRemaining({ ...payment, expiresAt: 'invalid' }, now), 0);
   assert.equal(paymentIntentSecondsRemaining({ ...payment, expiresAt: '2026-08-09T09:00:00.000Z' }, now), 0);
-});
-
-test('shows the server-authoritative founding Starter price only while active', () => {
-  assert.equal(starterPriceForOffer(), 'BDT 499');
-  assert.equal(starterPriceForOffer({ active: false, starterPrice: '299.00' }), 'BDT 499');
-  assert.equal(starterPriceForOffer({ active: true, starterPrice: '299.00' }), 'BDT 299');
 });

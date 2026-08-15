@@ -1,6 +1,6 @@
 import { CreditCard, Download, Loader2, ReceiptText, RotateCcw } from 'lucide-react';
 import type { UserProfile } from '../../types';
-import { starterPriceForOffer, type PaymentHistoryItem } from './accountTypes';
+import type { PaymentHistoryItem } from './accountTypes';
 import { downloadTextFile, paymentCategory, statusClasses, statusLabel } from './accountStatus';
 
 interface PaymentHistorySectionProps {
@@ -26,7 +26,7 @@ export function PaymentHistorySection({
 }: PaymentHistorySectionProps) {
   const currentPlan = (profile.plan || '').toLowerCase();
   const renewalPrice = currentPlan.includes('starter')
-    ? starterPriceForOffer(profile.launchOffer)
+    ? 'BDT 499'
     : currentPlan.includes('growth')
       ? 'BDT 799'
       : currentPlan.includes('free')
