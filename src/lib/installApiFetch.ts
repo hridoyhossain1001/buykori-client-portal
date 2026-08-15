@@ -43,6 +43,15 @@ const isSameOriginApiRequest = (input: RequestInfo | URL) => {
   }
 };
 
+const apiPath = (input: RequestInfo | URL) => {
+  try {
+    const rawUrl = input instanceof Request ? input.url : String(input);
+    return new URL(rawUrl, window.location.origin).pathname;
+  } catch {
+    return '';
+  }
+};
+
 const isCsrfRejectedResponse = async (response: Response) => {
   const text = await response.clone().text().catch(() => '');
   try {
@@ -67,6 +76,7 @@ export const installApiFetch = () => {
   }
 
   let csrfRefreshPromise: Promise<void> | null = null;
+  let sessionProbePromise: Promise<'active' | 'inactive' | 'unavailable'> | null = null;
   const refreshCsrfCookie = async () => {
     if (csrfRefreshPromise) {
       return csrfRefreshPromise;
@@ -81,6 +91,28 @@ export const installApiFetch = () => {
         csrfRefreshPromise = null;
       });
     return csrfRefreshPromise;
+  };
+
+  const probeSession = async () => {
+    if (sessionProbePromise) {
+      return sessionProbePromise;
+    }
+    sessionProbePromise = current('/api/v1/auth/client/me', {
+      method: 'GET',
+      credentials: 'include',
+      headers: { 'Accept': 'application/json' },
+      cache: 'no-store',
+    })
+      .then((response) => {
+        if (response.ok) return 'active' as const;
+        if (response.status === 401 || response.status === 403) return 'inactive' as const;
+        return 'unavailable' as const;
+      })
+      .catch(() => 'unavailable' as const)
+      .finally(() => {
+        sessionProbePromise = null;
+      });
+    return sessionProbePromise;
   };
 
   const wrappedFetch: typeof window.fetch = async (input, init = {}) => {
@@ -136,7 +168,16 @@ export const installApiFetch = () => {
 
     const response = await send();
     if (response.status === 401 && window.location.pathname !== '/client') {
-      window.location.assign('/client');
+      const path = apiPath(input);
+      const sessionStatus = path === '/api/v1/auth/client/me'
+        ? 'inactive'
+        : await probeSession();
+      if (sessionStatus === 'active' && !mutation && (!request || !request.bodyUsed)) {
+        return send();
+      }
+      if (sessionStatus === 'inactive') {
+        window.location.assign('/client');
+      }
       return response;
     }
     if (mutation && response.status === 403) {

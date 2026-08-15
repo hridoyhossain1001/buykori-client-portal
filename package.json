@@ -21,6 +21,7 @@
     "test:error-state": "tsx --test src/components/common/ErrorState.test.tsx",
     "test:payment-ui": "tsx --test src/components/account/accountTypes.test.ts",
     "test:http": "tsx --test src/lib/http.test.ts",
+    "test:api-fetch": "tsx --test src/lib/installApiFetch.test.ts",
     "test:mock-api": "tsx --test server.test.ts",
     "test:print": "tsx --test src/lib/print.test.ts"
   },

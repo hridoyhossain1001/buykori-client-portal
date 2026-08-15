@@ -344,7 +344,7 @@ export default function App() {
   };
 
   const isAuthFailure = (responses: Response[]) => {
-    return responses.some(res => res.status === 401 || res.status === 403);
+    return responses.some(res => res.status === 401);
   };
 
   // Helper code copy. The "Copied" badge is only shown once the clipboard write
@@ -416,8 +416,7 @@ export default function App() {
         fetch('/api/outbox?limit=100', { signal }),
       ]);
       if (isAuthFailure([eventsRes])) {
-        redirectToClientLogin();
-        return;
+        throw new Error('Your session could not be verified. Please try again.');
       }
       if (!eventsRes.ok) {
         throw new Error(`Event history could not load (${eventsRes.status}).`);
@@ -509,8 +508,7 @@ export default function App() {
       fetch('/api/custom-event-automations', { signal }),
     ]);
     if (isAuthFailure([resCreds, resRules, resAutomations])) {
-      redirectToClientLogin();
-      return;
+      throw new Error('Your session could not be verified. Please try again.');
     }
     if (!resCreds.ok || !resRules.ok || !resAutomations.ok) {
       throw new Error('Failed to load tracking settings.');
@@ -614,8 +612,7 @@ export default function App() {
       ]);
 
       if (isAuthFailure([resProf, resConn])) {
-        redirectToClientLogin();
-        return;
+        throw new Error('Your session could not be verified. Please try again.');
       }
 
       if (!resProf.ok || !resConn.ok) {
