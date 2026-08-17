@@ -1,6 +1,6 @@
 export const PLAN_PRICING = Object.freeze({
-  starter: { label: 'Starter Plan', events: '200k events and 500 orders / mo', price: 'BDT 499 / mo' },
-  growth: { label: 'Growth Plan', events: '500k events and 2,000 orders / mo', price: 'BDT 799 / mo' },
+  starter: { label: 'Starter Plan', events: '200k events and 500 orders / mo', amount: '499.00', price: 'BDT 499 / mo' },
+  growth: { label: 'Growth Plan', events: '500k events and 2,000 orders / mo', amount: '799.00', price: 'BDT 799 / mo' },
 });
 
 export type PlanTier = 'starter' | 'growth';
@@ -81,6 +81,17 @@ export function paymentIntentSecondsRemaining(intent: PaymentIntent, nowMs = Dat
   const expiresAtMs = Date.parse(intent.expiresAt);
   if (!Number.isFinite(expiresAtMs)) return 0;
   return Math.max(0, Math.ceil((expiresAtMs - nowMs) / 1000));
+}
+
+export function paymentIntentMatchesPlan(intent: PaymentIntent, planTier: PlanTier): boolean {
+  const expectedAmount = Number(PLAN_PRICING[planTier].amount);
+  const baseAmount = Number(intent.baseAmount);
+  const totalAmount = Number(intent.totalAmount);
+  return intent.planTier.trim().toLowerCase() === planTier
+    && Number.isFinite(baseAmount)
+    && Number.isFinite(totalAmount)
+    && baseAmount === expectedAmount
+    && totalAmount === expectedAmount;
 }
 
 export const freePlanFeatures = [

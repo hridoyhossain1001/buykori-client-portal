@@ -18,6 +18,7 @@ interface UsagePanelProps {
 export function UsagePanel({ profile, usagePercent, ordersUsed, orderQuota, orderPercent, setActivePage }: UsagePanelProps) {
   const eventsTone = quotaTone(usagePercent);
   const ordersTone = orderQuota > 0 ? quotaTone(orderPercent) : 'ok';
+  const quotaExhausted = eventsTone === 'exhausted' || ordersTone === 'exhausted';
 
   return (
     <section className={`${panelClass} p-5 xl:col-span-5`}>
@@ -29,24 +30,24 @@ export function UsagePanel({ profile, usagePercent, ordersUsed, orderQuota, orde
         <span className="rounded-full bg-blue-50 px-2.5 py-1 text-[11px] font-bold text-blue-700">{profile.plan}</span>
       </div>
 
-      {eventsTone === 'exhausted' && (
+      {quotaExhausted && (
         <div className="mt-4 flex items-start gap-2.5 rounded-xl border border-rose-200 bg-rose-50 p-3" role="alert">
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-rose-600" />
           <div className="min-w-0">
-            <strong className="block text-xs font-bold text-rose-900">Monthly event limit reached</strong>
+            <strong className="block text-xs font-bold text-rose-900">Monthly usage limit reached</strong>
             <p className="mt-0.5 text-[11px] leading-relaxed text-rose-800">
-              New events are being rejected until your quota resets{profile.renewalDate ? ` on ${profile.renewalDate}` : ''}. Upgrade your plan to resume tracking now.
+              Your plan allowance is exhausted until the quota resets{profile.renewalDate ? ` on ${profile.renewalDate}` : ''}. Upgrade your plan to continue now.
             </p>
             {setActivePage && (
               <button type="button" onClick={() => setActivePage('account')} className="mt-2 rounded-lg bg-rose-700 px-3 py-1.5 text-[11px] font-bold text-white hover:bg-rose-800">
-                Upgrade plan
+                Upgrade your plan
               </button>
             )}
           </div>
         </div>
       )}
 
-      {eventsTone === 'critical' && (
+      {eventsTone === 'critical' && !quotaExhausted && (
         <div className="mt-4 flex items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50 p-3" role="status">
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
           <p className="text-[11px] leading-relaxed text-amber-900">
@@ -61,14 +62,14 @@ export function UsagePanel({ profile, usagePercent, ordersUsed, orderQuota, orde
             <div><span className={METER_LABEL}>Events usage</span><p className={METER_VALUE}>{compactNumber(profile.eventsUsed)} <span className="text-xs font-medium text-slate-400">/ {formatQuotaLimit(profile.eventsQuota)} events</span></p></div>
             {!isUnlimitedQuota(profile.eventsQuota) && <strong className={`text-sm ${QUOTA_TEXT[eventsTone]}`}>{usagePercent.toFixed(1)}%</strong>}
           </div>
-          {!isUnlimitedQuota(profile.eventsQuota) && <div className={METER_TRACK}><div className={`h-full rounded-full ${QUOTA_BAR[eventsTone]}`} style={{ width: `${usagePercent}%` }} /></div>}
+          <div className={METER_TRACK}><div className={`h-full rounded-full ${QUOTA_BAR[eventsTone]}`} style={{ width: `${usagePercent}%` }} /></div>
         </div>
         <div>
           <div className="flex items-end justify-between gap-3">
             <div><span className={METER_LABEL}>Orders usage</span><p className={METER_VALUE}>{ordersUsed.toLocaleString()} <span className="text-xs font-medium text-slate-400">/ {formatQuotaLimit(orderQuota)} orders</span></p></div>
             {orderQuota > 0 && <strong className={`text-sm ${QUOTA_TEXT[ordersTone]}`}>{orderPercent.toFixed(1)}%</strong>}
           </div>
-          {orderQuota > 0 && <div className={METER_TRACK}><div className={`h-full rounded-full ${QUOTA_BAR[ordersTone]}`} style={{ width: `${orderPercent}%` }} /></div>}
+          <div className={METER_TRACK}><div className={`h-full rounded-full ${QUOTA_BAR[ordersTone]}`} style={{ width: `${orderPercent}%` }} /></div>
         </div>
       </div>
       <div className="mt-6 flex items-center justify-between border-t border-slate-100 pt-4">

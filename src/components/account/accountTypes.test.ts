@@ -1,7 +1,12 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { extractPaymentIntent, paymentIntentSecondsRemaining, type PaymentIntent } from './accountTypes';
+import {
+  extractPaymentIntent,
+  paymentIntentMatchesPlan,
+  paymentIntentSecondsRemaining,
+  type PaymentIntent,
+} from './accountTypes';
 
 const payment: PaymentIntent = {
   reference: 'BKP-ABC123',
@@ -37,4 +42,10 @@ test('derives the countdown from the backend expiry timestamp', () => {
   assert.equal(paymentIntentSecondsRemaining(payment, now), 292);
   assert.equal(paymentIntentSecondsRemaining({ ...payment, expiresAt: 'invalid' }, now), 0);
   assert.equal(paymentIntentSecondsRemaining({ ...payment, expiresAt: '2026-08-09T09:00:00.000Z' }, now), 0);
+});
+
+test('accepts only the selected plan and its configured payment amount', () => {
+  assert.equal(paymentIntentMatchesPlan(payment, 'starter'), true);
+  assert.equal(paymentIntentMatchesPlan({ ...payment, totalAmount: '299.00' }, 'starter'), false);
+  assert.equal(paymentIntentMatchesPlan({ ...payment, planTier: 'growth' }, 'starter'), false);
 });

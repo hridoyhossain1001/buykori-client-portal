@@ -44,14 +44,16 @@ export function MobileDashboard({
     middleTrendLabel,
     lastTrendLabel,
   } = metrics;
+  const quotaExhausted = quotaTone(usagePercent) === 'exhausted'
+    || (orderQuota > 0 && quotaTone(orderPercent) === 'exhausted');
 
   return (
     <div className="space-y-3 md:hidden">
       <section className={CARD}>
-        {quotaTone(usagePercent) === 'exhausted' && (
+        {quotaExhausted && (
           <div className="mb-2.5 rounded-lg border border-rose-200 bg-rose-50 p-2.5" role="alert">
-            <strong className="block text-[11px] font-bold text-rose-900">Event limit reached</strong>
-            <p className="mt-0.5 text-[10px] leading-relaxed text-rose-800">New events are being rejected. Upgrade to resume tracking.</p>
+            <strong className="block text-[11px] font-bold text-rose-900">Monthly usage limit reached</strong>
+            <p className="mt-0.5 text-[10px] leading-relaxed text-rose-800">Your plan allowance is exhausted. Upgrade your plan to continue now.</p>
           </div>
         )}
         <div>
@@ -77,7 +79,7 @@ export function MobileDashboard({
             {renewalIsValid ? `Resets ${renewalDate!.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}` : 'Monthly plan'}
             {daysUntilRenewal !== null ? ` · ${daysUntilRenewal}d left` : ''}
           </span>
-          <button onClick={() => setActivePage('account')} className="font-bold text-[#2375d8]">Upgrade</button>
+          <button onClick={() => setActivePage('account')} className="font-bold text-[#2375d8]">Upgrade your plan</button>
         </div>
       </section>
 

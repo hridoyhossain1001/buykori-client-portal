@@ -5,6 +5,7 @@ import type { ClientConnection, UserProfile } from '../types';
 import {
   PLAN_PRICING,
   extractPaymentIntent,
+  paymentIntentMatchesPlan,
   paymentIntentSecondsRemaining,
   type PaymentHistoryItem,
   type PaymentIntent,
@@ -255,7 +256,6 @@ export function AccountView({
           planTier: paymentPlan,
           provider: paymentProvider,
           senderPhone: paymentSender.replace(/\D/g, ''),
-          amount: PLAN_PRICING[paymentPlan].price,
         }),
       });
       if (!response.ok) {
@@ -266,6 +266,13 @@ export function AccountView({
       const intent = extractPaymentIntent(payload);
       if (!intent) {
         showToast('The payment session response was incomplete. Please try again.', true);
+        return;
+      }
+      if (!paymentIntentMatchesPlan(intent, paymentPlan)) {
+        showToast(
+          `Payment amount mismatch detected. Expected BDT ${PLAN_PRICING[paymentPlan].amount}. No payment session was opened.`,
+          true,
+        );
         return;
       }
       const secondsRemaining = paymentIntentSecondsRemaining(intent);
