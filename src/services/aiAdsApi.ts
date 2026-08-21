@@ -76,15 +76,25 @@ export const fetchAiAdsOverview = () => apiFetch('/api/ai-ads/overview').then(re
 
 export const fetchAiAdsConnections = () => apiFetch('/api/v1/ai-ads/connections').then(response => json<AiAdsConnection[]>(response));
 
-export const beginAiAdsOAuth = (provider: 'meta' | 'tiktok') => apiFetch(`/api/v1/ai-ads/oauth/${provider}/start`, { method: 'POST' }).then(response => json<{ authorization_url: string }>(response));
+export const requestAiAdsEmailStepUp = () => apiFetch('/api/ai-ads/step-up/email/start', { method: 'POST' }).then(response => json<{ status: string; expires_in: number; email_masked: string }>(response));
 
-export const selectAiAdsAccount = (connectionId: number, externalAccountId: string) => apiFetch('/api/v1/ai-ads/connections/select-account', {
+export const verifyAiAdsEmailStepUp = (code: string) => apiFetch('/api/ai-ads/step-up/email/verify', {
+  method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code }),
+}).then(response => json<{ step_up_grant: string; challenge_id: number; scope: string; expires_in: number }>(response));
+
+export const beginAiAdsOAuth = (provider: 'meta' | 'tiktok', stepUp?: { grant: string; challengeId: number }) => apiFetch(`/api/v1/ai-ads/oauth/${provider}/start`, {
+  method: 'POST', headers: stepUp ? { 'X-Client-Step-Up': stepUp.grant, 'X-Client-Step-Up-Id': String(stepUp.challengeId) } : undefined,
+}).then(response => json<{ authorization_url: string }>(response));
+
+export const selectAiAdsAccount = (connectionId: number, externalAccountId: string, stepUp?: { grant: string; challengeId: number }) => apiFetch('/api/v1/ai-ads/connections/select-account', {
   method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
+  headers: { 'Content-Type': 'application/json', ...(stepUp ? { 'X-Client-Step-Up': stepUp.grant, 'X-Client-Step-Up-Id': String(stepUp.challengeId) } : {}) },
   body: JSON.stringify({ connection_id: connectionId, external_account_id: externalAccountId }),
 }).then(response => json(response));
 
-export const disconnectAiAdsConnection = (connectionId: number) => apiFetch(`/api/v1/ai-ads/connections/${connectionId}`, { method: 'DELETE' }).then(response => json(response));
+export const disconnectAiAdsConnection = (connectionId: number, stepUp?: { grant: string; challengeId: number }) => apiFetch(`/api/v1/ai-ads/connections/${connectionId}`, {
+  method: 'DELETE', headers: stepUp ? { 'X-Client-Step-Up': stepUp.grant, 'X-Client-Step-Up-Id': String(stepUp.challengeId) } : undefined,
+}).then(response => json(response));
 
 export const fetchAiAdsCampaigns = () => apiFetch('/api/v1/ad-campaigns').then(response => json<Array<{ id: number; platform: string; external_campaign_id: string; name: string; status?: string; account_name?: string }>>(response));
 

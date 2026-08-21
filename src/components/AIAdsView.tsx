@@ -21,6 +21,8 @@ import { Button } from './common/Button';
 import {
   approveAiAdsProposal,
   beginAiAdsOAuth,
+  requestAiAdsEmailStepUp,
+  verifyAiAdsEmailStepUp,
   disconnectAiAdsConnection,
   fetchAiAdsCampaigns,
   fetchAiAdsConnections,
@@ -96,6 +98,10 @@ export function AIAdsView({ initialSectionId, showToast }: { initialSectionId?: 
   const [messages, setMessages] = useState<ChatMessage[]>([
     { role: 'assistant', content: 'What would you like to review or plan for your ads?' },
   ]);
+  const [stepUp, setStepUp] = useState<{ action: 'connect' | 'select' | 'disconnect'; provider?: 'meta' | 'tiktok'; connection?: AiAdsConnection; externalId?: string; connectionId?: number } | null>(null);
+  const [stepUpCode, setStepUpCode] = useState('');
+  const [stepUpBusy, setStepUpBusy] = useState(false);
+  const [stepUpNotice, setStepUpNotice] = useState('');
 
   useEffect(() => setSection(sectionFromRoute(initialSectionId)), [initialSectionId]);
 
@@ -125,20 +131,21 @@ export function AIAdsView({ initialSectionId, showToast }: { initialSectionId?: 
   };
 
   const connect = async (provider: 'meta' | 'tiktok') => {
-    setBusy(`connect-${provider}`);
-    try {
-      const response = await beginAiAdsOAuth(provider);
-      window.location.assign(response.authorization_url);
-    } catch (error) {
-      showToast(error instanceof Error ? error.message : 'Connection could not start.', true);
-      setBusy('');
-    }
+    setStepUp({ action: 'connect', provider }); setStepUpCode(''); setStepUpNotice('');
+    try { const result = await requestAiAdsEmailStepUp(); setStepUpNotice(`A verification code was sent to ${result.email_masked}.`); }
+    catch (error) { setStepUp(null); showToast(error instanceof Error ? error.message : 'Verification email could not be sent.', true); }
   };
 
   const selectAccount = async (connection: AiAdsConnection, externalId: string) => {
+    setStepUp({ action: 'select', connection, externalId }); setStepUpCode(''); setStepUpNotice('');
+    try { const result = await requestAiAdsEmailStepUp(); setStepUpNotice(`A verification code was sent to ${result.email_masked}.`); }
+    catch (error) { setStepUp(null); showToast(error instanceof Error ? error.message : 'Verification email could not be sent.', true); }
+  };
+
+  const selectAccountAfterStepUp = async (connection: AiAdsConnection, externalId: string, grant: { grant: string; challengeId: number }) => {
     setBusy(`select-${connection.id}-${externalId}`);
     try {
-      await selectAiAdsAccount(connection.id, externalId);
+      await selectAiAdsAccount(connection.id, externalId, grant);
       showToast('Ad account connected.');
       await load();
     } catch (error) {
@@ -149,9 +156,15 @@ export function AIAdsView({ initialSectionId, showToast }: { initialSectionId?: 
   };
 
   const disconnect = async (connectionId: number) => {
+    setStepUp({ action: 'disconnect', connectionId }); setStepUpCode(''); setStepUpNotice('');
+    try { const result = await requestAiAdsEmailStepUp(); setStepUpNotice(`A verification code was sent to ${result.email_masked}.`); }
+    catch (error) { setStepUp(null); showToast(error instanceof Error ? error.message : 'Verification email could not be sent.', true); }
+  };
+
+  const disconnectAfterStepUp = async (connectionId: number, grant: { grant: string; challengeId: number }) => {
     setBusy(`disconnect-${connectionId}`);
     try {
-      await disconnectAiAdsConnection(connectionId);
+      await disconnectAiAdsConnection(connectionId, grant);
       showToast('Connection disconnected.');
       await load();
     } catch (error) {
@@ -159,6 +172,28 @@ export function AIAdsView({ initialSectionId, showToast }: { initialSectionId?: 
     } finally {
       setBusy('');
     }
+  };
+
+  const verifyStepUpAndContinue = async () => {
+    if (!stepUp || stepUpCode.trim().length !== 6 || stepUpBusy) return;
+    setStepUpBusy(true);
+    try {
+      const verified = await verifyAiAdsEmailStepUp(stepUpCode);
+      const grant = { grant: verified.step_up_grant, challengeId: verified.challenge_id };
+      const action = stepUp; setStepUp(null); setStepUpCode('');
+      if (action.action === 'connect' && action.provider) { setBusy(`connect-${action.provider}`); const response = await beginAiAdsOAuth(action.provider, grant); window.location.assign(response.authorization_url); return; }
+      if (action.action === 'select' && action.connection && action.externalId) { await selectAccountAfterStepUp(action.connection, action.externalId, grant); return; }
+      if (action.action === 'disconnect' && action.connectionId) { await disconnectAfterStepUp(action.connectionId, grant); }
+    } catch (error) { showToast(error instanceof Error ? error.message : 'Verification failed.', true); }
+    finally { setStepUpBusy(false); }
+  };
+
+  const resendStepUpCode = async () => {
+    if (!stepUp || stepUpBusy) return;
+    setStepUpBusy(true);
+    try { const result = await requestAiAdsEmailStepUp(); setStepUpNotice(`A new verification code was sent to ${result.email_masked}.`); setStepUpCode(''); }
+    catch (error) { showToast(error instanceof Error ? error.message : 'Verification email could not be sent.', true); }
+    finally { setStepUpBusy(false); }
   };
 
   const confirmProposal = async (proposal: AiAdsProposal) => {
@@ -244,8 +279,13 @@ export function AIAdsView({ initialSectionId, showToast }: { initialSectionId?: 
       {section === 'campaigns' && <CampaignsPanel campaigns={campaigns} />}
       {section === 'analytics' && <AnalyticsPanel snapshot={performance} />}
       {section === 'chat' && <ChatPanel messages={messages} value={chatInput} setValue={setChatInput} busy={busy === 'chat'} onSend={sendMessage} onConfirmPlan={confirmPlan} planBusy={busy} />}
+      {stepUp && <EmailStepUpDialog notice={stepUpNotice} code={stepUpCode} setCode={setStepUpCode} busy={stepUpBusy} onVerify={() => void verifyStepUpAndContinue()} onResend={() => void resendStepUpCode()} onCancel={() => setStepUp(null)} />}
     </div>
   );
+}
+
+export function EmailStepUpDialog({ notice, code, setCode, busy, onVerify, onResend, onCancel }: { notice: string; code: string; setCode: (value: string) => void; busy: boolean; onVerify: () => void; onResend: () => void; onCancel: () => void }) {
+  return <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-4"><div role="dialog" aria-modal="true" className="w-full max-w-md rounded-md bg-white p-5 shadow-xl"><h2 className="text-lg font-semibold text-slate-950">Verify this ads connection</h2><p className="mt-2 text-sm text-slate-600">{notice || 'Enter the one-time code sent to your account email.'}</p><input autoFocus inputMode="numeric" maxLength={6} value={code} onChange={event => setCode(event.target.value.replace(/\D/g, '').slice(0, 6))} onKeyDown={event => { if (event.key === 'Enter') onVerify(); }} placeholder="6-digit code" className="mt-4 h-11 w-full rounded-md border border-slate-300 px-3 text-center text-lg tracking-[0.4em]" /><div className="mt-3 flex items-center justify-between gap-2"><button type="button" onClick={onResend} disabled={busy} className="text-sm font-medium text-emerald-700 disabled:opacity-50">Send new code</button><div className="flex gap-2"><Button variant="secondary" onClick={onCancel}>Cancel</Button><Button onClick={onVerify} disabled={busy || code.length !== 6}>{busy ? 'Verifying...' : 'Continue'}</Button></div></div></div></div>;
 }
 
 function OverviewPanel({ overview, onOpen, onConfirm, busy }: { overview: Awaited<ReturnType<typeof fetchAiAdsOverview>> | null; onOpen: (section: AiAdsSection) => void; onConfirm: (proposal: AiAdsProposal) => void; busy: string }) {

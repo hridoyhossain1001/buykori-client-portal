@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { renderToStaticMarkup } from 'react-dom/server';
 
-import { proposalCanBeConfirmed } from './AIAdsView';
+import { EmailStepUpDialog, proposalCanBeConfirmed } from './AIAdsView';
 import type { AiAdsProposal } from '../services/aiAdsApi';
 
 
@@ -31,4 +32,24 @@ test('proposal confirmation still requires pending and policy-allowed state', ()
     proposalCanBeConfirmed({ ...proposal, policy_decision: { allowed: false, reasons: ['kill_switch_enabled'] } }, true),
     false,
   );
+});
+
+test('email step-up dialog is accessible and requires a complete six-digit code', () => {
+  const html = renderToStaticMarkup(
+    <EmailStepUpDialog
+      notice="A verification code was sent to a***@example.com."
+      code="12345"
+      setCode={() => {}}
+      busy={false}
+      onVerify={() => {}}
+      onResend={() => {}}
+      onCancel={() => {}}
+    />,
+  );
+
+  assert.ok(html.includes('role="dialog"'));
+  assert.ok(html.includes('aria-modal="true"'));
+  assert.ok(html.includes('6-digit code'));
+  assert.ok(html.includes('Send new code'));
+  assert.match(html, /<button[^>]*disabled=""[^>]*>Continue<\/button>/);
 });
