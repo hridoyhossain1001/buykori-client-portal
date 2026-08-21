@@ -139,6 +139,7 @@ export interface UserProfile {
   ownerNotifyWhatsapp?: boolean;
   ownerWhatsappNumber?: string;
   guideDismissed?: boolean;
+  aiAdsEnabled?: boolean;
 }
 
 export interface Suggestion {

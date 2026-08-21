@@ -30,6 +30,7 @@ export const AccountView = lazyWithReload(() => import('../components/AccountVie
 export const OrderSuccessView = lazyWithReload(() => import('../components/OrderSuccessView').then(m => ({ default: m.OrderSuccessView })));
 export const OrdersView = lazyWithReload(() => import('../components/OrdersView').then(m => ({ default: m.OrdersView })));
 export const IncompleteCheckoutsView = lazyWithReload(() => import('../components/IncompleteCheckoutsView').then(m => ({ default: m.IncompleteCheckoutsView })));
+export const AIAdsView = lazyWithReload(() => import('../components/AIAdsView').then(m => ({ default: m.AIAdsView })));
 
 // Page id -> header title map used by the console shell.
 export const pageTitles: Record<string, string> = {
@@ -45,6 +46,7 @@ export const pageTitles: Record<string, string> = {
   settings: 'Settings',
   'setup-guide': 'Setup Guide',
   account: 'Account',
+  'ai-ads': 'AI Ads',
 };
 
 export const pageTitleFor = (pageId: string) =>

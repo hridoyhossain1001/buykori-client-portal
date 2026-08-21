@@ -33,6 +33,7 @@ import {
   SetupGuideView,
   SuggestionsView,
   WeeklyReportCard,
+  AIAdsView,
   pageTitleFor,
 } from './app/lazyViews';
 import { PageErrorBoundary } from './app/PageErrorBoundary';
@@ -40,6 +41,7 @@ import { ConnectionErrorBanner, ConsoleSkeleton, PageSuspenseFallback } from './
 import { GlobalToast, type GlobalToastState } from './app/GlobalToast';
 import { useCampaignUrlBuilder } from './app/useCampaignUrlBuilder';
 import { isAbortError } from './lib/http';
+import { clientPageAllowed } from './lib/aiAdsFeatureGate';
 
 export default function App() {
   const isPluginConnectRoute = window.location.pathname === '/plugin/connect';
@@ -226,6 +228,12 @@ export default function App() {
   useEffect(() => {
     activePageRef.current = activePage;
   }, [activePage]);
+
+  useEffect(() => {
+    if (profile && !clientPageAllowed(activePage, profile)) {
+      setActivePage('dashboard');
+    }
+  }, [profile, activePage, setActivePage]);
 
   useEffect(() => {
     const handleSectionNavigation = (event: Event) => {
@@ -1560,6 +1568,10 @@ export default function App() {
                 setAnalyticsDays={setAnalyticsDays}
                 setActivePage={setActivePage}
               />
+            )}
+
+            {activePage === 'ai-ads' && clientPageAllowed(activePage, profile) && (
+              <AIAdsView initialSectionId={activeRouteSection} showToast={showToast} />
             )}
 
             {/* PAGE 4: EVENT LOGS */}

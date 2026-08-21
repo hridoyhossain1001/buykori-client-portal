@@ -26,6 +26,7 @@ import {
   PhoneCall,
   LockKeyhole,
   UserRound,
+  Bot,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { StoreInfo, UserProfile } from '../types';
@@ -33,6 +34,7 @@ import { Button } from './common/Button';
 import { Modal } from './common/Modal';
 import { LockedFeatureModal, resolveLockedFeature, type LockedFeature } from './LockedFeatureModal';
 import { compactNumber, formatQuotaLimit, quotaPercent } from './dashboard/dashboardUtils';
+import { clientPageAllowed } from '../lib/aiAdsFeatureGate';
 
 interface SidebarItem {
   id: string;
@@ -251,6 +253,7 @@ export function Sidebar({
       label: 'GROW',
       items: [
         { id: 'campaign-builder', name: 'Campaign Tools', icon: Megaphone },
+        { id: 'ai-ads', name: 'AI Ads', icon: Bot },
         { id: 'suggestions', name: 'Setup Health', icon: Lightbulb, count: suggestionsCount },
       ],
     },
@@ -418,7 +421,8 @@ export function Sidebar({
       <nav className="min-h-0 flex-1 overflow-y-auto py-2.5 pr-3">
         {menuGroups.map((group, groupIndex) => {
           const visibleItems = group.items.filter(
-            (item) => !item.requireOrderMgmt || orderManagementEnabled
+            (item) => (!item.requireOrderMgmt || orderManagementEnabled)
+              && clientPageAllowed(item.id, profile)
           );
           if (visibleItems.length === 0) return null;
 
