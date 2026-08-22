@@ -563,33 +563,18 @@ export function OrdersView({
         </p>
       </header>
 
-      <section className={`rounded-xl border px-4 py-3 ${intakeHealth?.status === 'warning' || intakeError ? 'border-amber-200 bg-amber-50' : 'border-emerald-200 bg-emerald-50'}`}>
-        <div className="flex flex-wrap items-center justify-between gap-2">
+      <section className={`overflow-hidden rounded-xl border ${intakeError ? 'border-amber-200 bg-amber-50' : 'border-slate-200 bg-white'}`}>
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 px-4 py-3">
           <div>
-            <p className="text-sm font-black text-slate-900">Universal Order Intake</p>
-            <p className="mt-0.5 text-xs text-slate-600">
-              {intakeError || (intakeHealth?.total
-                ? `${intakeHealth.total} orders captured in 24h · ${intakeHealth.incomplete} need data review`
-                : 'Waiting for the first order from the connected store.')}
-            </p>
+            <h2 className="text-sm font-black text-slate-900">Captured Store Orders</h2>
+            <p className="mt-0.5 text-xs text-slate-500">{intakeError || (intakeHealth ? `${intakeHealth.total} orders received in the last 24 hours` : 'Loading captured orders...')}</p>
           </div>
-          <span className={`rounded-full px-2 py-1 text-[11px] font-black uppercase ${intakeHealth?.status === 'healthy' ? 'bg-emerald-600 text-white' : intakeHealth?.status === 'warning' ? 'bg-amber-500 text-white' : 'bg-slate-200 text-slate-600'}`}>
-            {intakeHealth?.status || (intakeError ? 'unavailable' : 'loading')}
-          </span>
+          <span className={`rounded-full px-2 py-1 text-[10px] font-black uppercase ${intakeError ? 'bg-amber-100 text-amber-800' : intakeHealth?.status === 'healthy' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-600'}`}>{intakeError ? 'unavailable' : intakeHealth?.status || 'loading'}</span>
         </div>
-        {capturedOrders.length > 0 && (
-          <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-            {capturedOrders.slice(0, 4).map((order) => (
-              <div key={order.id} className="rounded-lg border border-white/80 bg-white px-3 py-2 shadow-sm">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-xs font-black text-slate-800">#{order.orderId}</span>
-                  <span className={`text-[10px] font-bold ${order.dataQuality === 'complete' ? 'text-emerald-700' : 'text-amber-700'}`}>{order.dataQuality.replaceAll('_', ' ')}</span>
-                </div>
-                <p className="mt-1 text-xs text-slate-500">{order.status || 'unknown'} · {order.currency || ''} {order.total ?? '—'} · {order.itemCount} item(s)</p>
-              </div>
-            ))}
-          </div>
-        )}
+        {capturedOrders.length > 0 ? <div className="overflow-x-auto"><table className="w-full min-w-[680px] text-left text-xs">
+          <thead className="bg-slate-50 text-[10px] uppercase tracking-wide text-slate-500"><tr><th className="px-4 py-2 font-black">Order</th><th className="px-4 py-2 font-black">Status</th><th className="px-4 py-2 font-black">Total</th><th className="px-4 py-2 font-black">Items</th><th className="px-4 py-2 font-black">Received</th><th className="px-4 py-2 font-black">Quality</th></tr></thead>
+          <tbody className="divide-y divide-slate-100">{capturedOrders.map((order) => <tr key={order.id} className="hover:bg-slate-50"><td className="px-4 py-2.5 font-mono font-bold text-slate-800">#{order.orderId}</td><td className="px-4 py-2.5 capitalize text-slate-600">{order.status || 'unknown'}</td><td className="px-4 py-2.5 font-semibold text-slate-700">{order.currency || ''} {order.total ?? '-'}</td><td className="px-4 py-2.5 text-slate-600">{order.itemCount}</td><td className="px-4 py-2.5 text-slate-500">{order.occurredAt ? new Date(order.occurredAt).toLocaleString() : '-'}</td><td className={`px-4 py-2.5 font-bold ${order.dataQuality === 'complete' ? 'text-emerald-700' : 'text-amber-700'}`}>{order.dataQuality.replaceAll('_', ' ')}</td></tr>)}</tbody>
+        </table></div> : !intakeError ? <p className="px-4 py-8 text-center text-xs text-slate-500">No captured store orders found.</p> : null}
       </section>
 
       <OrdersSummaryCards

@@ -31,7 +31,7 @@ export async function fetchDeferredData(signal?: AbortSignal): Promise<DeferredD
 }
 
 export async function fetchStoreOrderLedger(signal?: AbortSignal): Promise<StoreOrderLedgerItem[]> {
-  const response = await apiFetch('/api/v1/orders?limit=20', { signal });
+  const response = await apiFetch('/api/v1/orders?limit=100', { signal });
   if (!response.ok) throw await requestError(response, `Could not load captured orders (${response.status}).`);
   const body = await readObject(response);
   return Array.isArray(body.orders) ? body.orders as StoreOrderLedgerItem[] : [];
