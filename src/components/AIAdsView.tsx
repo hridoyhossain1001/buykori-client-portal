@@ -26,6 +26,8 @@ import {
   disconnectAiAdsConnection,
   fetchAiAdsCampaigns,
   fetchAiAdsConnections,
+  fetchAiAdsConversationMessages,
+  fetchAiAdsConversations,
   fetchAiAdsOverview,
   fetchAiAdsPerformance,
   queueAiAdsProposal,
@@ -123,6 +125,30 @@ export function AIAdsView({ initialSectionId, showToast }: { initialSectionId?: 
   }, [showToast]);
 
   useEffect(() => { void load(); }, [load]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const restoreChat = async () => {
+      try {
+        const conversations = await fetchAiAdsConversations();
+        const latest = conversations[0];
+        if (!latest) return;
+        const history = await fetchAiAdsConversationMessages(latest.id);
+        if (cancelled || history.length === 0) return;
+        setConversationId(latest.id);
+        setMessages(history.map(message => ({
+          id: message.id,
+          role: message.role,
+          content: message.content,
+          structured: message.structured,
+        })));
+      } catch {
+        // Chat history is optional for loading the rest of AI Ads.
+      }
+    };
+    void restoreChat();
+    return () => { cancelled = true; };
+  }, []);
 
   const navigate = (next: AiAdsSection) => {
     setSection(next);

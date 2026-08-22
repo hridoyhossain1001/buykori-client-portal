@@ -76,6 +76,18 @@ export const fetchAiAdsOverview = () => apiFetch('/api/ai-ads/overview').then(re
 
 export const fetchAiAdsConnections = () => apiFetch('/api/v1/ai-ads/connections').then(response => json<AiAdsConnection[]>(response));
 
+export interface AiAdsConversation {
+  id: number;
+  title: string;
+  status: string;
+  summary?: string | null;
+  updated_at: string;
+}
+
+export const fetchAiAdsConversations = () => apiFetch('/api/ai-ads/conversations').then(response => json<AiAdsConversation[]>(response));
+
+export const fetchAiAdsConversationMessages = (conversationId: number) => apiFetch(`/api/ai-ads/conversations/${conversationId}/messages`).then(response => json<ChatMessage[]>(response));
+
 export const requestAiAdsEmailStepUp = () => apiFetch('/api/ai-ads/step-up/email/start', { method: 'POST' }).then(response => json<{ status: string; expires_in: number; email_masked: string }>(response));
 
 export const verifyAiAdsEmailStepUp = (code: string) => apiFetch('/api/ai-ads/step-up/email/verify', {

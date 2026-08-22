@@ -3,6 +3,8 @@ import test from 'node:test';
 
 import {
   beginAiAdsOAuth,
+  fetchAiAdsConversationMessages,
+  fetchAiAdsConversations,
   requestAiAdsEmailStepUp,
   sendAiAdsChat,
   verifyAiAdsEmailStepUp,
@@ -42,6 +44,27 @@ test('ChatNow renders a safe backend error and never requires a provider secret'
 
   try {
     await assert.rejects(() => sendAiAdsChat('Hello'), /Chat is temporarily unavailable/);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test('ChatNow can restore the latest persisted conversation after refresh', async () => {
+  const originalFetch = globalThis.fetch;
+  const requests: string[] = [];
+  globalThis.fetch = (async (input: RequestInfo | URL) => {
+    requests.push(String(input));
+    if (String(input) === '/api/ai-ads/conversations') {
+      return new Response(JSON.stringify([{ id: 91, title: 'AI Ads conversation', status: 'active', summary: null, updated_at: '2026-08-22T00:00:00Z' }]), { status: 200 });
+    }
+    return new Response(JSON.stringify([{ id: 1, role: 'user', content: 'How are you?', structured: null, created_at: '2026-08-22T00:00:00Z' }, { id: 2, role: 'assistant', content: 'I am ready to help.', structured: null, created_at: '2026-08-22T00:00:01Z' }]), { status: 200 });
+  }) as typeof fetch;
+
+  try {
+    const conversations = await fetchAiAdsConversations();
+    const messages = await fetchAiAdsConversationMessages(conversations[0].id);
+    assert.deepEqual(messages.map(item => item.content), ['How are you?', 'I am ready to help.']);
+    assert.deepEqual(requests, ['/api/ai-ads/conversations', '/api/ai-ads/conversations/91/messages']);
   } finally {
     globalThis.fetch = originalFetch;
   }
