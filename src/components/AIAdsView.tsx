@@ -322,7 +322,11 @@ function ProposalList({ proposals, writesEnabled, busy, onConfirm }: { proposals
 }
 
 export function providerConnection(connections: AiAdsConnection[], provider: 'meta' | 'tiktok'): AiAdsConnection | undefined {
-  return connections.find(connection => connection.provider === provider && ['active', 'connected'].includes(connection.status.toLowerCase()));
+  const expectedProvider = provider.trim().toLowerCase();
+  return connections.find(connection =>
+    String(connection.provider).trim().toLowerCase() === expectedProvider &&
+    ['active', 'connected'].includes(String(connection.status).trim().toLowerCase()),
+  );
 }
 
 function AccountsPanel({ connections, busy, onConnect, onSelect, onDisconnect }: { connections: AiAdsConnection[]; busy: string; onConnect: (provider: 'meta' | 'tiktok') => void; onSelect: (connection: AiAdsConnection, id: string) => void; onDisconnect: (id: number) => void }) {

@@ -46,6 +46,7 @@ test('proposal confirmation still requires pending and policy-allowed state', ()
 
 test('provider card detects an active connection for its disconnect state', () => {
   assert.equal(providerConnection([metaConnection], 'meta')?.id, 7);
+  assert.equal(providerConnection([{ ...metaConnection, provider: 'meta'.toUpperCase() as 'meta' }], 'meta')?.id, 7);
   assert.equal(providerConnection([metaConnection], 'tiktok'), undefined);
   assert.equal(providerConnection([{ ...metaConnection, status: 'revoked' }], 'meta'), undefined);
 });
