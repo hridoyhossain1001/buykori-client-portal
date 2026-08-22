@@ -321,10 +321,17 @@ function ProposalList({ proposals, writesEnabled, busy, onConfirm }: { proposals
   return <div className="divide-y divide-slate-100 overflow-hidden rounded-md border border-slate-200 bg-white">{proposals.map(proposal => <div key={proposal.id} className="flex flex-col gap-3 p-4 lg:flex-row lg:items-center lg:justify-between"><div><div className="flex items-center gap-2"><p className="text-sm font-semibold text-slate-950">{proposal.operation.replaceAll('_', ' ')}</p><Status value={proposal.risk} /></div>{proposal.policy_decision.reasons?.length ? <p className="mt-1 text-xs text-rose-600">This plan needs additional review before it can continue.</p> : null}</div>{proposalCanBeConfirmed(proposal, writesEnabled) ? <Button onClick={() => onConfirm(proposal)} disabled={busy === `proposal-${proposal.id}`}><Check className="h-4 w-4" />Confirm plan</Button> : <Status value={!writesEnabled && proposal.status === 'pending' ? 'read only' : proposal.status} />}</div>)}</div>;
 }
 
+export function providerConnection(connections: AiAdsConnection[], provider: 'meta' | 'tiktok'): AiAdsConnection | undefined {
+  return connections.find(connection => connection.provider === provider && ['active', 'connected'].includes(connection.status.toLowerCase()));
+}
+
 function AccountsPanel({ connections, busy, onConnect, onSelect, onDisconnect }: { connections: AiAdsConnection[]; busy: string; onConnect: (provider: 'meta' | 'tiktok') => void; onSelect: (connection: AiAdsConnection, id: string) => void; onDisconnect: (id: number) => void }) {
   return <div className="space-y-5">
     <div className="grid gap-3 md:grid-cols-2">
-      {(['meta', 'tiktok'] as const).map(provider => <div key={provider} className="flex items-center justify-between rounded-md border border-slate-200 bg-white p-4"><div><p className="font-semibold capitalize text-slate-950">{provider} Ads</p><p className="text-sm text-slate-500">Official OAuth connection</p></div><Button onClick={() => onConnect(provider)} disabled={busy === `connect-${provider}`}><Plug className="h-4 w-4" />Connect</Button></div>)}
+      {(['meta', 'tiktok'] as const).map(provider => {
+        const connection = providerConnection(connections, provider);
+        return <div key={provider} className="flex items-center justify-between rounded-md border border-slate-200 bg-white p-4"><div><p className="font-semibold capitalize text-slate-950">{provider} Ads</p><p className="text-sm text-slate-500">Official OAuth connection</p></div>{connection ? <Button variant="secondary" onClick={() => onDisconnect(connection.id)} disabled={busy === `disconnect-${connection.id}`}><Unplug className="h-4 w-4" />Disconnect</Button> : <Button onClick={() => onConnect(provider)} disabled={busy === `connect-${provider}`}><Plug className="h-4 w-4" />Connect</Button>}</div>;
+      })}
     </div>
     <section>
       <h3 className="mb-2 text-sm font-semibold text-slate-950">Connections</h3>

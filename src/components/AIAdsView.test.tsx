@@ -2,8 +2,18 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { renderToStaticMarkup } from 'react-dom/server';
 
-import { EmailStepUpDialog, proposalCanBeConfirmed } from './AIAdsView';
-import type { AiAdsProposal } from '../services/aiAdsApi';
+import { EmailStepUpDialog, proposalCanBeConfirmed, providerConnection } from './AIAdsView';
+import type { AiAdsConnection, AiAdsProposal } from '../services/aiAdsApi';
+
+const metaConnection: AiAdsConnection = {
+  id: 7,
+  provider: 'meta',
+  status: 'Active',
+  permission_status: 'granted',
+  token_status: 'valid',
+  accounts: [],
+  scopes: [],
+};
 
 
 const proposal: AiAdsProposal = {
@@ -32,6 +42,12 @@ test('proposal confirmation still requires pending and policy-allowed state', ()
     proposalCanBeConfirmed({ ...proposal, policy_decision: { allowed: false, reasons: ['kill_switch_enabled'] } }, true),
     false,
   );
+});
+
+test('provider card detects an active connection for its disconnect state', () => {
+  assert.equal(providerConnection([metaConnection], 'meta')?.id, 7);
+  assert.equal(providerConnection([metaConnection], 'tiktok'), undefined);
+  assert.equal(providerConnection([{ ...metaConnection, status: 'revoked' }], 'meta'), undefined);
 });
 
 test('email step-up dialog is accessible and requires a complete six-digit code', () => {
