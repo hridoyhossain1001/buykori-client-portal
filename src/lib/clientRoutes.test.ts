@@ -50,6 +50,20 @@ test('resolves settings section deep links', () => {
   assert.equal(clientPathForPage('settings'), '/settings/store-connection');
 });
 
+test('resolves AI Ads and ChatNow routes', () => {
+  assert.deepEqual(resolveClientRoute('/ai-ads'), {
+    pageId: 'ai-ads',
+    sectionId: 'ai-ads-overview',
+    canonicalPath: '/ai-ads',
+  });
+  assert.deepEqual(resolveClientRoute('/ai-ads/chat'), {
+    pageId: 'ai-ads',
+    sectionId: 'ai-ads-chat',
+    canonicalPath: '/ai-ads/chat',
+  });
+  assert.equal(clientPathForSection('ai-ads', 'ai-ads-chat'), '/ai-ads/chat');
+});
+
 test('rejects unrelated application paths', () => {
   assert.equal(resolveClientRoute('/plugin/connect'), null);
   assert.equal(resolveClientRoute('/unknown'), null);

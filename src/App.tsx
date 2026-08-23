@@ -33,6 +33,7 @@ import {
   SetupGuideView,
   SuggestionsView,
   WeeklyReportCard,
+  AIAdsView,
   pageTitleFor,
 } from './app/lazyViews';
 import { PageErrorBoundary } from './app/PageErrorBoundary';
@@ -41,6 +42,7 @@ import { GlobalToast, type GlobalToastState } from './app/GlobalToast';
 import { useCampaignUrlBuilder } from './app/useCampaignUrlBuilder';
 import { ErrorState } from './components/common';
 import { describeFetchError, describeResponseError, isAbortError } from './lib/http';
+import { clientPageAllowed } from './lib/aiAdsFeatureGate';
 
 export default function App() {
   const isPluginConnectRoute = window.location.pathname === '/plugin/connect';
@@ -1605,6 +1607,10 @@ export default function App() {
                 setAnalyticsDays={setAnalyticsDays}
                 setActivePage={setActivePage}
               />
+            )}
+
+            {activePage === 'ai-ads' && clientPageAllowed(activePage, profile) && (
+              <AIAdsView initialSectionId={activeRouteSection} showToast={showToast} />
             )}
 
             {/* PAGE 4: EVENT LOGS */}

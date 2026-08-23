@@ -18,6 +18,15 @@ const PAGE_PATHS: Record<string, string> = {
   'setup-guide': '/setup-guide',
   account: '/account',
   'order-success': '/order-success',
+  'ai-ads': '/ai-ads',
+};
+
+const AI_ADS_SECTION_PATHS: Record<string, string> = {
+  'ai-ads-overview': '/ai-ads',
+  'ai-ads-accounts': '/ai-ads/accounts',
+  'ai-ads-campaigns': '/ai-ads/campaigns',
+  'ai-ads-analytics': '/ai-ads/analytics',
+  'ai-ads-chat': '/ai-ads/chat',
 };
 
 const SETTINGS_SECTION_PATHS: Record<string, string> = {
@@ -64,6 +73,7 @@ const stripAppPrefix = (path: string) => {
 export const clientPathForPage = (pageId: string) => PAGE_PATHS[pageId] || null;
 
 export const clientPathForSection = (pageId: string, sectionId: string) => {
+  if (pageId === 'ai-ads') return AI_ADS_SECTION_PATHS[sectionId] || PAGE_PATHS['ai-ads'];
   if (pageId !== 'settings') return clientPathForPage(pageId);
   return SETTINGS_SECTION_PATHS[sectionId] || PAGE_PATHS.settings;
 };
@@ -96,6 +106,11 @@ export const resolveClientRoute = (pathname: string): ClientRouteMatch | null =>
   const sectionId = SETTINGS_SECTION_BY_PATH.get(routePath);
   if (sectionId) {
     return { pageId: 'settings', sectionId, canonicalPath: SETTINGS_SECTION_PATHS[sectionId] };
+  }
+
+  const aiAdsSection = Object.entries(AI_ADS_SECTION_PATHS).find(([, sectionPath]) => sectionPath === routePath);
+  if (aiAdsSection) {
+    return { pageId: 'ai-ads', sectionId: aiAdsSection[0], canonicalPath: aiAdsSection[1] };
   }
 
   const pageId = PAGE_BY_PATH.get(routePath);
