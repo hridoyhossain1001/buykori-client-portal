@@ -288,6 +288,7 @@ const money = (n: number | null | undefined) => {
   const value = Number(n);
   return `BDT ${(Number.isFinite(value) ? value : 0).toLocaleString("en-BD")}`;
 };
+const initials = (name: string) => name.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join("").toUpperCase() || "U";
 const courierDetails = (order: Pick<Order, "courier" | "courierStatus">) => {
   if (!order.courier) return { provider: "No courier assigned", tracking: "—", status: order.courierStatus || "Not booked" };
   const [provider, tracking] = order.courier.split(" · ");
@@ -1041,6 +1042,7 @@ function Sidebar({
   openSetupIssues,
   openCheckouts,
   liveState,
+  liveSnapshot,
 }: {
   page: Page;
   go: (p: Page) => void;
@@ -1051,7 +1053,14 @@ function Sidebar({
   /** Checkouts still awaiting recovery, so the badge cannot outlive a "Create draft order". */
   openCheckouts: number;
   liveState: "idle" | "loading" | "ready" | "error";
+  liveSnapshot?: LiveSnapshot;
 }) {
+  const identity = liveSnapshot?.profile;
+  const connection = liveSnapshot?.connection;
+  const dashboard = liveSnapshot?.dashboard;
+  const eventsUsed = dashboard?.eventsUsed ?? 0;
+  const eventsLimit = dashboard?.eventsLimit ?? 0;
+  const usagePercent = eventsLimit > 0 ? Math.min(100, Math.round((eventsUsed / eventsLimit) * 1000) / 10) : 0;
   const groups: Array<{
     label: string;
     items: Array<{
@@ -1073,13 +1082,13 @@ function Sidebar({
           page: "orders",
           label: "Orders",
           icon: <ClipboardList size={17} />,
-          count: liveState === "ready" ? String(workspaceMetrics.orders.awaiting) : undefined,
+          count: liveState === "ready" && dashboard?.ordersThisMonth ? String(dashboard.ordersThisMonth) : undefined,
         },
         {
           page: "cod",
           label: "COD review",
           icon: <ShieldCheck size={17} />,
-          count: liveState === "ready" ? String(workspaceMetrics.orders.codPending) : undefined,
+          count: liveState === "ready" && dashboard?.codPending ? String(dashboard.codPending) : undefined,
         },
         {
           page: "checkouts",
@@ -1213,8 +1222,8 @@ function Sidebar({
           </span>
           <span>
             <small>ACTIVE STORE</small>
-            <strong>{storeConnection.workspace}</strong>
-            <em>{storeConnection.domain}</em>
+            <strong>{connection?.workspace ?? storeConnection.workspace}</strong>
+            <em>{connection?.domain || "Domain not configured"}</em>
           </span>
           <ChevronDown size={15} />
         </button>
@@ -1249,12 +1258,12 @@ function Sidebar({
         <div className="usage-mini">
           <span>EVENTS USAGE</span>
           <strong>
-            12.4K <small>/ {workspaceMetrics.events.limit / 1000}K events</small>
+            {eventsUsed.toLocaleString("en-BD")} <small>/ {eventsLimit ? eventsLimit.toLocaleString("en-BD") : "—"} events</small>
           </strong>
           <div>
-            <i style={{ width: `${Math.max(2, Math.round((workspaceMetrics.events.used / workspaceMetrics.events.limit) * 100))}%` }} />
+            <i style={{ width: `${usagePercent}%` }} />
           </div>
-          <em>{Math.round((workspaceMetrics.events.used / workspaceMetrics.events.limit) * 1000) / 10}% used · resets Sep 1</em>
+          <em>{eventsLimit ? `${usagePercent}% used` : "Quota unavailable"}</em>
         </div>
         <button
           type="button"
@@ -1262,11 +1271,11 @@ function Sidebar({
           onClick={() => go("account")}
         >
           <span className="avatar" aria-hidden="true">
-            MA
+            {initials(identity?.name ?? "Workspace owner")}
           </span>
           <span>
-            <strong>Malcolm Abbott</strong>
-            <small>{billingProfile.plan} plan · Owner</small>
+            <strong>{identity?.name ?? "Workspace owner"}</strong>
+            <small>{identity?.plan ?? "Plan"} · Owner</small>
           </span>
           <Ellipsis size={17} />
         </button>
@@ -1297,12 +1306,18 @@ function Topbar({
   openMenu,
   mobileOpen,
   go,
+  liveSnapshot,
 }: {
   page: Page;
   openMenu: () => void;
   mobileOpen: boolean;
   go: (p: Page) => void;
+  liveSnapshot?: LiveSnapshot;
 }) {
+  const identity = liveSnapshot?.profile;
+  const workspaceName = liveSnapshot?.connection.workspace ?? "Buykori workspace";
+  const ownerName = identity?.name ?? "Workspace owner";
+  const ownerInitials = initials(ownerName);
   const [menu, setMenu] = useState<"" | "search" | "alerts" | "account">("");
   const [query, setQuery] = useState("");
   const [readAlerts, setReadAlerts] = useState<string[]>([]);
@@ -1348,7 +1363,7 @@ function Topbar({
         <Menu size={20} />
       </button>
       <div className="crumbs">
-        <span>Buykori workspace</span>
+        <span>{workspaceName}</span>
         <ChevronRight size={14} aria-hidden="true" />
         <strong>{pageMeta[page].title}</strong>
       </div>
@@ -1444,22 +1459,22 @@ function Topbar({
           <button
             type="button"
             className="avatar-button"
-            aria-label="Account menu for Malcolm Abbott"
+            aria-label={`Account menu for ${ownerName}`}
             aria-haspopup="menu"
             aria-expanded={menu === "account"}
             aria-controls="topbar-account-panel"
             onClick={() => open("account")}
           >
-            MA
+            {ownerInitials}
           </button>
           {menu === "account" && (
             <div className="topbar-panel account-panel" id="topbar-account-panel" role="menu" aria-label="Account menu">
               <div className="topbar-identity">
-                <span className="avatar" aria-hidden="true">MA</span>
+                <span className="avatar" aria-hidden="true">{ownerInitials}</span>
                 <span>
-                  <strong>Malcolm Abbott</strong>
-                  <small>{contactEmails.signIn}</small>
-                  <em>Owner · Growth plan</em>
+                  <strong>{ownerName}</strong>
+                  <small>{identity?.email || "Email unavailable"}</small>
+                  <em>Owner · {identity?.plan ?? "Plan"}</em>
                 </span>
               </div>
               <div className="topbar-result-list">
@@ -4513,13 +4528,15 @@ function App() {
         openSetupIssues={openSetupIssues}
         openCheckouts={openCheckouts}
         liveState={liveState}
+        liveSnapshot={liveSnapshot ?? undefined}
       />
       <div className="portal-workspace">
         <Topbar
           page={page}
           openMenu={() => setMobileOpen(true)}
           mobileOpen={mobileOpen}
-          go={go}
+        go={go}
+        liveSnapshot={liveSnapshot ?? undefined}
         />
         <main id="portal-main" className="portal-main" tabIndex={-1}>
           <div className="preview-notice">

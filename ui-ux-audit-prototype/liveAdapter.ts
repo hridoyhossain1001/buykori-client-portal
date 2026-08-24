@@ -32,6 +32,20 @@ export type LiveDeliveryLog = {
 };
 
 export type LiveSnapshot = {
+  profile: {
+    name: string;
+    email: string;
+    plan: string;
+    eventsUsed: number;
+    eventsQuota: number;
+    clientId?: string;
+  };
+  connection: {
+    workspace: string;
+    domain: string;
+    clientId?: string;
+    status: string;
+  };
   orders: Array<{
     id: string;
     customer: string;
@@ -151,6 +165,20 @@ export async function fetchLiveSnapshot(signal: AbortSignal): Promise<LiveSnapsh
   const profileEventsUsed = Number(profile.eventsUsed ?? profile.events_used ?? 0);
   const profileEventsLimit = Number(profile.eventsQuota ?? profile.events_quota ?? 0);
   return {
+    profile: {
+      name: String(profile.name ?? profile.displayName ?? "Workspace owner"),
+      email: String(profile.email ?? ""),
+      plan: String(profile.plan ?? profile.plan_name ?? "Plan"),
+      eventsUsed: profileEventsUsed,
+      eventsQuota: profileEventsLimit,
+      clientId: profile.clientId != null ? String(profile.clientId) : profile.client_id != null ? String(profile.client_id) : undefined,
+    },
+    connection: {
+      workspace: String(connection.workspace ?? connection.storeName ?? connection.store_name ?? connection.name ?? "Connected workspace"),
+      domain: String(connection.domain ?? connection.siteHost ?? connection.site_url ?? ""),
+      clientId: connection.clientId != null ? String(connection.clientId) : connection.client_id != null ? String(connection.client_id) : undefined,
+      status: String(connection.status ?? "Unknown"),
+    },
     orders: uniqueOrders as LiveSnapshot["orders"],
     checkouts: checkoutRows,
     events: eventRows,
