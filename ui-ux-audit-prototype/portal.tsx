@@ -4384,7 +4384,8 @@ function App() {
   const initialPath = window.location.pathname;
   const routeKey = (path: string) => path.replace(/^\/ui-ux-audit-prototype/, "") || "/dashboard";
   const queryPage = new URLSearchParams(window.location.search).get("page") as Page | null;
-  const liveMode = new URLSearchParams(window.location.search).get("live") === "1";
+  const isPrototypePreviewRoute = initialPath.startsWith("/ui-ux-audit-prototype");
+  const liveMode = !isPrototypePreviewRoute || new URLSearchParams(window.location.search).get("live") === "1";
   const [aiAdsEnabledForClient, setAiAdsEnabledForClient] = useState(false);
   const [liveSnapshot, setLiveSnapshot] = useState<LiveSnapshot | null>(null);
   const [liveAiAds, setLiveAiAds] = useState<LiveAiAds | null>(null);
@@ -4492,6 +4493,7 @@ function App() {
     ) : (
       <Account />
     );
+  const liveBoundary = liveMode && liveState !== "ready";
   return (
     <div className="portal-shell">
       <a className="skip-link" href="#portal-main">
@@ -4521,7 +4523,16 @@ function App() {
                 : "Sample data and visual workflows only. Production actions are intentionally not connected."}
             </span>
           </div>
-          {content}
+          {liveBoundary ? (
+            <section className="empty-state" role={liveState === "error" ? "alert" : "status"}>
+              <strong>{liveState === "error" ? "Could not load this workspace" : "Loading your workspace"}</strong>
+              <span>
+                {liveState === "error"
+                  ? "Your authenticated data could not be loaded. Sign in again or retry; sample data is never shown on the live client route."
+                  : "Connecting to your tenant-scoped data."}
+              </span>
+            </section>
+          ) : content}
         </main>
       </div>
     </div>

@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "tsx server.ts",
     "build": "vite build && esbuild server.ts --bundle --platform=node --format=cjs --packages=external --sourcemap --outfile=dist/server.cjs",
-    "vercel-build": "vite build && node scripts/create-dashboard-route.cjs",
+    "vercel-build": "vite build ui-ux-audit-prototype --base /ui-ux-audit-prototype/ --outDir ../dist-cutover/ui-ux-audit-prototype --emptyOutDir && node scripts/create-prototype-cutover-routes.cjs",
     "start": "node dist/server.cjs",
     "clean": "node -e \"fs.rmSync('dist',{recursive:true,force:true});fs.rmSync('server.js',{force:true})\"",
     "lint": "tsc --noEmit",

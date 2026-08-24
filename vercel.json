@@ -3,7 +3,7 @@
   "cleanUrls": true,
   "framework": "vite",
   "buildCommand": "npm run vercel-build",
-  "outputDirectory": "dist",
+  "outputDirectory": "dist-cutover",
   "headers": [
     {
       "source": "/(.*)",
@@ -36,27 +36,23 @@
     },
     {
       "source": "/plugin/connect",
-      "destination": "/index.html"
+      "destination": "https://api.buykori.app/plugin/connect"
     },
     {
       "source": "/client/dashboard",
-      "destination": "/index.html"
+      "destination": "/client/dashboard/index.html"
     },
     {
       "source": "/client/dashboard/:path*",
-      "destination": "/index.html"
+      "destination": "/client/dashboard/index.html"
     },
     {
       "source": "/app",
-      "destination": "/index.html"
+      "destination": "/app/index.html"
     },
     {
       "source": "/app/:path*",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/order-success/:path*",
-      "destination": "/index.html"
+      "destination": "/app/index.html"
     },
     {
       "source": "/client",
