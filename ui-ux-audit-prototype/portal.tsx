@@ -1036,6 +1036,7 @@ function Sidebar({
   close,
   openSetupIssues,
   openCheckouts,
+  liveState,
 }: {
   page: Page;
   go: (p: Page) => void;
@@ -1045,6 +1046,7 @@ function Sidebar({
   openSetupIssues: number;
   /** Checkouts still awaiting recovery, so the badge cannot outlive a "Create draft order". */
   openCheckouts: number;
+  liveState: "idle" | "loading" | "ready" | "error";
 }) {
   const groups: Array<{
     label: string;
@@ -1067,19 +1069,19 @@ function Sidebar({
           page: "orders",
           label: "Orders",
           icon: <ClipboardList size={17} />,
-          count: String(workspaceMetrics.orders.awaiting),
+          count: liveState === "ready" ? String(workspaceMetrics.orders.awaiting) : undefined,
         },
         {
           page: "cod",
           label: "COD review",
           icon: <ShieldCheck size={17} />,
-          count: String(workspaceMetrics.orders.codPending),
+          count: liveState === "ready" ? String(workspaceMetrics.orders.codPending) : undefined,
         },
         {
           page: "checkouts",
           label: "Incomplete checkouts",
           icon: <MessageSquareText size={17} />,
-          count: openCheckouts ? String(openCheckouts) : undefined,
+          count: liveState === "ready" && openCheckouts ? String(openCheckouts) : undefined,
         },
       ],
     },
@@ -1096,7 +1098,7 @@ function Sidebar({
           page: "health",
           label: "Setup health",
           icon: <Zap size={17} />,
-          count: openSetupIssues ? String(openSetupIssues) : undefined,
+          count: liveState === "ready" && openSetupIssues ? String(openSetupIssues) : undefined,
         },
       ],
     },
@@ -4506,6 +4508,7 @@ function App() {
         close={() => setMobileOpen(false)}
         openSetupIssues={openSetupIssues}
         openCheckouts={openCheckouts}
+        liveState={liveState}
       />
       <div className="portal-workspace">
         <Topbar
@@ -4519,7 +4522,7 @@ function App() {
             <strong>{liveMode ? "Read-only live adapter" : "Design preview"}</strong>
             <span>
               {liveMode
-                ? liveState === "ready" ? "Authenticated tenant-scoped GET data is connected. Mutations remain disabled." : liveState === "error" ? "Live reads failed; sample data remains visible. Check your session and retry." : "Loading tenant-scoped GET data…"
+                ? liveState === "ready" ? "Authenticated tenant-scoped GET data is connected. Mutations remain disabled." : liveState === "error" ? "Live reads failed. No sample data is shown on this client route." : "Loading tenant-scoped GET data…"
                 : "Sample data and visual workflows only. Production actions are intentionally not connected."}
             </span>
           </div>
