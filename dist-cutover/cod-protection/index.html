@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#ffffff" />
+    <title>Buykori Orders</title>
+    <!--
+      The stylesheet asked for Inter and nothing ever loaded it, so all 13 pages were rendering in the
+      Arial fallback — a face with proportional figures. In a portal that is almost entirely numbers
+      (event counts, spend, order totals, consignment ids) that means every numeric column shifts width
+      as its values change. Three roles are loaded: Archivo for headings, Inter for body and data,
+      IBM Plex Mono for identifiers a merchant reads character by character against a courier SMS.
+
+      Weights reach 800 because 34 rules ask for it. `font-synthesis:none` below means an unloaded weight
+      is not faked, it is dropped to the nearest loaded one — so shipping 400..700 would have quietly
+      flattened all 34 down to 700 and erased the emphasis step those rules exist to create.
+    -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400..800&display=swap"
+    />
+    <script type="module" crossorigin src="/ui-ux-audit-prototype/assets/index-CPR01kVV.js"></script>
+    <link rel="stylesheet" crossorigin href="/ui-ux-audit-prototype/assets/index-CqaNYRuy.css">
+  </head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>

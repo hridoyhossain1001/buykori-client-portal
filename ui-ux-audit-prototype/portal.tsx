@@ -283,7 +283,11 @@ const orderRows: Order[] = [
     courierStatus: "Delivered",
   },
 ];
-const money = (n: number) => `BDT ${n.toLocaleString("en-BD")}`;
+// Live adapter payloads may omit provider metrics; keep the read-only UI render-safe.
+const money = (n: number | null | undefined) => {
+  const value = Number(n);
+  return `BDT ${(Number.isFinite(value) ? value : 0).toLocaleString("en-BD")}`;
+};
 const courierDetails = (order: Pick<Order, "courier" | "courierStatus">) => {
   if (!order.courier) return { provider: "No courier assigned", tracking: "—", status: order.courierStatus || "Not booked" };
   const [provider, tracking] = order.courier.split(" · ");
