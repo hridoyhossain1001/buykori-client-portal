@@ -1,0 +1,33 @@
+{
+  "list": {
+    "items": [
+      {
+        "id": 1048,
+        "phone": "[REDACTED]",
+        "customerName": "Redacted Customer",
+        "email": "[REDACTED]",
+        "address": "Dhaka",
+        "products": [{ "content_id": "hoodie-01", "name": "Premium Hoodie", "quantity": 1, "price": 2790 }],
+        "amount": 2790,
+        "currency": "BDT",
+        "pageUrl": "https://shop.example.test/checkout",
+        "campaignData": { "utm_source": "facebook" },
+        "status": "incomplete",
+        "orderId": null,
+        "lastActivityAt": "2026-08-23T08:35:00Z"
+      }
+    ],
+    "totalCount": 1,
+    "offset": 0,
+    "limit": 100,
+    "hasMore": false,
+    "counts": { "incomplete": 1, "contacted": 0, "recovered": 0 }
+  },
+  "createOrder": {
+    "success": true,
+    "orderId": "manual-1048-1787474700",
+    "pendingEventId": 8801,
+    "checkoutId": 1048,
+    "status": "recovered"
+  }
+}

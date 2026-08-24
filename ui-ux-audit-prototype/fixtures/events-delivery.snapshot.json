@@ -1,0 +1,70 @@
+{
+  "events": {
+    "events": [
+      {
+        "id": 923,
+        "timestamp": "2026-08-23T08:35:00Z",
+        "name": "Purchase",
+        "platform": "Meta",
+        "status": "Failed",
+        "httpCode": 400,
+        "deduplicationKey": "evt_8f2a_923",
+        "payload": { "event_name": "Purchase", "event_id": "evt_8f2a_923" },
+        "responseBody": { "error": "Purchase event had no order value" },
+        "latencyMs": 428
+      }
+    ],
+    "totalCount": 1,
+    "offset": 0,
+    "limit": 100,
+    "hasMore": false
+  },
+  "outbox": {
+    "items": [
+      {
+        "id": 8801,
+        "status": "dead",
+        "attempts": 2,
+        "maxAttempts": 5,
+        "nextAttemptAt": null,
+        "lastError": "Purchase event had no order value",
+        "createdAt": "2026-08-23T08:35:00Z",
+        "sentAt": null,
+        "locked": false,
+        "eventNames": ["Purchase"],
+        "eventCount": 1,
+        "eventIds": ["evt_8f2a_923"]
+      }
+    ],
+    "totalCount": 1,
+    "offset": 0,
+    "limit": 25,
+    "hasMore": false
+  },
+  "deliveryHealth": {
+    "platforms": [{ "platform": "Meta", "configured": true, "successful": 33, "failed": 1 }]
+  },
+  "deliveryHistory": {
+    "logs": [
+      {
+        "id": "req_19204",
+        "eventId": "evt_8f2a_923",
+        "outboxId": 8801,
+        "retryable": true,
+        "outboxStatus": "dead",
+        "outboxAttempts": 2,
+        "nextRetryAt": null,
+        "platform": "Meta",
+        "endpoint": "https://graph.example.test/events?access_token=[REDACTED]",
+        "statusCode": 400,
+        "status": "Failed",
+        "retryCount": 2,
+        "timestamp": "2026-08-23T08:42:00Z"
+      }
+    ],
+    "totalCount": 1,
+    "offset": 0,
+    "limit": 100,
+    "hasMore": false
+  }
+}
