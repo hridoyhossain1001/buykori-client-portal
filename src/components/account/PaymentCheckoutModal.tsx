@@ -80,14 +80,19 @@ export function PaymentCheckoutModal({
         {paymentIntent && <div className="pointer-events-none absolute inset-0 opacity-50" style={{ background: `radial-gradient(circle at 12% 12%, ${paymentBrand.soft}, transparent 30%), radial-gradient(circle at 88% 86%, ${paymentBrand.soft}, transparent 34%)` }} />}
         <div className="sticky top-0 z-20 flex items-start justify-between border-b border-slate-200 bg-white/95 px-4 py-3 backdrop-blur-md sm:px-5 sm:py-4">
           <div>
-            <p className="text-xs font-bold uppercase tracking-[0.2em]" style={{ color: paymentIntent ? paymentBrand.primary : '#4f46e5' }}>Secure manual payment</p>
+            <p className="text-xs font-bold uppercase tracking-[0.2em]" style={{ color: paymentIntent ? paymentBrand.primary : 'var(--color-indigo-600)' }}>Secure manual payment</p>
             <h3 className="mt-1 text-lg font-bold text-slate-900">Pay for {PLAN_PRICING[paymentPlan].label}</h3>
           </div>
           <div className="flex items-start gap-3">
             {paymentIntent && (
+              // The countdown ring is filled with the payment provider's own brand
+              // colour, so its track stays a plain neutral. It deliberately does not
+              // use RING_TRACK from lib/chartColors: that track is tinted to sit under
+              // the teal accent, and would read as a colour clash behind bKash pink or
+              // Nagad red.
               <div
-                className="flex h-12 w-12 items-center justify-center rounded-full p-1 shadow-[0_0_20px_rgba(139,92,246,.25)]"
-                style={{ background: paymentExpired ? '#e2e8f0' : `conic-gradient(${paymentBrand.primary} ${Math.min(100, (paymentSecondsLeft / 300) * 100)}%, #e2e8f0 0)`, boxShadow: `0 0 22px ${paymentBrand.soft}` }}
+                className="flex h-12 w-12 items-center justify-center rounded-full p-1"
+                style={{ background: paymentExpired ? 'var(--color-slate-200)' : `conic-gradient(${paymentBrand.primary} ${Math.min(100, (paymentSecondsLeft / 300) * 100)}%, var(--color-slate-200) 0)`, boxShadow: `0 0 22px ${paymentBrand.soft}` }}
               >
                 <div className={`flex h-full w-full items-center justify-center rounded-full border border-slate-200 bg-white font-mono font-black ${paymentExpired ? 'text-[9px] uppercase tracking-wide text-rose-600' : 'text-xs text-slate-900'}`}>
                   {paymentExpired ? 'Expired' : `${String(Math.floor(paymentSecondsLeft / 60)).padStart(2, '0')}:${String(paymentSecondsLeft % 60).padStart(2, '0')}`}
@@ -137,14 +142,14 @@ export function PaymentCheckoutModal({
                       type="button"
                       onClick={() => setPaymentProvider(provider.id)}
                       className="relative overflow-hidden rounded-2xl border-2 px-4 py-4 text-left transition hover:-translate-y-0.5 hover:shadow-md"
-                      style={{ borderColor: selected ? '#2563eb' : '#e2e8f0', background: selected ? '#eff6ff' : '#ffffff', boxShadow: selected ? '0 8px 24px rgba(37,99,235,.12)' : undefined }}
+                      style={{ borderColor: selected ? 'var(--color-indigo-600)' : 'var(--color-slate-200)', background: selected ? 'var(--color-surface-selected)' : '#ffffff', boxShadow: selected ? '0 8px 24px rgba(23,107,91,.12)' : undefined }}
                     >
                       <span className="flex items-center justify-between gap-3">
                         <span className="flex items-center gap-3">
                           <span className="flex h-11 w-16 items-center justify-center rounded-xl border border-slate-100 bg-white px-2 shadow-sm"><img src={provider.logo} alt={`${provider.name} logo`} className="max-h-8 w-full object-contain" /></span>
                           <span><span className="block text-[10px] font-bold uppercase tracking-wider text-slate-400">Pay with</span><span className="mt-0.5 block text-sm font-black" style={{ color: provider.color }}>{provider.name}</span></span>
                         </span>
-                        <span className="flex h-5 w-5 items-center justify-center rounded-full border" style={{ borderColor: selected ? '#2563eb' : '#cbd5e1', background: selected ? '#2563eb' : '#ffffff' }}>
+                        <span className="flex h-5 w-5 items-center justify-center rounded-full border" style={{ borderColor: selected ? 'var(--color-indigo-600)' : 'var(--color-slate-300)', background: selected ? 'var(--color-indigo-600)' : '#ffffff' }}>
                           {selected && <CheckCircle2 className="h-3.5 w-3.5 text-white" />}
                         </span>
                       </span>
@@ -157,7 +162,15 @@ export function PaymentCheckoutModal({
                 <span className="mb-2 block text-xs font-black uppercase tracking-[.13em] text-slate-600">2. Your {paymentBrand.name} number</span>
                 <span className="relative block">
                   <Smartphone className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                  <input value={paymentSender} maxLength={11} onChange={(event) => setPaymentSender(event.target.value.replace(/\D/g, '').slice(0, 11))} inputMode="numeric" autoComplete="tel" placeholder="01XXXXXXXXX" className={`w-full rounded-xl border bg-white py-3.5 pl-10 pr-4 text-sm font-bold text-slate-900 outline-none transition placeholder:font-normal placeholder:text-slate-400 focus:ring-2 ${paymentSender && !paymentSenderValid ? 'border-rose-300 focus:ring-rose-100' : 'border-slate-200 focus:border-blue-500 focus:ring-blue-100'}`} />
+                  {/* No focus utilities: `focus:ring-2` with `ring-blue-100` /
+                      `ring-rose-100` replaced the base `input:focus` box-shadow
+                      with a ~1.2:1 tint, so this field — the one that decides
+                      which number a payment is matched against — had a 1px
+                      border swap as its only focus signal. Bare, it gets the base
+                      2px `--bk-console-blue` accent, and the invalid `rose-300`
+                      border now survives focus instead of being overwritten by
+                      `focus:border-blue-500`. */}
+                  <input value={paymentSender} maxLength={11} onChange={(event) => setPaymentSender(event.target.value.replace(/\D/g, '').slice(0, 11))} inputMode="numeric" autoComplete="tel" placeholder="01XXXXXXXXX" className={`w-full rounded-xl border bg-white py-3.5 pl-10 pr-4 text-sm font-bold text-slate-900 transition placeholder:font-normal placeholder:text-slate-400 ${paymentSender && !paymentSenderValid ? 'border-rose-300' : 'border-slate-200'}`} />
                 </span>
                 <span className={`mt-2 block text-xs leading-relaxed ${paymentSender && !paymentSenderValid ? 'font-semibold text-rose-600' : 'text-slate-500'}`}>{paymentSender && !paymentSenderValid ? 'Enter a valid 11-digit Bangladesh mobile number.' : 'Use the number that will appear in the payment SMS.'}</span>
               </label>
@@ -182,7 +195,9 @@ export function PaymentCheckoutModal({
               </div>
               <div className="mx-auto mt-4 max-w-sm text-left">
                 <label htmlFor="expired-payment-trxid" className="mb-2 block text-xs font-black uppercase tracking-wide text-slate-600">Submit your transaction ID</label>
-                <input id="expired-payment-trxid" value={paymentTrxId} maxLength={24} onChange={(event) => setPaymentTrxId(event.target.value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase())} placeholder="Example: DG765H4K9Q" className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3.5 font-mono text-sm font-bold uppercase text-slate-900 outline-none placeholder:font-normal placeholder:text-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100" />
+                {/* Same as the sender-number field above: bare, so the base 2px
+                    accent is the focus indicator rather than a ~1.2:1 blue tint. */}
+                <input id="expired-payment-trxid" value={paymentTrxId} maxLength={24} onChange={(event) => setPaymentTrxId(event.target.value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase())} placeholder="Example: DG765H4K9Q" className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3.5 font-mono text-sm font-bold uppercase text-slate-900 placeholder:font-normal placeholder:text-slate-400" />
                 <p className="mt-2 text-xs leading-relaxed text-slate-500">We will match this TrxID with your sender number and payment amount. Your plan changes only after verification.</p>
                 <button type="button" disabled={paymentBusy || paymentTrxId.trim().length < 6} onClick={submitExpiredPaymentForReview} className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-700 to-emerald-600 px-4 py-3.5 text-sm font-black text-white transition disabled:cursor-not-allowed disabled:from-slate-200 disabled:to-slate-200 disabled:text-slate-400">
                   {paymentBusy ? <><Loader2 className="h-4 w-4 animate-spin" /> Submitting...</> : <>Submit for verification <ArrowRight className="h-4 w-4" /></>}

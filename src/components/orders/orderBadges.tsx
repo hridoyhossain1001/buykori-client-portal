@@ -4,7 +4,7 @@ export function getStatusBadge(status: string) {
   const s = String(status || 'pending').toLowerCase();
   if (s === 'booking_queued' || s === 'booking_processing') {
     return (
-      <span className="inline-flex min-w-[86px] justify-center rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-xs font-bold text-sky-700">
+      <span className="inline-flex min-w-[86px] justify-center rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-xs font-bold text-blue-700">
         {s === 'booking_processing' ? 'Booking Now' : 'Booking Queued'}
       </span>
     );

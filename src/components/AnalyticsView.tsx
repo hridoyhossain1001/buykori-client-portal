@@ -8,8 +8,21 @@ import type {
   AnalyticsOverview,
   SignalDoctor,
 } from '../types';
-import { asArray, formatMoney, isUnknownArea, numberText, percentText, stepLabel } from './analytics/analyticsFormat';
+import {
+  asArray,
+  breakdownShare,
+  dataQualityScore,
+  funnelGapCount,
+  isUnknownArea,
+  quotient,
+  ratePercent,
+  readDenominator,
+  readNumber,
+  summarizeAdPerformance,
+  uniqueVisitorCount,
+} from './analytics/analyticsFormat';
 import { AdResultsSection } from './analytics/AdResultsSection';
+import { Select } from './common/Select';
 import { CustomersSection } from './analytics/CustomersSection';
 import { FunnelQualitySection } from './analytics/FunnelQualitySection';
 import { MobileSummaryPanel } from './analytics/MobileSummaryPanel';
@@ -95,27 +108,7 @@ export function AnalyticsView({
     fetchAdPerformance();
   }, [fetchAdPerformance]);
 
-  const adSummary = React.useMemo(() => {
-    const rows = Array.isArray(adPerformance) ? adPerformance : [];
-    const spend = rows.reduce((sum, row) => sum + Number(row.spend || 0), 0);
-    const placedPurchases = rows.reduce((sum, row) => sum + Number(row.placed_purchases || 0), 0);
-    const placedRevenue = rows.reduce((sum, row) => sum + Number(row.placed_revenue || 0), 0);
-    const confirmedPurchases = rows.reduce((sum, row) => sum + Number(row.confirmed_purchases || 0), 0);
-    const confirmedRevenue = rows.reduce((sum, row) => sum + Number(row.confirmed_revenue || 0), 0);
-    const spendCurrency = rows.find(row => row.spend_currency)?.spend_currency || '';
-    const revenueCurrency = rows.find(row => row.revenue_currency)?.revenue_currency || spendCurrency;
-    return {
-      spend,
-      placedPurchases,
-      placedRevenue,
-      confirmedPurchases,
-      confirmedRevenue,
-      spendCurrency,
-      revenueCurrency,
-      returnRate: spend > 0 ? confirmedRevenue / spend : 0,
-      costPerOrder: confirmedPurchases > 0 ? spend / confirmedPurchases : 0,
-    };
-  }, [adPerformance]);
+  const adSummary = React.useMemo(() => summarizeAdPerformance(adPerformance), [adPerformance]);
 
   const getAdStatus = React.useCallback((row: AdPerformanceRow) => {
     const spend = Number(row.spend || 0);
@@ -225,32 +218,32 @@ export function AnalyticsView({
   const browserMix = asArray(analyticsAudience?.browser_mix);
   const knownDistricts = topDistricts.filter(row => !isUnknownArea(row.label));
   const unknownDistrict = topDistricts.find(row => isUnknownArea(row.label));
-  const uniqueCustomerVisitors = Math.max(
-    topDistricts.reduce((total, row) => total + Number(row.count || 0), 0),
-    deviceMix.reduce((total, row) => total + Number(row.count || 0), 0),
-    browserMix.reduce((total, row) => total + Number(row.count || 0), 0),
-  );
-  const knownLocationVisitors = knownDistricts.reduce((total, row) => total + Number(row.count || 0), 0);
-  const unknownLocationVisitors = Math.max(Number(unknownDistrict?.count || 0), uniqueCustomerVisitors - knownLocationVisitors);
-  const knownLocationPercent = uniqueCustomerVisitors > 0
-    ? Number(((knownLocationVisitors / uniqueCustomerVisitors) * 100).toFixed(1))
-    : 0;
+  // Denominator for every visitor share below: the largest breakdown total, since
+  // each breakdown counts the same visitors. null when no breakdown reported at
+  // all, which is not the same as a store that really had zero visitors.
+  const uniqueCustomerVisitors = uniqueVisitorCount(topDistricts, deviceMix, browserMix);
+  const knownLocationVisitors = knownDistricts.reduce((total, row) => total + (readNumber(row.count) ?? 0), 0);
+  const unknownLocationVisitors = uniqueCustomerVisitors === null
+    ? readNumber(unknownDistrict?.count)
+    : Math.max(readNumber(unknownDistrict?.count) ?? 0, uniqueCustomerVisitors - knownLocationVisitors);
+  const knownLocationPercent = ratePercent(knownLocationVisitors, uniqueCustomerVisitors);
   const topRealCity = knownDistricts[0] || null;
+  const topRealCityPercent = ratePercent(topRealCity?.count, uniqueCustomerVisitors);
   const mobileDevice = deviceMix.find(row => row.label.toLowerCase() === 'mobile');
   const desktopDevice = deviceMix.find(row => row.label.toLowerCase() === 'desktop');
-  const mobileShare = Number(mobileDevice?.percentage || 0);
-  const desktopShare = Number(desktopDevice?.percentage || 0);
-  const totalAudienceOrders = eventDistrictFunnel.reduce((total, row) => total + Number(row.purchase || 0), 0);
+  // Device shares divide by visitors whose device was recorded, so "0%" means
+  // nobody used that device rather than "device mix never arrived".
+  const mobileShare = breakdownShare(deviceMix, mobileDevice);
+  const desktopShare = breakdownShare(deviceMix, desktopDevice);
+  const totalAudienceOrders = eventDistrictFunnel.reduce((total, row) => total + (readNumber(row.purchase) ?? 0), 0);
   const topOrderArea = [...eventDistrictFunnel].sort((a, b) => Number(b.purchase || 0) - Number(a.purchase || 0))[0];
-  const topOrderShare = totalAudienceOrders > 0
-    ? Number(((Number(topOrderArea?.purchase || 0) / totalAudienceOrders) * 100).toFixed(1))
-    : 0;
+  const topOrderShare = ratePercent(topOrderArea?.purchase, totalAudienceOrders);
   const customerAreas = [
-    ...knownDistricts,
-    ...(unknownLocationVisitors > 0 ? [{
+    ...knownDistricts.map(row => ({ ...row, percentage: ratePercent(row.count, uniqueCustomerVisitors) })),
+    ...((unknownLocationVisitors ?? 0) > 0 ? [{
       label: 'Unknown location',
-      count: unknownLocationVisitors,
-      percentage: uniqueCustomerVisitors > 0 ? Number(((unknownLocationVisitors / uniqueCustomerVisitors) * 100).toFixed(1)) : 0,
+      count: unknownLocationVisitors ?? 0,
+      percentage: ratePercent(unknownLocationVisitors, uniqueCustomerVisitors),
     }] : []),
   ];
   const customerAreaRows = showAllCustomerAreas ? customerAreas : customerAreas.slice(0, 6);
@@ -285,31 +278,39 @@ export function AnalyticsView({
 
 
   const mobileSignalEntries = signalRates ? [
-    { name: 'Event ID', rate: Number(signalRates.event_id || 0) },
-    { name: 'User match', rate: Number(signalRates.user_match || 0) },
-    { name: 'Email / Phone', rate: Number(signalRates.email_or_phone || 0) },
-    { name: 'Click IDs', rate: Number(signalRates.click_id || 0) },
-    { name: 'Product ID', rate: Number(signalRates.content_ids || 0) },
-    { name: 'Order value', rate: Number(signalRates.value || 0) },
-    { name: 'UTM source', rate: Number(signalRates.utm || 0) },
-  ].sort((a, b) => a.rate - b.rate) : [];
-  const healthyMobileSignals = mobileSignalEntries.filter(signal => signal.rate >= 80);
-  const attentionMobileSignals = mobileSignalEntries.filter(signal => signal.rate < 80);
+    { name: 'Event ID', rate: readNumber(signalRates.event_id) },
+    { name: 'User match', rate: readNumber(signalRates.user_match) },
+    { name: 'Email / Phone', rate: readNumber(signalRates.email_or_phone) },
+    { name: 'Click IDs', rate: readNumber(signalRates.click_id) },
+    { name: 'Product ID', rate: readNumber(signalRates.content_ids) },
+    { name: 'Order value', rate: readNumber(signalRates.value) },
+    { name: 'UTM source', rate: readNumber(signalRates.utm) },
+  // Worst measured signal first. Signals the response never scored sort last
+  // rather than to the top, because "not measured" is not "0% coverage".
+  ].sort((a, b) => (a.rate === null ? 1 : b.rate === null ? -1 : a.rate - b.rate)) : [];
+  const healthyMobileSignals = mobileSignalEntries.filter(signal => signal.rate !== null && signal.rate >= 80);
+  const attentionMobileSignals = mobileSignalEntries.filter(signal => signal.rate !== null && signal.rate < 80);
+  const unmeasuredMobileSignals = mobileSignalEntries.filter(signal => signal.rate === null);
   const visibleMobileSignals = showAllMobileSignals
     ? mobileSignalEntries
-    : [...attentionMobileSignals, ...healthyMobileSignals].slice(0, 4);
+    : [...attentionMobileSignals, ...unmeasuredMobileSignals, ...healthyMobileSignals].slice(0, 4);
   const mobileFunnel = asArray(analyticsOverview?.funnel);
-  const mobileFunnelMax = Math.max(...mobileFunnel.map(step => Number(step.count || 0)), 1);
-  const mobileTrackingGaps = mobileFunnel.reduce((count, step, index) => {
-    if (index === 0) return count;
-    return count + (Number(step.count || 0) > Number(mobileFunnel[index - 1]?.count || 0) ? 1 : 0);
-  }, 0);
-  const qualityScore = Math.max(0, Math.min(100, Number(signalDoctor?.score || 0)));
+  const mobileFunnelMax = Math.max(...mobileFunnel.map(step => readNumber(step.count) ?? 0), 1);
+  const mobileTrackingGaps = funnelGapCount(mobileFunnel);
+  const qualityScore = dataQualityScore(signalDoctor?.score);
+  // Click IDs and UTM are two routes to the same attribution, so the better of
+  // the two is the honest headline. null when neither was scored — the old copy
+  // said "Only 0% of events carry Click IDs" in exactly that case.
+  const clickIdRate = readNumber(signalRates?.click_id);
+  const utmRate = readNumber(signalRates?.utm);
+  const attributionRate = clickIdRate === null && utmRate === null
+    ? null
+    : Math.max(clickIdRate ?? 0, utmRate ?? 0);
   const mobileFixes = [
-    ...((Number(signalRates?.click_id || 0) < 80 || Number(signalRates?.utm || 0) < 80) ? [{
+    ...((attributionRate !== null && attributionRate < 80) ? [{
       id: 'campaign-attribution',
       title: 'Campaign attribution missing',
-      description: `Only ${Math.max(Number(signalRates?.click_id || 0), Number(signalRates?.utm || 0))}% of events carry Click IDs or UTM source, so revenue cannot map back to ads.`,
+      description: `Only ${attributionRate}% of events carry Click IDs or UTM source, so revenue cannot map back to ads.`,
       action: 'Open URL Builder',
       page: 'campaign-builder',
     }] : []),
@@ -357,18 +358,24 @@ export function AnalyticsView({
   const totalAddedToCart = salesSourceRows.reduce((total, row) => total + Number(row.add_to_cart || 0), 0);
   const totalCheckouts = salesSourceRows.reduce((total, row) => total + Number(row.initiate_checkout || 0), 0);
   const storeVisitStep = mobileFunnel.find(step => step.step === 'PageView');
-  const totalStoreVisits = Number(storeVisitStep?.count || totalProductsSeen || 0);
+  // Denominator for the visit → order rate. The PageView step is authoritative;
+  // product views stand in only when the funnel carries no PageView row. null
+  // when neither source reported, so the rate admits it cannot be computed.
+  const totalStoreVisits = readNumber(storeVisitStep?.count) ?? (salesSourceRows.length ? totalProductsSeen : null);
   const untaggedSourceSales = salesSourceRows
     .filter(isUntaggedSource)
-    .reduce((total, row) => total + Number(row.revenue || 0), 0);
+    .reduce((total, row) => total + (readNumber(row.revenue) ?? 0), 0);
   const attributedSourceSales = Math.max(0, totalSourceSales - untaggedSourceSales);
-  const untaggedSalesPercent = totalSourceSales > 0 ? Number(((untaggedSourceSales / totalSourceSales) * 100).toFixed(1)) : 0;
-  const attributedSalesPercent = totalSourceSales > 0 ? Number(((attributedSourceSales / totalSourceSales) * 100).toFixed(1)) : 0;
-  const visitOrderRate = totalStoreVisits > 0 ? Number(((totalSourceOrders / totalStoreVisits) * 100).toFixed(1)) : 0;
+  // Every share below divides by total sales across all sources. With no sales
+  // at all there is no denominator, so these are null rather than 0% — a 0%
+  // untagged share would read as "everything is attributed".
+  const untaggedSalesPercent = ratePercent(untaggedSourceSales, totalSourceSales);
+  const attributedSalesPercent = ratePercent(attributedSourceSales, totalSourceSales);
+  const visitOrderRate = ratePercent(totalSourceOrders, totalStoreVisits);
   const sourcesWithSales = salesSourceRows.filter(row => Number(row.revenue || 0) > 0 || Number(row.purchase || 0) > 0).length;
   const primarySalesSource = activeSalesSources[0] || sortedSalesSources[0] || null;
   const salesCurrency = primarySalesSource?.currency || salesSourceRows.find(row => row.currency)?.currency || 'BDT';
-  const sourceAverageOrder = totalSourceOrders > 0 ? totalSourceSales / totalSourceOrders : 0;
+  const sourceAverageOrder = quotient(totalSourceSales, totalSourceOrders);
   const sourceHasCartGap = totalAddedToCart < totalCheckouts;
   const taggedCreditMap = salesSourceRows.filter(row => !isUntaggedSource(row)).reduce<Record<string, number>>((credits, row) => {
     const label = String(row.source || 'Other campaigns').trim() || 'Other campaigns';
@@ -380,7 +387,7 @@ export function AnalyticsView({
     ...Object.entries(taggedCreditMap).map(([label, value]) => ({ label, value })),
   ].map(row => ({
     ...row,
-    percent: totalSourceSales > 0 ? Number(((row.value / totalSourceSales) * 100).toFixed(1)) : 0,
+    percent: ratePercent(row.value, totalSourceSales),
   }));
 
   const exportSalesSources = () => {
@@ -468,7 +475,13 @@ export function AnalyticsView({
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <nav className="w-full max-w-full rounded-xl border border-slate-200 bg-white p-1 shadow-sm md:w-fit" aria-label="Ad Insights sections">
-          <div className="flex w-full gap-1 overflow-x-auto" role="tablist" aria-label="Ad Insights sections">
+          {/* Four tabs are 369px of strip in a 278px box on a phone, so the
+              last one was cut off at the edge — and Tabs.tsx records what a
+              merchant does with a cut-off strip: reads it as ending there. Four
+              tabs divide evenly into a 2×2 grid with no orphan, so the phone
+              wraps and keeps the full labels. From sm up it is the same
+              scrolling row as before. */}
+          <div className="grid grid-cols-2 gap-1 sm:flex sm:w-full sm:overflow-x-auto" role="tablist" aria-label="Ad Insights sections">
             {insightTabs.map(tab => (
               <button
                 key={tab.id}
@@ -481,7 +494,7 @@ export function AnalyticsView({
                 tabIndex={activeInsightTab === tab.id ? 0 : -1}
                 onClick={() => selectInsightTab(tab.id)}
                 onKeyDown={(event) => handleInsightTabKeyDown(event, tab.id)}
-                className={`min-h-9 min-w-fit flex-1 rounded-lg px-3 py-2 text-xs font-bold transition-colors md:flex-none md:px-4 ${
+                className={`min-h-11 min-w-fit flex-1 rounded-lg px-3 py-2 text-xs font-bold transition-colors md:flex-none md:px-4 ${
                   activeInsightTab === tab.id
                     ? 'bg-slate-900 text-white shadow-sm md:bg-indigo-600'
                     : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
@@ -493,17 +506,22 @@ export function AnalyticsView({
           </div>
         </nav>
         <div className={`${activeInsightTab === 'summary' ? 'hidden sm:flex' : activeInsightTab === 'sales' || activeInsightTab === 'customers' ? 'hidden' : 'flex'} shrink-0 items-center gap-2`}>
-          <select
-            value={analyticsDays}
-            onChange={(e) => setAnalyticsDays(Number(e.target.value))}
+          {/* The shared primitive, the same as /dashboard's timeframe picker.
+              The hand-rolled select this replaces had a 1px `ring-blue-500`
+              focus ring — half the area WCAG 2.4.11 asks for, in the one stray
+              blue that survived the teal migration. */}
+          <Select
+            value={String(analyticsDays)}
+            onChange={(event) => setAnalyticsDays(Number(event.target.value))}
             aria-label="Select analytics timeframe"
-            className="h-9 rounded-lg border border-slate-200 bg-white px-2.5 text-xs font-bold text-slate-700 shadow-sm outline-none focus:ring-1 focus:ring-blue-500 sm:px-3"
-          >
-            <option value="7">Last 7 days</option>
-            <option value="14">Last 14 days</option>
-            <option value="30">Last 30 days</option>
-            <option value="90">Last 90 days</option>
-          </select>
+            wrapperClassName="w-[138px]"
+            options={[
+              { value: '7', label: 'Last 7 days' },
+              { value: '14', label: 'Last 14 days' },
+              { value: '30', label: 'Last 30 days' },
+              { value: '90', label: 'Last 90 days' },
+            ]}
+          />
         </div>
       </div>
 

@@ -57,7 +57,7 @@ const CustomAutomationsSection: React.FC<CustomAutomationsSectionProps> = ({
           </div>
 
           <div className="rounded-lg border border-blue-100 bg-blue-50 px-4 py-3 text-xs text-blue-800">
-            Example: <b>Stay15Seconds</b> + Timer 15 sec, or <b>WhatsAppClick</b> + Click selector <code className="font-mono">.whatsapp-btn</code>. Saving also adds the event route if it is missing.
+            Example: <b>Stay15Seconds</b> + Timer 15 sec, or <b>NewsletterSignup</b> + Click selector <code className="font-mono">.newsletter-signup</code>. Saving also adds the event route if it is missing.
           </div>
 
           {automationDrafts.length === 0 ? (

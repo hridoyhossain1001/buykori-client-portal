@@ -1,6 +1,7 @@
 import React from 'react';
 import { AlertTriangle, CheckCircle, Download } from 'lucide-react';
 import type { AnalyticsCampaigns } from '../../types';
+import { RING_FILL, RING_TRACK } from '../../lib/chartColors';
 import { formatMoney, numberText } from './analyticsFormat';
 
 type SalesSourceRow = NonNullable<AnalyticsCampaigns['campaigns']>[number];
@@ -81,7 +82,7 @@ export function SalesSourceSection({
                   key={days}
                   type="button"
                   onClick={() => setAnalyticsDays(days)}
-                  className={`rounded-lg px-3 py-2 ${analyticsDays === days ? 'bg-white text-[#193b68] shadow-sm' : ''}`}
+                  className={`rounded-lg px-3 py-2 ${analyticsDays === days ? 'bg-white text-slate-900 shadow-sm' : ''}`}
                 >
                   {days} days
                 </button>
@@ -91,14 +92,14 @@ export function SalesSourceSection({
               type="button"
               onClick={exportSalesSources}
               disabled={!salesSourceRows.length}
-              className="inline-flex h-9 items-center gap-2 rounded-lg bg-[#285ac7] px-3 text-xs font-bold text-white shadow-sm hover:bg-[#214fae] disabled:opacity-50"
+              className="inline-flex h-9 items-center gap-2 rounded-lg bg-indigo-600 px-3 text-xs font-bold text-white shadow-sm hover:bg-indigo-700 disabled:opacity-50"
             >
               <Download className="h-3.5 w-3.5" /> Export
             </button>
           </div>
         </div>
 
-        <div className="grid grid-cols-3 rounded-xl bg-stone-100 p-1 text-center text-[11px] font-bold text-stone-500 md:hidden">
+        <div className="grid grid-cols-3 rounded-xl bg-slate-100 p-1 text-center text-[11px] font-bold text-slate-500 md:hidden">
           {[7, 30, 90].map(days => (
             <button
               key={days}
@@ -119,7 +120,7 @@ export function SalesSourceSection({
               {untaggedSalesPercent > 0 ? <AlertTriangle className="h-4 w-4" /> : <CheckCircle className="h-4 w-4" />}
             </span>
             <div className="min-w-0">
-              <h3 className={`text-[12px] font-bold md:text-sm ${untaggedSalesPercent > 0 ? 'text-[#173b68]' : 'text-emerald-800'}`}>
+              <h3 className={`text-[12px] font-bold md:text-sm ${untaggedSalesPercent > 0 ? 'text-slate-900' : 'text-emerald-800'}`}>
                 {untaggedSalesPercent > 0
                   ? `${untaggedSalesPercent}% of sales land in “Direct — no campaign”`
                   : 'All tracked sales are attributed to a campaign'}
@@ -134,13 +135,13 @@ export function SalesSourceSection({
           {untaggedSalesPercent > 0 && (
             <div className="mt-3 md:mt-0 md:w-[40%]">
               <div className="h-1.5 overflow-hidden rounded-full bg-blue-100">
-                <div className="h-full rounded-full bg-[#285ac7]" style={{ width: `${untaggedSalesPercent}%` }} />
+                <div className="h-full rounded-full bg-indigo-600" style={{ width: `${untaggedSalesPercent}%` }} />
               </div>
-              <div className="mt-1.5 flex justify-between text-[9px] font-bold text-[#285382] md:text-[10px]">
+              <div className="mt-1.5 flex justify-between text-[9px] font-bold text-blue-700 md:text-[10px]">
                 <span>Untagged {untaggedSalesPercent}%</span>
                 <span>Tagged {attributedSalesPercent}%</span>
               </div>
-              <button onClick={() => setActivePage?.('campaign-builder')} className="mt-2 w-full rounded-lg bg-[#285ac7] px-3 py-2 text-[10px] font-bold text-white hover:bg-[#214fae] md:ml-auto md:block md:w-fit">
+              <button onClick={() => setActivePage?.('campaign-builder')} className="mt-2 w-full rounded-lg bg-indigo-600 px-3 py-2 text-[10px] font-bold text-white hover:bg-indigo-700 md:ml-auto md:block md:w-fit">
                 Tag links with URL Builder
               </button>
             </div>
@@ -175,7 +176,7 @@ export function SalesSourceSection({
                     <h3 className="text-sm font-bold text-slate-900">Sources by sales</h3>
                     <p className="text-[10px] text-slate-500">Sorted by revenue · funnel shows Visit → Seen → Cart → Checkout → Order</p>
                   </div>
-                  <span className="rounded-full bg-blue-50 px-2 py-1 text-[10px] font-bold text-[#285ac7]">
+                  <span className="rounded-full bg-blue-50 px-2 py-1 text-[10px] font-bold text-indigo-600">
                     {salesSourceRows.filter(isUntaggedSource).length} untagged
                   </span>
                 </header>
@@ -196,7 +197,7 @@ export function SalesSourceSection({
                   return (
                     <div key={`${row.source}-${row.campaign}-${index}`} className="grid grid-cols-[1.25fr_.85fr_1.15fr_.55fr_.8fr] items-center gap-3 border-b border-slate-100 px-4 py-3 last:border-b-0">
                       <div className="flex min-w-0 items-center gap-2">
-                        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-[10px] font-black text-[#285ac7]">{String(row.source || 'D').charAt(0).toUpperCase()}</span>
+                        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-[10px] font-black text-indigo-600">{String(row.source || 'D').charAt(0).toUpperCase()}</span>
                         <span className="min-w-0">
                           <strong className="block truncate text-xs text-slate-800">{row.source || 'Direct'}</strong>
                           <small className="block truncate text-[9px] text-slate-400">{isUntaggedSource(row) ? 'No referrer or UTM found' : 'Tracked source'}</small>
@@ -206,7 +207,7 @@ export function SalesSourceSection({
                       <div>
                         <div className="flex h-7 items-end gap-1">
                           {funnelValues.map((value, funnelIndex) => (
-                            <span key={funnelIndex} className="w-3 rounded-t bg-[#4b9aeb]" style={{ height: `${Math.max(4, value / funnelMax * 26)}px`, opacity: 1 - funnelIndex * .12 }} />
+                            <span key={funnelIndex} className="w-3 rounded-t bg-chart-blue" style={{ height: `${Math.max(4, value / funnelMax * 26)}px`, opacity: 1 - funnelIndex * .12 }} />
                           ))}
                         </div>
                         <small className="text-[8px] text-slate-400">{funnelValues.map(numberText).join(' · ')}</small>
@@ -218,7 +219,7 @@ export function SalesSourceSection({
                       <div className="text-right">
                         <strong className="block text-xs text-slate-900">{formatMoney(row.revenue, row.currency || salesCurrency)}</strong>
                         <div className="mt-1 ml-auto h-1.5 w-16 overflow-hidden rounded-full bg-slate-100">
-                          <div className="h-full rounded-full bg-[#285ac7]" style={{ width: `${rowSalesShare}%` }} />
+                          <div className="h-full rounded-full bg-indigo-600" style={{ width: `${rowSalesShare}%` }} />
                         </div>
                         <small className="text-[8px] text-slate-400">{rowSalesShare.toFixed(1)}% sales</small>
                       </div>
@@ -231,7 +232,7 @@ export function SalesSourceSection({
                 {inactiveSalesSources.length > 0 && (
                   <button type="button" onClick={() => setShowInactiveSalesSources(value => !value)} className="flex w-full items-center justify-between border-t border-slate-100 px-4 py-3 text-left text-[10px] font-bold text-slate-500">
                     <span>{inactiveSalesSources.map(row => row.source).join(', ')} · no activity in this period</span>
-                    <span className="text-[#285ac7]">{showInactiveSalesSources ? 'Hide' : 'Show anyway'}</span>
+                    <span className="text-indigo-600">{showInactiveSalesSources ? 'Hide' : 'Show anyway'}</span>
                   </button>
                 )}
               </section>
@@ -242,13 +243,13 @@ export function SalesSourceSection({
                   <p className="text-[10px] text-slate-500">Share of {formatMoney(totalSourceSales, salesCurrency)}</p>
                   <div className="mt-3 flex items-center gap-4">
                     <svg className="h-20 w-20 shrink-0 -rotate-90" viewBox="0 0 42 42" aria-label={`${untaggedSalesPercent}% direct or untagged sales`}>
-                      <circle cx="21" cy="21" r="15.9" fill="none" stroke="#e9eef5" strokeWidth="6" />
-                      <circle cx="21" cy="21" r="15.9" fill="none" stroke="#285ac7" strokeWidth="6" strokeDasharray={`${untaggedSalesPercent} ${100 - untaggedSalesPercent}`} strokeDashoffset="0" />
+                      <circle cx="21" cy="21" r="15.9" fill="none" stroke={RING_TRACK} strokeWidth="6" />
+                      <circle cx="21" cy="21" r="15.9" fill="none" stroke={RING_FILL} strokeWidth="6" strokeDasharray={`${untaggedSalesPercent} ${100 - untaggedSalesPercent}`} strokeDashoffset="0" />
                     </svg>
                     <div className="min-w-0 flex-1 space-y-1.5">
                       {salesCreditRows.slice(0, 4).map((credit, index) => (
                         <div key={credit.label} className="flex items-center gap-2 text-[10px]">
-                          <span className={`h-2 w-2 rounded-sm ${index === 0 ? 'bg-[#285ac7]' : 'bg-blue-200'}`} />
+                          <span className={`h-2 w-2 rounded-sm ${index === 0 ? 'bg-indigo-600' : 'bg-blue-200'}`} />
                           <span className="min-w-0 flex-1 truncate font-semibold text-slate-600">{credit.label}</span>
                           <strong className="text-slate-800">{credit.percent}%</strong>
                         </div>
@@ -266,11 +267,11 @@ export function SalesSourceSection({
                     { number: 2, title: 'Connect ad spend', description: 'Adds Return and Cost per order beside each source.', action: 'Connect', page: 'settings' },
                   ].map((step, index) => (
                     <div key={step.number} className={`flex gap-3 py-3 ${index > 0 ? 'border-t border-slate-100' : ''}`}>
-                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-[11px] font-bold text-[#285ac7]">{step.number}</span>
+                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-[11px] font-bold text-indigo-600">{step.number}</span>
                       <div>
                         <h4 className="text-xs font-bold text-slate-800">{step.title}</h4>
                         <p className="mt-1 text-[10px] leading-4 text-slate-500">{step.description}</p>
-                        <button onClick={() => setActivePage?.(step.page)} className="mt-2 rounded-lg bg-[#285ac7] px-3 py-2 text-[10px] font-bold text-white">{step.action}</button>
+                        <button onClick={() => setActivePage?.(step.page)} className="mt-2 rounded-lg bg-indigo-600 px-3 py-2 text-[10px] font-bold text-white">{step.action}</button>
                       </div>
                     </div>
                   ))}
@@ -285,16 +286,16 @@ export function SalesSourceSection({
                     <h3 className="text-[12px] font-bold text-slate-800">Sources by sales</h3>
                     <p className="text-[9px] text-slate-400">Sorted by revenue</p>
                   </div>
-                  <span className="rounded-full bg-blue-50 px-2 py-1 text-[9px] font-bold text-[#285ac7]">{salesSourceRows.filter(isUntaggedSource).length} untagged</span>
+                  <span className="rounded-full bg-blue-50 px-2 py-1 text-[9px] font-bold text-indigo-600">{salesSourceRows.filter(isUntaggedSource).length} untagged</span>
                 </div>
                 {visibleSalesSources.slice(0, 4).map((row, index) => {
                   const share = totalSourceSales > 0 ? Number(row.revenue || 0) / totalSourceSales * 100 : 0;
                   return (
                     <div key={`${row.source}-${row.campaign}-${index}`} className={`py-3 ${index > 0 ? 'border-t border-slate-100' : ''}`}>
                       <div className="flex items-center gap-2.5">
-                        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-[10px] font-black text-[#285ac7]">{String(row.source || 'D').charAt(0).toUpperCase()}</span>
+                        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-[10px] font-black text-indigo-600">{String(row.source || 'D').charAt(0).toUpperCase()}</span>
                         <span className="min-w-0 flex-1">
-                          <strong className="block truncate text-[11px] text-slate-800">{row.source || 'Direct'} {isUntaggedSource(row) && <em className="ml-1 rounded bg-blue-50 px-1 py-0.5 not-italic text-[8px] text-[#285ac7]">UNTAGGED</em>}</strong>
+                          <strong className="block truncate text-[11px] text-slate-800">{row.source || 'Direct'} {isUntaggedSource(row) && <em className="ml-1 rounded bg-blue-50 px-1 py-0.5 not-italic text-[8px] text-indigo-600">UNTAGGED</em>}</strong>
                           <small className="block truncate text-[9px] text-slate-400">{row.campaign || 'Campaign not set'}</small>
                         </span>
                         <span className="text-right">
@@ -302,7 +303,7 @@ export function SalesSourceSection({
                           <small className="text-[8px] text-slate-400">{share.toFixed(1)}% sales</small>
                         </span>
                       </div>
-                      <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-100"><div className="h-full rounded-full bg-[#285ac7]" style={{ width: `${share}%` }} /></div>
+                      <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-100"><div className="h-full rounded-full bg-indigo-600" style={{ width: `${share}%` }} /></div>
                     </div>
                   );
                 })}
@@ -334,7 +335,7 @@ export function SalesSourceSection({
                 {inactiveSalesSources.length > 0 && (
                   <button type="button" onClick={() => setShowInactiveSalesSources(value => !value)} className="mt-3 flex w-full items-center justify-between border-t border-slate-100 pt-3 text-left text-[9px] font-bold text-slate-500">
                     <span>{inactiveSalesSources.map(row => row.source).join(', ')} · no activity</span>
-                    <span className="text-[#285ac7]">{showInactiveSalesSources ? 'Hide' : 'Show anyway'}</span>
+                    <span className="text-indigo-600">{showInactiveSalesSources ? 'Hide' : 'Show anyway'}</span>
                   </button>
                 )}
               </section>
@@ -344,13 +345,13 @@ export function SalesSourceSection({
                 <p className="text-[9px] text-slate-400">Share of {formatMoney(totalSourceSales, salesCurrency)}</p>
                 <div className="mt-3 flex items-center gap-4">
                   <svg className="h-20 w-20 shrink-0 -rotate-90" viewBox="0 0 42 42" aria-label={`${untaggedSalesPercent}% direct or untagged sales`}>
-                    <circle cx="21" cy="21" r="15.9" fill="none" stroke="#e9eef5" strokeWidth="6" />
-                    <circle cx="21" cy="21" r="15.9" fill="none" stroke="#285ac7" strokeWidth="6" strokeDasharray={`${untaggedSalesPercent} ${100 - untaggedSalesPercent}`} />
+                    <circle cx="21" cy="21" r="15.9" fill="none" stroke={RING_TRACK} strokeWidth="6" />
+                    <circle cx="21" cy="21" r="15.9" fill="none" stroke={RING_FILL} strokeWidth="6" strokeDasharray={`${untaggedSalesPercent} ${100 - untaggedSalesPercent}`} />
                   </svg>
                   <div className="min-w-0 flex-1 space-y-1.5">
                     {salesCreditRows.slice(0, 4).map((credit, index) => (
                       <div key={credit.label} className="flex items-center gap-2 text-[9px]">
-                        <span className={`h-2 w-2 rounded-sm ${index === 0 ? 'bg-[#285ac7]' : 'bg-blue-200'}`} />
+                        <span className={`h-2 w-2 rounded-sm ${index === 0 ? 'bg-indigo-600' : 'bg-blue-200'}`} />
                         <span className="min-w-0 flex-1 truncate font-semibold text-slate-600">{credit.label}</span>
                         <strong className="text-slate-800">{credit.percent}%</strong>
                       </div>
@@ -367,11 +368,11 @@ export function SalesSourceSection({
                   { number: 2, title: 'Connect ad spend', description: 'Adds Return and Cost per order beside each source.', action: 'Connect', page: 'settings' },
                 ].map((step, index) => (
                   <div key={step.number} className={`flex gap-2.5 py-3 ${index > 0 ? 'border-t border-slate-100' : ''}`}>
-                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-[10px] font-bold text-[#285ac7]">{step.number}</span>
+                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-[10px] font-bold text-indigo-600">{step.number}</span>
                     <div>
                       <h4 className="text-[11px] font-bold text-slate-800">{step.title}</h4>
                       <p className="mt-1 text-[9px] leading-4 text-slate-500">{step.description}</p>
-                      <button onClick={() => setActivePage?.(step.page)} className="mt-2 rounded-lg bg-[#285ac7] px-3 py-2 text-[9px] font-bold text-white">{step.action}</button>
+                      <button onClick={() => setActivePage?.(step.page)} className="mt-2 rounded-lg bg-indigo-600 px-3 py-2 text-[9px] font-bold text-white">{step.action}</button>
                     </div>
                   </div>
                 ))}

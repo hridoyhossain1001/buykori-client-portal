@@ -1,10 +1,13 @@
 import { CreditCard, Download, Loader2, ReceiptText, RotateCcw } from 'lucide-react';
 import type { UserProfile } from '../../types';
 import type { PaymentHistoryItem } from './accountTypes';
-import { downloadTextFile, paymentCategory, statusClasses, statusLabel } from './accountStatus';
+import { downloadTextFile, paymentCategory, statusClasses, statusLabel, type RenewalClaim } from './accountStatus';
 
 interface PaymentHistorySectionProps {
   profile: UserProfile;
+  /** Resolved once for the whole screen so both sections state the same date. */
+  renewal: RenewalClaim;
+  renewalPrice: string;
   paymentHistory: PaymentHistoryItem[];
   paymentHistoryLoading: boolean;
   paymentStatusFilter: 'all' | 'paid' | 'cancelled' | 'expired';
@@ -16,6 +19,8 @@ interface PaymentHistorySectionProps {
 
 export function PaymentHistorySection({
   profile,
+  renewal,
+  renewalPrice,
   paymentHistory,
   paymentHistoryLoading,
   paymentStatusFilter,
@@ -24,14 +29,6 @@ export function PaymentHistorySection({
   setPaymentPage,
   onRefresh,
 }: PaymentHistorySectionProps) {
-  const currentPlan = (profile.plan || '').toLowerCase();
-  const renewalPrice = currentPlan.includes('starter')
-    ? 'BDT 499'
-    : currentPlan.includes('growth')
-      ? 'BDT 799'
-      : currentPlan.includes('free')
-        ? 'Free'
-        : 'Custom billing';
   const paymentCounts = {
     all: paymentHistory.length,
     paid: paymentHistory.filter(payment => paymentCategory(payment.status) === 'paid').length,
@@ -106,7 +103,7 @@ export function PaymentHistorySection({
             <p className="mt-0.5 text-xs text-slate-500">Invoices, receipts and payment attempts.</p>
           </div>
         </div>
-        <button type="button" onClick={exportPaymentHistory} disabled={paymentHistory.length === 0} className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50">
+        <button type="button" onClick={exportPaymentHistory} disabled={paymentHistory.length === 0} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50">
           <Download className="h-3.5 w-3.5" /> Export CSV
         </button>
       </div>
@@ -130,7 +127,7 @@ export function PaymentHistorySection({
         </div>
         <div className="px-5 py-4">
           <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Next renewal</p>
-          <p className="mt-1 text-sm font-bold text-slate-900">{profile.renewalDate || 'Not scheduled'}</p>
+          <p className={`mt-1 text-sm font-bold ${renewal.tone === 'ok' ? 'text-slate-900' : 'text-amber-700'}`}>{renewal.shortLabel}</p>
           <p className="mt-1 text-[11px] text-slate-400">{profile.plan} · {renewalPrice}</p>
         </div>
       </div>

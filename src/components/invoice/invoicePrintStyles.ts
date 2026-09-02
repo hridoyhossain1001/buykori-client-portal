@@ -5,13 +5,18 @@
  * Tailwind utilities used by the invoice sheet, because the print window is a
  * fresh document that does not load the app stylesheet.
  *
+ * The colour values here are copies of the @theme tokens in src/index.css. They
+ * have to be kept in sync by hand: if a --color-slate-*, --color-indigo-*,
+ * --color-emerald-* or --color-rose-* token changes there, change it here too,
+ * or a printed invoice will not match the one on screen.
+ *
  * This is a plain template literal with no interpolation - do not add any.
  */
 export const INVOICE_PRINT_STYLES = `    @page { size: auto; margin: 5mm 8mm; }
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
       font-family: 'Inter', system-ui, sans-serif;
-      color: #0f172a;
+      color: #17212b;
       background: white;
       padding: 4px 8px;
       -webkit-print-color-adjust: exact;
@@ -19,7 +24,7 @@ export const INVOICE_PRINT_STYLES = `    @page { size: auto; margin: 5mm 8mm; }
       font-size: 11px;
       line-height: 1.4;
     }
-    .font-mono { font-family: 'JetBrains Mono', monospace; }
+    .font-mono { font-family: 'IBM Plex Mono', Consolas, monospace; }
     .font-bold { font-weight: 700; }
     .font-black { font-weight: 900; }
     .font-semibold { font-weight: 600; }
@@ -42,27 +47,35 @@ export const INVOICE_PRINT_STYLES = `    @page { size: auto; margin: 5mm 8mm; }
     .text-center { text-align: center; }
     .text-right { text-align: right; }
     .leading-relaxed { line-height: 1.5; }
-    .text-slate-400 { color: #94a3b8; }
-    .text-slate-500 { color: #64748b; }
-    .text-slate-600 { color: #475569; }
-    .text-slate-700 { color: #334155; }
-    .text-slate-800 { color: #1e293b; }
-    .text-slate-900 { color: #0f172a; }
-    .text-indigo-600 { color: #4f46e5; }
-    .text-emerald-600 { color: #059669; }
-    .text-emerald-700 { color: #047857; }
+    .text-slate-400 { color: #89959c; }
+    .text-slate-500 { color: #5b6a74; }
+    .text-slate-600 { color: #47555f; }
+    .text-slate-700 { color: #313d47; }
+    .text-slate-800 { color: #222d38; }
+    .text-slate-900 { color: #17212b; }
+    .text-indigo-600 { color: #176b5b; }
+    .text-emerald-600 { color: #3a795d; }
+    .text-emerald-700 { color: #176448; }
+    .text-rose-600 { color: #b1443a; }
+    .text-rose-700 { color: #a2231b; }
     .text-white { color: white; }
     .text-black { color: black; }
     .bg-white { background-color: white; }
-    .bg-slate-50 { background-color: #f8fafc; }
-    .bg-slate-100 { background-color: #f1f5f9; }
-    .bg-indigo-600 { background-color: #4f46e5; }
+    .bg-slate-50 { background-color: #f5f7f7; }
+    .bg-slate-100 { background-color: #f0f2f3; }
+    .bg-indigo-600 { background-color: #176b5b; }
     .border-collapse { border-collapse: collapse; }
-    .border { border: 1px solid #e2e8f0; }
-    .border-t { border-top: 1px solid #e2e8f0; }
-    .border-b { border-bottom: 1px solid #e2e8f0; }
-    .border-slate-100 { border-color: #f1f5f9; }
-    .border-slate-200 { border-color: #e2e8f0; }
+    .border { border: 1px solid #dfe4e6; }
+    .border-t { border-top: 1px solid #dfe4e6; }
+    .border-b { border-bottom: 1px solid #dfe4e6; }
+    .border-slate-100 { border-color: #f0f2f3; }
+    .border-slate-200 { border-color: #dfe4e6; }
+    /* The signature rules are the exception to .border-slate-100 above. On screen
+       they are a hairline hint inside a bordered card; on paper they are the line
+       a client actually signs on, and slate-100 prints at 1.12:1 against white -
+       effectively invisible. slate-400 reaches 3.07:1 (WCAG 1.4.11 non-text) and
+       is the same ink .bulk-separator already uses further down. */
+    .invoice-signatures .border-t { border-top-color: #89959c; }
     .border-dashed { border-style: dashed; }
     .rounded-lg { border-radius: 6px; }
     .rounded-xl { border-radius: 8px; }
@@ -108,11 +121,11 @@ export const INVOICE_PRINT_STYLES = `    @page { size: auto; margin: 5mm 8mm; }
     .pt-4 { padding-top: 6px; }
     .pt-16 { padding-top: 10px; }
     .mb-2 { margin-bottom: 4px; }
-    .divide-y > :not([hidden]) ~ :not([hidden]) { border-top: 1px solid #e2e8f0; }
+    .divide-y > :not([hidden]) ~ :not([hidden]) { border-top: 1px solid #dfe4e6; }
     table { width: 100%; font-size: 10px; text-align: left; border-collapse: collapse; }
-    th { padding: 3px 8px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; font-size: 9px; color: #64748b; background: #f8fafc; border-bottom: 1px solid #e2e8f0; }
+    th { padding: 3px 8px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; font-size: 9px; color: #5b6a74; background: #f5f7f7; border-bottom: 1px solid #dfe4e6; }
     td { padding: 3px 8px; }
-    tbody tr { border-top: 1px solid #f1f5f9; }
+    tbody tr { border-top: 1px solid #f0f2f3; }
     svg { display: none; }
     .w-2\\.5 { width: 8px; } .h-2\\.5 { height: 8px; }
     img { display: inline-block; }
@@ -178,7 +191,7 @@ export const INVOICE_PRINT_STYLES = `    @page { size: auto; margin: 5mm 8mm; }
     .bulk-print-mode .invoice-notes-area { display: none; }
     /* Separator between 2 invoices on same page */
     .bulk-print-mode .bulk-separator {
-      border-top: 1px dashed #94a3b8;
+      border-top: 1px dashed #89959c;
       margin: 4px 0;
       display: block;
     }

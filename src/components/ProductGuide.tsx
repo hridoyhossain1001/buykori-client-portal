@@ -103,12 +103,12 @@ const guideSteps: GuideStep[] = [
     page: 'orders',
     text: {
       bn: {
-        title: 'Courier Dispatch Logs',
-        body: 'Courier booking আর delivery status দেখার জায়গা এটা। এর ভেতরে দুইটা ভাগ আছে।',
+        title: 'Orders',
+        body: 'Courier booking আর delivery status দেখার জায়গা এটা। সব order এক টেবিলে — উপরের ট্যাব দিয়ে যেটা দরকার সেটা বেছে নিন।',
       },
       en: {
-        title: 'Courier Dispatch Logs',
-        body: 'This is where you manage courier booking and delivery status logs. It has two parts.',
+        title: 'Orders',
+        body: 'This is where every order lives — held, booked, delivered and returned. The tabs on top narrow the list down.',
       },
     },
   },
@@ -119,12 +119,12 @@ const guideSteps: GuideStep[] = [
     sectionId: 'orders-pending',
     text: {
       bn: {
-        title: 'Pending COD Queue',
+        title: 'Ready to ship',
         body: 'যে COD order এখনো courier-এ পাঠানো হয়নি, সেগুলো এখানে থাকবে। এখান থেকে order book করতে পারবেন।',
       },
       en: {
-        title: 'Pending COD Queue',
-        body: 'COD orders that are not sent to courier yet stay here. You can book courier from here.',
+        title: 'Ready to ship',
+        body: 'COD orders not sent to a courier yet. Click a row to open its details, and book the courier from there.',
       },
     },
   },
@@ -135,12 +135,12 @@ const guideSteps: GuideStep[] = [
     sectionId: 'orders-shipped',
     text: {
       bn: {
-        title: 'Shipped Courier Log',
+        title: 'Courier log',
         body: 'Courier-এ পাঠানো order, tracking status, invoice, label, আর cancel action এখানে দেখা যাবে।',
       },
       en: {
-        title: 'Shipped Courier Log',
-        body: 'See sent orders, tracking status, invoices, labels, and cancel actions here.',
+        title: 'Courier log',
+        body: 'Every order already sent to a courier, with tracking status, invoices, labels and cancel actions.',
       },
     },
   },
@@ -290,7 +290,9 @@ export function ProductGuide({ open, onClose, setActivePage, setMobileSidebarOpe
       }, 180);
     }
 
-    const isSidebarTarget = current.selector?.includes('nav-') || current.selector?.includes('active-store');
+    // The store switcher moved from the rail to the topbar, which is always on
+    // screen, so it no longer needs the mobile drawer opened to be pointed at.
+    const isSidebarTarget = current.selector?.includes('nav-');
     setMobileSidebarOpen(Boolean(isSidebarTarget && window.innerWidth < 768));
 
     const updateTarget = () => {
@@ -371,10 +373,15 @@ export function ProductGuide({ open, onClose, setActivePage, setMobileSidebarOpe
               <h2 id="product-guide-title" className="text-sm font-bold text-slate-900">{copy.title}</h2>
             </div>
           </div>
+          {/* `shrink-0` is what keeps this at 44px. The card is
+              `min(360px, 100vw-32px)`, so on a 320px phone it is 288px wide and
+              256px inside the padding — and as a plain flex item this button
+              gave 3px back to the title beside it and measured 41×44. A
+              44px minimum that a long title can shave is not a 44px target. */}
           <button
             type="button"
             onClick={onClose}
-            className="inline-flex h-10 w-10 items-center justify-center rounded-full text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900"
+            className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900"
             aria-label={skipLabel}
           >
             <X className="h-4 w-4" />
@@ -386,14 +393,14 @@ export function ProductGuide({ open, onClose, setActivePage, setMobileSidebarOpe
             <button
               type="button"
               onClick={() => setLanguage('bn')}
-              className={`min-h-10 rounded-md px-2.5 py-1 text-xs font-bold ${language === 'bn' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-500'}`}
+              className={`min-h-11 rounded-md px-2.5 py-1 text-xs font-bold ${language === 'bn' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-500'}`}
             >
               বাংলা
             </button>
             <button
               type="button"
               onClick={() => setLanguage('en')}
-              className={`min-h-10 rounded-md px-2.5 py-1 text-xs font-bold ${language === 'en' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-500'}`}
+              className={`min-h-11 rounded-md px-2.5 py-1 text-xs font-bold ${language === 'en' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-500'}`}
             >
               English
             </button>
@@ -416,7 +423,7 @@ export function ProductGuide({ open, onClose, setActivePage, setMobileSidebarOpe
           <button
             type="button"
             onClick={onClose}
-            className="min-h-10 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-600 transition-colors hover:bg-slate-50"
+            className="min-h-11 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-600 transition-colors hover:bg-slate-50"
           >
             {skipLabel}
           </button>
@@ -425,7 +432,17 @@ export function ProductGuide({ open, onClose, setActivePage, setMobileSidebarOpe
               type="button"
               onClick={() => setStepIndex((value) => Math.max(0, value - 1))}
               disabled={isFirst}
-              className="inline-flex min-h-10 items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-600 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-45"
+              // Step 1 of 14 always has Back disabled, and the guide opens by
+              // itself over the merchant's first page — so this is the disabled
+              // control the portal shows most often, and a 45% fade measured it at
+              // 2.12:1. The fill and border now take the same flat grey Button
+              // uses; the label stays slate-600, because index.css re-declares
+              // that step outside every layer and so beats the `disabled:text-…`
+              // utility. Grey fill against that slate-600 ink measures 7.14:1 and
+              // still reads as inert next to the solid Next button. (Its hex is
+              // deliberately not written here: designTokens.test.ts scans comments
+              // too, and reads a quoted measurement as a hard-coded colour.)
+              className="inline-flex min-h-11 items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-600 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:border-[var(--bk-control-disabled-border)] disabled:bg-[var(--bk-control-disabled-bg)] disabled:text-[var(--bk-control-disabled-text)] disabled:hover:bg-[var(--bk-control-disabled-bg)]"
             >
               <ChevronLeft className="h-3.5 w-3.5" />
               {backLabel}
@@ -433,7 +450,7 @@ export function ProductGuide({ open, onClose, setActivePage, setMobileSidebarOpe
             <button
               type="button"
               onClick={() => (isLast ? onClose() : setStepIndex((value) => Math.min(guideSteps.length - 1, value + 1)))}
-              className="inline-flex min-h-10 items-center gap-1 rounded-lg bg-blue-700 px-3 py-2 text-xs font-bold text-white transition-colors hover:bg-blue-800"
+              className="inline-flex min-h-11 items-center gap-1 rounded-lg bg-blue-700 px-3 py-2 text-xs font-bold text-white transition-colors hover:bg-blue-800"
             >
               {isLast ? doneLabel : nextLabel}
               {!isLast && <ChevronRight className="h-3.5 w-3.5" />}

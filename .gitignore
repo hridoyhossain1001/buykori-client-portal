@@ -13,3 +13,15 @@ coverage/
 # This project uses npm/package-lock.json in CI and Vercel.
 pnpm-lock.yaml
 pnpm-workspace.yaml
+
+# Local scratch from the prototype design migration. These are working
+# artifacts, not sources: tmp/ holds one-off analysis scripts and a 193M
+# release worktree, and the two prototype dirs are copies of the tracked
+# source in .codex-vdeploy-20260824/ui-ux-audit-prototype/. Ignored so
+# git status stays readable and none of it is committed by accident.
+# Leading slashes anchor these to this directory, so a real nested path
+# with one of these names elsewhere is unaffected.
+/tmp/
+/dist-prototype/
+/ui-ux-audit-prototype/
+/client-portal/

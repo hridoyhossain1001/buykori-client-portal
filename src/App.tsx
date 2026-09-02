@@ -11,12 +11,12 @@ import { PluginConnectAuthorizeView } from './components/PluginConnectAuthorizeV
 import { ProductGuide } from './components/ProductGuide';
 import { SupportWidget } from './components/SupportWidget';
 import { PluginUpdateModal } from './components/PluginUpdateModal';
-import { CAPIEvent, APILog, Suggestion, Platform, EventRule, PlatformConfig, UserProfile, ClientConnection, OutboxItem, PluginReleaseInfo, CustomEventAutomation, CourierOrder, DeferredData, IncompleteCheckoutData, RecoveryOrderPayload, SidebarStatus, StoreInfo, AnalyticsAudience, AnalyticsCampaigns, AnalyticsOverview, CampaignDispatchResponse, RecoverySummary, SignalDoctor, TrendPoint } from './types';
+import { CAPIEvent, APILog, Suggestion, Platform, EventRule, PlatformConfig, UserProfile, ClientConnection, OutboxItem, PluginReleaseInfo, CustomEventAutomation, CourierOrder, DeferredData, DeferredOrder, IncompleteCheckoutData, RecoveryOrderPayload, SidebarStatus, StoreInfo, AnalyticsAudience, AnalyticsCampaigns, AnalyticsOverview, CampaignDispatchResponse, RecoverySummary, SignalDoctor, TrendPoint } from './types';
 import { clientPathForPage, clientPathForSection, isClientPageId, resolveClientRoute } from './lib/clientRoutes';
 import { comparePluginVersions, errorMessage, normalizePluginVersion, uniqueSuggestions } from './lib/clientAppUtils';
 import { copyText } from './lib/clipboard';
 import { fetchAnalyticsBundle, fetchDashboardAnalytics } from './services/analyticsApi';
-import { fetchClientStores, fetchDeferredData, markClientSidebarSeen, runDeferredBulkAction, runDeferredOrderAction, saveClientStoreDomain, saveDeferredSettings, switchClientStore } from './services/operationsApi';
+import { fetchClientStores, fetchDeferredData, markClientSidebarSeen, runCourierFraudCheck, runDeferredBulkAction, runDeferredOrderAction, saveClientStoreDomain, saveDeferredSettings, switchClientStore } from './services/operationsApi';
 import { requestAccountDeletion, requestProfileEmailCode, revokeClientConnection, sendPasswordResetEmail, updateClientPassword, updateClientProfile } from './services/accountApi';
 import {
   AccountView,
@@ -37,12 +37,26 @@ import {
   pageTitleFor,
 } from './app/lazyViews';
 import { PageErrorBoundary } from './app/PageErrorBoundary';
-import { ConnectionErrorBanner, ConsoleSkeleton, PageSuspenseFallback } from './app/AppShellStates';
+import { ConnectionErrorBanner, ConsoleSkeleton, PageSuspenseFallback, TopbarPlaceholder } from './app/AppShellStates';
 import { GlobalToast, type GlobalToastState } from './app/GlobalToast';
 import { useCampaignUrlBuilder } from './app/useCampaignUrlBuilder';
-import { ErrorState } from './components/common';
+import {
+  CAMPAIGN_TEST_ENDPOINT,
+  buildCampaignTestRequestBody,
+  resolveCampaignBaseUrl,
+  resolveCampaignStoreDomain,
+} from './components/campaign/campaignPayload';
 import { describeFetchError, describeResponseError, isAbortError } from './lib/http';
+import { redactApiLogs, redactDeep, redactUrl } from './lib/redact';
 import { clientPageAllowed } from './lib/aiAdsFeatureGate';
+
+/**
+ * COD holds and the orders workspace poll on this cadence so a freshly placed
+ * order surfaces a few seconds after the plugin pushes it, instead of the old
+ * 15s worst case. Incomplete checkouts stay slower on purpose (see below).
+ */
+const ORDERS_POLL_MS = 5000;
+const INCOMPLETE_CHECKOUTS_POLL_MS = 15000;
 
 export default function App() {
   const isPluginConnectRoute = window.location.pathname === '/plugin/connect';
@@ -69,6 +83,8 @@ export default function App() {
   const systemDataAbortRef = useRef<AbortController | null>(null);
   const storesAbortRef = useRef<AbortController | null>(null);
   const [apiLogs, setApiLogs] = useState<APILog[]>([]);
+  const [apiLogsLoading, setApiLogsLoading] = useState<boolean>(false);
+  const [apiLogsLoadError, setApiLogsLoadError] = useState<string | null>(null);
   const [outboxItems, setOutboxItems] = useState<OutboxItem[]>([]);
   const [retryingOutboxIds, setRetryingOutboxIds] = useState<number[]>([]);
   const [deferredData, setDeferredData] = useState<DeferredData | null>(null);
@@ -80,10 +96,14 @@ export default function App() {
   const [deferredEnabled, setDeferredEnabled] = useState<boolean>(false);
   const [autoConfirmDays, setAutoConfirmDays] = useState<number>(0);
   const [autoConfirmStatus, setAutoConfirmStatus] = useState<string>('completed');
+  const [courierAutoCheck, setCourierAutoCheck] = useState<boolean>(false);
   const [savingDeferredSettings, setSavingDeferredSettings] = useState<boolean>(false);
   // Guards against duplicate COD mutations: a second click while the first
   // confirm/skip/restore request is still in flight would double-submit.
   const [codBusyOrderIds, setCodBusyOrderIds] = useState<string[]>([]);
+  // Same guard for the on-demand courier history check, keyed by pending_event id
+  // (the endpoint takes the numeric row id, not the store's order id).
+  const [courierCheckBusyIds, setCourierCheckBusyIds] = useState<number[]>([]);
   const [codBulkBusy, setCodBulkBusy] = useState<boolean>(false);
   // Same guard for per-suggestion resolve/dismiss.
   const [suggestionBusyIds, setSuggestionBusyIds] = useState<string[]>([]);
@@ -106,8 +126,6 @@ export default function App() {
   const [loading, setLoading] = useState<boolean>(true);
   const [aiReviewing, setAiReviewing] = useState<boolean>(false);
   const [errState, setErrState] = useState<string | null>(null);
-  const [workspaceLoadError, setWorkspaceLoadError] = useState<{ page: string; message: string } | null>(null);
-  const [workspaceRetrying, setWorkspaceRetrying] = useState<boolean>(false);
   const [pluginUpdateOpen, setPluginUpdateOpen] = useState<boolean>(false);
   const shownPluginUpdateRef = useRef<string>('');
 
@@ -126,18 +144,20 @@ export default function App() {
   // FAQ Expanded State
   const [faqExpanded, setFaqExpanded] = useState<number | null>(null);
 
-  // Sandbox Campaign Builder State
+  // Sandbox Campaign Builder State. The identity fields start empty and rely on
+  // placeholders: prefilled demo PII read as captured customer data, and
+  // pressing send shipped it as if the account really knew it.
   const [builderPlatform, setBuilderPlatform] = useState<Platform>('Meta CAPI');
   const [builderEventName, setBuilderEventName] = useState<string>('Purchase');
-  const [builderValue, setBuilderValue] = useState<string>('129.99');
-  const [builderCurrency, setBuilderCurrency] = useState<string>('USD');
-  const [builderEmail, setBuilderEmail] = useState<string>('customer@domain.com');
-  const [builderPhone, setBuilderPhone] = useState<string>('+15125550199');
-  const [builderIp, setBuilderIp] = useState<string>('72.229.28.185');
-  const [builderUa, setBuilderUa] = useState<string>('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)');
+  const [builderValue, setBuilderValue] = useState<string>('100');
+  const [builderCurrency, setBuilderCurrency] = useState<string>('BDT');
+  const [builderEmail, setBuilderEmail] = useState<string>('');
+  const [builderPhone, setBuilderPhone] = useState<string>('');
+  const [builderIp, setBuilderIp] = useState<string>('');
+  const [builderUa, setBuilderUa] = useState<string>('');
   const [customParams, setCustomParams] = useState<{ k: string; v: string }[]>([
-    { k: 'content_name', v: 'Designer Leather Jacket' },
-    { k: 'content_category', v: 'Apparel > Outerwear' }
+    { k: 'content_name', v: '' },
+    { k: 'content_category', v: '' }
   ]);
   const [campaignResp, setCampaignResp] = useState<CampaignDispatchResponse | null>(null);
   const [dispatchingTest, setDispatchingTest] = useState<boolean>(false);
@@ -146,8 +166,6 @@ export default function App() {
   const [profName, setProfName] = useState<string>('');
   const [profEmail, setProfEmail] = useState<string>('');
   const [profNotifEmail, setProfNotifEmail] = useState<string>('');
-  const [profNotifyWhatsapp, setProfNotifyWhatsapp] = useState<boolean>(false);
-  const [profWhatsappNumber, setProfWhatsappNumber] = useState<string>('');
   const [profUpdating, setProfUpdating] = useState<boolean>(false);
   const [profEmailCodeRequested, setProfEmailCodeRequested] = useState<boolean>(false);
   const [profEmailCode, setProfEmailCode] = useState<string>('');
@@ -193,7 +211,8 @@ export default function App() {
 
   useEffect(() => clearToastTimer, [clearToastTimer]);
 
-  const campaignUrlBuilder = useCampaignUrlBuilder(profile, showToast);
+  const campaignStoreDomain = resolveCampaignStoreDomain(stores);
+  const campaignUrlBuilder = useCampaignUrlBuilder(profile, showToast, resolveCampaignBaseUrl(stores));
 
   const setActivePage = useCallback((pageId: string) => {
     const nextPage = isClientPageId(pageId) ? pageId : 'dashboard';
@@ -346,7 +365,7 @@ export default function App() {
   };
 
   const isAuthFailure = (responses: Response[]) => {
-    return responses.some(res => res.status === 401);
+    return responses.some(res => res.status === 401 || res.status === 403);
   };
 
   // Helper code copy. The "Copied" badge is only shown once the clipboard write
@@ -363,20 +382,28 @@ export default function App() {
     }, 2000);
   };
 
-  const fetchDeferred = async (signal?: AbortSignal) => {
+  /**
+   * These four settings values double as the edit buffer for the COD review
+   * settings form, so the background poll passes `syncSettings: false`: it
+   * refreshes the queue without reverting a change the merchant is still
+   * making. Every user-triggered refresh keeps syncing them.
+   */
+  const fetchDeferred = async (signal?: AbortSignal, opts?: { syncSettings?: boolean }) => {
     try {
       const data = await fetchDeferredData(signal);
       setDeferredData(data);
-      setDeferredEnabled(Boolean(data.deferredEnabled));
-      setAutoConfirmDays(Number(data.autoConfirmDays || 0));
-      setAutoConfirmStatus(data.autoConfirmStatus || 'completed');
+      if (opts?.syncSettings !== false) {
+        setDeferredEnabled(Boolean(data.deferredEnabled));
+        setAutoConfirmDays(Number(data.autoConfirmDays || 0));
+        setAutoConfirmStatus(data.autoConfirmStatus || 'completed');
+        setCourierAutoCheck(Boolean(data.courierAutoCheck));
+      }
       setDeferredLoadError(null);
     } catch (err) {
       if (isAbortError(err)) return;
       console.error("Failed to fetch COD Protection", err);
       setDeferredData(prev => prev || { pendingList: [], pendingCount: 0, pendingValue: 0 });
       setDeferredLoadError(err instanceof Error ? err.message : 'Could not load the verification queue.');
-      throw err;
     }
   };
 
@@ -398,13 +425,10 @@ export default function App() {
         setIncompleteCheckoutData(await res.json());
       } else if (res.status === 403) {
         setIncompleteCheckoutData({ items: [], counts: {}, restricted: true });
-      } else {
-        throw new Error(describeResponseError(res));
       }
     } catch (err) {
       if (isAbortError(err)) return;
       console.error('Failed to fetch incomplete checkouts', err);
-      throw err;
     }
   };
 
@@ -418,7 +442,8 @@ export default function App() {
         fetch('/api/outbox?limit=100', { signal }),
       ]);
       if (isAuthFailure([eventsRes])) {
-        throw new Error('Your session could not be verified. Please try again.');
+        redirectToClientLogin();
+        return;
       }
       if (!eventsRes.ok) {
         throw new Error(`Event history could not load (${eventsRes.status}).`);
@@ -426,8 +451,6 @@ export default function App() {
       const eventData = await eventsRes.json();
       const outboxData = outboxRes.ok ? await outboxRes.json() : { items: [] };
       const loggedEvents: CAPIEvent[] = eventData.events || [];
-      const loggedKeys = new Set(loggedEvents.map(event => event.deduplicationKey));
-
       const ingestEvents: CAPIEvent[] = (outboxData.items || []).flatMap((item: OutboxItem) =>
         item.eventNames.map((eventName, index) => {
           const eventId = item.eventIds[index] || `outbox-${item.id}-${index}`;
@@ -436,7 +459,7 @@ export default function App() {
             timestamp: item.createdAt,
             name: eventName,
             platform: 'Gateway Ingest',
-            status: item.status === 'dead' ? 'Failed' : item.status === 'processing' ? 'Retry' : 'Fired',
+            status: item.status === 'dead' ? 'Failed' : item.attempts > 0 ? 'Retry' : 'Accepted',
             httpCode: item.status === 'dead' ? 500 : 202,
             deduplicationKey: eventId,
             payload: {
@@ -456,7 +479,7 @@ export default function App() {
             latencyMs: null,
           } as CAPIEvent;
         })
-      ).filter((event: CAPIEvent) => !loggedKeys.has(event.deduplicationKey));
+      );
 
       if (requestId !== eventsRequestIdRef.current) return;
       setEvents(
@@ -476,11 +499,27 @@ export default function App() {
     }
   };
 
+  // Delivery history had no loading or error state at all, and a non-ok response was dropped on the
+  // floor by the bare `if (res.ok)` — so a 500 left `apiLogs` empty for good and the API-logs table
+  // said "No API logs yet" underneath platform-health cards that were reporting failed deliveries.
+  // The two panels disagreed and only one of them was telling the truth.
   const fetchApiLogs = async (signal?: AbortSignal) => {
-    const res = await fetch('/api/api-logs?limit=100', { signal });
-    if (!res.ok) throw new Error(describeResponseError(res));
-    const data = await res.json();
-    setApiLogs(data.logs || []);
+    setApiLogsLoading(true);
+    try {
+      const res = await fetch('/api/api-logs?limit=100', { signal });
+      if (!res.ok) {
+        setApiLogsLoadError(describeResponseError(res));
+        return;
+      }
+      const data = await res.json();
+      setApiLogs(data.logs || []);
+      setApiLogsLoadError(null);
+    } catch (error) {
+      if (isAbortError(error)) return;
+      setApiLogsLoadError(describeFetchError(error));
+    } finally {
+      if (!signal?.aborted) setApiLogsLoading(false);
+    }
   };
 
   const fetchTrendData = async (days = 7, signal?: AbortSignal) => {
@@ -491,7 +530,6 @@ export default function App() {
     } catch (err) {
       if (isAbortError(err)) return;
       console.error("Failed to fetch trend data", err);
-      throw err;
     }
   };
 
@@ -510,7 +548,8 @@ export default function App() {
       fetch('/api/custom-event-automations', { signal }),
     ]);
     if (isAuthFailure([resCreds, resRules, resAutomations])) {
-      throw new Error('Your session could not be verified. Please try again.');
+      redirectToClientLogin();
+      return;
     }
     if (!resCreds.ok || !resRules.ok || !resAutomations.ok) {
       throw new Error('Failed to load tracking settings.');
@@ -535,25 +574,6 @@ export default function App() {
     }
   };
 
-  const retryActiveWorkspace = async () => {
-    const page = activePageRef.current;
-    setWorkspaceRetrying(true);
-    setWorkspaceLoadError(null);
-    try {
-      if (page === 'dashboard') {
-        await Promise.all([fetchTrendData(analyticsDays), fetchEvents()]);
-      } else {
-        await loadActivePageData(page);
-      }
-    } catch (error) {
-      if (!isAbortError(error)) {
-        setWorkspaceLoadError({ page, message: errorMessage(error, describeFetchError(error)) });
-      }
-    } finally {
-      setWorkspaceRetrying(false);
-    }
-  };
-
   const handleIncompleteCheckoutStatus = async (id: number, status: string) => {
     const res = await fetch(`/api/incomplete-checkouts/${id}/status`, {
       method: 'POST',
@@ -563,10 +583,13 @@ export default function App() {
     if (!res.ok) {
       const body = await res.json().catch(() => ({}));
       showToast(body.detail || 'Failed to update recovery status.', true);
-      return;
+      return false;
     }
     showToast('Recovery status updated.');
     await fetchIncompleteCheckouts();
+    // The caller arms its Undo bar on this boolean, so it must never be
+    // optimistic: true means the row really moved.
+    return true;
   };
 
   const handleCreateRecoveryOrder = async (id: number, payload: RecoveryOrderPayload) => {
@@ -614,7 +637,8 @@ export default function App() {
       ]);
 
       if (isAuthFailure([resProf, resConn])) {
-        throw new Error('Your session could not be verified. Please try again.');
+        redirectToClientLogin();
+        return;
       }
 
       if (!resProf.ok || !resConn.ok) {
@@ -642,17 +666,11 @@ export default function App() {
       setProfEmailCode('');
       setProfEmailCurrentPassword('');
       setProfNotifEmail(dProf.notificationEmail || dProf.email);
-      setProfNotifyWhatsapp(dProf.ownerNotifyWhatsapp || false);
-      setProfWhatsappNumber(dProf.ownerWhatsappNumber || '');
 
       setErrState(null);
       await loadActivePageData(activePageRef.current, signal).catch(error => {
         if (isAbortError(error)) return;
         console.error(`Failed to load ${activePageRef.current} workspace`, error);
-        const page = activePageRef.current;
-        if (page !== 'orders' && page !== 'event-logs' && page !== 'analytics') {
-          setWorkspaceLoadError({ page, message: errorMessage(error, describeFetchError(error)) });
-        }
       });
     } catch (e: unknown) {
       if (isAbortError(e)) return;
@@ -695,17 +713,21 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    if (profile && !clientPageAllowed(activePage, profile)) {
+      setActivePage('dashboard');
+    }
+  }, [profile, activePage, setActivePage]);
+
+  useEffect(() => {
     if (isPluginConnectRoute) return;
     const controller = new AbortController();
     if (profile) {
       if (activePage === 'analytics') {
         loadAnalyticsData(analyticsDays, controller.signal);
       } else if (activePage === 'dashboard') {
-        setWorkspaceLoadError(current => current?.page === 'dashboard' ? null : current);
         Promise.all([fetchTrendData(analyticsDays, controller.signal), fetchEvents(controller.signal)]).catch(err => {
           if (isAbortError(err)) return;
           console.error('Failed to load dashboard activity', err);
-          setWorkspaceLoadError({ page: 'dashboard', message: errorMessage(err, describeFetchError(err)) });
         });
       }
     }
@@ -778,13 +800,9 @@ export default function App() {
       markSidebarSeen('orders_delivery');
     }
     if (activePage !== 'dashboard') {
-      setWorkspaceLoadError(current => current?.page === activePage ? null : current);
       loadActivePageData(activePage, controller.signal).catch(err => {
         if (isAbortError(err)) return;
         console.error(`Failed to load ${activePage} workspace`, err);
-        if (activePage !== 'orders' && activePage !== 'event-logs' && activePage !== 'analytics') {
-          setWorkspaceLoadError({ page: activePage, message: errorMessage(err, describeFetchError(err)) });
-        }
       });
     }
     return () => controller.abort();
@@ -824,17 +842,26 @@ export default function App() {
           console.error('Failed to auto-refresh incomplete checkouts', err);
         });
       } else if (activePage === 'pending-purchases' || activePage === 'orders') {
-        fetchDeferred(controller.signal).catch(err => {
+        fetchDeferred(controller.signal, { syncSettings: false }).catch(err => {
           if (isAbortError(err)) return;
           console.error('Failed to auto-refresh COD holds/orders', err);
         });
       }
     };
 
-    const intervalId = window.setInterval(pollData, 15000);
+    // Incomplete checkouts pass refresh:true, which bypasses the server cache,
+    // so they stay on the slower cadence. COD holds/orders poll fast.
+    const pollIntervalMs = activePage === 'incomplete-checkouts'
+      ? INCOMPLETE_CHECKOUTS_POLL_MS
+      : ORDERS_POLL_MS;
+    const intervalId = window.setInterval(pollData, pollIntervalMs);
+    // pollData bails out while the tab is hidden, so pull once on return
+    // instead of leaving stale rows on screen until the next tick.
+    document.addEventListener('visibilitychange', pollData);
     return () => {
       controller.abort();
       window.clearInterval(intervalId);
+      document.removeEventListener('visibilitychange', pollData);
     };
   }, [activePage]);
 
@@ -1039,6 +1066,43 @@ export default function App() {
     }
   };
 
+  /**
+   * On-demand courier history lookup for one order.
+   *
+   * Courier data is not fetched during tracking unless the merchant turned on
+   * "check automatically", so this click is normally what fills in the verdict.
+   * The result is patched into the local lists instead of refetching everything,
+   * so the answer appears straight away. Keyed by the numeric pending-event id,
+   * which is what the endpoint takes.
+   */
+  const handleCourierCheck = async (order: DeferredOrder) => {
+    const pendingEventId = Number(order.id);
+    if (!Number.isFinite(pendingEventId) || pendingEventId <= 0) {
+      showToast('This order cannot be checked yet. Please refresh and try again.', true);
+      return;
+    }
+    if (courierCheckBusyIds.includes(pendingEventId)) return;
+    setCourierCheckBusyIds(prev => [...prev, pendingEventId]);
+    try {
+      const result = await runCourierFraudCheck(pendingEventId);
+      const patch = (list?: DeferredOrder[]) => list?.map(item => (
+        item.id === pendingEventId
+          ? { ...item, fraudScore: result.fraudScore, fraudDetails: result.fraudDetails }
+          : item
+      ));
+      setDeferredData(prev => prev && {
+        ...prev,
+        pendingList: patch(prev.pendingList),
+        deferredPendingList: patch(prev.deferredPendingList),
+        operationsPendingList: patch(prev.operationsPendingList),
+      });
+    } catch (err: unknown) {
+      showToast(errorMessage(err, 'Could not check courier history for this order.'), true);
+    } finally {
+      setCourierCheckBusyIds(prev => prev.filter(id => id !== pendingEventId));
+    }
+  };
+
   const handleBulkConfirm = async () => {
     if (selectedOrderIds.length === 0 || codBulkBusy) return;
     setCodBulkBusy(true);
@@ -1072,7 +1136,7 @@ export default function App() {
   const handleSaveDeferredSettings = async () => {
     setSavingDeferredSettings(true);
     try {
-      await saveDeferredSettings({ deferredEnabled, autoConfirmDays, autoConfirmStatus });
+      await saveDeferredSettings({ deferredEnabled, autoConfirmDays, autoConfirmStatus, courierAutoCheck });
       showToast("COD Protection settings saved successfully.", false);
       loadSystemData(false);
     } catch {
@@ -1160,8 +1224,6 @@ export default function App() {
         name: profName,
         email: profEmail,
         notificationEmail: profNotifEmail,
-        ownerNotifyWhatsapp: profNotifyWhatsapp,
-        ownerWhatsappNumber: profWhatsappNumber,
         emailCode: emailChanged ? profEmailCode.trim() : null,
         currentPassword: emailChanged ? profEmailCurrentPassword : null,
       });
@@ -1169,8 +1231,6 @@ export default function App() {
       setProfName(updatedProfile.name);
       setProfEmail(updatedProfile.email);
       setProfNotifEmail(updatedProfile.notificationEmail || updatedProfile.email);
-      setProfNotifyWhatsapp(updatedProfile.ownerNotifyWhatsapp || false);
-      setProfWhatsappNumber(updatedProfile.ownerWhatsappNumber || '');
       setProfEmailCodeRequested(false);
       setProfEmailCode('');
       setProfEmailCurrentPassword('');
@@ -1206,27 +1266,23 @@ export default function App() {
     setDispatchingTest(true);
     setCampaignResp(null);
 
-    // Format customParams array as a flattened object
-    const customObj: Record<string, string> = {};
-    customParams.forEach(p => {
-      if (p.k.trim()) customObj[p.k.trim()] = p.v;
-    });
-
     try {
-      const res = await fetch('/api/campaign-test', {
+      const res = await fetch(CAMPAIGN_TEST_ENDPOINT, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          platform: builderPlatform,
-          eventName: builderEventName,
-          value: builderValue,
-          currency: builderCurrency,
-          email: builderEmail,
-          phone: builderPhone,
-          ip: builderIp,
-          userAgent: builderUa,
-          customParams: customObj
-        })
+        // Blank fields are dropped rather than sent as "", so an untouched form
+        // never posts identity the client did not supply.
+        body: JSON.stringify(buildCampaignTestRequestBody({
+          builderPlatform,
+          builderEventName,
+          builderValue,
+          builderCurrency,
+          builderEmail,
+          builderPhone,
+          builderIp,
+          builderUa,
+          customParams,
+        }))
       });
 
       const data = await res.json();
@@ -1320,23 +1376,28 @@ export default function App() {
   };
 
   // Export utility for logs
+  // Redaction happens on this side of the download, not in the view: the API-log CSV wrote
+  // `l.endpoint` straight into a cell and the JSON was a verbatim `JSON.stringify(apiLogs)`, so the
+  // GA4 `api_secret` left the browser in a file the merchant could forward anywhere. A file is the
+  // one output nobody re-reads before sharing, which makes it the worst place to leak a credential.
   const handleExportData = (format: 'csv' | 'json', dataToExport: 'events' | 'apilogs') => {
     let payload = "";
     const filename = `${dataToExport}_export_${new Date().toISOString().split('T')[0]}`;
 
     if (dataToExport === 'events') {
       if (format === 'json') {
-        payload = JSON.stringify(events, null, 2);
+        payload = JSON.stringify(redactDeep(events), null, 2);
       } else {
         payload = "Date,EventName,PageOrProduct,PageUrl,Platform,Status,HttpCode,DeduplicationKey\n" +
-          events.map(e => `"${e.timestamp}","${e.name}","${e.contextLabel || 'Website event'}","${e.pageUrl || ''}","${e.platform}","${e.status}",${e.httpCode},"${e.deduplicationKey}"`).join("\n");
+          events.map(e => `"${e.timestamp}","${e.name}","${e.contextLabel || 'Website event'}","${redactUrl(e.pageUrl || '')}","${e.platform}","${e.status}",${e.httpCode},"${e.deduplicationKey}"`).join("\n");
       }
     } else {
+      const safeLogs = redactApiLogs(apiLogs);
       if (format === 'json') {
-        payload = JSON.stringify(apiLogs, null, 2);
+        payload = JSON.stringify(safeLogs, null, 2);
       } else {
         payload = "Date,Platform,Endpoint,Method,Status,Retries\n" +
-          apiLogs.map(l => `"${l.timestamp}","${l.platform}","${l.endpoint}","${l.method}",${l.statusCode},${l.retryCount}`).join("\n");
+          safeLogs.map(l => `"${l.timestamp}","${l.platform}","${l.endpoint}","${l.method}",${l.statusCode},${l.retryCount}`).join("\n");
       }
     }
 
@@ -1350,7 +1411,7 @@ export default function App() {
   };
 
   // --- Calculations for metrics ---
-  const merchantVisibleEvents = events.filter(e => e.status !== 'Filtered');
+  const merchantVisibleEvents = events;
 
   const matchingEventGroupKeys = new Set(merchantVisibleEvents.filter(e => {
     const normalizedFilter = searchFilter.trim().toLowerCase();
@@ -1401,7 +1462,7 @@ export default function App() {
     }
     const pEvs = events.filter(e => e.platform === p);
     const total = pEvs.length;
-    const succs = pEvs.filter(e => e.status === 'Success').length;
+    const succs = pEvs.filter(e => e.status === 'Delivered').length;
     const rate = total > 0 ? Math.round((succs / total) * 100) : null;
     const lastTime = pEvs[0] ? new Date(pEvs[0].timestamp).toLocaleTimeString() : 'N/A';
     return { total, rate, lastTime };
@@ -1456,9 +1517,6 @@ export default function App() {
           orderVerificationCount={orderVerificationCount}
           deliveryBadgeCount={deliveryBadgeCount}
           incompleteCheckoutCount={incompleteCheckoutCount}
-          stores={stores}
-          onSwitchStore={handleSwitchStore}
-          onCreateStore={() => setCreateStoreModalOpen(true)}
         />
       )}
 
@@ -1479,10 +1537,12 @@ export default function App() {
         onOpenWordPress={openWordPressPluginUpdates}
       />
 
-      {/* Main Container */}
-      <div className={`flex-1 flex flex-col min-w-0 transition-all duration-200 ${sidebarCollapsed ? 'md:pl-[72px]' : 'md:pl-[288px]'}`}>
-        {connection && (
-          <Header 
+      {/* Main Container. The left offset reads the same tokens the rail's own
+          width does — it was hard-coded at 288px against a 248px rail, which left
+          a 40px dead strip of shell background beside the rail on every page. */}
+      <div className={`flex-1 flex flex-col min-w-0 transition-all duration-200 ${sidebarCollapsed ? 'md:pl-[var(--bk-console-sidebar-collapsed)]' : 'md:pl-[var(--bk-console-sidebar)]'}`}>
+        {connection ? (
+          <Header
             title={pageTitleFor(activePage)}
             connection={connection}
             onRefreshConnection={refreshWPHeartbeat}
@@ -1492,7 +1552,17 @@ export default function App() {
             suggestions={suggestions}
             setActivePage={setActivePage}
             onOpenGuide={profile?.guideDismissed ? undefined : openProductGuide}
+            stores={stores}
+            storeFallbackName={profile?.name || ''}
+            onSwitchStore={handleSwitchStore}
+            onCreateStore={() => setCreateStoreModalOpen(true)}
           />
+        ) : (
+          /* Reserve the bar's 56px instead of leaving a gap that closes later.
+             <Header> cannot render before `connection` (it prints the store's
+             name and heartbeat), and without this the whole page slid down 56px
+             the instant the bootstrap reply arrived. */
+          <TopbarPlaceholder />
         )}
 
         <main id="main-content" tabIndex={-1} className="flex-1 min-w-0">
@@ -1505,19 +1575,17 @@ export default function App() {
         {loading && !errState ? (
           <ConsoleSkeleton />
         ) : !errState && (
-          <div className="bk-console-page flex-1 space-y-4 p-4 sm:p-5 md:space-y-6 md:p-6">
-
-            {workspaceLoadError?.page === activePage && (
-              <section className="rounded-xl border border-rose-200 bg-white shadow-sm">
-                <ErrorState
-                  compact
-                  title={`Couldn't load ${pageTitleFor(activePage)}`}
-                  description={workspaceLoadError.message}
-                  onRetry={() => { void retryActiveWorkspace(); }}
-                  retrying={workspaceRetrying}
-                />
-              </section>
-            )}
+          /* The support button below is `fixed bottom-5 right-5` at 48px, so it
+             owns the bottom-right 68px of the viewport on every page from `sm`
+             up. Scrolled to the end of a list that left only 35px of slack, that
+             put the FAB over 46% of the pagination "Next" button and made it the
+             hit target at the button's own centre. 80px of bottom padding lets
+             the last row scroll clear of it with 12px to spare. Below `sm` the
+             FAB is not rendered (SupportWidget ships an inline button instead),
+             so the phone keeps its tighter 16px. `md:pb-20` is not redundant:
+             `md:p-6` sits in a later media block than `sm:pb-20` and would
+             otherwise win the padding-bottom back at desktop widths. */
+          <div className="bk-console-page flex-1 space-y-4 p-4 sm:p-5 sm:pb-20 md:space-y-6 md:p-6 md:pb-20">
 
             {/* --- CORE VIEWS DISPATCHER --- */}
             <PageErrorBoundary pageKey={activePage}>
@@ -1546,6 +1614,10 @@ export default function App() {
                 analyticsDays={analyticsDays}
                 setAnalyticsDays={setAnalyticsDays}
                 pendingOrderCount={orderVerificationCount}
+                // Read-only: re-runs the workspace GETs (profile, connection,
+                // suggestions, sidebar, trend + the active page's data) with no
+                // shimmer, so "Refresh workspace" never writes anything.
+                onRefresh={() => loadSystemData(false)}
               />
               </>
             )}
@@ -1560,6 +1632,8 @@ export default function App() {
                 handleBulkCancel={handleBulkCancel}
                 handleConfirmOrder={handleConfirmOrder}
                 handleCancelOrder={handleCancelOrder}
+                handleCourierCheck={handleCourierCheck}
+                courierCheckBusyIds={courierCheckBusyIds}
                 codBusyOrderIds={codBusyOrderIds}
                 codBulkBusy={codBulkBusy}
                 deferredEnabled={deferredEnabled}
@@ -1568,6 +1642,8 @@ export default function App() {
                 setAutoConfirmDays={setAutoConfirmDays}
                 autoConfirmStatus={autoConfirmStatus}
                 setAutoConfirmStatus={setAutoConfirmStatus}
+                courierAutoCheck={courierAutoCheck}
+                setCourierAutoCheck={setCourierAutoCheck}
                 savingDeferredSettings={savingDeferredSettings}
                 handleSaveDeferredSettings={handleSaveDeferredSettings}
                 growthFeaturesEnabled={profile?.growthFeaturesEnabled}
@@ -1579,6 +1655,8 @@ export default function App() {
                 deferredData={deferredData || { pendingList: [] }}
                 deferredLoadError={deferredLoadError}
                 fetchDeferred={fetchDeferred}
+                handleCourierCheck={handleCourierCheck}
+                courierCheckBusyIds={courierCheckBusyIds}
                 showToast={showToast}
                 storeName={profile?.name}
                 storeEmail={profile?.email}
@@ -1642,11 +1720,16 @@ export default function App() {
 
             {/* PAGE 5: API LOGS */}
             {activePage === 'api-logs' && (
-              <ApiLogsView 
+              <ApiLogsView
                 filteredApiLogsForTable={filteredApiLogsForTable}
+                logsLoading={apiLogsLoading}
+                logsError={apiLogsLoadError}
+                onRetryLogs={() => { void fetchApiLogs(); }}
                 expandedApiLogId={expandedApiLogId}
                 setExpandedApiLogId={setExpandedApiLogId}
                 handleExportData={handleExportData}
+                retryingOutboxIds={retryingOutboxIds}
+                handleRetryOutbox={handleRetryOutbox}
               />
             )}
 
@@ -1732,6 +1815,7 @@ export default function App() {
                 handleDispatchSandboxTest={handleDispatchSandboxTest}
                 urlBuilderBaseUrl={campaignUrlBuilder.urlBuilderBaseUrl}
                 setUrlBuilderBaseUrl={campaignUrlBuilder.setUrlBuilderBaseUrl}
+                storeDomain={campaignStoreDomain}
                 urlBuilderSource={campaignUrlBuilder.urlBuilderSource}
                 setUrlBuilderSource={campaignUrlBuilder.setUrlBuilderSource}
                 urlBuilderMedium={campaignUrlBuilder.urlBuilderMedium}
@@ -1781,10 +1865,6 @@ export default function App() {
                 setProfEmailCurrentPassword={setProfEmailCurrentPassword}
                 profNotifEmail={profNotifEmail}
                 setProfNotifEmail={setProfNotifEmail}
-                profNotifyWhatsapp={profNotifyWhatsapp}
-                setProfNotifyWhatsapp={setProfNotifyWhatsapp}
-                profWhatsappNumber={profWhatsappNumber}
-                setProfWhatsappNumber={setProfWhatsappNumber}
                 profUpdating={profUpdating}
                 submitProfileSave={submitProfileSave}
                 passCurrent={passCurrent}
@@ -1812,6 +1892,7 @@ export default function App() {
 
           </div>
         )}
+        <SupportWidget showToast={showToast} />
         </main>
       </div>
 
@@ -1838,7 +1919,6 @@ export default function App() {
         setActivePage={setActivePage}
         setMobileSidebarOpen={setMobileSidebarOpen}
       />
-      <SupportWidget showToast={showToast} />
     </div>
   );
 }

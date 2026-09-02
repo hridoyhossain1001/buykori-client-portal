@@ -7,8 +7,13 @@ interface JsonViewerProps {
   className?: string;
 }
 
+// Every tone here is picked for the `bg-slate-950` panel this viewer paints on.
+// slate-400/500 are boosted in index.css to clear AA on white, which leaves them
+// at 3.35:1 on this surface - so the structural chrome uses slate-300, which is
+// deliberately left at its raw token for dark panels. Values stay separated by
+// hue, not lightness.
 const primitiveTone = (value: unknown) => {
-  if (value === null) return 'text-slate-400';
+  if (value === null) return 'text-slate-300';
   if (typeof value === 'string') return 'text-emerald-300';
   if (typeof value === 'number') return 'text-amber-300';
   if (typeof value === 'boolean') return 'text-violet-300';
@@ -42,7 +47,7 @@ function JsonNode({ name, value, depth, search }: { name?: string; value: unknow
   if (!isObject) {
     return (
       <div className="leading-5" style={{ paddingLeft: depth * 14 }}>
-        {label && <span className="text-sky-300">{label}</span>}
+        {label && <span className="text-blue-300">{label}</span>}
         <PrimitiveValue value={value} search={search} />
       </div>
     );
@@ -58,10 +63,10 @@ function JsonNode({ name, value, depth, search }: { name?: string; value: unknow
         className="flex w-full items-center text-left leading-5 hover:bg-white/5"
         style={{ paddingLeft: depth * 14 }}
       >
-        {open ? <ChevronDown className="mr-1 h-3 w-3 text-slate-500" /> : <ChevronRight className="mr-1 h-3 w-3 text-slate-500" />}
-        {label && <span className="text-sky-300">{label}</span>}
-        <span className="text-slate-400">{opening}</span>
-        {!open && <span className="ml-1 text-slate-500">{entries.length} {isArray ? 'items' : 'keys'} {closing}</span>}
+        {open ? <ChevronDown className="mr-1 h-3 w-3 text-slate-300" /> : <ChevronRight className="mr-1 h-3 w-3 text-slate-300" />}
+        {label && <span className="text-blue-300">{label}</span>}
+        <span className="text-slate-300">{opening}</span>
+        {!open && <span className="ml-1 text-slate-300">{entries.length} {isArray ? 'items' : 'keys'} {closing}</span>}
       </button>
       {open && (
         <>
@@ -70,7 +75,7 @@ function JsonNode({ name, value, depth, search }: { name?: string; value: unknow
               <JsonNode name={key} value={child} depth={depth + 1} search={search} />
             </div>
           ))}
-          <div className="text-slate-400 leading-5" style={{ paddingLeft: depth * 14 }}>{closing}</div>
+          <div className="text-slate-300 leading-5" style={{ paddingLeft: depth * 14 }}>{closing}</div>
         </>
       )}
     </div>

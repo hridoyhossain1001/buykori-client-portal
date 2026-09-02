@@ -15,18 +15,7 @@ export interface LockedFeature {
  * `plan_features` reports `minimumPlan: "Starter"`. The portal must name that
  * same tier, not "Growth", so upsell copy stays truthful.
  */
-export const DEFAULT_LOCKED_FEATURE_MINIMUM_PLAN = 'Starter';
-
-type PlanFeature = {
-  key: string;
-  description: string;
-  minimumPlan: string;
-};
-
-const PLAN_FEATURE_KEYS: Record<string, string> = {
-  orders: 'courier_shipping',
-  'incomplete-checkouts': 'incomplete_checkout_recovery',
-};
+export const LOCKED_FEATURE_MINIMUM_PLAN = 'Starter';
 
 const LOCKED_FEATURE_DESCRIPTIONS: Record<string, string> = {
   orders:
@@ -40,20 +29,13 @@ const LOCKED_FEATURE_DESCRIPTIONS: Record<string, string> = {
  * pure function (rather than hard-coded modal text) is what stops the dialog
  * from describing "Incomplete Orders" when "Courier Shipping" was tapped.
  */
-export function resolveLockedFeature(
-  id: string,
-  name: string,
-  planFeatures: ReadonlyArray<PlanFeature> = [],
-): LockedFeature {
-  const planFeatureKey = PLAN_FEATURE_KEYS[id];
-  const entitlement = planFeatures.find(feature => feature.key === planFeatureKey);
+export function resolveLockedFeature(id: string, name: string): LockedFeature {
   return {
     id,
     name,
-    description: entitlement?.description
-      || LOCKED_FEATURE_DESCRIPTIONS[id]
-      || `${name} is part of the paid Buykori plans.`,
-    minimumPlan: entitlement?.minimumPlan || DEFAULT_LOCKED_FEATURE_MINIMUM_PLAN,
+    description:
+      LOCKED_FEATURE_DESCRIPTIONS[id] ?? `${name} is part of the paid Buykori plans.`,
+    minimumPlan: LOCKED_FEATURE_MINIMUM_PLAN,
   };
 }
 

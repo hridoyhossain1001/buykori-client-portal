@@ -29,7 +29,6 @@ export function SupportWidget({ showToast }: { showToast: (message: string, isEr
   const [submitting, setSubmitting] = React.useState(false);
   const [refreshing, setRefreshing] = React.useState(false);
   const [ticketsError, setTicketsError] = React.useState<string | null>(null);
-  const supportTriggerRef = React.useRef<HTMLButtonElement>(null);
   const subjectInputRef = React.useRef<HTMLInputElement>(null);
 
   const loadTickets = React.useCallback(async (signal?: AbortSignal) => {
@@ -122,12 +121,27 @@ export function SupportWidget({ showToast }: { showToast: (message: string, isEr
 
   return (
     <>
+      <div className="mt-6 border-t border-slate-200 pt-5 sm:hidden">
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          /* No local focus ring. index.css draws 2px of `--bk-console-blue` on
+             every button's :focus-visible with !important, so `focus:ring-4
+             focus:ring-indigo-100` (~1.2:1) only added a pale second halo — and
+             on mouse clicks too, being `focus:` rather than `focus-visible:`. */
+          className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg border border-indigo-200 bg-indigo-50 px-4 text-sm font-bold text-indigo-700 transition hover:bg-indigo-100"
+        >
+          <MessageCircle className="h-4 w-4" />
+          Contact support
+        </button>
+      </div>
       <button
-        ref={supportTriggerRef}
         type="button"
         onClick={() => setOpen(true)}
         aria-label="Open Buykori support"
-        className="fixed bottom-5 right-5 z-40 inline-flex h-12 w-12 items-center justify-center rounded-full bg-indigo-600 text-white shadow-xl transition hover:bg-indigo-700 focus:outline-none focus:ring-4 focus:ring-indigo-200"
+        /* Same as the mobile button above: the base focus-visible outline is the
+           indicator, so the local pale ring is dropped. */
+        className="fixed bottom-5 right-5 z-40 hidden h-12 w-12 items-center justify-center rounded-full bg-indigo-600 text-white shadow-xl transition hover:bg-indigo-700 sm:inline-flex"
       >
         <MessageCircle className="h-5 w-5" />
       </button>
@@ -136,7 +150,6 @@ export function SupportWidget({ showToast }: { showToast: (message: string, isEr
           onClose={() => setOpen(false)}
           labelledBy="support-dialog-title"
           initialFocusRef={subjectInputRef}
-          returnFocusRef={supportTriggerRef}
           overlayClassName="fixed inset-0 z-[80] flex items-end justify-end bg-slate-900/30 p-0 backdrop-blur-sm sm:p-5"
           panelClassName="flex max-h-[92vh] w-full max-w-md flex-col overflow-hidden rounded-t-2xl bg-white shadow-2xl sm:rounded-2xl"
         >

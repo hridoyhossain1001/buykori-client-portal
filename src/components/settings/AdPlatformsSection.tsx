@@ -76,8 +76,8 @@ const AdPlatformsSection: React.FC<AdPlatformsSectionProps> = ({
                       onChange={(e) => handleUpdatePlatform(plat, { enabled: e.target.checked })} 
                       className="sr-only peer"
                     />
-                    <div className="w-9 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#285ac7]" />
-                    <span className="ml-2 text-xs font-semibold text-slate-500 uppercase ">
+                    <div className="w-9 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600" />
+                    <span className="ml-2 text-xs font-semibold text-slate-500 uppercase">
                       {config.enabled ? 'On' : 'Off'}
                     </span>
                   </label>
@@ -92,17 +92,24 @@ const AdPlatformsSection: React.FC<AdPlatformsSectionProps> = ({
                   </div>
                 )}
 
+                {/* None of the three credential fields below carries focus utilities.
+                    They used to end in `focus:ring-1 focus:ring-indigo-500`, and a
+                    Tailwind v4 `ring-*` replaces the base `input:focus` box-shadow in
+                    index.css — so `ring-1` thinned the portal's 2px accent to 1px on
+                    exactly the fields that hold a pixel ID and an access token. Bare,
+                    they get the same 2px `--bk-console-blue` accent as every other
+                    input in Settings. */}
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                   <div>
                     <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">{platformDestinationLabel(plat)}</label>
-                    <input 
+                    <input
                       type="text"
                       value={localPixelIds[plat]}
                       placeholder="e.g. 782049182390"
                       onChange={(e) => setLocalPixelIds(prev => ({ ...prev, [plat]: e.target.value }))}
                       onBlur={() => handleUpdatePlatform(plat, { pixelIdOrMeasurementId: localPixelIds[plat] })}
                       onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); }}
-                      className="w-full p-2 text-xs bg-white border border-slate-200 rounded font-mono text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500   "
+                      className="w-full p-2 text-xs bg-white border border-slate-200 rounded font-mono text-slate-800"
                     />
                     <p className="mt-1 text-xs leading-4 text-slate-500">{credentialHelp.destination}</p>
                   </div>
@@ -118,7 +125,7 @@ const AdPlatformsSection: React.FC<AdPlatformsSectionProps> = ({
                       onChange={(e) => setLocalTokens(prev => ({ ...prev, [plat]: e.target.value }))}
                       onBlur={() => handleUpdatePlatform(plat, { accessToken: localTokens[plat] })}
                       onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); }}
-                      className="w-full p-2 text-xs bg-white border border-slate-200 rounded font-mono text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500   "
+                      className="w-full p-2 text-xs bg-white border border-slate-200 rounded font-mono text-slate-800"
                     />
                     <p className="mt-1 text-xs leading-4 text-slate-500">{credentialHelp.token}</p>
                   </div>
@@ -135,7 +142,7 @@ const AdPlatformsSection: React.FC<AdPlatformsSectionProps> = ({
                       onChange={(e) => setLocalTestCodes(prev => ({ ...prev, [plat]: e.target.value }))}
                       onBlur={() => handleUpdatePlatform(plat, { testEventCode: localTestCodes[plat] })}
                       onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); }}
-                      className="w-full rounded border border-slate-200 bg-white p-2 font-mono text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                      className="w-full rounded border border-slate-200 bg-white p-2 font-mono text-xs text-slate-800"
                     />
                     <p className="mt-1 text-xs leading-4 text-slate-500">Only for verifying events in test mode.</p>
                   </div>

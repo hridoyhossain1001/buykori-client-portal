@@ -38,6 +38,7 @@ export const platformOrder: CAPIEvent['platform'][] = [
   'TikTok Events API',
   'TikTok Browser Pixel',
   'GA4',
+  'Webhook',
   'Gateway Ingest',
 ];
 
@@ -46,6 +47,7 @@ export const platformShortName: Record<CAPIEvent['platform'], string> = {
   'TikTok Events API': 'TikTok',
   'TikTok Browser Pixel': 'TikTok Pixel',
   GA4: 'GA4',
+  Webhook: 'Webhook',
   'Gateway Ingest': 'Gateway',
 };
 
@@ -112,6 +114,121 @@ export function groupEvents(events: CAPIEvent[]): GroupedEvent[] {
     );
 }
 
+/**
+ * The Delivery column answers one question -- did this event reach the three
+ * places the merchant actually advertises on -- so it prints exactly these
+ * three signals, in this order, on every row, whether or not a row exists.
+ *
+ * `platformOrder` above stays longer on purpose, and nothing is dropped from the
+ * data: the gateway receipt, store webhooks and the TikTok browser pixel are all
+ * real `event_logs` rows and still appear in the expanded details panel, in the
+ * mobile detail sheet, in the CSV/JSON export and in the destination filter
+ * chips. What they no longer do is share the summary column, where one event
+ * could show five chips of which only three named a destination the merchant
+ * chose -- and where "Gateway Accepted" read as a delivery that had gone wrong.
+ */
+export const deliveryDestinations: ReadonlyArray<{
+  key: string;
+  label: string;
+  /** `PlatformLogo` matches on the name, so pass a platform it recognises. */
+  logo: string;
+  /** Every `event_logs` platform that reports for this destination. */
+  platforms: CAPIEvent['platform'][];
+}> = [
+  { key: 'meta', label: 'Meta', logo: 'Meta CAPI', platforms: ['Meta CAPI'] },
+  {
+    key: 'tiktok',
+    label: 'TikTok',
+    logo: 'TikTok Events API',
+    /* Server API and browser pixel are one destination to a merchant; the
+       details panel still names which of the two answered. */
+    platforms: ['TikTok Events API', 'TikTok Browser Pixel'],
+  },
+  { key: 'ga4', label: 'GA4', logo: 'GA4', platforms: ['GA4'] },
+];
+
+export type DeliverySignalState =
+  | 'delivered'
+  | 'fired'
+  | 'failed'
+  | 'sending'
+  | 'off'
+  | 'none';
+
+export interface DeliverySignal {
+  key: string;
+  label: string;
+  logo: string;
+  state: DeliverySignalState;
+  /** Plain-language hover text, and what a screen reader reads out. */
+  detail: string;
+}
+
+/**
+ * One signal per destination, resolved from every attempt row the event wrote --
+ * not from `deliveries`, which keeps only the newest row per platform.
+ *
+ * `delivered` outranks `failed` because a retry that has since succeeded means
+ * the event did arrive; `failed` outranks `fired` so a rejected server call is
+ * never covered up by the browser pixel having run.
+ */
+export function deliverySignals(group: GroupedEvent): DeliverySignal[] {
+  return deliveryDestinations.map(destination => {
+    const rows = group.events.filter(event =>
+      destination.platforms.includes(event.platform),
+    );
+    const has = (status: CAPIEvent['status']) => rows.some(event => event.status === status);
+
+    if (has('Delivered')) {
+      return { ...destination, state: 'delivered', detail: `${destination.label} confirmed it received this event.` };
+    }
+    if (has('Failed')) {
+      const failure = rows.find(event => event.status === 'Failed');
+      return {
+        ...destination,
+        state: 'failed',
+        detail: `${destination.label} rejected this event — ${failure ? deliverySummary(failure) : 'open View for the reply'}.`,
+      };
+    }
+    if (has('Fired')) {
+      return {
+        ...destination,
+        state: 'fired',
+        detail: `The ${destination.label} pixel fired in the visitor's browser. A browser pixel does not reply, so there is no confirmation to show.`,
+      };
+    }
+    if (has('Retry') || has('Accepted')) {
+      return {
+        ...destination,
+        state: 'sending',
+        detail: `Sent to ${destination.label}, waiting for its reply. We keep trying on our own.`,
+      };
+    }
+    if (has('Skipped')) {
+      return {
+        ...destination,
+        state: 'off',
+        detail: `${destination.label} was switched off when this event fired, so nothing was sent.`,
+      };
+    }
+    return {
+      ...destination,
+      state: 'none',
+      detail: `This event was not sent to ${destination.label}.`,
+    };
+  });
+}
+
+/** The word under the logo. Short, because it repeats on every row. */
+export function deliverySignalWord(state: DeliverySignalState): string {
+  if (state === 'delivered') return 'Delivered';
+  if (state === 'fired') return 'Fired';
+  if (state === 'failed') return 'Rejected';
+  if (state === 'sending') return 'Sending';
+  if (state === 'off') return 'Off';
+  return 'Not sent';
+}
+
 export function relativeTime(timestamp: string): string {
   const elapsedSeconds = Math.max(
     0,
@@ -127,11 +244,12 @@ export function relativeTime(timestamp: string): string {
 }
 
 export function statusStyles(status: CAPIEvent['status']): string {
-  if (status === 'Success') return 'border-emerald-200 bg-emerald-50 text-emerald-700';
+  if (status === 'Delivered') return 'border-emerald-200 bg-emerald-50 text-emerald-700';
   if (status === 'Failed') return 'border-rose-200 bg-rose-50 text-rose-700';
   if (status === 'Retry') return 'border-amber-200 bg-amber-50 text-amber-700';
+  if (status === 'Skipped') return 'border-slate-300 bg-slate-100 text-slate-700';
   if (status === 'Fired') return 'border-violet-200 bg-violet-50 text-violet-700';
-  return 'border-sky-200 bg-sky-50 text-sky-700';
+  return 'border-blue-200 bg-blue-50 text-blue-700';
 }
 
 export function mobileEventDateKey(timestamp: string): string {
@@ -171,7 +289,9 @@ export function eventValueLabel(group: GroupedEvent): string {
 }
 
 export function deliverySummary(event: CAPIEvent): string {
-  if (event.status === 'Success') return `Sent · ${event.httpCode || 200} OK`;
+  if (event.status === 'Delivered') return `Delivered · ${event.httpCode || 200} OK`;
+  if (event.status === 'Accepted') return 'Accepted · queued for delivery';
+  if (event.status === 'Skipped') return 'Skipped · routing was disabled at acceptance';
   if (event.status === 'Retry') return 'Queued · retry scheduled';
   if (event.status === 'Failed') {
     const response = event.responseBody;

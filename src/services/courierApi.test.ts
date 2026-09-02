@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { normalizeCourierOrdersPayload, normalizePathaoStoresPayload } from './courierApi';
+import { normalizeCourierOrdersPage, normalizeCourierOrdersPayload, normalizePathaoStoresPayload } from './courierApi';
 
 test('normalizes wrapped courier orders returned by the API', () => {
   const orders = normalizeCourierOrdersPayload({
@@ -20,6 +20,22 @@ test('normalizes wrapped courier orders returned by the API', () => {
   assert.equal(orders[0].order_id, '9283');
   assert.equal(orders[0].cod_amount, 2490);
   assert.equal(orders[0].products?.[0]?.name, 'Hoodie');
+});
+
+test('preserves wrapped courier pagination metadata', () => {
+  const page = normalizeCourierOrdersPage({
+    orders: [{ id: 42, order_id: 'WC-42', courier_status: 'pending' }],
+    totalCount: 101,
+    offset: 50,
+    limit: 50,
+    hasMore: true,
+  });
+
+  assert.equal(page.items[0].order_id, 'WC-42');
+  assert.equal(page.totalCount, 101);
+  assert.equal(page.offset, 50);
+  assert.equal(page.limit, 50);
+  assert.equal(page.hasMore, true);
 });
 
 test('supports raw and wrapped Pathao store responses', () => {

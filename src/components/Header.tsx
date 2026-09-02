@@ -4,19 +4,21 @@
  */
 
 import React, { useState, useEffect, useRef } from 'react';
-import { 
-  Bell, 
-  Search, 
-  HelpCircle, 
+import {
+  Bell,
+  Search,
+  HelpCircle,
   RefreshCw,
   CheckCircle2,
+  ChevronRight,
   XCircle,
   Menu,
   X,
 } from 'lucide-react';
-import { ClientConnection, Suggestion } from '../types';
+import { ClientConnection, Suggestion, StoreInfo } from '../types';
 import { Button } from './common/Button';
 import { Modal } from './common/Modal';
+import { StoreSwitcher } from './StoreSwitcher';
 
 interface HeaderProps {
   title: string;
@@ -28,33 +30,49 @@ interface HeaderProps {
   suggestions?: Suggestion[];
   setActivePage?: (p: string) => void;
   onOpenGuide?: () => void;
+  /** The store list and its switcher, which used to live in the left rail. */
+  stores?: StoreInfo[];
+  storeFallbackName?: string;
+  onSwitchStore?: (clientId: number) => Promise<void>;
+  onCreateStore?: () => void;
 }
 
+/**
+ * Names follow the prototype's nav wording, so what a merchant reads in the rail
+ * is what they can search for here. The old names stay on as `keywords` — anyone
+ * who learned the portal as "Purchase Event Hold" still lands on COD review by
+ * typing it — and Delivery logs joins the list at all, having been missing from
+ * both the rail and this palette while its route quietly existed.
+ */
 const pageSuggestions = [
-  { id: 'dashboard', name: 'Dashboard', keywords: ['dashboard', 'home', 'overview', 'main', 'quota'] },
-  { id: 'analytics', name: 'Insights & Analytics', keywords: ['insights', 'analytics', 'chart', 'trend', 'volume', 'quality'] },
-  { id: 'pending-purchases', name: 'Purchase Event Hold', keywords: ['purchase event hold', 'cod protection', 'verify', 'pending', 'skip', 'hold'] },
-  { id: 'orders', name: 'Orders & Shipping', keywords: ['orders and shipping', 'order manage', 'orders', 'delivery', 'courier', 'pathao', 'steadfast', 'redx'] },
-  { id: 'incomplete-checkouts', name: 'Incomplete Orders', keywords: ['incomplete orders', 'abandoned', 'recovery', 'checkout', 'phone'] },
-  { id: 'campaign-builder', name: 'Campaign Tools', keywords: ['campaigns', 'builder', 'url', 'utm', 'sandbox', 'test'] },
-  { id: 'suggestions', name: 'Setup Health', keywords: ['setup', 'suggestions', 'diagnostics', 'health', 'issues'] },
-  { id: 'setup-guide', name: 'Setup Guide / Docs', keywords: ['setup guide', 'docs', 'faq', 'wordpress', 'installation'] },
-  { id: 'event-logs', name: 'Event Logs', keywords: ['event history', 'logs', 'success', 'retry', 'event key'] },
-  { id: 'api-logs', name: 'API Logs', keywords: ['api logs', 'endpoint', 'responses', 'retries'] },
-  { id: 'settings', name: 'Settings', keywords: ['settings', 'pixel', 'access token', 'rules', 'connection'] },
-  { id: 'account', name: 'Account Details', keywords: ['account', 'profile', 'password', 'delete', 'reset'] }
+  { id: 'dashboard', name: 'Overview', keywords: ['dashboard', 'home', 'overview', 'main', 'quota'] },
+  { id: 'orders', name: 'Orders', keywords: ['orders and shipping', 'order manage', 'orders', 'delivery', 'courier', 'pathao', 'steadfast', 'redx'] },
+  { id: 'pending-purchases', name: 'COD review', keywords: ['cod review', 'purchase verification', 'purchase event hold', 'cod protection', 'cod verification', 'verify', 'pending', 'skip', 'hold'] },
+  { id: 'incomplete-checkouts', name: 'Incomplete checkouts', keywords: ['incomplete checkouts', 'incomplete orders', 'abandoned', 'recovery', 'checkout', 'phone'] },
+  { id: 'event-logs', name: 'Event activity', keywords: ['event activity', 'event history', 'event logs', 'event tracking activity', 'event tracking activities', 'tracking activity', 'logs', 'success', 'retry', 'event key'] },
+  { id: 'api-logs', name: 'Delivery logs', keywords: ['delivery logs', 'api logs', 'platform delivery history', 'outbound requests', 'provider response', 'failed requests'] },
+  { id: 'analytics', name: 'Ad Insights', keywords: ['insights', 'analytics', 'chart', 'trend', 'volume', 'quality'] },
+  { id: 'campaign-builder', name: 'Campaign tools', keywords: ['campaigns', 'builder', 'url', 'utm', 'sandbox', 'test'] },
+  { id: 'suggestions', name: 'Setup health', keywords: ['setup', 'suggestions', 'diagnostics', 'health', 'issues'] },
+  { id: 'setup-guide', name: 'Setup guide', keywords: ['setup guide', 'docs', 'faq', 'wordpress', 'installation'] },
+  { id: 'settings', name: 'Settings', keywords: ['settings', 'pixel', 'access token', 'rules', 'connection', 'whatsapp', 'alerts', 'courier'] },
+  { id: 'account', name: 'Account', keywords: ['account', 'profile', 'password', 'billing', 'payment', 'plan', 'invoice', 'delete', 'reset'] }
 ];
 
-export function Header({ 
-  title, 
-  connection, 
-  onRefreshConnection, 
-  searchVal, 
-  setSearchVal, 
+export function Header({
+  title,
+  connection,
+  onRefreshConnection,
+  searchVal,
+  setSearchVal,
   onMenuClick,
   suggestions = [],
   setActivePage,
-  onOpenGuide
+  onOpenGuide,
+  stores = [],
+  storeFallbackName = '',
+  onSwitchStore,
+  onCreateStore
 }: HeaderProps) {
   const [testing, setTesting] = useState(false);
   const [toast, setToast] = useState<{ show: boolean; msg: string; err: boolean }>({ show: false, msg: '', err: false });
@@ -131,12 +149,12 @@ export function Header({
     switch (connection.status) {
       case 'Active':
         return (
-          <div className="flex items-center gap-1.5 rounded-full border border-green-200 bg-green-50 px-2.5 py-0.5">
+          <div className="flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5">
             <span className="relative flex h-2 w-2">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75"></span>
-              <span className="relative inline-flex h-2 w-2 rounded-full bg-green-500"></span>
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500"></span>
             </span>
-            <span className="text-xs font-bold tracking-wider text-green-700 uppercase">Connected</span>
+            <span className="text-xs font-bold tracking-wider text-emerald-700 uppercase">Connected</span>
           </div>
         );
       case 'Degraded':
@@ -170,13 +188,44 @@ export function Header({
           {onMenuClick && (
             <button
               onClick={onMenuClick}
-              className="-ml-1 block rounded-full p-2 text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900 focus:outline-none focus:ring-1 focus:ring-blue-500 md:hidden"
+              // No local focus ring. The base layer already draws 2px of
+              // `--bk-console-blue` on every button's :focus-visible with
+              // !important, so `focus:ring-1 focus:ring-blue-500` only added a
+              // second, thinner halo in the one stray `blue-500` that survived
+              // the teal migration — on mouse clicks as well, since it
+              // was `focus:` not `focus-visible:`.
+              className="-ml-1 block rounded-full p-2 text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900 md:hidden"
               aria-label="Toggle navigation menu"
             >
               <Menu className="w-5 h-5" />
             </button>
           )}
-          <h1 className="truncate text-sm font-semibold tracking-tight text-slate-900 md:text-base">{title}</h1>
+          {/* Where you are: the store, then the page. The store's domain replaces
+              the constant "Buykori workspace" that used to lead this line — the
+              merchant knows which product they are in, and with more than one
+              store the domain is the part that actually changes. It sits outside
+              the <nav> because it is a control, and a breadcrumb is a trail of
+              places, not a menu. Below md it drops away exactly as the old prefix
+              did, leaving the hamburger, the page title and the badge. */}
+          {(stores.length > 0 || storeFallbackName) && (
+            <div className="hidden min-w-0 items-center gap-[7px] md:flex">
+              <StoreSwitcher
+                stores={stores}
+                fallbackName={storeFallbackName}
+                onSwitchStore={onSwitchStore}
+                onCreateStore={onCreateStore}
+              />
+              <ChevronRight aria-hidden="true" className="h-3.5 w-3.5 shrink-0 text-[var(--bk-console-text-subtle)]" />
+            </div>
+          )}
+          {/* `truncate` is a promise to clip, so it owes a `title` — the row is
+              ~325px at 1280 and shares it with the store switcher and the status
+              badge, which left "Incomplete checkouts" rendering as "Incomplete "
+              in a 69.8px box with no way to read the rest. StoreSwitcher beside
+              it already does this. */}
+          <nav aria-label="Breadcrumb" className="flex min-w-0 items-center text-caption">
+            <strong title={title} className="truncate font-semibold text-[var(--bk-console-text-body)]">{title}</strong>
+          </nav>
           <div className="hidden sm:block shrink-0">{getStatusBadge()}</div>
         </div>
 
@@ -230,7 +279,9 @@ export function Header({
             type="button"
             onClick={() => setIsSearchOpen(true)}
             data-guide="top-search-mobile"
-            className="block rounded-full p-2 text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900 focus:outline-none focus:ring-1 focus:ring-blue-500 lg:hidden"
+            // Same as the hamburger above: the base-layer focus-visible outline
+            // is the indicator, so the local 1px blue-500 ring is dropped.
+            className="block rounded-full p-2 text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900 lg:hidden"
             title="Go to a page"
             aria-label="Open quick navigation search"
           >
@@ -394,7 +445,12 @@ export function Header({
                   placeholder="Search by event name, ID, or customer data..."
                   value={searchVal}
                   onChange={(e) => setSearchVal(e.target.value)}
-                  className="w-full rounded-lg border border-slate-200 bg-slate-50 px-9 py-2.5 text-xs outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 text-slate-800    font-mono transition-all"
+                  /* No focus utilities: `focus:ring-1` would have outranked the
+                     base `input:focus` rule and cut the indicator back to 1px,
+                     which is half the area WCAG 2.4.11 asks for. Left bare, this
+                     input gets the same 2px accent the rest of the portal's
+                     inputs get. */
+                  className="w-full rounded-lg border border-slate-200 bg-slate-50 px-9 py-2.5 text-xs text-slate-800 font-mono transition-all"
                   autoFocus
                 />
                 <Search className="absolute left-3 top-3 h-3.5 w-3.5 text-slate-400" />

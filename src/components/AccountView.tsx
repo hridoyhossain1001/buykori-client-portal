@@ -1,18 +1,20 @@
-import { useEffect, useState, type FormEvent } from 'react';
-import { Trash2, UserRound, WalletCards } from 'lucide-react';
+import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
+import { ChevronDown, Trash2, UserRound, WalletCards } from 'lucide-react';
 import QRCode from 'qrcode';
 import type { ClientConnection, UserProfile } from '../types';
+import { PageHeader, TabPanel, Tabs, type TabItem } from './common';
 import {
   PLAN_PRICING,
   extractPaymentIntent,
   paymentIntentMatchesPlan,
   paymentIntentSecondsRemaining,
+  resolvePlanKey,
   type PaymentHistoryItem,
   type PaymentIntent,
   type PaymentProvider,
   type PlanTier,
 } from './account/accountTypes';
-import ProfileSummaryCard from './account/ProfileSummaryCard';
+import { resolvePlanBillingDisplay } from './account/accountStatus';
 import ProfileForm from './account/ProfileForm';
 import PasswordSection from './account/PasswordSection';
 import { ActiveSessionsCard, TwoStepVerificationCard } from './account/SecuritySessionsSection';
@@ -36,10 +38,6 @@ interface AccountViewProps {
   setProfEmailCurrentPassword: (v: string) => void;
   profNotifEmail: string;
   setProfNotifEmail: (v: string) => void;
-  profNotifyWhatsapp: boolean;
-  setProfNotifyWhatsapp: (v: boolean) => void;
-  profWhatsappNumber: string;
-  setProfWhatsappNumber: (v: string) => void;
   profUpdating: boolean;
   submitProfileSave: (e: FormEvent) => Promise<boolean>;
   passCurrent: string;
@@ -57,6 +55,54 @@ interface AccountViewProps {
   handleTokenRevoke: () => Promise<void>;
   handleDeleteAccountRequest: () => void;
   showToast: (msg: string, isErr?: boolean, action?: { label: string; onClick: () => void }) => void;
+}
+
+/** The three regions of the Account page, named once for the strip and the state. */
+type AccountSectionId = 'profile' | 'billing' | 'danger';
+
+/**
+ * Collapses one Account card behind a tap target on a phone, and shows it
+ * outright on anything wider.
+ *
+ * This used to be a `<details>` on every width, unfolded on desktop by an
+ * injected `@media (min-width:640px) { details > :not(summary) { display:block
+ * !important } }` rule. That rule no longer does anything: current Chrome hides
+ * a closed `<details>`'s content through `::details-content`'s
+ * `content-visibility`, not through `display` on the children, so `!important`
+ * on `display` cannot reach it. The visible result was that Password, Two-step
+ * verification and Active sessions rendered in the DOM but were invisible on
+ * desktop -- the merchant could not change their password from a laptop.
+ *
+ * So the width decides which element we render instead of which CSS wins.
+ * `matchMedia` is read once for the first paint and then listened to, so
+ * dragging a window across 640px switches form without a reload. Nothing is
+ * lost by dropping the summary on desktop: every child already prints its own
+ * `<h3>` with the same words.
+ */
+function MobileAccountDisclosure({ title, children }: { title: string; children: ReactNode }) {
+  const [expanded, setExpanded] = useState(
+    () => typeof window === 'undefined' || window.matchMedia('(min-width: 640px)').matches
+  );
+
+  useEffect(() => {
+    const query = window.matchMedia('(min-width: 640px)');
+    const sync = () => setExpanded(query.matches);
+    sync();
+    query.addEventListener('change', sync);
+    return () => query.removeEventListener('change', sync);
+  }, []);
+
+  if (expanded) return <>{children}</>;
+
+  return (
+    <details className="account-mobile-disclosure group">
+      <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between rounded-xl border border-slate-200 bg-white px-4 text-sm font-bold text-slate-800 shadow-sm [&::-webkit-details-marker]:hidden">
+        {title}
+        <ChevronDown className="h-4 w-4 text-slate-400 transition-transform group-open:rotate-180" />
+      </summary>
+      <div className="mt-2">{children}</div>
+    </details>
+  );
 }
 
 export function AccountView({
@@ -101,10 +147,12 @@ export function AccountView({
   const [paymentSecondsLeft, setPaymentSecondsLeft] = useState(0);
   const [paymentFeedback, setPaymentFeedback] = useState('');
   const [paymentSuccess, setPaymentSuccess] = useState<{ title: string; message: string } | null>(null);
-  const [accountSection, setAccountSection] = useState<'profile' | 'billing' | 'danger'>('profile');
+  const [accountSection, setAccountSection] = useState<AccountSectionId>('profile');
   const [paymentHistory, setPaymentHistory] = useState<PaymentHistoryItem[]>([]);
   const [paymentHistoryLoading, setPaymentHistoryLoading] = useState(false);
   const [paymentHistoryLoaded, setPaymentHistoryLoaded] = useState(false);
+  // Distinct from "loaded": a failed request must not read as "never paid".
+  const [paymentHistoryReady, setPaymentHistoryReady] = useState(false);
   const [paymentStatusFilter, setPaymentStatusFilter] = useState<'all' | 'paid' | 'cancelled' | 'expired'>('all');
   const [paymentPage, setPaymentPage] = useState(1);
 
@@ -113,15 +161,19 @@ export function AccountView({
     : { name: 'Nagad', primary: '#D8292F', secondary: '#F37021', soft: '#FFF4ED', text: '#9A3412' };
   const paymentExpired = paymentSecondsLeft <= 0 && !!paymentIntent;
   const paymentSenderValid = /^01[3-9]\d{8}$/.test(paymentSender.replace(/\D/g, ''));
-  const currentPlanLower = (profile.plan || '').toLowerCase();
-  const isFree = currentPlanLower.includes('free');
-  const isStarter = currentPlanLower.includes('starter');
-  const isGrowth = currentPlanLower.includes('growth');
-  const isPro = currentPlanLower.includes('pro') || currentPlanLower.includes('scale');
-  const isAgency = currentPlanLower.includes('agency');
-  const usagePercent = profile.eventsQuota > 0
-    ? Math.min(100, (profile.eventsUsed / profile.eventsQuota) * 100)
-    : 0;
+  // One reading of the plan label feeds every plan-dependent claim on the screen.
+  const planKey = resolvePlanKey(profile.plan);
+  const isFree = planKey === 'free';
+  const isStarter = planKey === 'starter';
+  const isGrowth = planKey === 'growth';
+  const isPro = planKey === 'pro';
+  const isAgency = planKey === 'agency';
+  const billing = resolvePlanBillingDisplay({
+    profile,
+    paymentHistory,
+    paymentHistoryReady,
+    now: new Date(),
+  });
 
   const readApiError = async (response: Response, fallback: string) => {
     try {
@@ -218,15 +270,23 @@ export function AccountView({
     let active = true;
     setPaymentHistoryLoading(true);
     fetch('/api/payments/history?limit=100')
-      .then(response => (response.ok ? response.json() : { payments: [] }))
+      .then(response => {
+        if (!response.ok) throw new Error('Payment history could not be read.');
+        return response.json();
+      })
       .then(payload => {
         if (!active) return;
         const items: PaymentHistoryItem[] = payload?.payments || payload?.history || payload?.data || [];
         setPaymentHistory(Array.isArray(items) ? items : []);
+        setPaymentHistoryReady(true);
         setPaymentHistoryLoaded(true);
       })
       .catch(() => {
-        if (active) setPaymentHistoryLoaded(true);
+        // An unreadable history is not evidence that the plan was never paid for,
+        // so it stays "not ready" and the plan header keeps the profile's word.
+        if (!active) return;
+        setPaymentHistoryReady(false);
+        setPaymentHistoryLoaded(true);
       })
       .finally(() => {
         if (active) setPaymentHistoryLoading(false);
@@ -339,61 +399,81 @@ export function AccountView({
     }
   };
 
-  const accountSections = [
-    { id: 'profile' as const, label: 'Profile & Security', icon: UserRound },
-    { id: 'billing' as const, label: 'Plan & Billing', icon: WalletCards },
-    { id: 'danger' as const, label: 'Danger Zone', icon: Trash2 },
+  /**
+   * The console's own tab strip (`common/Tabs`), not a hand-rolled pill row.
+   * Three things come with it that the old row did not have: arrow-key movement
+   * between tabs, a roving tabindex so Tab reaches the panel instead of walking
+   * through every tab, and `aria-controls` linking each tab to the region it
+   * governs. The labels are the full words on every width -- the strip scrolls
+   * on a phone -- so "Billing" no longer has to stand in for "Plan & billing".
+   */
+  const accountTabs: readonly TabItem<AccountSectionId>[] = [
+    {
+      id: 'profile',
+      label: (
+        <>
+          <UserRound className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+          Profile &amp; security
+        </>
+      ),
+    },
+    {
+      id: 'billing',
+      label: (
+        <>
+          <WalletCards className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+          Plan &amp; billing
+        </>
+      ),
+    },
+    {
+      id: 'danger',
+      label: (
+        <>
+          <Trash2 className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+          Danger zone
+        </>
+      ),
+    },
   ];
 
   return (
-    <div className="mx-auto max-w-6xl space-y-6">
-      <div>
-        <h1 className="text-xl font-bold text-slate-900">Account</h1>
-        <p className="mt-1 text-xs text-slate-500">Manage your profile, security, plan and billing details.</p>
-      </div>
+    <div className="space-y-6">
+      <PageHeader
+        eyebrow="Your workspace"
+        title="Account"
+        description="Your profile and sign-in security, the plan you are on, and every payment on record."
+      />
 
-      <div role="tablist" aria-label="Account sections" className="flex flex-wrap gap-2 border-b border-slate-200 pb-3">
-        {accountSections.map(section => {
-          const Icon = section.icon;
-          const active = accountSection === section.id;
-          return (
-            <button
-              key={section.id}
-              role="tab"
-              type="button"
-              aria-selected={active}
-              onClick={() => setAccountSection(section.id)}
-              className={`inline-flex min-h-10 items-center gap-2 rounded-lg border px-3 text-xs font-bold transition ${
-                active
-                  ? 'border-slate-900 bg-slate-900 text-white'
-                  : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
-              }`}
-            >
-              <Icon className="h-3.5 w-3.5" /> {section.label}
-            </button>
-          );
-        })}
-      </div>
+      <Tabs<AccountSectionId>
+        tabs={accountTabs}
+        activeId={accountSection}
+        onChange={setAccountSection}
+        label="Account sections"
+        idPrefix="account"
+      />
 
-      {accountSection === 'profile' && (
-        <div className="grid gap-5 lg:grid-cols-[1fr_320px]">
-          <div className="order-2 space-y-5 lg:order-1">
-            <ProfileForm
-                profile={profile}
-                profName={profName}
-                setProfName={setProfName}
-                profEmail={profEmail}
-                setProfEmail={setProfEmail}
-                profEmailCodeRequested={profEmailCodeRequested}
-                profEmailCode={profEmailCode}
-                setProfEmailCode={setProfEmailCode}
-                profEmailCurrentPassword={profEmailCurrentPassword}
-                setProfEmailCurrentPassword={setProfEmailCurrentPassword}
-                profNotifEmail={profNotifEmail}
-              setProfNotifEmail={setProfNotifEmail}
-              profUpdating={profUpdating}
-              submitProfileSave={submitProfileSave}
-            />
+      <TabPanel idPrefix="account" tabId="profile" activeId={accountSection} className="focus-visible:outline-none">
+        {/* Forms stay on a narrower measure than the tables elsewhere in the
+            console: a 1540px-wide text input is harder to fill in, not easier. */}
+        <div className="max-w-4xl space-y-5">
+          <ProfileForm
+            profile={profile}
+            profName={profName}
+            setProfName={setProfName}
+            profEmail={profEmail}
+            setProfEmail={setProfEmail}
+            profEmailCodeRequested={profEmailCodeRequested}
+            profEmailCode={profEmailCode}
+            setProfEmailCode={setProfEmailCode}
+            profEmailCurrentPassword={profEmailCurrentPassword}
+            setProfEmailCurrentPassword={setProfEmailCurrentPassword}
+            profNotifEmail={profNotifEmail}
+            setProfNotifEmail={setProfNotifEmail}
+            profUpdating={profUpdating}
+            submitProfileSave={submitProfileSave}
+          />
+          <MobileAccountDisclosure title="Password">
             <PasswordSection
               passCurrent={passCurrent}
               setPassCurrent={setPassCurrent}
@@ -404,53 +484,52 @@ export function AccountView({
               submitPasswordUpdate={submitPasswordUpdate}
               submitPasswordResetEmail={submitPasswordResetEmail}
             />
+          </MobileAccountDisclosure>
+          <MobileAccountDisclosure title="Two-step verification">
             <TwoStepVerificationCard />
+          </MobileAccountDisclosure>
+          <MobileAccountDisclosure title="Active sessions">
             <ActiveSessionsCard />
-          </div>
-          <div className="order-1 lg:order-2">
-            <ProfileSummaryCard profile={profile} usagePercent={usagePercent} />
-          </div>
+          </MobileAccountDisclosure>
         </div>
-      )}
+      </TabPanel>
 
-      {accountSection === 'billing' && (
-        <div className="space-y-5">
-          <PlanBillingSection
-            profile={profile}
-            usagePercent={usagePercent}
-            isFree={isFree}
-            isStarter={isStarter}
-            isGrowth={isGrowth}
-            isPro={isPro}
-            isAgency={isAgency}
-            openPayment={openPayment}
-          />
-          <PaymentHistorySection
-            profile={profile}
-            paymentHistory={paymentHistory}
-            paymentHistoryLoading={paymentHistoryLoading}
-            paymentStatusFilter={paymentStatusFilter}
-            setPaymentStatusFilter={setPaymentStatusFilter}
-            paymentPage={paymentPage}
-            setPaymentPage={setPaymentPage}
-            onRefresh={() => setPaymentHistoryLoaded(false)}
-          />
-        </div>
-      )}
+      <TabPanel idPrefix="account" tabId="billing" activeId={accountSection} className="space-y-5 focus-visible:outline-none">
+        <PlanBillingSection
+          profile={profile}
+          billing={billing}
+          isFree={isFree}
+          isStarter={isStarter}
+          isGrowth={isGrowth}
+          isPro={isPro}
+          isAgency={isAgency}
+          openPayment={openPayment}
+        />
+        <PaymentHistorySection
+          profile={profile}
+          renewal={billing.renewal}
+          renewalPrice={billing.renewalPrice}
+          paymentHistory={paymentHistory}
+          paymentHistoryLoading={paymentHistoryLoading}
+          paymentStatusFilter={paymentStatusFilter}
+          setPaymentStatusFilter={setPaymentStatusFilter}
+          paymentPage={paymentPage}
+          setPaymentPage={setPaymentPage}
+          onRefresh={() => setPaymentHistoryLoaded(false)}
+        />
+      </TabPanel>
 
-      {accountSection === 'danger' && (
-        <div className="space-y-5">
-          <DangerZoneSection
-            connection={connection}
-            confirmRevokeText={confirmRevokeText}
-            setConfirmRevokeText={setConfirmRevokeText}
-            handleTokenRevoke={handleTokenRevoke}
-            confirmDeleteText={confirmDeleteText}
-            setConfirmDeleteText={setConfirmDeleteText}
-            handleDeleteAccountRequest={handleDeleteAccountRequest}
-          />
-        </div>
-      )}
+      <TabPanel idPrefix="account" tabId="danger" activeId={accountSection} className="space-y-5 focus-visible:outline-none">
+        <DangerZoneSection
+          connection={connection}
+          confirmRevokeText={confirmRevokeText}
+          setConfirmRevokeText={setConfirmRevokeText}
+          handleTokenRevoke={handleTokenRevoke}
+          confirmDeleteText={confirmDeleteText}
+          setConfirmDeleteText={setConfirmDeleteText}
+          handleDeleteAccountRequest={handleDeleteAccountRequest}
+        />
+      </TabPanel>
 
       {paymentPlan && (
         <PaymentCheckoutModal

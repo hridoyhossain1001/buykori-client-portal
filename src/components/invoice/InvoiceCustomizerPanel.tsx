@@ -16,8 +16,15 @@ interface InvoiceCustomizerPanelProps {
   handleOrderDeliveryChargeChange: (orderIdStr: string, newCharge: number) => void;
 }
 
+/**
+ * No focus utilities here or on the two per-order fields below. Tailwind v4's
+ * `ring-*` outranks the base `input:focus` box-shadow in index.css, so the old
+ * `focus:ring-1` cut the portal's 2px accent down to 1px on these fields only —
+ * half the perimeter WCAG 2.4.11 asks for, and a different focus ring from every
+ * other input on the page. Left bare, they match the rest.
+ */
 const FIELD_CLASS =
-  'w-full px-3 py-1.5 text-xs bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500   ';
+  'w-full px-3 py-1.5 text-xs bg-white border border-slate-200 rounded-lg';
 const LABEL_CLASS = 'block text-xs font-bold text-slate-500 uppercase mb-1';
 
 export function InvoiceCustomizerPanel({
@@ -130,7 +137,7 @@ export function InvoiceCustomizerPanel({
                 return (
                   <div key={oId} className="p-3 bg-white  border border-slate-200  rounded-xl space-y-2 shadow-xs">
                     <div className="flex justify-between items-center border-b border-slate-100  pb-1">
-                      <span className="font-mono font-bold text-xs text-indigo-600 ">#{oId}</span>
+                      <span className="font-mono font-bold text-xs text-indigo-600">#{oId}</span>
                       <span className="text-xs text-slate-400">{ord.recipientName || ord.recipient_name || 'Customer'}</span>
                     </div>
                     <div className="grid grid-cols-2 gap-2">
@@ -141,7 +148,7 @@ export function InvoiceCustomizerPanel({
                           value={settings.courierId}
                           onChange={(e) => handleOrderCourierIdChange(oId, e.target.value)}
                           placeholder="Consignment ID"
-                          className="w-full px-2 py-1 text-xs bg-slate-50 border border-slate-200 rounded focus:outline-none focus:ring-1 focus:ring-indigo-500   "
+                          className="w-full px-2 py-1 text-xs bg-slate-50 border border-slate-200 rounded"
                         />
                       </div>
                       <div>
@@ -150,7 +157,7 @@ export function InvoiceCustomizerPanel({
                           type="number"
                           value={settings.deliveryCharge}
                           onChange={(e) => handleOrderDeliveryChargeChange(oId, Number(e.target.value))}
-                          className="w-full px-2 py-1 text-xs bg-slate-50 border border-slate-200 rounded focus:outline-none focus:ring-1 focus:ring-indigo-500   "
+                          className="w-full px-2 py-1 text-xs bg-slate-50 border border-slate-200 rounded"
                         />
                       </div>
                     </div>

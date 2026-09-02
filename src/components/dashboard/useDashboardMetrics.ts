@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import type { CAPIEvent, RecoverySummary, TrendPoint, UserProfile } from '../../types';
-import { chartGeometry } from './dashboardUtils';
+import { chartGeometry, platformHealth } from './dashboardUtils';
 
 export interface PlatformStats {
   total: number;
@@ -96,6 +96,30 @@ export function useDashboardMetrics({
   const firstTrendLabel = chartData[0]?.name || '';
   const middleTrendLabel = chartData[Math.floor((chartData.length - 1) / 2)]?.name || '';
   const lastTrendLabel = chartData[chartData.length - 1]?.name || '';
+
+  /**
+   * The prototype's dashboard header reads "Destinations 2 / 3", and its chart
+   * caption reads "N events · peak M on <day>". Both are derived here rather
+   * than in the view so desktop, mobile and the metric strip cannot drift.
+   *
+   * "Healthy" means the same thing here as in the tracking-health panel — a
+   * success rate at or above the healthy threshold — so a destination that is
+   * delivering 40% of its events is never counted toward the headline number.
+   * A destination with no attempts yet ('idle') is not healthy and not failing;
+   * it simply is not counted as healthy.
+   */
+  const destinationsTotal = platformRows.length;
+  const destinationsHealthy = platformRows.filter(
+    row => platformHealth(row.total, row.rate).tone === 'healthy',
+  ).length;
+
+  const trendTotal = chartData.reduce((total, point) => total + point.events, 0);
+  const trendPeakPoint = chartData.reduce<DashboardChartPoint | null>(
+    (peak, point) => (peak === null || point.events > peak.events ? point : peak),
+    null,
+  );
+  const trendPeak = trendPeakPoint?.events ?? 0;
+  const trendPeakLabel = trendPeakPoint?.name ?? '';
   const renewalDate = profile.renewalDate ? new Date(profile.renewalDate) : null;
   const renewalIsValid = Boolean(renewalDate && !Number.isNaN(renewalDate.getTime()));
   const daysUntilRenewal = renewalIsValid
@@ -121,6 +145,11 @@ export function useDashboardMetrics({
     firstTrendLabel,
     middleTrendLabel,
     lastTrendLabel,
+    destinationsHealthy,
+    destinationsTotal,
+    trendTotal,
+    trendPeak,
+    trendPeakLabel,
     renewalDate,
     renewalIsValid,
     daysUntilRenewal,

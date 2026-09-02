@@ -1,5 +1,5 @@
 import React from 'react';
-import { MobileDeliveryBadge, MobileEventIcon } from './eventLogBadges';
+import { MobileDeliverySignals, MobileEventIcon } from './eventLogBadges';
 import {
   GroupedEvent,
   eventValueLabel,
@@ -57,13 +57,11 @@ export function EventLogMobileList({
                     : ''}
                 </span>
                 <span className="mt-2 flex flex-wrap gap-1.5">
-                  {group.deliveries
-                    .filter(event => event.platform !== 'Gateway Ingest')
-                    .map(event => (
-                      <React.Fragment key={event.id}>
-                        <MobileDeliveryBadge event={event} />
-                      </React.Fragment>
-                    ))}
+                  {/* The same three destinations the desktop Delivery column
+                      shows, in the same order. Tapping the card opens the detail
+                      sheet, which still lists every row including the gateway
+                      receipt. */}
+                  <MobileDeliverySignals group={group} />
                 </span>
               </span>
             </button>

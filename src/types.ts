@@ -5,13 +5,13 @@
 
 export type Platform = 'Meta CAPI' | 'TikTok Events API' | 'GA4';
 
-export type EventStatus = 'Success' | 'Failed' | 'Filtered' | 'Retry' | 'Fired';
+export type EventStatus = 'Accepted' | 'Delivered' | 'Skipped' | 'Failed' | 'Retry' | 'Fired';
 
 export interface CAPIEvent {
   id: string;
   timestamp: string;
   name: string;
-  platform: Platform | 'TikTok Browser Pixel' | 'Gateway Ingest';
+  platform: Platform | 'TikTok Browser Pixel' | 'Webhook' | 'Gateway Ingest';
   status: EventStatus;
   httpCode: number;
   deduplicationKey: string;
@@ -29,6 +29,12 @@ export interface CAPIEvent {
 
 export interface APILog {
   id: string;
+  eventId?: string | null;
+  outboxId?: number | null;
+  retryable?: boolean;
+  outboxStatus?: string | null;
+  outboxAttempts?: number | null;
+  nextRetryAt?: string | null;
   timestamp: string;
   platform: CAPIEvent['platform'];
   endpoint: string;
@@ -127,6 +133,23 @@ export interface UserProfile {
   ordersUsed?: number;
   ordersQuota?: number;
   renewalDate: string;
+  // ─── Billing cycle ────────────────────────────────────────────────────
+  // The plan runs on a rolling 30-day cycle anchored to the day the client was
+  // put on it, not on the calendar month, so every one of these is per-client.
+  /** Anchor of the paid period (ISO), null for a free/trial client. */
+  periodStart?: string | null;
+  /** End of the entitlement actually paid for (ISO). */
+  planExpiresAt?: string | null;
+  /** End of the settlement window that follows planExpiresAt (ISO). */
+  graceEndsAt?: string | null;
+  graceDays?: number;
+  /** True between planExpiresAt and graceEndsAt: service still runs, payment is due. */
+  inGracePeriod?: boolean;
+  quotaCycleStart?: string | null;
+  /** When the usage counters go back to zero (ISO). */
+  quotaResetsAt?: string | null;
+  quotaCycleDays?: number;
+  daysUntilExpiry?: number | null;
   growthFeaturesEnabled?: boolean;
   paidFeaturesEnabled?: boolean;
   planFeatures?: Array<{
@@ -136,8 +159,6 @@ export interface UserProfile {
     included: boolean;
     minimumPlan: string;
   }>;
-  ownerNotifyWhatsapp?: boolean;
-  ownerWhatsappNumber?: string;
   guideDismissed?: boolean;
   aiAdsEnabled?: boolean;
 }
@@ -179,11 +200,13 @@ export interface CourierSettings {
   steadfast_api_key?: string;
   steadfast_secret_key?: string;
   steadfast_webhook_token_configured?: boolean;
+  steadfast_webhook_verified_at?: string;
   redx_access_token?: string;
   redx_pickup_store_id?: string;
   redx_delivery_area_id?: string;
   redx_delivery_area_name?: string;
   redx_webhook_secret_configured?: boolean;
+  redx_webhook_verified_at?: string;
   courier_auto_send: boolean;
   default_courier?: string;
 }
@@ -196,6 +219,27 @@ export interface AdAccount {
   account_currency?: string;
   account_timezone?: string;
   last_synced_at?: string | null;
+}
+
+export type OrderWorkflowStatus =
+  | 'pending'
+  | 'on-hold'
+  | 'confirmed'
+  | 'processing'
+  | 'shipped'
+  | 'completed'
+  | 'cancelled';
+
+/**
+ * Where an order came from, exactly as the store captured it — `utm_source` (or
+ * the ad platform when only that was tagged) and the campaign or medium beside
+ * it. Absent when nothing was tagged; the portal shows that as "Direct" rather
+ * than guessing a channel. Written by `order_marketing()` in
+ * `app/services/attribution.py`.
+ */
+export interface OrderMarketing {
+  source?: string;
+  campaign?: string;
 }
 
 export interface CourierOrder {
@@ -213,6 +257,8 @@ export interface CourierOrder {
   created_at: string;
   purchase_event_sent: boolean;
   products?: DeferredOrderProduct[];
+  workflowStatus?: OrderWorkflowStatus;
+  marketing?: OrderMarketing | null;
 }
 
 export interface FulfillmentOrder {
@@ -277,10 +323,15 @@ export interface DeferredOrderProduct {
   attributes?: Record<string, unknown>;
   quantity?: number;
   price?: number;
+  /** Absolute http(s) product photo URL from the store, '' when unavailable. */
+  image?: string;
 }
 
 export interface DeferredOrder {
+  id?: number;
   orderId: string;
+  status?: string;
+  workflowStatus?: OrderWorkflowStatus;
   amount: number;
   productSubtotal?: number;
   deliveryCharge?: number;
@@ -340,13 +391,35 @@ export interface DeferredOrder {
   name?: string;
   phone?: string;
   address?: string;
+  note?: string;
   products?: DeferredOrderProduct[];
+  marketing?: OrderMarketing | null;
+}
+
+export interface DeferredOrderUpdatePayload {
+  customer_name: string;
+  phone: string;
+  address: string;
+  items: Array<{
+    name: string;
+    content_id?: string;
+    quantity: number;
+    price: number;
+    attributes?: Record<string, string>;
+    category?: string;
+  }>;
+  delivery_charge: number;
+  discount: number;
+  cod_amount: number;
+  note?: string;
 }
 
 export interface DeferredData {
   deferredEnabled?: boolean;
   autoConfirmDays?: number;
   autoConfirmStatus?: string;
+  /** Off by default — courier history is only fetched when a merchant clicks Check. */
+  courierAutoCheck?: boolean;
   pendingCount?: number;
   deferredPendingCount?: number;
   operationsPendingCount?: number;
@@ -361,6 +434,19 @@ export interface DeferredData {
   pendingList?: DeferredOrder[];
   deferredPendingList?: DeferredOrder[];
   operationsPendingList?: DeferredOrder[];
+  page?: number;
+  limit?: number;
+  hasMore?: boolean;
+  operationsHasMore?: boolean;
+}
+
+export interface PaginatedResult<T> {
+  items: T[];
+  totalCount: number;
+  limit: number;
+  hasMore: boolean;
+  page?: number;
+  offset?: number;
 }
 
 export interface StoreOrderLedgerItem {
@@ -401,6 +487,8 @@ export interface IncompleteCheckoutProduct {
   quantity?: number;
   price?: number;
   item_price?: number;
+  /** Filled in by the API from the photos that came with the store's orders. */
+  image?: string;
 }
 
 export interface IncompleteCheckoutItem {
@@ -423,6 +511,10 @@ export interface IncompleteCheckoutData {
   items: IncompleteCheckoutItem[];
   counts: Record<string, number>;
   restricted?: boolean;
+  totalCount?: number;
+  offset?: number;
+  limit?: number;
+  hasMore?: boolean;
 }
 
 export interface RecoveryOrderItem {
@@ -455,6 +547,18 @@ export interface AnalyticsOverview {
   total_events?: number;
   success_rate?: number;
   avg_daily_events?: number;
+  /**
+   * Delivery counts and the window length. FastAPI sends `success_count` /
+   * `failed_count`; the dev server sends `success_events` / `failed_events`.
+   * Both spellings are declared because the derived metrics in
+   * analyticsFormat recompute the delivery rate and daily average from these
+   * rather than trusting a `success_rate` that may be absent or stale.
+   */
+  success_count?: number;
+  failed_count?: number;
+  success_events?: number;
+  failed_events?: number;
+  period_days?: number;
   funnel: AnalyticsFunnelStep[];
 }
 

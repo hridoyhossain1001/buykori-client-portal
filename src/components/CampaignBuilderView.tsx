@@ -32,6 +32,8 @@ interface CampaignBuilderViewProps {
   handleDispatchSandboxTest: (e: React.FormEvent) => Promise<void>;
   urlBuilderBaseUrl: string;
   setUrlBuilderBaseUrl: (url: string) => void;
+  /** Bare domain of the connected store, '' when none is connected. */
+  storeDomain: string;
   urlBuilderSource: string;
   setUrlBuilderSource: (source: string) => void;
   urlBuilderMedium: string;
@@ -78,6 +80,7 @@ export function CampaignBuilderView({
   handleDispatchSandboxTest,
   urlBuilderBaseUrl,
   setUrlBuilderBaseUrl,
+  storeDomain,
   urlBuilderSource,
   setUrlBuilderSource,
   urlBuilderMedium,
@@ -122,6 +125,7 @@ export function CampaignBuilderView({
         <CampaignUrlForm
           urlBuilderBaseUrl={urlBuilderBaseUrl}
           setUrlBuilderBaseUrl={setUrlBuilderBaseUrl}
+          storeDomain={storeDomain}
           urlBuilderSource={urlBuilderSource}
           setUrlBuilderSource={setUrlBuilderSource}
           urlBuilderMedium={urlBuilderMedium}

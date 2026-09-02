@@ -55,7 +55,11 @@ export function StoreDomainSection({
             placeholder="example.com"
             onChange={(e) => setLocalStoreDomain(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter') saveStoreDomain(); }}
-            className="w-full rounded-lg border border-slate-200 bg-white p-2.5 text-sm text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            /* No focus utilities. `focus:ring-1 focus:ring-indigo-500` replaced the
+               base `input:focus` box-shadow in index.css with a 1px ring, halving the
+               portal's 2px accent on this one field. Bare, it matches every other
+               input. */
+            className="w-full rounded-lg border border-slate-200 bg-white p-2.5 text-sm text-slate-800"
           />
           <p className="mt-2 text-xs text-slate-400">Use the bare domain, without https:// or a trailing slash.</p>
         </div>
@@ -66,7 +70,7 @@ export function StoreDomainSection({
           type="button"
           disabled={savingStoreDomain || localStoreDomain.trim() === (storeDomain || '').trim()}
           onClick={saveStoreDomain}
-          className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-indigo-600 px-5 py-2.5 text-xs font-bold text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
+          className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-indigo-600 px-5 py-2.5 text-xs font-bold text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
         >
           <Save className="h-3.5 w-3.5" />
           {savingStoreDomain ? 'Saving' : 'Save domain'}

@@ -36,27 +36,27 @@
     },
     {
       "source": "/plugin/connect",
-      "destination": "/index.html"
+      "destination": "/"
     },
     {
       "source": "/client/dashboard",
-      "destination": "/index.html"
+      "destination": "/"
     },
     {
       "source": "/client/dashboard/:path*",
-      "destination": "/index.html"
+      "destination": "/"
     },
     {
       "source": "/app",
-      "destination": "/index.html"
+      "destination": "/"
     },
     {
       "source": "/app/:path*",
-      "destination": "/index.html"
+      "destination": "/"
     },
     {
       "source": "/order-success/:path*",
-      "destination": "/index.html"
+      "destination": "/"
     },
     {
       "source": "/client",
@@ -85,10 +85,6 @@
     {
       "source": "/client/logout",
       "destination": "https://api.buykori.app/client/logout"
-    },
-    {
-      "source": "/((?!.*\\..*).*)",
-      "destination": "/index.html"
     }
   ]
 }

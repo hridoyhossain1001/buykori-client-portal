@@ -1,5 +1,6 @@
 import { apiFetch } from '../lib/http';
-import type { CourierOrder, DeferredOrderProduct } from '../types';
+import type { CourierOrder, DeferredOrderProduct, PaginatedResult } from '../types';
+import { fetchOrderWorkflowStatuses } from './operationsApi';
 
 export interface PathaoStore {
   store_id: number | string;
@@ -47,6 +48,23 @@ export const normalizeCourierOrdersPayload = (payload: unknown): CourierOrder[] 
   return rows.map(normalizeCourierOrder).filter((order): order is CourierOrder => order !== null);
 };
 
+export const normalizeCourierOrdersPage = (payload: unknown): PaginatedResult<CourierOrder> => {
+  const items = normalizeCourierOrdersPayload(payload);
+  const body = isRecord(payload) ? payload : {};
+  const totalCount = Number(body.totalCount ?? items.length);
+  const offset = Number(body.offset ?? 0);
+  const limit = Number(body.limit ?? Math.max(items.length, 50));
+  return {
+    items,
+    totalCount: Number.isFinite(totalCount) ? totalCount : items.length,
+    offset: Number.isFinite(offset) ? offset : 0,
+    limit: Number.isFinite(limit) ? limit : 50,
+    hasMore: typeof body.hasMore === 'boolean'
+      ? body.hasMore
+      : offset + items.length < totalCount,
+  };
+};
+
 export const normalizePathaoStoresPayload = (payload: unknown): PathaoStore[] => {
   const rows = Array.isArray(payload)
     ? payload
@@ -57,10 +75,20 @@ export const normalizePathaoStoresPayload = (payload: unknown): PathaoStore[] =>
   }));
 };
 
-export async function loadCourierOrders(signal?: AbortSignal): Promise<CourierOrder[]> {
-  const response = await apiFetch('/api/courier/orders', { signal });
+export async function loadCourierOrders(signal?: AbortSignal): Promise<PaginatedResult<CourierOrder>> {
+  const [response, workflowStatuses] = await Promise.all([
+    apiFetch('/api/courier/orders', { signal }),
+    fetchOrderWorkflowStatuses(signal).catch(() => ({})),
+  ]);
   if (!response.ok) throw await requestError(response, 'Failed to fetch courier orders.');
-  return normalizeCourierOrdersPayload(await response.json());
+  const page = normalizeCourierOrdersPage(await response.json());
+  return {
+    ...page,
+    items: page.items.map(order => ({
+      ...order,
+      workflowStatus: workflowStatuses[order.order_id],
+    })),
+  };
 }
 
 export async function loadPathaoStores(signal?: AbortSignal): Promise<PathaoStore[]> {

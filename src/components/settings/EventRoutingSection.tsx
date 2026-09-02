@@ -174,15 +174,15 @@ const EventRoutingSection: React.FC<EventRoutingSectionProps> = ({
                 <div className="mt-4 grid grid-cols-3 gap-2 text-center text-xs font-bold uppercase tracking-wider text-slate-500">
                   <label className="rounded-lg border border-slate-100 bg-slate-50 p-2 ">
                     <span className="flex items-center justify-center gap-1"><PlatformLogo platform="Meta CAPI" className="h-4 w-4" />Meta</span>
-                    <input type="checkbox" checked={rule.metaEnabled} onChange={() => handleToggleRule(idx, 'metaEnabled')} className="mt-2 h-4 w-4 rounded accent-[#285ac7]" />
+                    <input type="checkbox" checked={rule.metaEnabled} onChange={() => handleToggleRule(idx, 'metaEnabled')} className="mt-2 h-4 w-4 rounded accent-indigo-600" />
                   </label>
                   <label className="rounded-lg border border-slate-100 bg-slate-50 p-2 ">
                     <span className="flex items-center justify-center gap-1"><PlatformLogo platform="TikTok Events API" className="h-4 w-4" />TikTok</span>
-                    <input type="checkbox" checked={rule.tiktokEnabled} onChange={() => handleToggleRule(idx, 'tiktokEnabled')} className="mt-2 h-4 w-4 rounded accent-[#285ac7]" />
+                    <input type="checkbox" checked={rule.tiktokEnabled} onChange={() => handleToggleRule(idx, 'tiktokEnabled')} className="mt-2 h-4 w-4 rounded accent-indigo-600" />
                   </label>
                   <label className="rounded-lg border border-slate-100 bg-slate-50 p-2 ">
                     <span className="flex items-center justify-center gap-1"><PlatformLogo platform="GA4" className="h-4 w-4" />GA4</span>
-                    <input type="checkbox" checked={rule.ga4Enabled} onChange={() => handleToggleRule(idx, 'ga4Enabled')} className="mt-2 h-4 w-4 rounded accent-[#285ac7]" />
+                    <input type="checkbox" checked={rule.ga4Enabled} onChange={() => handleToggleRule(idx, 'ga4Enabled')} className="mt-2 h-4 w-4 rounded accent-indigo-600" />
                   </label>
                 </div>
               </div>
@@ -249,7 +249,7 @@ const EventRoutingSection: React.FC<EventRoutingSectionProps> = ({
                           <Trash2 className="h-3.5 w-3.5" />
                         </button>
                       ) : (
-                        <span className="text-xs font-semibold uppercase tracking-wider text-slate-350 ">Core</span>
+                        <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 ">Core</span>
                       )}
                     </td>
                   </tr>

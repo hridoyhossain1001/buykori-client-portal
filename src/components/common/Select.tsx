@@ -33,7 +33,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select
   return (
     <div className={`space-y-1.5 ${wrapperClassName}`}>
       {label && (
-        <label htmlFor={fieldId} className="block text-xs font-semibold text-[var(--bk-console-text)]">
+        <label htmlFor={fieldId} className="block text-label font-extrabold text-[var(--bk-console-text-muted)]">
           {label}
         </label>
       )}
@@ -43,10 +43,18 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select
           id={fieldId}
           aria-invalid={hasError ? true : undefined}
           aria-describedby={describedBy}
-          className={`w-full appearance-none rounded-lg border bg-white py-2 pl-3 pr-9 text-sm text-[var(--bk-console-text)] transition-colors focus:outline-none focus:ring-2 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400 ${
+          // Matches Input's controlClasses; kept inline rather than shared
+          // because the select adds its own right padding for the chevron.
+          //
+          // The ring colour is the accent itself, not `--bk-console-blue-soft`
+          // (1.13:1 on white): Tailwind v4's `ring-*` utility outranks
+          // the `select:focus` box-shadow in index.css, so whatever is named
+          // here *is* the whole focus indicator. A tint nobody can see is the
+          // same as no indicator at all (WCAG 2.4.11).
+          className={`w-full appearance-none rounded-[var(--bk-radius-control)] border bg-white py-2 pl-2.5 pr-9 text-label font-medium text-[var(--bk-console-text)] transition-colors focus:outline-none focus:ring-2 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400 ${
             hasError
-              ? 'border-red-300 focus:border-red-400 focus:ring-red-100'
-              : 'border-[var(--bk-console-border-strong)] focus:border-[var(--bk-console-blue)] focus:ring-[var(--bk-console-blue-soft)]'
+              ? 'border-rose-300 focus:border-rose-400 focus:ring-rose-500'
+              : 'border-[var(--bk-control-border)] focus:border-[var(--bk-console-blue)] focus:ring-[var(--bk-console-blue)]'
           } ${className}`}
           {...props}
         >
@@ -63,11 +71,11 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select
         />
       </div>
       {error ? (
-        <p id={`${fieldId}-error`} className="text-[11px] font-medium text-red-600" role="alert">
+        <p id={`${fieldId}-error`} className="text-label font-medium text-rose-600" role="alert">
           {error}
         </p>
       ) : hint ? (
-        <p id={`${fieldId}-hint`} className="text-[11px] leading-relaxed text-[var(--bk-console-text-muted)]">
+        <p id={`${fieldId}-hint`} className="text-label leading-relaxed text-[var(--bk-console-text-muted)]">
           {hint}
         </p>
       ) : null}

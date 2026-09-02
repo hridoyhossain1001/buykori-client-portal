@@ -22,6 +22,14 @@ const allowProductionMockServer = process.env.BUYKORI_ALLOW_MOCK_SERVER_PRODUCTI
 const HOST = process.env.BUYKORI_MOCK_SERVER_HOST || (isProductionRuntime ? "127.0.0.1" : "0.0.0.0");
 const PORT = Number(process.env.PORT || 3000);
 
+/**
+ * Stand-in for a WooCommerce product photo in the demo dataset. Real payloads
+ * carry an absolute URL from the merchant's own media library, and the portal
+ * only renders http(s) URLs, so the mock has to be absolute too — pointing back
+ * at this same server keeps the preview working with no network access.
+ */
+const MOCK_PRODUCT_IMAGE = `http://localhost:${PORT}/logo.png`;
+
 function assertMockServerMayStart() {
   if (isProductionRuntime && !allowProductionMockServer) {
     throw new Error(
@@ -33,11 +41,16 @@ function assertMockServerMayStart() {
 }
 
 interface MockPendingOrder {
+  id: number;
   orderId: string;
   amount: number;
   customer: string;
   fraudScore: number;
-  fraudDetails: Record<string, boolean>;
+  /**
+   * Same shape as production: plain boolean signals plus the nested
+   * `courier_summary` object the on-demand courier check writes.
+   */
+  fraudDetails: Record<string, unknown>;
   ageHours: number;
   timestamp: string;
   recipientName?: string;
@@ -47,6 +60,46 @@ interface MockPendingOrder {
   phone?: string;
   address?: string;
   products?: Array<Record<string, unknown>>;
+  productSubtotal?: number;
+  deliveryCharge?: number;
+  discount?: number;
+  orderTotal?: number;
+  note?: string;
+  status?: string;
+  workflowStatus?: string;
+  /**
+   * Where the order came from, as production sends it: `order_marketing()` in
+   * app/services/attribution.py reads the held Purchase payload's own UTM keys.
+   * Absent here on purpose for one order, so the "Direct" fallback is visible
+   * locally instead of only in production.
+   */
+  marketing?: { source?: string; campaign?: string } | null;
+}
+
+interface MockCourierOrder {
+  id: number;
+  order_id: string;
+  courier_provider: string;
+  courier_order_id: string;
+  courier_tracking_id: string;
+  courier_status: string;
+  recipient_name: string;
+  recipient_phone: string;
+  recipient_address: string;
+  cod_amount: number;
+  delivery_charge: number;
+  created_at: string;
+  purchase_event_sent: boolean;
+  refund_event_sent?: boolean;
+  pending_event_id?: number;
+  /**
+   * Production's `GET /courier/orders` reads these back out of the stored
+   * WooCommerce payload (`app/routers/courier_api.py`), so a booked order still
+   * shows what was in it after its verification record is gone. Without them the
+   * local drawer for a booked order looks empty for a reason production has not.
+   */
+  products?: Array<Record<string, unknown>>;
+  marketing?: { source?: string; campaign?: string } | null;
 }
 
 interface MockIncompleteCheckout {
@@ -71,6 +124,8 @@ interface MockIncompleteCheckout {
   updated_at: string;
   items: string[];
   orderId?: string;
+  /** Stamped when a row settles; the live recovery totals filter on it. */
+  convertedAt?: string;
 }
 
 /** CP-03: shared validation for the deferred COD endpoints. */
@@ -106,6 +161,7 @@ async function startServer() {
   let autoConfirmStatus = "completed";
   let pendingOrders: MockPendingOrder[] = [
     {
+      id: 101,
       orderId: "WC-9283",
       amount: 2490,
       customer: "+8801712345678",
@@ -118,15 +174,22 @@ async function startServer() {
           name: "Premium Hoodie",
           quantity: 1,
           price: 2490,
+          image: MOCK_PRODUCT_IMAGE,
           attributes: { Color: "Black", Size: "36" },
         },
       ],
+      productSubtotal: 2490,
+      deliveryCharge: 0,
+      discount: 0,
+      orderTotal: 2490,
       fraudScore: 12,
       fraudDetails: {},
+      marketing: { source: "facebook", campaign: "winter-hoodie-retarget" },
       ageHours: 5.2,
       timestamp: new Date(Date.now() - 5.2 * 3600000).toISOString()
     },
     {
+      id: 102,
       orderId: "WC-9284",
       amount: 4500,
       customer: "customer@domain.com",
@@ -142,10 +205,54 @@ async function startServer() {
           attributes: { Variant: "Glow, Repair", Note: "COD: Fragile" },
         },
       ],
+      productSubtotal: 4500,
+      deliveryCharge: 0,
+      discount: 0,
+      orderTotal: 4500,
       fraudScore: 78,
       fraudDetails: { ip_mismatch: true, gibberish_name: true },
+      // No marketing key at all: this is the untagged order, shown as "Direct".
       ageHours: 12.8,
       timestamp: new Date(Date.now() - 12.8 * 3600000).toISOString()
+    },
+    {
+      /**
+       * The booking the courier rejected.
+       *
+       * This order is in `courierOrders` too, with `courier_status:
+       * "booking_failed"` — the one state production leaves in both feeds at
+       * once. On terminal failure the booking worker sets the consignment to
+       * `booking_failed` and resets its PendingEvent back to `status="pending"`
+       * (app/services/courier/courier_booking_service.py), so the row keeps its
+       * place in `pendingList` while the booked-order subquery drops it from
+       * `operationsPendingList`. Without a row like this the local preview can
+       * never reach the retry path, which is exactly how it went unnoticed.
+       */
+      id: 103,
+      orderId: "WC-9285",
+      amount: 1850,
+      customer: "+8801933334444",
+      recipientName: "Tanvir Hasan",
+      recipientPhone: "+8801933334444",
+      recipientAddress: "Chandgaon, Chattogram",
+      products: [
+        {
+          id: "kettle-1-8l",
+          name: "Electric Kettle 1.8L",
+          quantity: 1,
+          price: 1850,
+          attributes: { Colour: "Steel" },
+        },
+      ],
+      productSubtotal: 1850,
+      deliveryCharge: 0,
+      discount: 0,
+      orderTotal: 1850,
+      fraudScore: 22,
+      fraudDetails: {},
+      marketing: { source: "facebook", campaign: "kitchen-eid" },
+      ageHours: 8.6,
+      timestamp: new Date(Date.now() - 8.6 * 3600000).toISOString()
     }
   ];
   /** API-05: archive backing /api/deferred/restore, which the frontend already calls. */
@@ -153,6 +260,36 @@ async function startServer() {
   let confirmedTotal = 12;
   let cancelledTotal = 2;
   let confirmedToday = 2;
+
+  /**
+   * WhatsApp order confirmations, mocked.
+   *
+   * Production serves these from app/routers/whatsapp_api.py behind a server flag
+   * and a linked number. Both report as on here, otherwise the Orders table hides
+   * its WhatsApp column locally and the layout cannot be reviewed at all. Field
+   * names match that router's camelCase responses exactly.
+   */
+  let whatsappAutoSend = false;
+  const whatsappQuietHours = { start: 23, end: 7 };
+  let whatsappConfirmationSeq = 39;
+  /** Keyed by orderId, latest request per order — the shape /confirmations returns. */
+  const whatsappConfirmations: Record<string, Record<string, unknown>> = {
+    // One order already waiting on a reply, so the badge and the poll have
+    // something real to show before anyone presses a button.
+    "WC-9284": {
+      id: 39,
+      orderId: "WC-9284",
+      status: "sent",
+      phone: "+8801812349999",
+      sentAt: new Date(Date.now() - 40 * 60000).toISOString(),
+      expiresAt: new Date(Date.now() + 20 * 3600000).toISOString(),
+      respondedAt: null,
+      responseText: null,
+      appliedStatus: null,
+      applyError: null,
+      errorMessage: null,
+    },
+  };
   let sidebarSeenState: Record<string, string> = {};
   let currentStoreId = 1;
   let stores = [
@@ -182,6 +319,44 @@ async function startServer() {
       last_synced_at: new Date().toISOString(),
     },
   ];
+  let aiAdsConnections = [
+    {
+      id: 41,
+      provider: "meta",
+      status: "connected",
+      permission_status: "granted",
+      token_status: "valid",
+      scopes: ["ads_read", "ads_management", "business_management"],
+      accounts: [
+        {
+          external_account_id: "act_mock_1001",
+          account_name: "Buykori Main Ads",
+          status: 1,
+          currency: "BDT",
+          timezone: "Asia/Dhaka",
+        },
+      ],
+      created_at: new Date().toISOString(),
+    },
+  ];
+  let aiAdsProposals = [
+    {
+      id: 501,
+      account_id: 1,
+      operation: "pause_campaign",
+      risk: "MEDIUM",
+      before_state: { campaign_id: "mock-meta-prospecting", status: "ACTIVE" },
+      requested_state: { campaign_id: "mock-meta-prospecting", status: "PAUSED" },
+      exact_changes: { operation: "pause_campaign", arguments: { campaign_id: "mock-meta-prospecting" } },
+      policy_decision: { allowed: true, reasons: [] as string[] },
+      proposal_hash: "a".repeat(64),
+      status: "pending",
+      expires_at: new Date(Date.now() + 30 * 60000).toISOString(),
+      created_at: new Date().toISOString(),
+    },
+  ];
+  let aiAdsActions: Array<{ id: number; operation: string; provider: string; status: string; created_at: string }> = [];
+  let aiConversationId = 700;
   let courierSettings: Record<string, any> = {
     courier_auto_send: false,
     default_courier: "steadfast",
@@ -191,9 +366,55 @@ async function startServer() {
     pathao_secret_key: "",
     steadfast_api_key: "",
     steadfast_secret_key: "",
+    steadfast_webhook_token_configured: false,
+    steadfast_webhook_verified_at: null,
     redx_access_token: "",
+    redx_webhook_secret_configured: false,
+    redx_webhook_verified_at: null,
+    pathao_webhook_secret_configured: false,
+    pathao_webhook_verified_at: null,
+  };
+  const courierWebhookSecrets: Record<'steadfast' | 'pathao' | 'redx', string> = {
+    steadfast: 'sandbox-steadfast-webhook-token',
+    pathao: 'sandbox-pathao-webhook-secret',
+    redx: 'sandbox-redx-webhook-token',
   };
   let incompleteCheckouts: MockIncompleteCheckout[] = [
+    {
+      // Still at checkout: the plugin has upserted the cart but the inactivity
+      // timer has not fired yet, so production keeps it out of the default list
+      // and only reports it through `counts`. Email and address arrive as the
+      // literal "N/A" until the customer types them.
+      id: 303,
+      phone: "+8801933337777",
+      customerName: "Tanvir Hasan",
+      email: "N/A",
+      address: "N/A",
+      products: [
+        {
+          id: "kettle-1l",
+          name: "Electric Kettle 1L",
+          category: "Home",
+          attributes: { Colour: "Steel" },
+          quantity: 1,
+          price: 1890,
+        },
+      ],
+      pageUrl: "https://buykori-demo.com/checkout",
+      campaignData: { utm_source: "google", utm_medium: "cpc" },
+      lastActivityAt: new Date(Date.now() - 3 * 60000).toISOString(),
+      customer_name: "Tanvir Hasan",
+      customer_phone: "+8801933337777",
+      customer_email: "N/A",
+      amount: 1890,
+      currency: "BDT",
+      source: "woocommerce",
+      status: "active",
+      recovery_url: "https://buykori-demo.com/checkout/recover/303",
+      created_at: new Date(Date.now() - 5 * 60000).toISOString(),
+      updated_at: new Date(Date.now() - 3 * 60000).toISOString(),
+      items: ["Electric Kettle 1L"],
+    },
     {
       id: 301,
       phone: "+8801711112222",
@@ -208,6 +429,10 @@ async function startServer() {
           attributes: { Color: "Black", Size: "36" },
           quantity: 1,
           price: 2490,
+          // Only some rows carry a photo on purpose. The API borrows it from the
+          // store's completed orders, so a product the store has never sold has
+          // none, and the preview should show that fallback too.
+          image: MOCK_PRODUCT_IMAGE,
         },
         {
           id: "cod-delivery",
@@ -227,7 +452,7 @@ async function startServer() {
       amount: 2790,
       currency: "BDT",
       source: "woocommerce",
-      status: "open",
+      status: "incomplete",
       recovery_url: "https://buykori-demo.com/checkout/recover/301",
       created_at: new Date(Date.now() - 2.4 * 3600000).toISOString(),
       updated_at: new Date(Date.now() - 1.1 * 3600000).toISOString(),
@@ -247,6 +472,7 @@ async function startServer() {
           attributes: { Variant: "Glow, Repair", Offer: "Buy 1, Get 1" },
           quantity: 1,
           price: 4250,
+          image: MOCK_PRODUCT_IMAGE,
         },
       ],
       pageUrl: "https://growth-lab.shop/cart",
@@ -264,8 +490,119 @@ async function startServer() {
       updated_at: new Date(Date.now() - 6 * 3600000).toISOString(),
       items: ["Serum Bundle"],
     },
+    {
+      // Recovered by the merchant from this page: the order id carries the
+      // `manual-` prefix production writes, and the order is waiting in COD
+      // review for confirmation.
+      id: 304,
+      phone: "+8801722224444",
+      customerName: "Shahida Akter",
+      email: "shahida@example.com",
+      address: "Uttara Sector 7, Dhaka",
+      products: [
+        {
+          id: "saree-jamdani",
+          name: "Jamdani Saree",
+          category: "Apparel",
+          attributes: { Colour: "Maroon" },
+          quantity: 1,
+          price: 3300,
+          image: MOCK_PRODUCT_IMAGE,
+        },
+        {
+          id: "cod-delivery",
+          name: "COD Delivery",
+          category: "Shipping",
+          attributes: { Zone: "Inside Dhaka" },
+          quantity: 1,
+          price: 300,
+        },
+      ],
+      pageUrl: "https://buykori-demo.com/checkout",
+      campaignData: { utm_source: "facebook", utm_campaign: "saree_launch" },
+      lastActivityAt: new Date(Date.now() - 9 * 3600000).toISOString(),
+      customer_name: "Shahida Akter",
+      customer_phone: "+8801722224444",
+      customer_email: "shahida@example.com",
+      amount: 3600,
+      currency: "BDT",
+      source: "woocommerce",
+      status: "recovered",
+      orderId: "manual-304-1756000000",
+      recovery_url: "https://buykori-demo.com/checkout/recover/304",
+      created_at: new Date(Date.now() - 11 * 3600000).toISOString(),
+      updated_at: new Date(Date.now() - 8.5 * 3600000).toISOString(),
+      items: ["Jamdani Saree", "COD Delivery"],
+    },
+    {
+      // Recovered on its own: the customer came back and placed the order in
+      // the store, so the id is a real store order number, not a manual one.
+      id: 305,
+      phone: "+8801655558888",
+      customerName: "Imran Kabir",
+      email: "N/A",
+      address: "Agrabad, Chattogram",
+      products: [
+        {
+          id: "watch-titan",
+          name: "Titan Analog Watch",
+          category: "Accessories",
+          attributes: { Strap: "Leather" },
+          quantity: 1,
+          price: 5250,
+        },
+      ],
+      pageUrl: "https://growth-lab.shop/checkout",
+      campaignData: {},
+      lastActivityAt: new Date(Date.now() - 26 * 3600000).toISOString(),
+      customer_name: "Imran Kabir",
+      customer_phone: "+8801655558888",
+      customer_email: "N/A",
+      amount: 5250,
+      currency: "BDT",
+      source: "shopify",
+      status: "recovered",
+      orderId: "4471",
+      recovery_url: "https://growth-lab.shop/checkouts/recover/305",
+      created_at: new Date(Date.now() - 30 * 3600000).toISOString(),
+      updated_at: new Date(Date.now() - 25 * 3600000).toISOString(),
+      items: ["Titan Analog Watch"],
+    },
+    {
+      // Ignored by the merchant. Production leaves it out of the default list,
+      // which is exactly why the workspace's Undo is the only way back.
+      id: 306,
+      phone: "+8801544449999",
+      customerName: "N/A",
+      email: "N/A",
+      address: "N/A",
+      products: [
+        {
+          id: "phone-case",
+          name: "Silicone Phone Case",
+          category: "Accessories",
+          attributes: {},
+          quantity: 1,
+          price: 990,
+        },
+      ],
+      pageUrl: "https://buykori-demo.com/cart",
+      campaignData: { utm_source: "instagram" },
+      lastActivityAt: new Date(Date.now() - 50 * 3600000).toISOString(),
+      customer_name: "N/A",
+      customer_phone: "+8801544449999",
+      customer_email: "N/A",
+      amount: 990,
+      currency: "BDT",
+      source: "woocommerce",
+      status: "ignored",
+      recovery_url: "https://buykori-demo.com/checkout/recover/306",
+      created_at: new Date(Date.now() - 54 * 3600000).toISOString(),
+      updated_at: new Date(Date.now() - 49 * 3600000).toISOString(),
+      items: ["Silicone Phone Case"],
+    },
   ];
-  let courierOrders = [
+  let courierOrders: MockCourierOrder[] = [
     {
       id: 701,
       order_id: "WC-9283",
@@ -280,6 +617,39 @@ async function startServer() {
       delivery_charge: 80,
       created_at: new Date(Date.now() - 3 * 3600000).toISOString(),
       purchase_event_sent: false,
+      products: [
+        { name: "Premium Hoodie (Black, 36)", quantity: 1, price: 2490 },
+      ],
+      marketing: { source: "tiktok", campaign: "hoodie-launch" },
+    },
+    {
+      /**
+       * The rejected booking, paired with pending order 103.
+       *
+       * Production keeps returning this row: `GET /courier/orders` only hides
+       * `courier_status == "cancelled"` (app/routers/courier_api.py), and
+       * `enqueue_courier_booking` accepts a second attempt for this one state
+       * alone, resetting the row and its job instead of answering
+       * `already_booked`. No tracking id, because the courier never issued one.
+       */
+      id: 702,
+      order_id: "WC-9285",
+      courier_provider: "pathao",
+      courier_order_id: "",
+      courier_tracking_id: "",
+      courier_status: "booking_failed",
+      recipient_name: "Tanvir Hasan",
+      recipient_phone: "+8801933334444",
+      recipient_address: "Chandgaon, Chattogram",
+      cod_amount: 1850,
+      delivery_charge: 0,
+      created_at: new Date(Date.now() - 2 * 3600000).toISOString(),
+      purchase_event_sent: false,
+      pending_event_id: 103,
+      products: [
+        { name: "Electric Kettle 1.8L (Steel)", quantity: 1, price: 1850 },
+      ],
+      marketing: { source: "facebook", campaign: "kitchen-eid" },
     },
   ];
   
@@ -289,6 +659,7 @@ async function startServer() {
     'TikTok Events API': { enabled: true, pixelIdOrMeasurementId: "mock-tiktok-pixel-id", accessToken: "mock_tiktok_access_token", status: "Valid" },
     'GA4': { enabled: true, pixelIdOrMeasurementId: "mock-ga4-measurement-id", accessToken: "mock_ga4_api_secret", status: "Valid" }
   };
+  let customEventAutomations: Array<Record<string, unknown>> = [];
 
   // Generate initial database of events & raw API logs
   let events = generateEventData();
@@ -325,7 +696,7 @@ async function startServer() {
   ];
 
   // Helper: record a new tracking event
-  function addTrackingEvent(name: string, platform: Platform, status: 'Success' | 'Failed' | 'Retry', httpCode: number, payload: any, customRes?: any) {
+  function addTrackingEvent(name: string, platform: Platform, status: 'Delivered' | 'Failed' | 'Retry', httpCode: number, payload: any, customRes?: any) {
     const timestamp = new Date().toISOString();
     const id = `evt_${200000 + events.length}`;
     const dedupeKey = `did_${900000 + events.length}`;
@@ -345,7 +716,7 @@ async function startServer() {
         'X-Client-IP': payload?.user_data?.client_ip_address || "127.0.0.1",
         'User-Agent': payload?.user_data?.client_user_agent || 'WordPress/6.4.3'
       },
-      responseBody: customRes || (status === 'Success' 
+      responseBody: customRes || (status === 'Delivered'
         ? { events_received: 1, status: "accepted", fb_trace_id: `FBT_${Math.random().toString(36).substring(7).toUpperCase()}` }
         : { error: { message: "Invalid payload params", code: httpCode } }),
       latencyMs: Math.floor(Math.random() * 150) + 50
@@ -425,7 +796,7 @@ async function startServer() {
     connection.lastHeartbeat = new Date().toISOString();
     connection.status = 'Active';
     // Simulate recording a PageView event
-    addTrackingEvent("PageView", "Meta CAPI", "Success", 200, {
+    addTrackingEvent("PageView", "Meta CAPI", "Delivered", 200, {
       event_name: "PageView",
       event_time: Math.floor(Date.now() / 1000),
       user_data: {
@@ -484,6 +855,22 @@ async function startServer() {
       }
     }
     res.json({ success: true, credentials });
+  });
+
+  // Custom event automation settings used by the local sandbox.
+  app.get("/api/custom-event-automations", (_req, res) => {
+    res.json({ automations: customEventAutomations });
+  });
+
+  app.post("/api/custom-event-automations", (req, res) => {
+    const nextAutomations = req.body?.automations;
+    if (!Array.isArray(nextAutomations)) {
+      return res.status(400).json({ detail: "Automations must be an array." });
+    }
+    customEventAutomations = nextAutomations.filter((item): item is Record<string, unknown> => (
+      item !== null && typeof item === 'object' && !Array.isArray(item)
+    ));
+    res.json({ success: true, automations: customEventAutomations, rules });
   });
 
   // Fetch Event Logs
@@ -553,7 +940,7 @@ async function startServer() {
       const bucket = buckets.get(String(event.timestamp || "").slice(0, 10));
       if (!bucket) continue;
       bucket.total += 1;
-      if (event.status === "Success") bucket.success += 1;
+      if (event.status === "Delivered") bucket.success += 1;
       if (event.status === "Failed") bucket.failed += 1;
       const value = Number((event.payload as any)?.custom_data?.value || 0);
       if (Number.isFinite(value)) bucket.value += value;
@@ -585,6 +972,130 @@ async function startServer() {
     res.json(payload);
   });
 
+  /**
+   * The dashboard's "Your last 7 days" card. Production serves this from
+   * `app/routers/client_api.py` (`GET /api/reports/weekly`); the mock had no such
+   * route, so every local dashboard load hit the /api 404 fallback below and the
+   * card silently deleted itself — which is also how the dashboard's biggest
+   * layout jump was discovered.
+   *
+   * The numbers are derived from the same in-memory `events` and
+   * `incompleteCheckouts` the rest of the mock serves, and the field names and
+   * types match the production response exactly, so the card is exercised here
+   * the way a merchant sees it rather than against invented data.
+   */
+  app.get("/api/reports/weekly", (_req, res) => {
+    const now = Date.now();
+    const week = 7 * 24 * 3600 * 1000;
+
+    const periodMetrics = (start: number, end: number) => {
+      const inWindow = (iso: string) => {
+        const at = Date.parse(iso);
+        return Number.isFinite(at) && at >= start && at < end;
+      };
+      const purchases = events.filter(
+        event => event.name === "Purchase" && event.status === "Delivered" && inWindow(String(event.timestamp || "")),
+      );
+      const revenue = purchases.reduce(
+        (total, event) => total + (Number((event.payload as any)?.custom_data?.value) || 0),
+        0,
+      );
+      const attempts = events.filter(
+        event => (event.status === "Delivered" || event.status === "Failed") && inWindow(String(event.timestamp || "")),
+      );
+      const delivered = attempts.filter(event => event.status === "Delivered").length;
+      const recovered = incompleteCheckouts.filter(
+        item => item.status === "recovered" && inWindow(String(item.convertedAt || item.updated_at || "")),
+      ).length;
+      // Production reads a real `EventLog.utm_source` column. The mock's provider
+      // payloads carry no UTM data at all (`generateEventData` builds
+      // `custom_data` with value/currency/contents only), so the production read
+      // path is kept first and the mock's own attribution — `marketing.source` on
+      // the held orders, which production fills from the same UTM keys — stands in
+      // for it. Without this the card's last line was permanently stuck on "No
+      // attributed purchases" locally, so a regression in it could never be seen
+      // before production.
+      const sources = new Map<string, number>();
+      for (const event of purchases) {
+        const source = String((event.payload as any)?.custom_data?.utm_source || "").trim();
+        if (source) sources.set(source, (sources.get(source) || 0) + 1);
+      }
+      if (sources.size === 0) {
+        for (const order of pendingOrders) {
+          if (!inWindow(String(order.timestamp || ""))) continue;
+          const source = String(order.marketing?.source || "").trim();
+          if (source) sources.set(source, (sources.get(source) || 0) + 1);
+        }
+      }
+      const top = [...sources.entries()].sort((a, b) => b[1] - a[1])[0];
+      return {
+        purchases: purchases.length,
+        revenue: Math.round(revenue * 100) / 100,
+        currency: "BDT",
+        recoveredCheckouts: recovered,
+        deliveryAttempts: attempts.length,
+        deliveredEvents: delivered,
+        deliveryRate: attempts.length ? Math.round((delivered / attempts.length) * 1000) / 10 : null,
+        topSource: top ? top[0] : null,
+        topSourcePurchases: top ? top[1] : 0,
+      };
+    };
+
+    const current = periodMetrics(now - week, now);
+    const previous = periodMetrics(now - 2 * week, now - week);
+    const percentChange = (currentValue: number, previousValue: number) => {
+      if (!previousValue) return currentValue ? 100 : null;
+      return Math.round(((currentValue - previousValue) / previousValue) * 1000) / 10;
+    };
+
+    res.json({
+      period: {
+        start: new Date(now - week).toISOString(),
+        end: new Date(now).toISOString(),
+        label: "Last 7 days",
+      },
+      current,
+      previous,
+      changes: {
+        purchases: percentChange(current.purchases, previous.purchases),
+        revenue: percentChange(current.revenue, previous.revenue),
+        recoveredCheckouts: percentChange(current.recoveredCheckouts, previous.recoveredCheckouts),
+        deliveryRate:
+          current.deliveryRate !== null && previous.deliveryRate !== null
+            ? Math.round((current.deliveryRate - previous.deliveryRate) * 10) / 10
+            : null,
+      },
+    });
+  });
+
+  /**
+   * Only reached when a mutation comes back complaining about CSRF: the portal's
+   * fetch wrapper calls this to have the cookie reissued. The mock issues no CSRF
+   * cookie at all, so there is nothing to refresh — but answering 404 made the
+   * retry look like a broken session. Shape matches `client_auth.client_me`.
+   */
+  app.get("/api/v1/auth/client/me", (_req, res) => {
+    const store = stores.find(item => item.id === currentStoreId) || stores[0];
+    res.json({
+      status: "success",
+      user: {
+        id: 1,
+        email: profile.email,
+        phone_number: null,
+        full_name: profile.name,
+        role: "owner",
+        email_verified: true,
+        client: {
+          id: store.id,
+          name: store.name,
+          domain: store.domain,
+          is_active: true,
+          plan: { name: profile.plan },
+        },
+      },
+    });
+  });
+
   // Outbound API Logs
   app.get("/api/api-logs", (req, res) => {
     const { platform, search, limit = "20", offset = "0" } = req.query;
@@ -607,10 +1118,81 @@ async function startServer() {
     const totalCount = filtered.length;
     const paginated = filtered.slice(parseInt(offset as string), parseInt(offset as string) + parseInt(limit as string));
 
+    // The live endpoint pairs a failed delivery with the outbox row that still owes it, so the portal
+    // can offer a manual retry on that row. The demo generator produces no outbox link at all, so the
+    // Retry control could never be exercised locally. Pair failed rows with the demo outbox rows.
+    const owners = outboxItems.filter(item => item.status === "dead" || item.status === "queued");
+    let ownerCursor = 0;
+    const linked = owners.length === 0 ? paginated : paginated.map(log => {
+      if (log.statusCode < 400) return log;
+      const owner = owners[ownerCursor % owners.length];
+      ownerCursor += 1;
+      return {
+        ...log,
+        outboxId: owner.id,
+        retryable: owner.status !== "processing",
+        outboxStatus: owner.status,
+        outboxAttempts: owner.attempts,
+        nextRetryAt: owner.nextAttemptAt,
+      };
+    });
+
     res.json({
-      logs: paginated,
+      logs: linked,
       totalCount
     });
+  });
+
+  // Seven-day delivery health, mirroring GET /delivery/health on the live API:
+  // short platform names, a successRate of null before the first attempt, and the
+  // same four states the portal's health cards switch on.
+  app.get("/api/delivery/health", (_req, res) => {
+    const shortNames: Record<string, string> = {
+      "Meta CAPI": "Meta",
+      "TikTok Events API": "TikTok",
+      "TikTok Browser Pixel": "TikTok",
+      "GA4": "GA4",
+      "Webhook": "Webhook",
+    };
+    const stats: Record<string, { platform: string; successful: number; failed: number; queued: number; dead: number }> = {
+      Meta: { platform: "Meta", successful: 0, failed: 0, queued: 0, dead: 0 },
+      TikTok: { platform: "TikTok", successful: 0, failed: 0, queued: 0, dead: 0 },
+      GA4: { platform: "GA4", successful: 0, failed: 0, queued: 0, dead: 0 },
+      Webhook: { platform: "Webhook", successful: 0, failed: 0, queued: 0, dead: 0 },
+    };
+
+    apiLogs.forEach(log => {
+      const name = shortNames[log.platform];
+      if (!name || !stats[name]) return;
+      if (log.statusCode >= 400) stats[name].failed += 1;
+      else stats[name].successful += 1;
+    });
+
+    outboxItems.forEach(item => {
+      const message = item.lastError || "";
+      const name = message.includes("TikTok") ? "TikTok" : message.includes("GA4") ? "GA4" : message.includes("Webhook") ? "Webhook" : "Meta";
+      if (item.status === "dead") stats[name].dead += 1;
+      else if (item.status === "queued" || item.status === "processing") stats[name].queued += 1;
+    });
+
+    const configuredFor: Record<string, boolean> = {
+      Meta: Boolean(credentials["Meta CAPI"]?.enabled),
+      TikTok: Boolean(credentials["TikTok Events API"]?.enabled),
+      GA4: Boolean(credentials["GA4"]?.enabled),
+      Webhook: false,
+    };
+
+    const platforms = Object.values(stats).map(row => {
+      const attempts = row.successful + row.failed;
+      return {
+        ...row,
+        configured: configuredFor[row.platform] ?? false,
+        successRate: attempts ? Math.round((row.successful / attempts) * 1000) / 10 : null,
+        state: row.dead || row.failed ? "action_required" : row.queued ? "retrying" : attempts ? "healthy" : "no_data",
+      };
+    });
+
+    res.json({ windowDays: 7, platforms });
   });
 
   app.get("/api/outbox", (req, res) => {
@@ -653,7 +1235,7 @@ async function startServer() {
     const platform = activePlatforms[Math.floor(Math.random() * activePlatforms.length)];
     const name = names[Math.floor(Math.random() * names.length)];
     const isError = Math.random() < 0.08; // 8% error rate
-    const status = isError ? "Failed" : "Success";
+    const status = isError ? "Failed" : "Delivered";
     const httpCode = isError ? 400 : 200;
 
     const value = (50 + Math.random() * 250).toFixed(2);
@@ -712,7 +1294,7 @@ async function startServer() {
     const isPluginActive = connection.status === 'Active';
 
     let code = 200;
-    let status: 'Success' | 'Failed' = 'Success';
+    let status: 'Delivered' | 'Failed' = 'Delivered';
     let responseBody: any = {};
 
     if (!isPluginActive) {
@@ -744,7 +1326,7 @@ async function startServer() {
     addTrackingEvent(eventName, platform as Platform, status, code, payload, responseBody);
 
     res.json({
-      success: status === 'Success',
+      success: status === 'Delivered',
       statusCode: code,
       response: responseBody,
       dispatchedEvent: events[0]
@@ -804,20 +1386,98 @@ async function startServer() {
     });
   });
 
+  // Setup readiness — mirrors GET /setup/readiness in app/routers/client_api.py.
+  // Every flag is derived from this mock's own state (never hardcoded true) so the
+  // Setup guide preview shows the same mixture of ready / not-ready the real one does.
+  app.get("/api/setup/readiness", (req, res) => {
+    const now = Date.now();
+    const currentStore = stores.find(store => store.is_current) || stores[0];
+    const domainReady = Boolean(currentStore?.domain);
+
+    const heartbeat = connection.lastHeartbeat ? new Date(connection.lastHeartbeat) : null;
+    const heartbeatValid = heartbeat !== null && !Number.isNaN(heartbeat.getTime());
+    const pluginReady = heartbeatValid && heartbeat.getTime() >= now - 24 * 3600000;
+
+    const destinationNames = (['Meta CAPI', 'TikTok Events API', 'GA4'] as Platform[])
+      .filter(platform => {
+        const config = credentials[platform];
+        return Boolean(config?.enabled && config.pixelIdOrMeasurementId && config.accessToken);
+      })
+      .map(platform => (platform === 'Meta CAPI' ? 'Meta' : platform === 'TikTok Events API' ? 'TikTok' : 'GA4'));
+
+    const successfulDeliveries = events.filter(event =>
+      event.status === 'Delivered' && new Date(event.timestamp).getTime() >= now - 7 * 24 * 3600000,
+    ).length;
+
+    const courierReady = Boolean(
+      (courierSettings.steadfast_api_key && courierSettings.steadfast_secret_key)
+      || (courierSettings.pathao_api_key && courierSettings.pathao_secret_key && courierSettings.pathao_store_id)
+      || (courierSettings.redx_access_token && courierSettings.redx_pickup_store_id),
+    );
+
+    const steps = [
+      { key: "domain", label: "Store domain", ready: domainReady, required: true, actionPage: "settings", actionLabel: "Add domain", detail: currentStore?.domain || "No domain saved" },
+      { key: "plugin", label: "Plugin heartbeat", ready: pluginReady, required: true, actionPage: "setup-guide", actionLabel: "Connect plugin", detail: heartbeatValid ? heartbeat.toISOString() : "No recent heartbeat" },
+      { key: "destination", label: "Tracking destination", ready: destinationNames.length > 0, required: true, actionPage: "settings", actionLabel: "Add credentials", detail: destinationNames.join(", ") || "No destination ready" },
+      { key: "delivery", label: "Successful test delivery", ready: successfulDeliveries > 0, required: true, actionPage: "campaign-builder", actionLabel: "Send test event", detail: `${successfulDeliveries} successful in 7 days` },
+      { key: "courier", label: "Courier credentials", ready: courierReady, required: false, actionPage: "settings", actionLabel: "Configure courier", detail: "Optional until manual courier booking is needed" },
+    ];
+
+    const requiredSteps = steps.filter(step => step.required);
+    const completedRequired = requiredSteps.filter(step => step.ready).length;
+    res.json({
+      ready: completedRequired === requiredSteps.length,
+      score: Math.round((completedRequired / requiredSteps.length) * 100),
+      completedRequired,
+      requiredCount: requiredSteps.length,
+      steps,
+    });
+  });
+
   // COD Protection (Deferred Purchase Tracking) Mock Endpoints
   app.get("/api/deferred", (req, res) => {
-    const pendingValue = pendingOrders.reduce((acc, o) => acc + o.amount, 0);
-    const operationsPendingList = pendingOrders.map(order => ({
-      ...order,
-      operationsOnly: false,
-    }));
-    const oldestPending = pendingOrders.length > 0 ? `${Math.max(...pendingOrders.map(o => o.ageHours))}h` : "—";
+    /**
+     * The two lists are built from two different rules, and the difference is
+     * the whole point.
+     *
+     * `pendingList` / `deferredPendingList` are PendingEvent rows still at
+     * `status="pending"`. Booking moves that status on — `enqueue_courier_booking`
+     * sets `courier_booking_queued` and the worker sets `courier_booked` on
+     * success (app/services/courier/courier_booking_service.py) — so a booked
+     * order leaves these lists. The one exception is a booking the courier
+     * rejected: on terminal failure the worker sets the consignment to
+     * `booking_failed` and resets its PendingEvent back to `status="pending"`, so
+     * that row stays.
+     *
+     * `operationsPendingList` is narrower still: production builds it with
+     * `PendingEvent.order_id.not_in(booked_order_ids_subq)`, and that subquery
+     * selects *every* CourierOrder of the client with no status filter
+     * (app/routers/client_api.py) — so a rejected booking is dropped from it too.
+     *
+     * That is the one state where the two feeds disagree, and the only way to
+     * reach a retry: src/services/operationsApi.ts folds those rows back in. The
+     * mock used to copy the pending list into both, which showed a state
+     * production never produces and left the retry path unreachable locally.
+     */
+    const consignmentByOrderId = new Map(courierOrders.map((order) => [String(order.order_id), order]));
+    const stillPending = pendingOrders.filter((order) => {
+      const courier = consignmentByOrderId.get(String(order.orderId));
+      return !courier || String(courier.courier_status).toLowerCase() === "booking_failed";
+    });
+    const operationsPendingList = pendingOrders
+      .filter((order) => !consignmentByOrderId.has(String(order.orderId)))
+      .map(order => ({
+        ...order,
+        operationsOnly: false,
+      }));
+    const pendingValue = stillPending.reduce((acc, o) => acc + o.amount, 0);
+    const oldestPending = stillPending.length > 0 ? `${Math.max(...stillPending.map(o => o.ageHours))}h` : "—";
     res.json({
       deferredEnabled,
       autoConfirmDays,
       autoConfirmStatus,
-      pendingCount: pendingOrders.length,
-      deferredPendingCount: pendingOrders.length,
+      pendingCount: stillPending.length,
+      deferredPendingCount: stillPending.length,
       operationsPendingCount: operationsPendingList.length,
       pendingValue: `৳${pendingValue.toLocaleString()}`,
       confirmedTotal,
@@ -825,21 +1485,282 @@ async function startServer() {
       expiredTotal: 0,
       confirmedToday,
       oldestPending,
-      pendingList: pendingOrders,
-      deferredPendingList: pendingOrders,
+      pendingList: stillPending,
+      deferredPendingList: stillPending,
       operationsPendingList
+    });
+  });
+
+  app.patch("/api/deferred/orders/:id", (req, res) => {
+    const target = pendingOrders.find((order) => order.id === Number(req.params.id));
+    if (!target) return res.status(404).json({ detail: "Order not found." });
+    const body = req.body || {};
+    const items = Array.isArray(body.items) ? body.items : [];
+    if (!String(body.customer_name || '').trim() || !String(body.phone || '').trim() || !String(body.address || '').trim() || items.length === 0) {
+      return res.status(422).json({ detail: "Customer, delivery and product details are required." });
+    }
+    const deliveryCharge = Math.max(0, Number(body.delivery_charge) || 0);
+    const discount = Math.max(0, Number(body.discount) || 0);
+    const products = items.map((item: any) => ({
+      id: String(item.content_id || item.id || `item-${Date.now()}`),
+      name: String(item.name || '').trim(),
+      quantity: Math.max(1, Number(item.quantity) || 1),
+      price: Math.max(0, Number(item.price) || 0),
+      attributes: item.attributes || {},
+      category: item.category || '',
+    }));
+    const productSubtotal = products.reduce((sum: number, item: any) => sum + item.price * item.quantity, 0);
+    const codAmount = Math.max(0, Number(body.cod_amount) || 0);
+    target.recipientName = String(body.customer_name).trim();
+    target.recipientPhone = String(body.phone).trim();
+    target.recipientAddress = String(body.address).trim();
+    target.customer = target.recipientPhone;
+    target.products = products;
+    target.productSubtotal = productSubtotal;
+    target.deliveryCharge = deliveryCharge;
+    target.discount = discount;
+    target.orderTotal = codAmount;
+    target.amount = codAmount;
+    target.note = String(body.note || '').trim();
+    res.json({ success: true, message: "Order updated.", order: target });
+  });
+
+  /**
+   * On-demand courier history check. Mirrors
+   * `POST /deferred/orders/{pending_event_id}/courier-check` in
+   * app/routers/client_api.py: it writes the verdict onto the held row and
+   * returns it, so the answer survives a refetch and shows on both order pages
+   * from a single click.
+   *
+   * The verdict here is derived from the mock order's own starting score — the
+   * local dev server has no courier accounts to call.
+   */
+  app.post("/api/deferred/orders/:id/courier-check", (req, res) => {
+    const target = pendingOrders.find((order) => order.id === Number(req.params.id));
+    if (!target) return res.status(404).json({ detail: "Order not found." });
+    const risky = target.fraudScore >= 50;
+    const total = risky ? 9 : 14;
+    const cancelled = risky ? 6 : 1;
+    const delivered = total - cancelled;
+    // The real aggregator sends a 0-100 percentage rounded to one decimal
+    // (`round(self.success_ratio, 1)` in app/services/courier/aggregator.py), and
+    // the panel prints whatever arrives verbatim. Sending the raw 0-1 ratio here
+    // made the local preview read "0.9285714285714286% success" — a mock bug that
+    // looks exactly like a portal bug.
+    const successRatio = Math.round((delivered / total) * 1000) / 10;
+    target.fraudDetails = {
+      ...target.fraudDetails,
+      courier_verdict: risky ? "HIGH_RISK" : "GOOD",
+      courier_confidence: "high",
+      courier_summary: {
+        verdict: risky ? "HIGH_RISK" : "GOOD",
+        trust_score: risky ? 34 : 92,
+        fraud_points: risky ? 66 : 8,
+        confidence: "high",
+        total_orders: total,
+        total_delivered: delivered,
+        total_cancelled: cancelled,
+        success_ratio: successRatio,
+        providers: [
+          {
+            provider: "pathao",
+            status: "ok",
+            tier: risky ? "high_risk" : "good",
+            total,
+            delivered,
+            cancelled,
+            success_ratio: successRatio,
+            rating: risky ? "fraud_customer" : "good_customer",
+            segment: null,
+          },
+          {
+            provider: "steadfast",
+            status: "ok",
+            tier: null,
+            total: 0,
+            delivered: 0,
+            cancelled: 0,
+            success_ratio: null,
+            rating: null,
+            segment: null,
+          },
+        ],
+        checked: ["pathao", "steadfast"],
+        failed: [],
+      },
+    };
+    target.fraudScore = risky ? Math.max(target.fraudScore, 78) : target.fraudScore;
+    res.json({ fraudScore: target.fraudScore, fraudDetails: target.fraudDetails });
+  });
+
+  // WhatsApp order confirmations. Mirrors app/routers/whatsapp_api.py.
+  app.get("/api/client/whatsapp", (_req, res) => {
+    res.json({
+      available: true,
+      hasPlanAccess: true,
+      connected: true,
+      session: {
+        status: "connected",
+        phoneNumber: "+8801700000000",
+        deviceLabel: "Demo store phone",
+        connectedAt: new Date(Date.now() - 36 * 3600000).toISOString(),
+        disconnectedAt: null,
+        lastSeenAt: new Date().toISOString(),
+        lastError: null,
+        consentAcceptedAt: new Date(Date.now() - 36 * 3600000).toISOString(),
+        dailySentCount: Object.keys(whatsappConfirmations).length,
+        dailyLimit: 200,
+      },
+      autoSend: whatsappAutoSend,
+      autoSendQuietHours: whatsappQuietHours,
+      qr: null,
+      gatewayError: null,
+    });
+  });
+
+  app.post("/api/client/whatsapp/settings", (req, res) => {
+    whatsappAutoSend = Boolean((req.body || {}).autoSend);
+    res.json({ success: true, autoSend: whatsappAutoSend });
+  });
+
+  app.post("/api/client/whatsapp/connect", (_req, res) => {
+    res.json({ success: true, status: "connected", qr: null, phoneNumber: "+8801700000000" });
+  });
+
+  app.delete("/api/client/whatsapp", (_req, res) => {
+    res.json({ success: true, disconnected: true, gatewayError: null });
+  });
+
+  app.get("/api/client/whatsapp/confirmations", (req, res) => {
+    const ids = String(req.query.orderIds || "")
+      .split(",")
+      .map((id) => id.trim())
+      .filter(Boolean)
+      .slice(0, 100);
+    const confirmations: Record<string, unknown> = {};
+    ids.forEach((id) => {
+      if (whatsappConfirmations[id]) confirmations[id] = whatsappConfirmations[id];
+    });
+    res.json({ available: true, confirmations });
+  });
+
+  app.post("/api/client/whatsapp/confirmations", (req, res) => {
+    const orderId = String((req.body || {}).orderId || "").trim();
+    if (!orderId) return res.status(422).json({ detail: "An order id is required." });
+    // The real router only messages a customer whose order is still held; a
+    // booked or closed order has nothing left to confirm.
+    const order = pendingOrders.find((row) => row.orderId === orderId);
+    if (!order) return res.status(404).json({ detail: "This order is no longer waiting for confirmation." });
+    const existing = whatsappConfirmations[orderId];
+    if (existing && existing.status === "sent") {
+      return res.status(409).json({ detail: "This customer has already been asked and has not replied yet." });
+    }
+    const phone = order.recipientPhone || order.phone || null;
+    whatsappConfirmationSeq += 1;
+    whatsappConfirmations[orderId] = {
+      id: whatsappConfirmationSeq,
+      orderId,
+      status: phone ? "sent" : "no_whatsapp",
+      phone,
+      sentAt: new Date().toISOString(),
+      expiresAt: new Date(Date.now() + 24 * 3600000).toISOString(),
+      respondedAt: null,
+      responseText: null,
+      appliedStatus: null,
+      applyError: null,
+      errorMessage: phone ? null : "This order has no phone number to message.",
+    };
+    res.json({ confirmation: whatsappConfirmations[orderId] });
+  });
+
+  // Keep the local mock aligned with the universal order-intake API used by
+  // the portal. The production backend persists these rows in StoreOrder.
+  app.get("/api/v1/orders", (req, res) => {
+    const orders = pendingOrders.map((order) => {
+      const itemCount = (order.products || []).reduce((sum, item) => sum + (Number(item.quantity) || 1), 0);
+      const complete = Boolean(order.recipientName && order.recipientPhone && order.recipientAddress && itemCount > 0);
+      return {
+        id: order.id,
+        orderId: order.orderId,
+        source: "woocommerce",
+        createdVia: "checkout",
+        trigger: "order.created",
+        status: "pending",
+        paymentMethod: "cod",
+        currency: "BDT",
+        total: Number(order.orderTotal ?? order.amount ?? 0),
+        itemCount,
+        dataQuality: complete ? "complete" : "missing_customer",
+        syncStatus: "accepted",
+        orderData: { customerName: order.recipientName || "", phone: order.recipientPhone || "", address: order.recipientAddress || "" },
+        rawOrderData: { recipient_name: order.recipientName || "", recipient_phone: order.recipientPhone || "", recipient_address: order.recipientAddress || "" },
+        occurredAt: order.timestamp,
+        sourceUpdatedAt: order.timestamp,
+        firstSeenAt: order.timestamp,
+        lastSeenAt: order.timestamp,
+        updatedAt: order.timestamp,
+      };
+    });
+    res.json({ orders, total: orders.length, page: 1, limit: Number(req.query.limit) || 20 });
+  });
+
+  app.get("/api/v1/orders/intake-health", (_req, res) => {
+    const total = pendingOrders.length;
+    const complete = pendingOrders.filter((order) => Boolean(order.recipientName && order.recipientPhone && order.recipientAddress && (order.products || []).length > 0)).length;
+    res.json({
+      status: total === 0 ? "idle" : complete === total ? "healthy" : "warning",
+      windowHours: 24,
+      total,
+      complete,
+      incomplete: total - complete,
+      byQuality: { complete, missing_customer: total - complete },
+      lastOrderAt: pendingOrders[0]?.timestamp || null,
+    });
+  });
+
+  // Mirrors the backend change-detection probe the Orders workspace polls.
+  app.get("/api/v1/orders/watermark", (_req, res) => {
+    const lastChangedAt = pendingOrders.reduce<string | null>((latest, order) => {
+      if (!order.timestamp) return latest;
+      return !latest || order.timestamp > latest ? order.timestamp : latest;
+    }, null);
+    res.json({
+      count: pendingOrders.length,
+      lastChangedAt,
+      serverTime: new Date().toISOString(),
     });
   });
 
   app.get("/api/sidebar/status", (req, res) => {
     const orderSeenAt = Date.parse(sidebarSeenState.order_verification_seen_at || '1970-01-01T00:00:00.000Z');
-    const orderVerificationNew = pendingOrders.filter(order => Date.parse(order.timestamp) > orderSeenAt).length;
+    const deliverySeenAt = Date.parse(sidebarSeenState.orders_delivery_seen_at || '1970-01-01T00:00:00.000Z');
+    /**
+     * Two different counts, as in `GET /sidebar/status`
+     * (app/routers/client_api.py): the verification badge counts PendingEvent
+     * rows still at `status="pending"`, the delivery badge counts CourierOrder
+     * rows in ACTIVE_COURIER_STATUSES. Counting `pendingOrders` for both left the
+     * badge disagreeing with the list it points at as soon as one order was
+     * booked.
+     */
+    const bookedElsewhere = new Set(
+      courierOrders
+        .filter((order) => String(order.courier_status).toLowerCase() !== "booking_failed")
+        .map((order) => String(order.order_id)),
+    );
+    const verificationOrders = pendingOrders.filter((order) => !bookedElsewhere.has(String(order.orderId)));
+    const activeCourierStatuses = new Set([
+      "booking_queued", "booking_processing", "pending", "picked",
+      "in_transit", "processing", "booked", "shipped",
+    ]);
+    const activeDeliveries = courierOrders.filter(
+      (order) => activeCourierStatuses.has(String(order.courier_status).toLowerCase()),
+    );
 
     res.json({
-      orderVerificationTotal: pendingOrders.length,
-      orderVerificationNew,
-      ordersDeliveryTotal: pendingOrders.length,
-      ordersDeliveryNew: orderVerificationNew,
+      orderVerificationTotal: verificationOrders.length,
+      orderVerificationNew: verificationOrders.filter(order => Date.parse(order.timestamp) > orderSeenAt).length,
+      ordersDeliveryTotal: activeDeliveries.length,
+      ordersDeliveryNew: activeDeliveries.filter(order => Date.parse(order.created_at) > deliverySeenAt).length,
       seenState: {
         orderVerificationSeenAt: sidebarSeenState.order_verification_seen_at,
         ordersDeliverySeenAt: sidebarSeenState.orders_delivery_seen_at,
@@ -847,15 +1768,38 @@ async function startServer() {
     });
   });
 
+  /**
+   * Mirrors `GET /api/client/incomplete-checkouts`: the default list is the
+   * three statuses a merchant can act on, `counts` is grouped over every status
+   * in the store (so tiles can talk about carts this page never lists), and the
+   * page window is reported back as totalCount/offset/limit/hasMore.
+   */
+  const CHECKOUT_STATUSES = ["active", "incomplete", "contacted", "recovered", "ignored", "expired"];
+  const CHECKOUT_DEFAULT_STATUSES = ["incomplete", "contacted", "recovered"];
+
   app.get("/api/incomplete-checkouts", (req, res) => {
+    const requested = typeof req.query.status === "string" ? req.query.status.trim() : "";
+    if (requested && !CHECKOUT_STATUSES.includes(requested)) {
+      return res.status(400).json({ detail: "Unknown checkout status." });
+    }
+    const wanted = requested ? [requested] : CHECKOUT_DEFAULT_STATUSES;
+    const limit = Math.min(250, Math.max(1, Number(req.query.limit) || 100));
+    const offset = Math.max(0, Number(req.query.offset) || 0);
+
     const counts = incompleteCheckouts.reduce((acc: Record<string, number>, item) => {
       acc[item.status] = (acc[item.status] || 0) + 1;
-      acc.total = (acc.total || 0) + 1;
       return acc;
     }, {});
+    const matching = incompleteCheckouts.filter(item => wanted.includes(item.status));
+    const window = matching.slice(offset, offset + limit);
+
     res.json({
-      items: incompleteCheckouts,
+      items: window,
       counts,
+      totalCount: matching.length,
+      offset,
+      limit,
+      hasMore: offset + window.length < matching.length,
       restricted: false,
     });
   });
@@ -870,8 +1814,23 @@ async function startServer() {
     if (!target) {
       return res.status(404).json({ detail: "Incomplete checkout not found." });
     }
-    target.status = String(req.body?.status || target.status);
+    // Production accepts exactly these four and 409s a settled row, so the
+    // mock has to refuse the same writes — otherwise the portal's status
+    // control looks like it works locally and fails live. `recovered` is the
+    // merchant saying they closed the sale off-platform; it is terminal, which
+    // is why the 409 below then locks the row.
+    const next = String(req.body?.status || "");
+    if (!["contacted", "ignored", "incomplete", "recovered"].includes(next)) {
+      return res.status(400).json({ detail: "Status must be contacted, recovered, ignored or incomplete." });
+    }
+    if (["recovered", "expired"].includes(String(target.status))) {
+      return res.status(409).json({ detail: "This checkout is already settled." });
+    }
+    target.status = next;
     target.updated_at = new Date().toISOString();
+    if (next === "recovered" || next === "ignored") {
+      target.convertedAt = new Date().toISOString();
+    }
     res.json({ success: true, item: target });
   });
 
@@ -881,8 +1840,11 @@ async function startServer() {
     if (!target) {
       return res.status(404).json({ detail: "Incomplete checkout not found." });
     }
-    if (!["incomplete", "contacted", "open"].includes(String(target.status))) {
+    if (!["incomplete", "contacted"].includes(String(target.status))) {
       return res.status(400).json({ detail: "Only incomplete or contacted leads can be converted to an order." });
+    }
+    if (target.orderId) {
+      return res.status(409).json({ detail: "An order was already created from this checkout." });
     }
     const body = req.body || {};
     const orderId = `manual-${id}-${Date.now()}`;
@@ -890,6 +1852,7 @@ async function startServer() {
     const subtotal = items.reduce((sum: number, item: any) => sum + Number(item.price || 0) * Number(item.quantity || 1), 0);
     const amount = Math.max(0, subtotal + Number(body.delivery_charge || 0) - Number(body.discount || 0));
     pendingOrders.unshift({
+      id: Date.now(),
       orderId,
       amount,
       customer: body.phone || target.customer_phone || "",
@@ -906,6 +1869,11 @@ async function startServer() {
         attributes: item.attributes || {},
         category: item.category || "",
       })),
+      productSubtotal: subtotal,
+      deliveryCharge: Number(body.delivery_charge || 0),
+      discount: Number(body.discount || 0),
+      orderTotal: amount,
+      note: String(body.note || ''),
       fraudScore: 0,
       fraudDetails: {},
       ageHours: 0,
@@ -934,11 +1902,17 @@ async function startServer() {
   });
 
   app.post("/api/courier/send", (req, res) => {
-    const orderId = String(req.body?.order_id || `WC-${Math.floor(Math.random() * 9000) + 1000}`);
+    const pendingEventId = Number(req.body?.pending_event_id);
+    const pendingTarget = pendingOrders.find((pending) => (
+      (Number.isFinite(pendingEventId) && pending.id === pendingEventId) ||
+      (req.body?.order_id && pending.orderId === String(req.body.order_id))
+    ));
+    const orderId = pendingTarget?.orderId || String(req.body?.order_id || `WC-${Math.floor(Math.random() * 9000) + 1000}`);
+    const existing = courierOrders.find((item) => item.order_id === orderId);
     const order = {
-      id: Date.now(),
+      id: existing?.id ?? Date.now(),
       order_id: orderId,
-      courier_provider: String(req.body?.provider || courierSettings.default_courier || "steadfast"),
+      courier_provider: String(req.body?.courier_provider || req.body?.provider || courierSettings.default_courier || "steadfast"),
       courier_order_id: `MOCK-${orderId}`,
       courier_tracking_id: `TRK${Math.floor(Math.random() * 900000)}`,
       courier_status: "pending",
@@ -949,8 +1923,57 @@ async function startServer() {
       delivery_charge: 80,
       created_at: new Date().toISOString(),
       purchase_event_sent: false,
+      refund_event_sent: false,
+      pending_event_id: pendingTarget?.id,
+      // Same reason as the seeded rows: production rebuilds this from the stored
+      // order payload, so the parcel keeps its contents once the verification
+      // record is gone.
+      products: pendingTarget?.products ?? existing?.products,
+      // Booking must not lose the source: production reads it from the same held
+      // Purchase payload for both /deferred and /courier/orders.
+      marketing: pendingTarget?.marketing ?? null,
     };
-    courierOrders.unshift(order);
+    // Booking is the handoff point: the order leaves the pre-courier queue.
+    if (pendingTarget) {
+      pendingOrders = pendingOrders.filter((pending) => pending.id !== pendingTarget.id);
+    }
+    courierOrders = [order, ...courierOrders.filter((item) => item.id !== order.id)];
+    res.json({
+      success: true,
+      order,
+      courier_order_id: order.courier_order_id,
+      tracking_id: order.courier_tracking_id,
+    });
+  });
+
+  // Local-only status hook used by sandbox E2E checks. Production delivery
+  // updates arrive through the provider webhook routes instead.
+  app.post("/api/courier/mock-status/:id", (req, res) => {
+    const id = Number(req.params.id);
+    const order = courierOrders.find((item) => item.id === id);
+    if (!order) return res.status(404).json({ detail: "Courier order not found." });
+
+    const rawStatus = String(req.body?.status || "").trim().toLowerCase().replace(/\s+/g, "_");
+    const statusMap: Record<string, string> = {
+      completed: "delivered",
+      shipped: "in_transit",
+      picked_up: "in_transit",
+      out_for_delivery: "in_transit",
+      returned: "returned",
+      canceled: "cancelled",
+      cancelled: "cancelled",
+      delivered: "delivered",
+      in_transit: "in_transit",
+      pending: "pending",
+    };
+    const mappedStatus = statusMap[rawStatus] || rawStatus;
+    if (!mappedStatus) return res.status(400).json({ detail: "A courier status is required." });
+
+    order.courier_status = mappedStatus;
+    if (mappedStatus === "delivered") order.purchase_event_sent = true;
+    if (["returned", "cancelled"].includes(mappedStatus) && order.purchase_event_sent) {
+      order.refund_event_sent = true;
+    }
     res.json({ success: true, order });
   });
 
@@ -964,8 +1987,122 @@ async function startServer() {
     res.json({ success: true, order });
   });
 
+  app.post("/api/orders/:id/cancel", (req, res) => {
+    const pendingEventId = Number(req.params.id);
+    const target = pendingOrders.find((order) => order.id === pendingEventId);
+    if (!target) return res.status(404).json({ detail: "Pending order not found." });
+
+    pendingOrders = pendingOrders.filter((order) => order.id !== pendingEventId);
+    archivedOrders.unshift({ action: "cancel", order: target });
+    cancelledTotal++;
+    res.json({
+      success: true,
+      orderId: target.orderId,
+      status: "cancelled",
+      message: "Order cancelled. It was removed from Purchase Event Hold.",
+      wooSync: {
+        status: "completed",
+        commandId: Date.now(),
+        message: "WooCommerce cancellation applied.",
+      },
+    });
+  });
+
+  app.get("/api/v1/orders/workflow-statuses", (_req, res) => {
+    const statuses: Record<string, string> = {};
+    pendingOrders.forEach((order) => {
+      statuses[String(order.orderId)] = String(order.workflowStatus || order.status || "pending");
+    });
+    courierOrders.forEach((order) => {
+      const courierStatus = String(order.courier_status || "pending").toLowerCase();
+      statuses[String(order.order_id)] = String((order as any).workflowStatus || (
+        ["delivered", "completed"].includes(courierStatus) ? "completed" :
+        ["returned", "cancelled"].includes(courierStatus) ? "cancelled" :
+        ["picked_up", "in_transit", "shipped"].includes(courierStatus) ? "shipped" :
+        "processing"
+      ));
+    });
+    const cancelledOrders = archivedOrders
+      .filter((entry) => entry.action === "cancel")
+      .map((entry) => ({ ...entry.order, status: "cancelled", workflowStatus: "cancelled" }));
+    cancelledOrders.forEach((order) => {
+      statuses[String(order.orderId)] = "cancelled";
+    });
+    res.json({ statuses, cancelledOrders });
+  });
+
+  app.patch("/api/v1/orders/:orderId/status", (req, res) => {
+    const orderId = String(req.params.orderId || "");
+    const status = String(req.body?.status || "").trim().toLowerCase();
+    const allowed = ["pending", "on-hold", "confirmed", "processing", "shipped", "completed", "cancelled"];
+    if (!allowed.includes(status)) return res.status(400).json({ detail: "Unsupported order status." });
+
+    let pending = pendingOrders.find((order) => String(order.orderId) === orderId);
+    const archivedIndex = archivedOrders.findIndex((entry) => String(entry.order.orderId) === orderId);
+    const archived = archivedIndex >= 0 ? archivedOrders[archivedIndex] : null;
+    if (!pending && archived?.action === "cancel") pending = archived.order;
+    const courier = courierOrders.find((order) => String(order.order_id) === orderId);
+    if (!pending && !courier) return res.status(404).json({ detail: "Order not found." });
+    if (status === "shipped" && !courier) {
+      return res.status(409).json({ detail: "Book this order with a courier before marking it shipped." });
+    }
+    if (status === "completed" && courier && !["delivered", "completed"].includes(String(courier.courier_status).toLowerCase())) {
+      return res.status(409).json({ detail: "The courier must report Delivered before this order can be completed." });
+    }
+    if (status === "cancelled" && courier && !["cancelled", "returned", "booking_failed"].includes(String(courier.courier_status).toLowerCase())) {
+      return res.status(409).json({ detail: "Cancel the active courier booking first so the provider and WooCommerce stay aligned." });
+    }
+
+    if (pending) {
+      pending.workflowStatus = status;
+      if (status === "cancelled") {
+        if (archivedIndex < 0) {
+          pendingOrders = pendingOrders.filter((order) => String(order.orderId) !== orderId);
+          archivedOrders.unshift({ action: "cancel", order: pending });
+          cancelledTotal++;
+        }
+      } else if (archived?.action === "cancel" && ["pending", "on-hold"].includes(status)) {
+        archivedOrders.splice(archivedIndex, 1);
+        pendingOrders.unshift(pending);
+        cancelledTotal = Math.max(0, cancelledTotal - 1);
+      }
+    }
+    if (courier) (courier as any).workflowStatus = status;
+    res.json({
+      success: true,
+      orderId,
+      status,
+      wooSync: {
+        status: "completed",
+        commandId: Date.now(),
+        message: "WooCommerce status updated.",
+      },
+    });
+  });
+
   app.get("/api/courier/pathao/stores", (req, res) => {
-    res.json({ stores: [{ store_id: "demo-pathao-store", store_name: "Buykori Demo Pickup" }] });
+    res.json({ stores: [{ store_id: 101, store_name: "Buykori Demo Pickup" }] });
+  });
+
+  app.get("/api/courier/pathao/cities", (_req, res) => {
+    res.json([
+      { city_id: 1, city_name: "Dhaka" },
+      { city_id: 2, city_name: "Chattogram" },
+    ]);
+  });
+
+  app.get("/api/courier/pathao/zones", (req, res) => {
+    const cityId = Number(req.query.city_id);
+    res.json(cityId === 2
+      ? [{ zone_id: 21, zone_name: "Chattogram Sadar" }]
+      : [{ zone_id: 11, zone_name: "Dhaka North" }, { zone_id: 12, zone_name: "Dhaka South" }]);
+  });
+
+  app.get("/api/courier/pathao/areas", (req, res) => {
+    const zoneId = Number(req.query.zone_id);
+    res.json(zoneId === 12
+      ? [{ area_id: 121, area_name: "Dhanmondi" }, { area_id: 122, area_name: "Mirpur" }]
+      : [{ area_id: 111, area_name: "Uttara" }, { area_id: 112, area_name: "Banani" }]);
   });
 
   app.get("/api/courier/redx/areas", (req, res) => {
@@ -973,9 +2110,25 @@ async function startServer() {
   });
 
   app.post("/api/courier/:provider/webhook-secret", (req, res) => {
-    const key = `${String(req.params.provider)}_webhook_secret_configured`;
+    const provider = String(req.params.provider).toLowerCase() as keyof typeof courierWebhookSecrets;
+    if (!Object.prototype.hasOwnProperty.call(courierWebhookSecrets, provider)) {
+      res.status(400).json({ detail: 'Unsupported courier webhook provider.' });
+      return;
+    }
+    const key = provider === 'steadfast'
+      ? 'steadfast_webhook_token_configured'
+      : `${provider}_webhook_secret_configured`;
+    const secret = courierWebhookSecrets[provider];
+    const callbackUrl = `https://api.buykori.app/api/v1/webhook/${provider}`;
     courierSettings[key] = true;
-    res.json({ success: true, [key]: true });
+    res.json({
+      success: true,
+      configured: true,
+      secret,
+      callback_url: provider === 'redx' ? `${callbackUrl}?token=${encodeURIComponent(secret)}` : callbackUrl,
+      verified_at: courierSettings[`${provider}_webhook_verified_at`] || null,
+      [key]: true,
+    });
   });
 
   app.get("/api/v1/plugin/info", (req, res) => {
@@ -1039,6 +2192,115 @@ async function startServer() {
       { id: "mock-meta-prospecting", name: "Meta Prospecting", platform: "meta", status: "active" },
       { id: "mock-tiktok-retargeting", name: "TikTok Retargeting", platform: "tiktok", status: "active" },
     ]);
+  });
+
+  app.get("/api/ai-ads/overview", (_req, res) => {
+    res.json({
+      performance: {
+        spend: 18000, impressions: 28400, clicks: 920, ctr: 3.24, cpc: 19.57, cpm: 633.8,
+        conversions: 42, cpa: 428.57, revenue: 105000, roas: 5.83, conversion_rate: 4.57,
+        aov: 2500, attribution_quality: 88.1,
+      },
+      proposals: aiAdsProposals,
+      actions: aiAdsActions,
+      writes_enabled: false,
+    });
+  });
+
+  app.get("/api/ai-ads/performance", (_req, res) => {
+    res.json({
+      spend: 18000, impressions: 28400, clicks: 920, ctr: 3.24, cpc: 19.57, cpm: 633.8,
+      conversions: 42, cpa: 428.57, revenue: 105000, roas: 5.83, conversion_rate: 4.57,
+      aov: 2500, attribution_quality: 88.1,
+    });
+  });
+
+  app.get("/api/v1/ai-ads/connections", (_req, res) => res.json(aiAdsConnections));
+
+  app.post("/api/v1/ai-ads/oauth/:provider/start", (req, res) => {
+    res.json({ authorization_url: `/ai-ads/accounts?oauth=mock&provider=${req.params.provider}` });
+  });
+
+  app.post("/api/v1/ai-ads/connections/select-account", (_req, res) => {
+    res.json({ id: 1, status: "connected" });
+  });
+
+  app.delete("/api/v1/ai-ads/connections/:id", (req, res) => {
+    aiAdsConnections = aiAdsConnections.filter(item => item.id !== Number(req.params.id));
+    res.json({ status: "disconnected" });
+  });
+
+  app.post("/api/ai-ads/chat", (req, res) => {
+    const prompt = String(req.body?.message || "");
+    aiConversationId += 1;
+    res.json({
+      conversation_id: aiConversationId,
+      message: prompt.toLowerCase().includes("campaign")
+        ? "I can prepare a paused campaign proposal. I still need the product, landing page, location, daily budget, duration, and creative assets."
+        : "The current seven-day snapshot shows 5.83 ROAS with 88.1% explicit attribution coverage. I recommend reviewing the unattributed purchases before scaling.",
+      structured: null,
+    });
+  });
+
+  /**
+   * Streaming twin of the mock chat route, so the demo shows the same shape the real backend
+   * sends: an activity `step` per check the agent ran, `delta` text, then one authoritative
+   * `done` frame. Without this the demo silently fell back to the blocking route and the
+   * activity trail could never be seen locally.
+   */
+  app.post("/api/ai-ads/chat/stream", async (req, res) => {
+    const prompt = String(req.body?.message || "");
+    aiConversationId += 1;
+    const message = prompt.toLowerCase().includes("campaign")
+      ? "I can prepare a paused campaign proposal. I still need the product, landing page, location, daily budget, duration, and creative assets."
+      : "The current seven-day snapshot shows 5.83 ROAS with 88.1% explicit attribution coverage. I recommend reviewing the unattributed purchases before scaling.";
+    res.writeHead(200, {
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache",
+      Connection: "keep-alive",
+    });
+    const send = (frame: unknown) => res.write(`data: ${JSON.stringify(frame)}\n\n`);
+    const pause = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+    for (const step of [
+      { label: "Looking up your connected ad accounts", status: "completed" },
+      { label: "Checking spend and results", status: "completed" },
+      { label: "Matching orders to ads", status: "completed" },
+    ]) {
+      await pause(450);
+      send({ type: "step", ...step });
+    }
+    for (const piece of message.match(/\S+\s*/g) ?? []) {
+      await pause(25);
+      send({ type: "delta", text: piece });
+    }
+    send({ type: "done", conversation_id: aiConversationId, message, structured: null, usage: { input_tokens: 1840, output_tokens: 96 } });
+    res.end();
+  });
+
+  app.post("/api/ai-ads/proposals/:id/approve", (req, res) => {
+    const proposal = aiAdsProposals.find(item => item.id === Number(req.params.id));
+    if (!proposal || req.body?.proposal_hash !== proposal.proposal_hash) {
+      return res.status(409).json({ detail: "Approval does not match the exact proposal hash." });
+    }
+    proposal.status = "approved";
+    res.json({ approval_id: 801 });
+  });
+
+  app.post("/api/ai-ads/proposals/:id/queue", (req, res) => {
+    const proposal = aiAdsProposals.find(item => item.id === Number(req.params.id));
+    if (!proposal || Number(req.body?.approval_id) !== 801) {
+      return res.status(409).json({ detail: "Valid approval is required." });
+    }
+    proposal.status = "queued";
+    const action = {
+      id: 901 + aiAdsActions.length,
+      operation: proposal.operation,
+      provider: "meta",
+      status: "queued",
+      created_at: new Date().toISOString(),
+    };
+    aiAdsActions.unshift(action);
+    res.json({ action_id: action.id, status: action.status });
   });
 
   app.get("/api/v1/ad-accounts", (req, res) => {
@@ -1108,7 +2370,7 @@ async function startServer() {
    */
   app.get("/api/v1/analytics/overview", (req, res) => {
     const total = events.length;
-    const success = events.filter(event => event.status === "Success").length;
+    const success = events.filter(event => event.status === "Delivered").length;
     const failed = events.filter(event => event.status === "Failed").length;
     const countByName = (name: string) => events.filter(event => event.name === name).length;
 
@@ -1370,9 +2632,25 @@ async function startServer() {
     res.json({ success: true, cancelled: matched.length, failed: orderIds.length - matched.length });
   });
 
+  /**
+   * Production serves this app from Vercel, where `vercel.json` rewrites
+   * `/static/:path*` to `https://api.buykori.app/static/:path*`. Nothing here
+   * replays that rewrite, so every backend-hosted asset the app asks for used to
+   * fall through to the SPA catch-all and come back as `index.html` with status
+   * 200 — an <img> pointed at HTML, which the browser renders as a broken glyph.
+   * That is what the platform logos (`PlatformLogo`) were doing on localhost
+   * while production showed them fine.
+   *
+   * The files exist in `public/`, one level shallower than the backend mount, so
+   * `/static/client-portal/platforms/meta.svg` resolves to `public/platforms/meta.svg`.
+   * `brand-logo.png` keeps its own handler: the backend keeps it under `assets/`,
+   * which has no counterpart in `public/`.
+   */
+  const publicPath = path.join(process.cwd(), 'public');
   app.get('/static/client-portal/assets/brand-logo.png', (_req, res) => {
-    res.sendFile(path.join(process.cwd(), 'public', 'brand-logo.png'));
+    res.sendFile(path.join(publicPath, 'brand-logo.png'));
   });
+  app.use('/static/client-portal', express.static(publicPath));
 
   /**
    * CP-17: any unmatched /api/* request used to fall through to the Vite middleware

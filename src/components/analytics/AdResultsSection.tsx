@@ -56,16 +56,19 @@ export function AdResultsSection({
         )}
       </div>
 
+      {/* Ad-account linking moved out of Settings and into AI Ads, so the two
+          "connect an ad account" sentences below had to move with it, or they
+          send the merchant to a Settings card that is no longer there. */}
       {adPerformanceMeta && (!adPerformanceMeta.sync_enabled || adPerformanceMeta.connected_accounts === 0 || adPerformanceMeta.missing_attribution_purchases > 0) && (
         <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-xs leading-relaxed text-amber-800">
           {!adPerformanceMeta.sync_enabled ? (
             <p><strong>Ad sync is off.</strong> Enable ENABLE_AD_SYNC on the server to refresh Meta/TikTok spend automatically.</p>
           ) : adPerformanceMeta.connected_accounts === 0 ? (
-            <p><strong>No ad account connected.</strong> Connect a Meta ad account in Settings to populate campaign spend.</p>
+            <p><strong>No ad account connected.</strong> Connect a Meta ad account in AI Ads → Connected Accounts to populate campaign spend.</p>
           ) : (
             <p>
               <strong>{numberText(adPerformanceMeta.missing_attribution_purchases)} sale event(s) could not be matched to an ad campaign.</strong>
-              {' '}Use Campaign Tools and choose a synced campaign so new ad links include bk_campaign_id.
+              {' '}Use Campaign tools and choose a synced campaign so new ad links include bk_campaign_id.
             </p>
           )}
         </div>
@@ -146,7 +149,7 @@ export function AdResultsSection({
           </div>
         ) : !adPerformance || adPerformance.length === 0 ? (
           <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center text-xs text-slate-400">
-            No ad results yet. Connect an ad account in Settings to see results here.
+            No ad results yet. Connect an ad account in AI Ads → Connected Accounts to see results here.
           </div>
         ) : filteredAdPerformance.length === 0 ? (
           <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center text-xs text-slate-400">

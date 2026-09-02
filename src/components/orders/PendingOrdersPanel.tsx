@@ -3,14 +3,18 @@ import {
   CheckCircle2,
   ChevronDown,
   ChevronUp,
+  Clock3,
   Copy,
   FileText,
+  Pencil,
   Search,
   Send,
   Truck,
 } from 'lucide-react';
-import type { DeferredOrder } from '../../types';
-import { formatHeldAge, usablePhone } from './ordersUtils';
+import type { DeferredOrder, OrderWorkflowStatus } from '../../types';
+import { ProductThumb } from '../common/ProductThumb';
+import { formatHeldDuration, usablePhone } from './ordersUtils';
+import { OrderStatusControl, OrderWorkflowStatusBadge } from './OrderStatusControl';
 
 interface PendingOrdersPanelProps {
   pendingSearch: string;
@@ -33,8 +37,19 @@ interface PendingOrdersPanelProps {
   expandedOrderId: string | null;
   toggleExpand: (id: string) => void;
   openInvoice: (order: DeferredOrder) => void;
+  openOrderEditModal: (order: DeferredOrder) => void;
   openPendingCourierModal: (order: DeferredOrder) => void;
-  renderCourierVerdict: (details?: DeferredOrder['fraudDetails'], scoreValue?: number, compact?: boolean) => React.ReactNode;
+  cancellingPendingOrderId: string | null;
+  updatingStatusOrderId: string | null;
+  handlePendingStatusChange: (order: DeferredOrder, status: OrderWorkflowStatus) => void;
+  /** Verdict badge once a courier lookup has run, otherwise the "Check courier" button. */
+  renderCourierVerdict: (order: DeferredOrder, compact?: boolean) => React.ReactNode;
+  /** Per-courier breakdown for the expanded area. Returns null until a lookup has run. */
+  renderCourierDetail: (order: DeferredOrder, className?: string) => React.ReactNode;
+  /** WhatsApp send button, or the badge for the latest confirmation request. */
+  renderWhatsAppCell: (order: DeferredOrder, compact?: boolean) => React.ReactNode;
+  /** False when the server has WhatsApp confirmations switched off — the column is dropped. */
+  whatsappColumnVisible: boolean;
   copyPhone: (phone: unknown) => void;
 }
 
@@ -59,28 +74,37 @@ export function PendingOrdersPanel({
   expandedOrderId,
   toggleExpand,
   openInvoice,
+  openOrderEditModal,
   openPendingCourierModal,
+  cancellingPendingOrderId,
+  updatingStatusOrderId,
+  handlePendingStatusChange,
   renderCourierVerdict,
+  renderCourierDetail,
+  renderWhatsAppCell,
+  whatsappColumnVisible,
   copyPhone,
 }: PendingOrdersPanelProps) {
+  // Keeps the expanded row's colSpan honest when the WhatsApp column is dropped.
+  const pendingColumnCount = whatsappColumnVisible ? 8 : 7;
   return (
     <div id="orders-pending" className="scroll-mt-24 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
       <div className="border-b border-slate-200 p-3 md:hidden">
-        <div className="grid grid-cols-[minmax(0,1fr)_112px] gap-2">
+        <div className="grid grid-cols-[minmax(0,1fr)_104px] gap-2">
           <div className="relative min-w-0">
-            <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-slate-400" />
+            <Search className="absolute left-3 top-3.5 h-4 w-4 text-slate-400" />
             <input
               value={pendingSearch}
               onChange={(event) => setPendingSearch(event.target.value)}
               placeholder="Search order ID, name or phone…"
-              className="h-9 w-full rounded-lg border border-slate-200 pl-9 pr-2 text-[10px] outline-none focus:border-[#2f80df]"
+              className="h-11 w-full rounded-lg border border-slate-200 pl-9 pr-2 text-[11px] outline-none focus:border-indigo-600"
             />
           </div>
           <select
             value={pendingFraudFilter}
             onChange={(event) => setPendingFraudFilter(event.target.value)}
             aria-label="Filter pending orders by fraud level"
-            className="h-9 min-w-0 rounded-lg border border-slate-200 bg-white px-2 text-[9px] font-bold text-slate-700"
+            className="h-11 min-w-0 rounded-lg border border-slate-200 bg-white px-2 text-[10px] font-bold text-slate-700"
           >
             <option value="all">All fraud levels</option>
             <option value="EXCELLENT">Best customers</option>
@@ -92,26 +116,28 @@ export function PendingOrdersPanel({
             <option value="UNKNOWN">Check unavailable</option>
           </select>
         </div>
-        <div className="mt-2 grid grid-cols-[104px_1fr_116px] items-center gap-2">
+        <div className="mt-2 grid grid-cols-[108px_minmax(0,1fr)] items-center gap-2">
           <select
             value={pendingSort}
             onChange={(event) => setPendingSort(event.target.value as 'oldest' | 'newest')}
             aria-label="Sort pending courier orders"
-            className="h-8 min-w-0 rounded-lg border border-slate-200 bg-white px-2 text-[9px] font-bold text-slate-700"
+            className="h-10 min-w-0 rounded-lg border border-slate-200 bg-white px-2 text-[10px] font-bold text-slate-700"
           >
             <option value="newest">Latest first ▼</option>
             <option value="oldest">Oldest first ▼</option>
           </select>
-          <span className="truncate text-[9px] font-bold text-slate-400">{selectedPendingOrderIds.length} selected</span>
-          <button
-            type="button"
-            disabled={selectedPendingOrderIds.length === 0}
-            onClick={openFirstSelectedPendingOrder}
-            className="inline-flex h-8 items-center justify-center gap-1 rounded-lg bg-[#2f80df] px-2 text-[9px] font-bold text-white disabled:border disabled:border-slate-200 disabled:bg-slate-50 disabled:text-slate-400"
-          >
-            <Truck className="h-3 w-3" />
-            Book selected
-          </button>
+          <div className="flex min-w-0 items-center justify-end gap-2">
+            <span className="min-w-0 truncate text-[10px] font-bold text-slate-400">{selectedPendingOrderIds.length} selected</span>
+            <button
+              type="button"
+              disabled={selectedPendingOrderIds.length === 0}
+              onClick={openFirstSelectedPendingOrder}
+              className="inline-flex h-11 shrink-0 items-center justify-center gap-1 rounded-lg bg-indigo-600 px-2.5 text-[10px] font-bold text-white disabled:border disabled:border-slate-200 disabled:bg-slate-50 disabled:text-slate-400"
+            >
+              <Truck className="h-3.5 w-3.5" />
+              {selectedPendingOrderIds.length > 1 ? 'Open first order' : 'Book order'}
+            </button>
+          </div>
         </div>
       </div>
 
@@ -154,10 +180,10 @@ export function PendingOrdersPanel({
           type="button"
           disabled={selectedPendingOrderIds.length === 0}
           onClick={openFirstSelectedPendingOrder}
-          className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-indigo-600 px-4 text-xs font-bold text-white hover:bg-indigo-700 disabled:opacity-50"
+          className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-indigo-600 px-4 text-xs font-bold text-white hover:bg-indigo-700 disabled:opacity-50"
         >
           <Truck className="h-4 w-4" />
-          Book selected
+          {selectedPendingOrderIds.length > 1 ? 'Open first order' : 'Book order'}
         </button>
       </div>
 
@@ -165,12 +191,21 @@ export function PendingOrdersPanel({
         {pendingPageOrders.length === 0 ? (
           <div className="px-4 py-8 text-center text-slate-400">
             <CheckCircle2 className="mx-auto mb-2 h-8 w-8 text-emerald-400" />
-            <p className="text-xs font-semibold">No COD orders are waiting for your review.</p>
+            <p className="text-xs font-semibold">No orders found.</p>
           </div>
         ) : pendingPageOrders.map((order) => {
           const isExpanded = expandedOrderId === order.orderId;
+          const workflowStatus = order.workflowStatus || (order.status === 'confirmed' ? 'confirmed' : 'pending');
+              const statusOptions: OrderWorkflowStatus[] = workflowStatus === 'completed'
+                ? ['completed']
+                : workflowStatus === 'cancelled'
+                  ? ['cancelled', 'pending', 'on-hold']
+                  : order.status === 'confirmed'
+                    ? ['confirmed', 'processing', 'completed']
+                    : ['pending', 'on-hold', 'confirmed', 'processing', 'completed', 'cancelled'];
           const products = order.products || [];
           const selected = selectedPendingOrderIds.includes(order.orderId);
+          const isCancelled = workflowStatus === 'cancelled';
           const productSubtotal = Number(order.productSubtotal ?? products.reduce((sum, product) => sum + (Number(product.price || 0) * Number(product.quantity || 1)), 0));
           const deliveryAndAdjustments = Number(order.deliveryCharge || 0) + Number(order.otherAdjustment || 0);
           return (
@@ -179,17 +214,19 @@ export function PendingOrdersPanel({
                 <input
                   type="checkbox"
                   checked={selected}
+                  disabled={isCancelled}
                   onChange={(event) => togglePendingOrder(order.orderId, event.target.checked)}
-                  aria-label={`Select pending courier order ${order.orderId}`}
-                  className="mt-0.5 h-4 w-4 shrink-0 rounded accent-[#2f80df]"
+                  aria-label={`Select order ${order.orderId}`}
+                  className="mt-0.5 h-5 w-5 shrink-0 rounded accent-indigo-600 disabled:cursor-not-allowed disabled:opacity-40"
                 />
                 <button type="button" onClick={() => toggleExpand(order.orderId)} className="min-w-0 flex-1 text-left" aria-expanded={isExpanded}>
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
                       <p className="flex items-center gap-1 font-mono text-[12px] font-bold leading-none text-slate-900">
                         #{order.orderId}
-                        {isExpanded ? <ChevronUp className="h-3 w-3 text-[#2f80df]" /> : <ChevronDown className="h-3 w-3 text-slate-400" />}
+                        {isExpanded ? <ChevronUp className="h-3 w-3 text-indigo-600" /> : <ChevronDown className="h-3 w-3 text-slate-400" />}
                       </p>
+                      <div className="mt-1"><OrderWorkflowStatusBadge status={workflowStatus} /></div>
                       <p className="mt-1 truncate text-[10px] font-semibold text-slate-800">
                         {order.recipientName || 'Customer unavailable'}
                         <span className="ml-1 font-normal text-slate-400">· {usablePhone(order.recipientPhone) || usablePhone(order.customer) || 'No phone'}</span>
@@ -197,20 +234,39 @@ export function PendingOrdersPanel({
                     </div>
                     <span className="shrink-0 text-right">
                       <strong className="block text-[13px] font-black leading-none text-slate-900">BDT {Number(order.amount || 0).toLocaleString()}</strong>
-                      <span className={`mt-1 block text-[8px] font-bold ${(Number(order.ageHours) || 0) >= 168 ? 'text-orange-600' : 'text-slate-400'}`}>
-                        {formatHeldAge(order.ageHours)}
-                      </span>
+                      {!isCancelled && (
+                        <span
+                          className={`mt-1 flex items-center justify-end gap-1 text-[8px] font-bold ${(Number(order.ageHours) || 0) >= 168 ? 'text-orange-600' : 'text-slate-400'}`}
+                          title={`Held for ${formatHeldDuration(order.ageHours)}`}
+                        >
+                          <Clock3 className="h-2.5 w-2.5" />
+                          {formatHeldDuration(order.ageHours)}
+                        </span>
+                      )}
                     </span>
                   </div>
-                  <div className="mt-2 flex items-center justify-between gap-2">
-                    {renderCourierVerdict(order.fraudDetails, order.fraudScore, true)}
+                  <div className="mt-2 flex items-center justify-end gap-2">
                     <span className="text-[8px] font-medium text-slate-400">{isExpanded ? 'Hide details' : 'View details'}</span>
                   </div>
                 </button>
               </div>
 
+              {/* Kept outside the expand button above: the fraud cell renders its own
+                  buttons (check / show breakdown) and buttons cannot be nested.
+                  pl-7 lines it up with the card text past the h-5 checkbox + gap-2. */}
+              <div className="mt-1.5 pl-7">
+                {renderCourierVerdict(order, true)}
+              </div>
+
+              {whatsappColumnVisible && !isCancelled && (
+                <div className="mt-1.5 pl-7">
+                  {renderWhatsAppCell(order, true)}
+                </div>
+              )}
+
               {isExpanded && (
                 <div className="mt-2 grid gap-2 border-t border-slate-100 pt-2">
+                  {renderCourierDetail(order)}
                   <div className="rounded-lg bg-slate-50 p-2.5">
                     <p className="text-[8px] font-bold uppercase tracking-wider text-slate-400">Customer details</p>
                     <div className="mt-1.5 grid grid-cols-[44px_1fr] gap-x-2 gap-y-1 text-[9px]">
@@ -228,7 +284,10 @@ export function PendingOrdersPanel({
                       <div className="mt-1.5 space-y-1.5">
                         {products.slice(0, 3).map((product, index) => (
                           <div key={index} className="flex items-start justify-between gap-2 text-[9px]">
-                            <span className="min-w-0 truncate font-semibold text-slate-700">{product.name || product.content_name || 'Product'} · Qty {product.quantity || 1}</span>
+                            <span className="flex min-w-0 items-center gap-1.5">
+                              <ProductThumb src={product.image} name={product.name || product.content_name} />
+                              <span className="min-w-0 truncate font-semibold text-slate-700">{product.name || product.content_name || 'Product'} · Qty {product.quantity || 1}</span>
+                            </span>
                             <strong className="shrink-0 text-slate-700">BDT {Number(product.price || 0).toLocaleString()}</strong>
                           </div>
                         ))}
@@ -236,16 +295,46 @@ export function PendingOrdersPanel({
                       <div className="mt-2 space-y-1 border-t border-slate-100 pt-2 text-[9px]">
                         <div className="flex justify-between text-slate-500"><span>Product subtotal</span><strong className="text-slate-700">BDT {productSubtotal.toLocaleString()}</strong></div>
                         <div className="flex justify-between text-slate-500"><span>Delivery &amp; adjustments</span><strong className="text-slate-700">BDT {deliveryAndAdjustments.toLocaleString()}</strong></div>
-                        <div className="flex justify-between border-t border-slate-100 pt-1 font-bold text-slate-800"><span>Total order value</span><strong className="text-[#285ac7]">BDT {Number(order.orderTotal ?? order.amount ?? 0).toLocaleString()}</strong></div>
+                        <div className="flex justify-between border-t border-slate-100 pt-1 font-bold text-slate-800"><span>Total order value</span><strong className="text-indigo-600">BDT {Number(order.orderTotal ?? order.amount ?? 0).toLocaleString()}</strong></div>
                       </div>
                     </div>
                   )}
                 </div>
               )}
 
-              <div className="mt-2 grid grid-cols-2 gap-2">
-                <button onClick={() => openInvoice(order)} className="h-8 rounded-lg border border-slate-200 bg-white px-2 text-[9px] font-bold text-slate-700">Invoice</button>
-                <button onClick={() => openPendingCourierModal(order)} className="h-8 rounded-lg bg-[#2f80df] px-2 text-[9px] font-bold text-white">Book courier</button>
+              <div className="mt-2 flex items-center gap-1.5">
+                <button
+                  onClick={() => openPendingCourierModal(order)}
+                  disabled={isCancelled}
+                  className="inline-flex h-11 min-w-0 flex-1 items-center justify-center gap-1 rounded-lg bg-indigo-600 px-2 text-[10px] font-bold text-white disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
+                >
+                  <Send className="h-3.5 w-3.5" /> {isCancelled ? 'Cancelled' : 'Book courier'}
+                </button>
+                <button
+                  onClick={() => openInvoice(order)}
+                  className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600"
+                  title="View invoice"
+                  aria-label={`View invoice for ${order.orderId}`}
+                >
+                  <FileText className="h-4 w-4" />
+                </button>
+                <button
+                  onClick={() => openOrderEditModal(order)}
+                  className="inline-flex h-11 shrink-0 items-center justify-center gap-1 rounded-lg border border-indigo-200 bg-white px-2 text-[10px] font-bold text-indigo-700"
+                  title="Edit order"
+                  aria-label={`Edit order ${order.orderId}`}
+                >
+                  <Pencil className="h-4 w-4" />
+                  <span>Edit</span>
+                </button>
+                <OrderStatusControl
+                  status={workflowStatus}
+                  options={statusOptions}
+                  busy={updatingStatusOrderId === order.orderId || cancellingPendingOrderId === order.orderId}
+                  labelled
+                  orderId={order.orderId}
+                  onChange={(status) => handlePendingStatusChange(order, status)}
+                />
               </div>
             </article>
           );
@@ -253,39 +342,49 @@ export function PendingOrdersPanel({
       </div>
 
       <div className="hidden overflow-x-auto min-h-64 md:block">
-        <table className="w-full text-left text-xs text-slate-600 divide-y divide-slate-100 min-w-[750px]  ">
+        <table className="w-full min-w-[720px] divide-y divide-slate-100 text-left text-xs text-slate-600">
           <thead className="bg-slate-50 text-xs font-bold uppercase tracking-wider text-slate-500  ">
             <tr>
               <th className="w-12 px-4 py-3">
                 <input
                   type="checkbox"
-                  checked={pendingPageOrders.length > 0 && pendingPageOrders.every((order) => selectedPendingOrderIds.includes(order.orderId))}
-                  onChange={(event) => setSelectedPendingOrderIds(event.target.checked ? pendingPageOrders.map((order) => order.orderId) : [])}
-                  aria-label="Select all visible pending courier orders"
+                  checked={pendingPageOrders.some((order) => (order.workflowStatus || order.status) !== 'cancelled') && pendingPageOrders.filter((order) => (order.workflowStatus || order.status) !== 'cancelled').every((order) => selectedPendingOrderIds.includes(order.orderId))}
+                  onChange={(event) => setSelectedPendingOrderIds(event.target.checked ? pendingPageOrders.filter((order) => (order.workflowStatus || order.status) !== 'cancelled').map((order) => order.orderId) : [])}
+                  aria-label="Select all visible active orders"
                   className="accent-indigo-600"
                 />
               </th>
-              <th className="px-6 py-3">Order ID</th>
-              <th className="px-6 py-3">Customer Info</th>
-              <th className="px-6 py-3">Value</th>
-              <th className="px-6 py-3">Fraud Check</th>
-              <th className="px-6 py-3">Time Held</th>
-              <th className="px-6 py-3 text-right">Actions</th>
+              <th className="px-4 py-3">Order ID</th>
+              <th className="px-4 py-3">Customer</th>
+              <th className="px-4 py-3">Value</th>
+              <th className="px-4 py-3">Fraud Check</th>
+              {whatsappColumnVisible && <th className="px-4 py-3">WhatsApp</th>}
+              <th className="w-[96px] px-3 py-3">Held</th>
+              <th className="w-[190px] px-4 py-3 text-right">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 ">
             {pendingPageOrders.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-6 py-12 text-center text-slate-400 font-medium ">
+                <td colSpan={pendingColumnCount} className="px-6 py-12 text-center text-slate-400 font-medium ">
                   <CheckCircle2 className="w-8 h-8 mx-auto text-emerald-400 mb-2" />
-                  No COD orders are waiting for your review.
+                  No orders found.
                 </td>
               </tr>
             ) : (
               pendingPageOrders.map((order) => {
                 const isExpanded = expandedOrderId === order.orderId;
+                const workflowStatus = order.workflowStatus || (order.status === 'confirmed' ? 'confirmed' : 'pending');
+                const statusOptions: OrderWorkflowStatus[] = workflowStatus === 'completed'
+                  ? ['completed']
+                  : workflowStatus === 'cancelled'
+                    ? ['cancelled', 'pending', 'on-hold']
+                    : order.status === 'confirmed'
+                      ? ['confirmed', 'processing', 'completed']
+                      : ['pending', 'on-hold', 'confirmed', 'processing', 'completed', 'cancelled'];
                 const products = order.products || [];
                 const isSelected = selectedPendingOrderIds.includes(order.orderId);
+                const isCancelled = workflowStatus === 'cancelled';
                 return (
                   <React.Fragment key={order.orderId}>
                     <tr className={`hover:bg-slate-50/50 transition-colors ${isExpanded || isSelected ? 'bg-indigo-50/20' : ''}`}>
@@ -293,21 +392,23 @@ export function PendingOrdersPanel({
                         <input
                           type="checkbox"
                           checked={isSelected}
+                          disabled={isCancelled}
                           onChange={(event) => togglePendingOrder(order.orderId, event.target.checked)}
-                          aria-label={`Select pending courier order ${order.orderId}`}
-                          className="accent-indigo-600"
+                          aria-label={`Select order ${order.orderId}`}
+                          className="accent-indigo-600 disabled:cursor-not-allowed disabled:opacity-40"
                         />
                       </td>
-                      <td className="px-6 py-3">
+                      <td className="px-4 py-3">
                         <button
                           onClick={() => toggleExpand(order.orderId)}
                           className="flex items-center gap-1.5 font-mono font-bold text-slate-800  hover:text-indigo-600  transition-colors cursor-pointer"
                         >
                           {isExpanded ? <ChevronUp className="w-3.5 h-3.5 text-indigo-500" /> : <ChevronDown className="w-3.5 h-3.5 text-slate-400" />}
-                          {order.orderId}
+                          <span>{order.orderId}</span>
+                          <OrderWorkflowStatusBadge status={workflowStatus} />
                         </button>
                       </td>
-                      <td className="px-6 py-3">
+                      <td className="px-4 py-3">
                         <div className="flex flex-col gap-0.5">
                           {order.recipientName && order.recipientName !== '-' && (
                             <button
@@ -322,37 +423,77 @@ export function PendingOrdersPanel({
                           )}
                         </div>
                       </td>
-                      <td className="px-6 py-3 font-semibold text-slate-800 ">BDT {Number(order.amount || 0).toLocaleString()}</td>
-                      <td className="px-6 py-3">
-                        {renderCourierVerdict(order.fraudDetails, order.fraudScore)}
+                      <td className="px-4 py-3 font-semibold text-slate-800 ">BDT {Number(order.amount || 0).toLocaleString()}</td>
+                      <td className="px-4 py-3">
+                        {renderCourierVerdict(order)}
                       </td>
-                      <td className="px-6 py-3 text-slate-400 font-mono ">{formatHeldAge(order.ageHours)}</td>
-                      <td className="px-6 py-3 text-right space-x-2 whitespace-nowrap">
+                      {whatsappColumnVisible && (
+                        <td className="px-4 py-3">
+                          {isCancelled ? <span className="text-xs font-semibold text-[var(--bk-console-text-subtle)]">—</span> : renderWhatsAppCell(order)}
+                        </td>
+                      )}
+                      <td className="px-3 py-3">
+                        {isCancelled ? (
+                          <span className="text-xs font-semibold text-[var(--bk-console-text-subtle)]">—</span>
+                        ) : (
+                          <span
+                            className={`inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2 py-1 font-mono text-[10px] font-bold ${(Number(order.ageHours) || 0) >= 168 ? 'bg-amber-50 text-amber-700' : 'bg-slate-100 text-slate-500'}`}
+                            title={`Held for ${formatHeldDuration(order.ageHours)}`}
+                            aria-label={`Held for ${formatHeldDuration(order.ageHours)}`}
+                          >
+                            <Clock3 className="h-3 w-3" />
+                            {formatHeldDuration(order.ageHours)}
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <div className="flex items-center justify-end gap-1 whitespace-nowrap">
                         <button
                           onClick={() => openInvoice(order)}
-                          className="btn-touch-expand px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700    text-xs font-bold rounded shadow-sm transition-colors cursor-pointer inline-flex items-center gap-1"
-                          title="View and Print Invoice"
+                          className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition-colors hover:bg-slate-100"
+                          title="View invoice"
+                          aria-label={`View invoice for ${order.orderId}`}
                         >
-                          <FileText className="w-2.5 h-2.5" /> Invoice
+                          <FileText className="h-3.5 w-3.5" />
+                        </button>
+                        <button
+                          onClick={() => openOrderEditModal(order)}
+                          className="inline-flex h-8 items-center justify-center gap-1 rounded-lg border border-indigo-200 bg-indigo-50 px-2 text-[10px] font-bold text-indigo-700 transition-colors hover:bg-indigo-100"
+                          title="Edit order"
+                          aria-label={`Edit order ${order.orderId}`}
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                          <span>Edit</span>
                         </button>
                         <button
                           onClick={() => openPendingCourierModal(order)}
-                          className="btn-touch-expand px-2.5 py-1 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded shadow-sm transition-colors cursor-pointer inline-flex items-center gap-1"
+                          disabled={isCancelled}
+                          className="inline-flex h-8 items-center justify-center gap-1 rounded-lg bg-indigo-600 px-2.5 text-[10px] font-bold text-white transition-colors hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
+                          title="Book courier"
+                          aria-label={`Book courier for ${order.orderId}`}
                         >
-                          <Send className="w-2.5 h-2.5" /> Book Courier
+                          <Send className="h-3 w-3" /> {isCancelled ? 'Cancelled' : 'Book'}
                         </button>
+                        <OrderStatusControl
+                          status={workflowStatus}
+                          options={statusOptions}
+                          busy={updatingStatusOrderId === order.orderId || cancellingPendingOrderId === order.orderId}
+                          orderId={order.orderId}
+                          onChange={(status) => handlePendingStatusChange(order, status)}
+                        />
+                        </div>
                       </td>
                     </tr>
 
                     {/* Expanded Detail Row */}
                     {isExpanded && (
                       <tr className="bg-slate-50/80">
-                        <td colSpan={7} className="px-6 py-3">
+                        <td colSpan={pendingColumnCount} className="px-6 py-3">
                           <div className="grid grid-cols-1 gap-3 lg:grid-cols-[minmax(260px,.9fr)_minmax(0,1.2fr)]">
                             <section className="max-h-[210px] overflow-y-auto rounded-xl border border-slate-200 bg-white p-4">
                               <div className="mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-500">
                                 <span>Customer details</span>
-                                <span className="text-slate-300">·</span>
+                                <span className="text-[var(--bk-console-text-subtle)]">·</span>
                                 <span className="font-mono">#{order.orderId}</span>
                               </div>
                               <dl className="grid grid-cols-[64px_minmax(0,1fr)] gap-x-3 gap-y-2 text-xs">
@@ -383,7 +524,7 @@ export function PendingOrdersPanel({
                             <section className="max-h-[210px] overflow-y-auto rounded-xl border border-slate-200 bg-white p-4">
                               <div className="mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-500">
                                 <span>Order items</span>
-                                <span className="text-slate-300">·</span>
+                                <span className="text-[var(--bk-console-text-subtle)]">·</span>
                                 <span>{products.length} item{products.length === 1 ? '' : 's'}</span>
                               </div>
                               {products.length === 0 ? (
@@ -392,11 +533,14 @@ export function PendingOrdersPanel({
                                 <div className="space-y-2">
                                   {products.slice(0, 3).map((product, index) => (
                                     <div key={index} className="flex items-start justify-between gap-4 border-b border-dashed border-slate-100 pb-2 last:border-0">
-                                      <div className="min-w-0">
-                                        <p className="truncate text-xs font-semibold text-slate-800" title={product.name || product.content_name}>
-                                          {product.name || product.content_name || 'Product'}
-                                        </p>
-                                        <p className="mt-1 text-xs text-slate-400">Qty {product.quantity || 1}</p>
+                                      <div className="flex min-w-0 items-center gap-2.5">
+                                        <ProductThumb src={product.image} name={product.name || product.content_name} size="md" />
+                                        <div className="min-w-0">
+                                          <p className="truncate text-xs font-semibold text-slate-800" title={product.name || product.content_name}>
+                                            {product.name || product.content_name || 'Product'}
+                                          </p>
+                                          <p className="mt-1 text-xs text-slate-400">Qty {product.quantity || 1}</p>
+                                        </div>
                                       </div>
                                       <strong className="shrink-0 text-xs text-slate-800">
                                         BDT {Number(product.price || 0).toLocaleString()}
@@ -424,6 +568,7 @@ export function PendingOrdersPanel({
                               </div>
                             </section>
                           </div>
+                          {renderCourierDetail(order, 'mt-3')}
                         </td>
                       </tr>
                     )}
@@ -434,25 +579,25 @@ export function PendingOrdersPanel({
           </tbody>
         </table>
       </div>
-      <div className="flex items-center justify-between border-t border-slate-100 px-5 py-3">
-        <p className="text-xs text-slate-400">
-          Showing {pendingFilteredCount === 0 ? 0 : (pendingPageSafe - 1) * pendingPageSize + 1}–{Math.min(pendingPageSafe * pendingPageSize, pendingFilteredCount)} of {pendingFilteredCount} pending orders
+      <div className="flex flex-col items-center justify-between gap-2 border-t border-slate-100 px-3 py-3 sm:flex-row sm:px-5">
+        <p className="text-center text-[11px] text-slate-400 sm:text-left sm:text-xs">
+          Showing {pendingFilteredCount === 0 ? 0 : (pendingPageSafe - 1) * pendingPageSize + 1}–{Math.min(pendingPageSafe * pendingPageSize, pendingFilteredCount)} of {pendingFilteredCount} orders
         </p>
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-0.5 sm:gap-1">
           <button
             type="button"
             disabled={pendingPageSafe <= 1}
             onClick={() => setPendingPage((page) => Math.max(1, page - 1))}
-            className="h-8 min-w-8 rounded-lg border border-slate-200 px-2 text-xs font-bold text-slate-600 disabled:opacity-40"
+            className="inline-flex h-11 min-w-11 items-center justify-center rounded-lg border border-slate-200 px-2 text-xs font-bold text-slate-600 disabled:opacity-40"
           >
             ‹
           </button>
-          {Array.from({ length: pendingTotalPages }, (_, index) => index + 1).slice(0, 5).map((page) => (
+          {Array.from({ length: pendingTotalPages }, (_, index) => index + 1).slice(0, 5).map((page, index) => (
             <button
               type="button"
               key={page}
               onClick={() => goToPendingPage(page)}
-              className={`h-8 min-w-8 rounded-lg px-2 text-xs font-bold ${page === pendingPageSafe ? 'bg-indigo-600 text-white' : 'border border-slate-200 text-slate-600'}`}
+              className={`${index > 2 ? 'hidden sm:inline-flex' : 'inline-flex'} h-11 min-w-11 items-center justify-center rounded-lg px-2 text-xs font-bold ${page === pendingPageSafe ? 'bg-indigo-600 text-white' : 'border border-slate-200 text-slate-600'}`}
             >
               {page}
             </button>
@@ -461,7 +606,7 @@ export function PendingOrdersPanel({
             type="button"
             disabled={pendingPageSafe >= pendingTotalPages}
             onClick={() => setPendingPage((page) => Math.min(pendingTotalPages, page + 1))}
-            className="h-8 min-w-8 rounded-lg border border-slate-200 px-2 text-xs font-bold text-slate-600 disabled:opacity-40"
+            className="inline-flex h-11 min-w-11 items-center justify-center rounded-lg border border-slate-200 px-2 text-xs font-bold text-slate-600 disabled:opacity-40"
           >
             ›
           </button>

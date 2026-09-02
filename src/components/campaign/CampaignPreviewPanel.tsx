@@ -23,18 +23,25 @@ export function CampaignPreviewPanel({
   return (
     <div className={`${active ? 'flex' : 'hidden'} flex-col gap-2 md:flex md:gap-6`}>
 
-      {/* JSON Live representation page container */}
+      {/* JSON Live representation page container. Faint text on this dark panel
+          uses slate-300, not slate-400: index.css boosts .text-slate-400 to the
+          prototype's --muted so it clears AA on white, which leaves it at 2.9:1
+          here. slate-300 is deliberately left at its raw token for dark panels. */}
       <div id="campaign-data-preview" className="scroll-mt-24 flex h-[304px] flex-col justify-between rounded-xl border border-slate-200 bg-slate-900 p-3 font-mono text-xs text-slate-200 shadow-sm md:h-96 md:p-5">
         <div>
-          <div className="flex justify-between items-center mb-3 text-slate-400 font-sans border-b border-slate-800 pb-2">
-            <span className="text-xs uppercase font-bold tracking-wider text-[#738196]">Event Data Preview</span>
+          <div className="flex justify-between items-center mb-3 text-slate-300 font-sans border-b border-slate-800 pb-2">
+            <span className="text-xs uppercase font-bold tracking-wider text-slate-300">Event Data Preview</span>
             <div className="flex items-center gap-2">
               <span className="flex items-center gap-1 text-[9px] font-mono font-bold uppercase tracking-widest text-emerald-400 before:h-1 before:w-1 before:rounded-full before:bg-emerald-400">Updating dynamically</span>
+              {/* 24px of ink, 44px of target: `btn-touch-expand` adds 10px on
+                  every side, the same arithmetic Tooltip's info button uses. The
+                  square itself stays small because it sits on the panel's own
+                  header line, beside the "Updating dynamically" chip. */}
               <button
                 type="button"
                 aria-label="Copy event data preview"
                 onClick={() => handleCopy(getPayloadJson(), 'campaign_payload')}
-                className="inline-flex h-6 w-6 items-center justify-center rounded-md bg-slate-800 text-slate-400 hover:text-white"
+                className="btn-touch-expand inline-flex h-6 w-6 items-center justify-center rounded-md bg-slate-800 text-slate-300 hover:text-white"
               >
                 {copiedStates['campaign_payload'] ? <Check className="h-3 w-3 text-emerald-400" /> : <Copy className="h-3 w-3" />}
               </button>
@@ -43,7 +50,7 @@ export function CampaignPreviewPanel({
           <pre tabIndex={0} aria-label="Event data JSON preview" className="overflow-auto max-h-56 select-all leading-normal whitespace-pre-wrap break-words outline-none focus:ring-2 focus:ring-indigo-400 md:max-h-72">{getPayloadJson()}</pre>
         </div>
 
-        <p className="text-xs text-[#7b8189] font-sans leading-normal pt-2 border-t border-slate-800 italic">
+        <p className="text-xs text-slate-300 font-sans leading-normal pt-2 border-t border-slate-800 italic">
           Customer match details are protected before the test event is sent.
         </p>
       </div>
@@ -63,8 +70,8 @@ export function CampaignPreviewPanel({
         {campaignResp ? (
           <div className="flex-1 bg-slate-950 p-4 rounded-lg font-mono text-xs text-slate-300 overflow-auto max-h-60 space-y-2 relative">
             <div className="flex justify-between border-b border-slate-800 pb-1.5 text-xs font-sans">
-              <span className="text-slate-400">Response Status Code:</span>
-              <span className={campaignResp?.body?.success ? 'text-green-400 font-bold' : 'text-rose-400 font-semibold'}>{campaignResp?.statusCode} {campaignResp?.body?.success ? 'ACCEPTED' : 'REJECTED'}</span>
+              <span className="text-slate-300">Response Status Code:</span>
+              <span className={campaignResp?.body?.success ? 'text-emerald-400 font-bold' : 'text-rose-400 font-semibold'}>{campaignResp?.statusCode} {campaignResp?.body?.success ? 'ACCEPTED' : 'REJECTED'}</span>
             </div>
             <pre className="whitespace-pre-wrap leading-tight text-xs">{JSON.stringify(campaignResp?.body, null, 2)}</pre>
           </div>

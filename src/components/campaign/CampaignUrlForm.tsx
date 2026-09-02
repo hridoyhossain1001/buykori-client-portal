@@ -6,6 +6,8 @@ import type { SyncedAdCampaign } from '../../types';
 interface CampaignUrlFormProps {
   urlBuilderBaseUrl: string;
   setUrlBuilderBaseUrl: (url: string) => void;
+  /** Bare domain of the connected store, '' when none is connected. */
+  storeDomain: string;
   urlBuilderSource: string;
   setUrlBuilderSource: (source: string) => void;
   urlBuilderMedium: string;
@@ -39,6 +41,7 @@ function sourceLabel(source: string) {
 export function CampaignUrlForm({
   urlBuilderBaseUrl,
   setUrlBuilderBaseUrl,
+  storeDomain,
   urlBuilderSource,
   setUrlBuilderSource,
   urlBuilderMedium,
@@ -88,8 +91,14 @@ export function CampaignUrlForm({
             placeholder="https://your-domain.com/shop/item"
             value={urlBuilderBaseUrl}
             onChange={(e) => setUrlBuilderBaseUrl(e.target.value)}
+            aria-describedby="campaign-url-base-hint"
             className="h-8 w-full rounded-lg border border-slate-200 bg-slate-50 px-2 font-mono text-xs text-slate-800 outline-none transition-all duration-200 placeholder-slate-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 md:h-auto md:p-2.5"
           />
+          <p id="campaign-url-base-hint" className="mt-1 text-[9px] leading-normal text-slate-400 md:text-xs">
+            {storeDomain
+              ? `Filled in from your connected store, ${storeDomain}. Add a product path if you want the link to open a specific page.`
+              : 'No store domain is connected yet, so this starts empty. Add it under Settings, Website domain, or paste the full link you want to track.'}
+          </p>
         </div>
 
         {/* Source & Medium grid */}
@@ -236,7 +245,7 @@ export function CampaignUrlForm({
         <button
           type="button"
           onClick={handleGenerateCampaignUrl}
-          className="min-h-10 w-full rounded-lg bg-gradient-to-r from-indigo-600 to-violet-600 px-5 py-2.5 text-xs font-bold text-white shadow-md shadow-indigo-500/10 transition-all duration-300 hover:-translate-y-0.5 hover:from-indigo-700 hover:to-violet-700 hover:shadow-indigo-500/20 cursor-pointer"
+          className="min-h-11 w-full rounded-lg bg-gradient-to-r from-indigo-600 to-violet-600 px-5 py-2.5 text-xs font-bold text-white shadow-md shadow-indigo-500/10 transition-all duration-300 hover:-translate-y-0.5 hover:from-indigo-700 hover:to-violet-700 hover:shadow-indigo-500/20 cursor-pointer"
         >
           Create Campaign Link
         </button>

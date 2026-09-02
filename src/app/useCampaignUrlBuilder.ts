@@ -8,8 +8,12 @@ type ShowToast = (msg: string, isErr?: boolean, action?: { label: string; onClic
 /**
  * Owns every piece of state behind the Campaign Tools UTM builder: the form
  * fields, the synced ad campaign list and the compiled tracking URL.
+ *
+ * `storeBaseUrl` comes from the connected store (see resolveCampaignBaseUrl).
+ * It used to be a domain guessed from the account name, which handed clients
+ * tracking links pointing at a site they do not own.
  */
-export function useCampaignUrlBuilder(profile: UserProfile | null, showToast: ShowToast) {
+export function useCampaignUrlBuilder(profile: UserProfile | null, showToast: ShowToast, storeBaseUrl: string) {
   const [urlBuilderBaseUrl, setUrlBuilderBaseUrl] = useState<string>('');
   const [urlBuilderSource, setUrlBuilderSource] = useState<string>('facebook');
   const [urlBuilderMedium, setUrlBuilderMedium] = useState<string>('paid_social');
@@ -23,11 +27,11 @@ export function useCampaignUrlBuilder(profile: UserProfile | null, showToast: Sh
   const [generatedCampaignUrl, setGeneratedCampaignUrl] = useState<string>('');
 
   useEffect(() => {
-    if (profile && !urlBuilderBaseUrl) {
-      const slug = profile.name.toLowerCase().replace(/\s+/g, '');
-      setUrlBuilderBaseUrl(profile.email ? HTTPS_PREFIX + slug + '.com' : HTTPS_PREFIX + 'your-site.com');
-    }
-  }, [profile]);
+    // Stores load after the first render, so this fills the field once the
+    // domain arrives - and only while it is still empty, so a late store
+    // response cannot overwrite a URL the client already typed.
+    if (storeBaseUrl) setUrlBuilderBaseUrl(prev => prev || storeBaseUrl);
+  }, [storeBaseUrl]);
 
   useEffect(() => {
     if (!profile) return;

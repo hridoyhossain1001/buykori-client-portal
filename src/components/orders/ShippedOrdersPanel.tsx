@@ -6,10 +6,10 @@ import {
   Printer,
   Search,
   Truck,
-  XCircle,
 } from 'lucide-react';
-import type { CourierOrder, FulfillmentOrder } from '../../types';
+import type { CourierOrder, FulfillmentOrder, OrderWorkflowStatus } from '../../types';
 import { getCapiStatusBadge, getCourierTrackingUrl, getStatusBadge } from './orderBadges';
+import { OrderStatusControl, OrderWorkflowStatusBadge } from './OrderStatusControl';
 
 export interface ShippedStatItem {
   label: string;
@@ -36,7 +36,8 @@ interface ShippedOrdersPanelProps {
   areAllFilteredSelected: boolean;
   toggleSelectAllFilteredShipped: () => void;
   cancellingOrderId: number | null;
-  handleCancelCourierOrder: (order: CourierOrder) => void;
+  updatingStatusOrderId: string | null;
+  handleShippedStatusChange: (order: CourierOrder, status: OrderWorkflowStatus) => void;
   openInvoice: (order: FulfillmentOrder) => void;
   openLabel: (order: FulfillmentOrder) => void;
   openBulkInvoices: (ordersList: FulfillmentOrder[]) => void;
@@ -60,12 +61,30 @@ export function ShippedOrdersPanel({
   areAllFilteredSelected,
   toggleSelectAllFilteredShipped,
   cancellingOrderId,
-  handleCancelCourierOrder,
+  updatingStatusOrderId,
+  handleShippedStatusChange,
   openInvoice,
   openLabel,
   openBulkInvoices,
   openBulkLabels,
 }: ShippedOrdersPanelProps) {
+  const workflowFor = (order: CourierOrder): OrderWorkflowStatus => {
+    if (order.workflowStatus) return order.workflowStatus;
+    const courierStatus = (order.courier_status || '').toLowerCase();
+    if (['delivered', 'completed'].includes(courierStatus)) return 'completed';
+    if (['returned', 'cancelled'].includes(courierStatus)) return 'cancelled';
+    if (['picked_up', 'in_transit', 'out_for_delivery', 'shipped'].includes(courierStatus)) return 'shipped';
+    return 'processing';
+  };
+
+  const statusOptionsFor = (order: CourierOrder): OrderWorkflowStatus[] => {
+    const courierStatus = (order.courier_status || '').toLowerCase();
+    if (['delivered', 'completed'].includes(courierStatus)) return ['completed'];
+    if (['returned', 'cancelled'].includes(courierStatus)) return ['cancelled'];
+    if (courierStatus === 'booking_failed') return ['processing', 'cancelled'];
+    return ['processing', 'shipped', 'cancelled'];
+  };
+
   return (
     <div id="orders-shipped" className="scroll-mt-24 flex flex-col space-y-3 rounded-xl border border-slate-200 bg-white p-3 shadow-sm md:space-y-4 md:p-5">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
@@ -96,7 +115,11 @@ export function ShippedOrdersPanel({
         ))}
       </div>
 
-      {/* Filters Bar */}
+      {/* Filters Bar. The search box and both selects deliberately carry no focus
+          utilities: they used to end in `focus:ring-1 focus:ring-indigo-500`, and a
+          Tailwind v4 `ring-*` replaces the base `input:focus` box-shadow in index.css,
+          so `ring-1` halved the portal's 2px accent on this row alone. Bare, all three
+          show the same 2px `--bk-console-blue` accent as the rest of the page. */}
       <div className="flex flex-wrap gap-2 rounded-lg border border-slate-100 bg-slate-50 p-2">
         <div className="relative min-w-full flex-1 sm:min-w-[200px]">
           <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-slate-400" />
@@ -105,7 +128,7 @@ export function ShippedOrdersPanel({
             value={searchQuery}
             placeholder="Search by Order ID, tracking or recipient..."
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="h-9 w-full rounded-lg border border-slate-200 bg-white pl-9 pr-4 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            className="h-9 w-full rounded-lg border border-slate-200 bg-white pl-9 pr-4 text-xs"
           />
         </div>
 
@@ -114,7 +137,7 @@ export function ShippedOrdersPanel({
             value={providerFilter}
             onChange={(e) => setProviderFilter(e.target.value)}
             aria-label="Filter shipped orders by courier"
-            className="h-9 w-full cursor-pointer rounded-lg border border-slate-200 bg-white px-2 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            className="h-9 w-full cursor-pointer rounded-lg border border-slate-200 bg-white px-2 text-xs"
           >
             <option value="all">All Couriers</option>
             <option value="steadfast">SteadFast</option>
@@ -128,7 +151,7 @@ export function ShippedOrdersPanel({
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
             aria-label="Filter shipped orders by status"
-            className="h-9 w-full cursor-pointer rounded-lg border border-slate-200 bg-white px-2 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            className="h-9 w-full cursor-pointer rounded-lg border border-slate-200 bg-white px-2 text-xs"
           >
             <option value="all">All Statuses</option>
             <option value="pending">Pending</option>
@@ -193,8 +216,8 @@ export function ShippedOrdersPanel({
             <p className="mt-2 text-xs font-bold text-slate-600 ">No courier orders found</p>
           </div>
         ) : filteredCourierOrders.map((order) => {
-          const isCancellable = !['cancelled', 'delivered', 'returned'].includes((order.courier_status || '').toLowerCase());
           const isCancelling = cancellingOrderId === order.id;
+          const workflowStatus = workflowFor(order);
           return (
             <div key={order.id} className={`rounded-xl border bg-white p-4 shadow-sm ${
               (order.courier_status || '').toLowerCase() === 'booking_failed' ? 'border-rose-200' : 'border-slate-200'
@@ -208,7 +231,10 @@ export function ShippedOrdersPanel({
                     className="mt-1 rounded accent-indigo-600"
                   />
                   <span>
-                    <span className="block font-mono text-sm font-bold text-slate-900 ">#{order.order_id}</span>
+                    <span className="flex flex-wrap items-center gap-1.5">
+                      <span className="font-mono text-sm font-bold text-slate-900 ">#{order.order_id}</span>
+                      <OrderWorkflowStatusBadge status={workflowStatus} />
+                    </span>
                     <span className="mt-1 block text-xs font-bold capitalize text-slate-800 ">{order.courier_provider}</span>
                     <span className="mt-0.5 block font-mono text-xs text-slate-500">{order.courier_tracking_id || 'No tracking'}</span>
                   </span>
@@ -235,14 +261,14 @@ export function ShippedOrdersPanel({
                   <Package className="h-3.5 w-3.5" />
                   Label
                 </button>
-                {isCancellable ? (
-                  <button onClick={() => handleCancelCourierOrder(order)} disabled={isCancelling} className="inline-flex items-center gap-1.5 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-bold text-rose-700 disabled:opacity-50">
-                    {isCancelling ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <XCircle className="h-3.5 w-3.5" />}
-                    {isCancelling ? 'Cancelling...' : 'Cancel'}
-                  </button>
-                ) : (
-                  <span className="self-center text-xs italic text-slate-400">{(order.courier_status || '').toLowerCase()}</span>
-                )}
+                <OrderStatusControl
+                  status={workflowStatus}
+                  options={statusOptionsFor(order)}
+                  busy={updatingStatusOrderId === order.order_id || isCancelling}
+                  labelled
+                  orderId={order.order_id}
+                  onChange={(status) => handleShippedStatusChange(order, status)}
+                />
               </div>
             </div>
           );
@@ -289,10 +315,8 @@ export function ShippedOrdersPanel({
               </tr>
             ) : (
               filteredCourierOrders.map((order) => {
-                const isCancellable = !['cancelled', 'delivered', 'returned'].includes(
-                  (order.courier_status || '').toLowerCase()
-                );
                 const isCancelling = cancellingOrderId === order.id;
+                const workflowStatus = workflowFor(order);
                 return (
                 <tr key={order.id} className={`transition-colors hover:bg-slate-50/70 ${
                   (order.courier_status || '').toLowerCase() === 'booking_failed' ? 'bg-rose-50/30' : ''
@@ -309,6 +333,7 @@ export function ShippedOrdersPanel({
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
                         <span className="font-mono text-sm font-bold text-slate-900">#{order.order_id}</span>
+                        <OrderWorkflowStatusBadge status={workflowStatus} />
                         <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-xs font-bold uppercase text-slate-500">
                           {order.courier_provider}
                         </span>
@@ -373,27 +398,13 @@ export function ShippedOrdersPanel({
                     >
                       <Package className="h-3.5 w-3.5" />
                     </button>
-                    {isCancellable ? (
-                      <button
-                        id={`cancel-courier-order-${order.id}`}
-                        onClick={() => handleCancelCourierOrder(order)}
-                        disabled={isCancelling}
-                        title={`Cancel this ${order.courier_provider} order`}
-                        className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-rose-200 bg-rose-50 text-rose-700 transition-colors hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-50"
-                        aria-label={`Cancel ${order.courier_provider} order`}
-                      >
-                        {isCancelling ? (
-                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                        ) : (
-                          <XCircle className="h-3.5 w-3.5" />
-                        )}
-                      </button>
-                    ) : (
-                      <span className="self-center px-1 text-xs italic text-slate-400">
-                        {(order.courier_status || '').toLowerCase() === 'cancelled' ? 'Cancelled' :
-                         (order.courier_status || '').toLowerCase() === 'delivered' ? 'Delivered' : 'Returned'}
-                      </span>
-                    )}
+                    <OrderStatusControl
+                      status={workflowStatus}
+                      options={statusOptionsFor(order)}
+                      busy={updatingStatusOrderId === order.order_id || isCancelling}
+                      orderId={order.order_id}
+                      onChange={(status) => handleShippedStatusChange(order, status)}
+                    />
                     </div>
                   </td>
                 </tr>

@@ -13,7 +13,7 @@
 export { Button } from './Button';
 export { Modal } from './Modal';
 export { Card } from './Card';
-export { Badge } from './Badge';
+export { Badge, type BadgeTone } from './Badge';
 export { Input, Textarea } from './Input';
 export { Select, type SelectOption } from './Select';
 export { Skeleton, SkeletonTable, SkeletonCards } from './Skeleton';
@@ -21,3 +21,16 @@ export { EmptyState } from './EmptyState';
 export { ErrorState } from './ErrorState';
 export { StatCard } from './StatCard';
 export { Table, TableHead, TableBody, TableRow, TableHeaderCell, TableCell } from './Table';
+export { Tabs, TabPanel, tabId, tabPanelId, type TabItem } from './Tabs';
+
+/* Page chrome and dialogs ported from the prototype (Phase 2). Panel is
+   deliberately absent: the prototype's .p-panel is the same white/bordered
+   surface the live Card already provides, so Card is restyled in Phase 3 rather
+   than duplicated here. */
+export { PageHeader } from './PageHeader';
+export { SectionTitle } from './SectionTitle';
+export { MetricStrip, type MetricStripItem } from './MetricStrip';
+export { Status, statusTone } from './Status';
+export { PaginationControls } from './PaginationControls';
+export { Drawer } from './Drawer';
+export { ConfirmDialog } from './ConfirmDialog';

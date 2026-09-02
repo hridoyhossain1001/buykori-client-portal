@@ -21,7 +21,10 @@ export function CampaignMobileTabs({ mobileTab, setMobileTab }: CampaignMobileTa
           role="tab"
           aria-selected={mobileTab === tab}
           onClick={() => setMobileTab(tab)}
-          className={`min-h-9 rounded-lg px-2 text-[11px] font-bold outline-none transition focus-visible:ring-2 focus-visible:ring-indigo-500 ${
+          // 44px, not 36: this strip only exists below md, so its one and only
+          // reader is a thumb, and every other phone control in the console is
+          // at the same minimum.
+          className={`min-h-11 rounded-lg px-2 text-[11px] font-bold outline-none transition focus-visible:ring-2 focus-visible:ring-indigo-500 ${
             mobileTab === tab
               ? 'bg-white text-slate-900 shadow-sm ring-1 ring-slate-200'
               : 'text-slate-500 hover:text-slate-700'

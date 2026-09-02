@@ -26,6 +26,8 @@ const AI_ADS_SECTION_PATHS: Record<string, string> = {
   'ai-ads-accounts': '/ai-ads/accounts',
   'ai-ads-campaigns': '/ai-ads/campaigns',
   'ai-ads-analytics': '/ai-ads/analytics',
+  'ai-ads-creative': '/ai-ads/creative',
+  'ai-ads-history': '/ai-ads/history',
   'ai-ads-chat': '/ai-ads/chat',
 };
 
@@ -36,8 +38,10 @@ const SETTINGS_SECTION_PATHS: Record<string, string> = {
   'settings-cod': '/settings/cod-timing',
   'settings-routing': '/settings/event-routing',
   'settings-custom-automations': '/settings/custom-automations',
-  'settings-ad-accounts': '/settings/ad-accounts',
   'settings-courier': '/settings/courier-logistics',
+  // Kept at the original `alerts-notifications` path: it was the Telegram
+  // alerts section before Telegram was retired, and merchant bookmarks and the
+  // generated static route for it must keep resolving.
   'settings-whatsapp': '/settings/alerts-notifications',
 };
 

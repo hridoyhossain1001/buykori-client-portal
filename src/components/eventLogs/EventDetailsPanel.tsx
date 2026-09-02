@@ -77,7 +77,7 @@ export function EventDetailsPanel({
                 </p>
                 <JsonViewer value={event.payload} search={searchFilter} className="max-h-48" />
               </div>
-              {(event.status === 'Failed' || event.status === 'Retry') && (
+              {(event.status === 'Failed' || event.status === 'Retry' || event.status === 'Skipped') && (
                 <div className="rounded-lg bg-slate-950 p-3 font-mono text-[11px] leading-relaxed text-slate-200">
                   <p className="mb-2 font-sans text-[10px] font-bold uppercase tracking-wider text-rose-300">
                     Platform reply

@@ -3,7 +3,7 @@ import test from 'node:test';
 import { renderToStaticMarkup } from 'react-dom/server';
 import {
   LockedFeatureModal,
-  DEFAULT_LOCKED_FEATURE_MINIMUM_PLAN,
+  LOCKED_FEATURE_MINIMUM_PLAN,
   resolveLockedFeature,
 } from './LockedFeatureModal';
 
@@ -17,31 +17,18 @@ import {
  * and name Starter — never Growth.
  */
 
-const planFeatures = [
-  {
-    key: 'courier_shipping',
-    description: 'Book and track deliveries with connected courier partners.',
-    minimumPlan: 'Starter',
-  },
-  {
-    key: 'incomplete_checkout_recovery',
-    description: 'Review and recover abandoned checkout leads.',
-    minimumPlan: 'Starter',
-  },
-];
-
-test('resolveLockedFeature names the clicked courier feature and uses the API entitlement', () => {
-  const feature = resolveLockedFeature('orders', 'Courier Shipping', planFeatures);
+test('resolveLockedFeature names the clicked courier feature and the real minimum plan', () => {
+  const feature = resolveLockedFeature('orders', 'Courier Shipping');
 
   assert.equal(feature.name, 'Courier Shipping');
   assert.equal(feature.minimumPlan, 'Starter');
-  assert.equal(feature.description, planFeatures[0].description);
+  assert.equal(feature.minimumPlan, LOCKED_FEATURE_MINIMUM_PLAN);
   assert.match(feature.description, /courier/i);
 });
 
 test('resolveLockedFeature keeps incomplete-orders copy distinct from courier copy', () => {
-  const courier = resolveLockedFeature('orders', 'Courier Shipping', planFeatures);
-  const incomplete = resolveLockedFeature('incomplete-checkouts', 'Incomplete Orders', planFeatures);
+  const courier = resolveLockedFeature('orders', 'Courier Shipping');
+  const incomplete = resolveLockedFeature('incomplete-checkouts', 'Incomplete Orders');
 
   assert.equal(incomplete.name, 'Incomplete Orders');
   assert.equal(incomplete.minimumPlan, 'Starter');
@@ -53,14 +40,14 @@ test('resolveLockedFeature falls back without inventing an entitlement rule', ()
   const feature = resolveLockedFeature('mystery', 'Mystery Feature');
 
   assert.equal(feature.name, 'Mystery Feature');
-  assert.equal(feature.minimumPlan, DEFAULT_LOCKED_FEATURE_MINIMUM_PLAN);
+  assert.equal(feature.minimumPlan, 'Starter');
   assert.ok(feature.description.includes('Mystery Feature'));
 });
 
 test('the dialog renders the courier feature with truthful, accessible copy', () => {
   const html = renderToStaticMarkup(
     <LockedFeatureModal
-      feature={resolveLockedFeature('orders', 'Courier Shipping', planFeatures)}
+      feature={resolveLockedFeature('orders', 'Courier Shipping')}
       onClose={() => {}}
     />,
   );
@@ -79,7 +66,7 @@ test('the dialog renders the courier feature with truthful, accessible copy', ()
 test('the dialog swaps to the incomplete-orders feature when that item is locked', () => {
   const html = renderToStaticMarkup(
     <LockedFeatureModal
-      feature={resolveLockedFeature('incomplete-checkouts', 'Incomplete Orders', planFeatures)}
+      feature={resolveLockedFeature('incomplete-checkouts', 'Incomplete Orders')}
       onClose={() => {}}
     />,
   );

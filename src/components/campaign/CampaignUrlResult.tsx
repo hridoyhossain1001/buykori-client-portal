@@ -10,7 +10,7 @@ export function CampaignUrlResult({ generatedCampaignUrl, copiedStates, handleCo
   return (
     <div className="flex flex-col justify-between rounded-xl border border-slate-200 bg-white p-3 shadow-sm md:border-indigo-100/50 md:bg-gradient-to-br md:from-indigo-50/40 md:to-slate-50/20 md:p-5 md:shadow-none">
       <div className="flex items-start gap-2.5">
-        <div className="rounded-lg bg-sky-50 p-1.5 text-sky-500 md:hidden">
+        <div className="rounded-lg bg-blue-50 p-1.5 text-blue-500 md:hidden">
           <Copy className="h-4 w-4" />
         </div>
         <div>

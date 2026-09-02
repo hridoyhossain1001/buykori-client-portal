@@ -10,6 +10,16 @@ interface CardProps extends Omit<HTMLAttributes<HTMLDivElement>, 'title'> {
   /** Right-aligned slot in the header row (filters, buttons, badges). */
   actions?: ReactNode;
   padding?: CardPadding;
+  /**
+   * Clips the body to the rounded corners, for a card whose content reaches the
+   * edge — a table, a tab strip, a pagination footer. Off by default because
+   * `overflow: hidden` also clips anything meant to escape the card: Tooltip
+   * (common/Tooltip.tsx) positions itself `absolute bottom-full`, above its
+   * trigger and outside the parent's box, and is used inside panels on
+   * Campaign tools, Incomplete checkouts and Settings. The prototype's .p-panel
+   * clips unconditionally because it has no such tooltip.
+   */
+  flush?: boolean;
 }
 
 const paddingClasses: Record<CardPadding, string> = {
@@ -20,12 +30,16 @@ const paddingClasses: Record<CardPadding, string> = {
 };
 
 /**
- * The standard console surface: white panel, 1px border, rounded corners.
- * Replaces the ad-hoc `rounded-xl border border-slate-200 bg-white p-5`
- * strings repeated across the views.
+ * The standard console surface, and the prototype's `.p-panel`: white, a 1px
+ * border in the panel tint, an 8px radius and the faint lift below.
+ *
+ * The border is --bk-panel-border, a shade darker than the --bk-console-border
+ * used for rules *inside* a panel. The prototype draws that distinction
+ * deliberately: the panel edge should read as slightly firmer than the lines
+ * dividing its own contents.
  */
 export const Card = forwardRef<HTMLDivElement, CardProps>(function Card(
-  { title, description, actions, padding = 'md', className = '', children, ...props },
+  { title, description, actions, padding = 'md', flush = false, className = '', children, ...props },
   ref,
 ) {
   const hasHeader = Boolean(title || description || actions);
@@ -33,17 +47,23 @@ export const Card = forwardRef<HTMLDivElement, CardProps>(function Card(
   return (
     <div
       ref={ref}
-      className={`rounded-xl border border-[var(--bk-console-border)] bg-[var(--bk-console-surface)] ${paddingClasses[padding]} ${className}`}
+      className={`rounded-[var(--bk-radius-panel)] border border-[var(--bk-panel-border)] bg-[var(--bk-console-surface)] shadow-[var(--bk-panel-shadow)] ${
+        flush ? 'overflow-hidden' : ''
+      } ${paddingClasses[padding]} ${className}`}
       {...props}
     >
       {hasHeader && (
         <div className="mb-4 flex items-start justify-between gap-3">
           <div className="min-w-0">
             {title && (
-              <h3 className="text-sm font-bold text-[var(--bk-console-text)]">{title}</h3>
+              // The body face, not Archivo. The prototype reserves the display
+              // face for exactly three things — the page <h1>, its eyebrow, and
+              // table headers — so a panel heading in Archivo would read as a
+              // second page title. .section-title h2 is 16px at weight 600.
+              <h3 className="text-subtitle font-semibold text-[var(--bk-console-text)]">{title}</h3>
             )}
             {description && (
-              <p className="mt-1 text-xs leading-relaxed text-[var(--bk-console-text-muted)]">{description}</p>
+              <p className="mt-1.5 text-caption leading-relaxed text-[var(--bk-console-text-muted)]">{description}</p>
             )}
           </div>
           {actions && <div className="flex shrink-0 items-center gap-2">{actions}</div>}

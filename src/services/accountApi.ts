@@ -6,8 +6,6 @@ export interface ProfileUpdateInput {
   name: string;
   email: string;
   notificationEmail: string;
-  ownerNotifyWhatsapp: boolean;
-  ownerWhatsappNumber: string;
   emailCode: string | null;
   currentPassword: string | null;
 }

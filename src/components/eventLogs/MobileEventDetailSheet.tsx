@@ -102,9 +102,7 @@ export function MobileEventDetailSheet({
         </dl>
 
         <div className="mt-4 space-y-2">
-          {group.deliveries
-            .filter(event => event.platform !== 'Gateway Ingest')
-            .map(event => (
+          {group.deliveries.map(event => (
               <div key={event.id} className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 px-3 py-2.5">
                 <div className="min-w-0">
                   <p className="text-sm font-bold text-slate-800">
@@ -117,13 +115,15 @@ export function MobileEventDetailSheet({
                   <p className="truncate text-[10px] text-slate-500">{deliverySummary(event)}</p>
                 </div>
                 <span className={`shrink-0 rounded-md px-2 py-1 text-[10px] font-bold uppercase ${
-                  event.status === 'Success'
+                  event.status === 'Delivered'
                     ? 'bg-emerald-50 text-emerald-700'
                     : event.status === 'Failed'
                       ? 'bg-rose-50 text-rose-600'
-                      : 'bg-orange-50 text-orange-700'
+                      : event.status === 'Skipped'
+                        ? 'bg-slate-100 text-slate-700'
+                        : 'bg-orange-50 text-orange-700'
                 }`}>
-                  {event.status === 'Success' ? '✓ OK' : event.status === 'Failed' ? '✕ Failed' : event.status}
+                  {event.status === 'Delivered' ? '✓ Delivered' : event.status === 'Failed' ? '✕ Failed' : event.status}
                 </span>
               </div>
             ))}
@@ -134,7 +134,7 @@ export function MobileEventDetailSheet({
             type="button"
             disabled={!retryItem || retrying}
             onClick={() => retryItem && handleRetryOutbox(retryItem.id)}
-            className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-sky-600 px-3 text-sm font-bold text-white disabled:cursor-not-allowed disabled:bg-slate-300"
+            className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-blue-600 px-3 text-sm font-bold text-white disabled:cursor-not-allowed disabled:bg-slate-300"
           >
             {retrying && <Loader2 className="h-4 w-4 animate-spin" />}
             Resend event

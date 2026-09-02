@@ -63,8 +63,8 @@ export function PlatformLogo({ platform, className = 'h-5 w-5', title }: Platfor
 
   return (
     <svg className={className} role="img" aria-label={name} viewBox="0 0 24 24" fill="none">
-      <circle cx="12" cy="12" r="9.5" fill="#eaf1ff" stroke="#285ac7" />
-      <path d="M7.5 12h9M12 7.5v9" stroke="#285ac7" strokeWidth="2" strokeLinecap="round" />
+      <circle cx="12" cy="12" r="9.5" className="fill-indigo-50 stroke-indigo-600" />
+      <path d="M7.5 12h9M12 7.5v9" className="stroke-indigo-600" strokeWidth="2" strokeLinecap="round" />
     </svg>
   );
 }

@@ -89,9 +89,18 @@ export function PasswordSection({
                 maxLength={field.id === 'account-current-password' ? undefined : 128}
                 autoComplete={field.autoComplete}
                 onChange={event => field.setValue(event.target.value)}
-                className="w-full rounded-lg border border-slate-200 bg-white p-2.5 pr-10 text-xs outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+                /* No focus utilities. `focus:ring-2 focus:ring-indigo-100`
+                   replaced the base `input:focus` box-shadow with a ~1.2:1 tint,
+                   so the only visible focus signal on all three password fields
+                   was a 1px border swap. Bare, they get the base layer's 2px
+                   `--bk-console-blue` accent. */
+                className="w-full rounded-lg border border-slate-200 bg-white p-2.5 pr-10 text-xs"
               />
-              <button type="button" onClick={() => field.setShown(!field.shown)} aria-label={`${field.shown ? 'Hide' : 'Show'} ${field.label}`} className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded p-1 text-slate-400 hover:text-slate-700">
+              {/* 24px of ink, 44px of target. The growth is an `::after` overlay
+                  rather than `btn-touch-expand`, because that helper sets
+                  `position: relative` from outside every layer and would beat the
+                  `absolute` that parks this eye inside the field. */}
+              <button type="button" onClick={() => field.setShown(!field.shown)} aria-label={`${field.shown ? 'Hide' : 'Show'} ${field.label}`} className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded p-1 text-slate-400 after:absolute after:-inset-2.5 after:content-[''] hover:text-slate-700">
                 {field.shown ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </button>
             </div>
@@ -106,10 +115,10 @@ export function PasswordSection({
       </div>
 
       <div className="flex flex-col gap-3 border-t border-slate-200 bg-slate-50/50 px-5 py-3 sm:flex-row sm:items-center sm:justify-between">
-        <button type="button" onClick={submitPasswordResetEmail} className="min-h-10 text-left text-xs font-bold text-indigo-600 hover:text-indigo-700">
+        <button type="button" onClick={submitPasswordResetEmail} className="min-h-11 text-left text-xs font-bold text-indigo-600 hover:text-indigo-700">
           Forgot password? Send a reset link
         </button>
-        <button type="button" disabled={!passCurrent || passNew.length < 8 || passNew !== passConfirm} onClick={submitPasswordUpdate} className="min-h-10 rounded-lg bg-indigo-600 px-4 py-2 text-xs font-bold text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-slate-300">
+        <button type="button" disabled={!passCurrent || passNew.length < 8 || passNew !== passConfirm} onClick={submitPasswordUpdate} className="min-h-11 rounded-lg bg-indigo-600 px-4 py-2 text-xs font-bold text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-slate-300">
           Update password
         </button>
       </div>

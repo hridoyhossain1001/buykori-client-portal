@@ -1,8 +1,8 @@
-import { CheckCircle2, Copy, MessageCircle, Phone, ShoppingCart, UserRoundX } from 'lucide-react';
+import { CheckCircle2, Copy, Phone, ShoppingCart, UserRoundX } from 'lucide-react';
 import type { IncompleteCheckoutItem } from '../../types';
 import { EmptyState } from '../common';
 import { copyTextWithFeedback } from '../../lib/clipboard';
-import { STATUS_STYLES, getWhatsAppLink, normalizeWhatsAppPhone } from './incompleteCheckoutUtils';
+import { STATUS_STYLES, normalizePhone } from './incompleteCheckoutUtils';
 
 const ICON_BUTTON = 'inline-flex h-7 w-7 items-center justify-center rounded-lg';
 
@@ -34,8 +34,7 @@ export function IncompleteCheckoutMobileList({
         const product = item.products?.[0];
         const source = item.campaignData?.utm_source || 'Direct';
         const displayStatus = item.status === 'open' ? 'active' : item.status;
-        const telPhone = normalizeWhatsAppPhone(item.phone);
-        const whatsAppLink = getWhatsAppLink(item.phone, item.customerName, item.amount, item.currency, item.products);
+        const telPhone = normalizePhone(item.phone);
         return (
           <article key={item.id} className="bg-white px-3 py-2.5">
             <div className="flex items-center justify-between gap-2">
@@ -65,18 +64,6 @@ export function IncompleteCheckoutMobileList({
               </p>
               <div className="flex shrink-0 items-center gap-1">
                 <a href={`tel:+${telPhone}`} title="Call customer" aria-label="Call customer" className={`${ICON_BUTTON} border border-slate-200 bg-white text-slate-600 hover:bg-slate-50`}><Phone className="h-3 w-3" /></a>
-                {whatsAppLink && (
-                  <a
-                    href={whatsAppLink}
-                    target="_blank"
-                    rel="noreferrer"
-                    title="WhatsApp recovery"
-                    aria-label="Open WhatsApp recovery"
-                    className={`${ICON_BUTTON} border border-emerald-200 bg-emerald-50 text-emerald-600 hover:bg-emerald-100`}
-                  >
-                    <MessageCircle className="h-3 w-3" />
-                  </a>
-                )}
                 <button title="Copy phone" aria-label="Copy phone" onClick={() => { void copyTextWithFeedback(item.phone, showToast, { success: 'Phone number copied.', error: 'Could not copy phone number.' }); }} className={`${ICON_BUTTON} border border-slate-200 bg-white text-slate-500 hover:bg-slate-50`}><Copy className="h-3 w-3" /></button>
                 {['open', 'incomplete', 'contacted'].includes(item.status) && <button disabled={updatingId === item.id} title="Create order" aria-label="Create order" onClick={() => onOpenCreateOrder(item)} className={`${ICON_BUTTON} border border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 disabled:opacity-50`}><ShoppingCart className="h-3 w-3" /></button>}
                 {!['recovered', 'contacted'].includes(item.status) && <button disabled={updatingId === item.id} title="Mark contacted" aria-label="Mark contacted" onClick={() => onUpdateStatus(item.id, 'contacted')} className={`${ICON_BUTTON} border border-emerald-200 text-emerald-600 hover:bg-emerald-50 disabled:opacity-50`}><CheckCircle2 className="h-3 w-3" /></button>}

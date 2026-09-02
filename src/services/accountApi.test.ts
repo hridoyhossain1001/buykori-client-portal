@@ -31,8 +31,6 @@ test('returns the typed profile and preserves API error details', async () => {
       name: 'Rafi',
       email: 'rafi@example.com',
       notificationEmail: 'rafi@example.com',
-      ownerNotifyWhatsapp: false,
-      ownerWhatsappNumber: '',
       emailCode: null,
       currentPassword: null,
     });

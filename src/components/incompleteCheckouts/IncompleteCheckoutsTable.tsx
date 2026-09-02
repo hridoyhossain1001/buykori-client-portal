@@ -1,8 +1,8 @@
-import { CheckCircle2, Copy, MessageCircle, Phone, ShoppingCart, UserRoundX } from 'lucide-react';
+import { CheckCircle2, Copy, Phone, ShoppingCart, UserRoundX } from 'lucide-react';
 import type { IncompleteCheckoutItem } from '../../types';
 import { EmptyState } from '../common';
 import { copyTextWithFeedback } from '../../lib/clipboard';
-import { STATUS_STYLES, getWhatsAppLink, normalizeWhatsAppPhone, productMeta } from './incompleteCheckoutUtils';
+import { STATUS_STYLES, normalizePhone, productMeta } from './incompleteCheckoutUtils';
 
 interface IncompleteCheckoutsTableProps {
   items: IncompleteCheckoutItem[];
@@ -49,8 +49,7 @@ export function IncompleteCheckoutsTable({
             const product = item.products?.[0];
             const meta = productMeta(product);
             const source = item.campaignData?.utm_source || 'Direct';
-            const telPhone = normalizeWhatsAppPhone(item.phone);
-            const whatsAppLink = getWhatsAppLink(item.phone, item.customerName, item.amount, item.currency, item.products);
+            const telPhone = normalizePhone(item.phone);
             return (
               <tr key={item.id} className="hover:bg-slate-50/70 ">
                 <td className="px-4 py-3">
@@ -70,17 +69,6 @@ export function IncompleteCheckoutsTable({
                 <td className="px-4 py-3">
                   <div className="flex justify-end gap-1.5">
                     <a href={`tel:+${telPhone}`} title="Call customer" className="rounded-lg border border-slate-200 p-2 hover:bg-slate-50  "><Phone className="h-3.5 w-3.5" /></a>
-                    {whatsAppLink && (
-                      <a
-                        href={whatsAppLink}
-                        target="_blank"
-                        rel="noreferrer"
-                        title="WhatsApp recovery"
-                        className="rounded-lg border border-green-200 bg-green-50 p-2 text-green-600 hover:bg-green-100"
-                      >
-                        <MessageCircle className="h-3.5 w-3.5" />
-                      </a>
-                    )}
                     <button title="Copy phone" onClick={() => { void copyTextWithFeedback(item.phone, showToast, { success: 'Phone number copied.', error: 'Could not copy phone number.' }); }} className="rounded-lg border border-slate-200 p-2 hover:bg-slate-50  "><Copy className="h-3.5 w-3.5" /></button>
                     {['open', 'incomplete', 'contacted'].includes(item.status) && <button disabled={updatingId === item.id} title="Create order" onClick={() => onOpenCreateOrder(item)} className="rounded-lg border border-indigo-200 bg-indigo-50 p-2 text-indigo-700 hover:bg-indigo-100 disabled:opacity-50"><ShoppingCart className="h-3.5 w-3.5" /></button>}
                     {!['recovered', 'contacted'].includes(item.status) && <button disabled={updatingId === item.id} title="Mark contacted" onClick={() => onUpdateStatus(item.id, 'contacted')} className="rounded-lg border border-emerald-200 p-2 text-emerald-600 hover:bg-emerald-50 disabled:opacity-50  "><CheckCircle2 className="h-3.5 w-3.5" /></button>}

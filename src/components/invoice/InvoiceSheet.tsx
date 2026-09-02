@@ -78,7 +78,7 @@ export function InvoiceSheet({ ord, settings, biz }: InvoiceSheetProps) {
             Billing & Shipping Recipient
           </h4>
           <div className="invoice-print-11 space-y-0.5">
-            <p className="font-bold text-slate-850  print:text-black">{customerName}</p>
+            <p className="font-bold text-slate-800  print:text-black">{customerName}</p>
             <p className="font-mono flex items-center gap-1 text-slate-500  print:text-slate-600">
               <Phone className="w-2.5 h-2.5 text-slate-400" /> {customerPhone}
             </p>
@@ -201,12 +201,15 @@ export function InvoiceSheet({ ord, settings, biz }: InvoiceSheetProps) {
         </div>
       </div>
 
-      {/* Signatures */}
+      {/* Signatures. The rule under each caption is darkened for paper by
+          .invoice-signatures .border-t in invoicePrintStyles.ts, not by a print:
+          class here: the print window is a fresh document that loads only that
+          stylesheet, so print: variants in this markup never reach it. */}
       <div className="invoice-signatures flex justify-between pt-10 invoice-print-10 text-slate-400  print:text-slate-600">
-        <div className="border-t border-slate-100  pt-1 w-32 text-center print:border-slate-350">
+        <div className="border-t border-slate-100  pt-1 w-32 text-center">
           Customer Signature
         </div>
-        <div className="border-t border-slate-100  pt-1 w-32 text-center print:border-slate-350">
+        <div className="border-t border-slate-100  pt-1 w-32 text-center">
           Authorized Seal
         </div>
       </div>

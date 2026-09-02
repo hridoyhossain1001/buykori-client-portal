@@ -1,13 +1,20 @@
-import { CheckCircle2, Flag } from 'lucide-react';
+import { CheckCircle2, Flag, WalletCards } from 'lucide-react';
 import type { UserProfile } from '../../types';
 import { PlatformLogo } from '../common/PlatformLogo';
-import { PLATFORM_HEALTH_PILL, QUOTA_BAR, compactNumber, eventContext, formatQuotaLimit, isUnlimitedQuota, platformHealth, quotaTone, relativeEventTime, shortPlatformName } from './dashboardUtils';
+import { CHART_GRID, SERIES_BLUE } from '../../lib/chartColors';
+import { PLATFORM_HEALTH_PILL, QUOTA_BAR, compactNumber, eventContext, formatQuotaLimit, platformHealth, quotaTone, relativeEventTime, settlementNotice, shortPlatformName } from './dashboardUtils';
+import { StatusIcon } from '../eventLogs/eventLogBadges';
+import { statusStyles } from '../eventLogs/eventLogUtils';
 import type { useDashboardMetrics } from './useDashboardMetrics';
 
 const CARD = 'rounded-[18px] border border-slate-200 bg-white px-3.5 py-3 shadow-[0_4px_14px_rgba(15,23,42,0.03)]';
 const SECTION_TITLE = 'text-[13px] font-bold text-slate-800';
-const SECTION_LINK = 'text-[10px] font-bold text-[#2375d8]';
+const SECTION_LINK = 'inline-flex min-h-11 items-center px-1 text-[10px] font-bold text-indigo-600';
 const METER_TRACK = 'mt-1.5 h-[5px] overflow-hidden rounded-full bg-slate-100';
+// The settlement and quota banners stack on the same card, so they share one type
+// pairing — naming it is what keeps the second one from drifting off the first.
+const BANNER_HEADLINE = 'block text-label font-bold';
+const BANNER_DETAIL = 'mt-0.5 text-[10px] leading-relaxed';
 
 interface MobileDashboardProps {
   profile: UserProfile;
@@ -44,80 +51,93 @@ export function MobileDashboard({
     middleTrendLabel,
     lastTrendLabel,
   } = metrics;
-  const quotaExhausted = quotaTone(usagePercent) === 'exhausted'
-    || (orderQuota > 0 && quotaTone(orderPercent) === 'exhausted');
+  const platformHealthRows = platformRows.map(row => ({ row, health: platformHealth(row.total, row.rate) }));
+  const healthyPlatformCount = platformHealthRows.filter(item => item.health.tone === 'healthy').length;
+  const hasPlatformAttempts = platformRows.some(row => row.total > 0);
+  const workspaceStatusTitle = hasDeliveryIssue
+    ? 'Tracking needs attention'
+    : hasPlatformAttempts
+      ? `${healthyPlatformCount} of ${platformRows.length} destinations healthy`
+      : 'Tracking is waiting for data';
+  const workspaceStatusHelp = hasDeliveryIssue
+    ? 'Review delivery errors before running your next campaign.'
+    : hasPlatformAttempts
+      ? 'Your latest platform delivery status is shown below.'
+      : 'Platform activity will appear after the first event arrives.';
+  // A merchant on a phone must not be the only one who never hears that their
+  // paid period has ended and the settlement window is running.
+  const settlement = settlementNotice(profile);
 
   return (
     <div className="space-y-3 md:hidden">
-      <section className={CARD}>
-        {quotaExhausted && (
-          <div className="mb-2.5 rounded-lg border border-rose-200 bg-rose-50 p-2.5" role="alert">
-            <strong className="block text-[11px] font-bold text-rose-900">Monthly usage limit reached</strong>
-            <p className="mt-0.5 text-[10px] leading-relaxed text-rose-800">Your plan allowance is exhausted. Upgrade your plan to continue now.</p>
+      <section className="overflow-hidden rounded-[18px] border border-slate-200 bg-white shadow-[0_4px_14px_rgba(15,23,42,0.03)]">
+        <div className="flex items-start gap-3 p-4">
+          <span className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${hasDeliveryIssue ? 'bg-amber-50 text-amber-600' : 'bg-emerald-50 text-emerald-600'}`}>
+            <CheckCircle2 className="h-4 w-4" />
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="text-[10px] font-bold uppercase text-slate-400">Workspace overview</p>
+            <h2 className="mt-1 text-sm font-bold text-slate-900">{workspaceStatusTitle}</h2>
+            <p className="mt-1 text-[11px] leading-4 text-slate-500">{workspaceStatusHelp}</p>
+          </div>
+        </div>
+
+        {settlement && (
+          <div className="border-t border-amber-300 bg-amber-50 px-4 py-3" role="alert">
+            <strong className={`${BANNER_HEADLINE} text-amber-900`}>{settlement.headline}</strong>
+            <p className={`${BANNER_DETAIL} text-amber-900`}>{settlement.detail}</p>
           </div>
         )}
-        <div>
-          <div className="flex items-center justify-between text-[11px]">
-            <span className="font-semibold text-slate-500">Events this month</span>
-            <strong className="text-slate-800">{compactNumber(profile.eventsUsed)} <span className="font-medium text-slate-400">/ {formatQuotaLimit(profile.eventsQuota)}</span></strong>
-          </div>
-          {!isUnlimitedQuota(profile.eventsQuota) && <div className={METER_TRACK}>
-            <div className={`h-full rounded-full ${QUOTA_BAR[quotaTone(usagePercent)]}`} style={{ width: `${usagePercent}%` }} />
-          </div>}
-        </div>
-        <div className="mt-2.5">
-          <div className="flex items-center justify-between text-[11px]">
-            <span className="font-semibold text-slate-500">Orders this month</span>
-            <strong className="text-slate-800">{compactNumber(ordersUsed)} <span className="font-medium text-slate-400">/ {formatQuotaLimit(orderQuota)}</span></strong>
-          </div>
-          {orderQuota > 0 && <div className={METER_TRACK}>
-            <div className={`h-full rounded-full ${QUOTA_BAR[quotaTone(orderPercent)]}`} style={{ width: `${orderPercent}%` }} />
-          </div>}
-        </div>
-        <div className="mt-2.5 flex items-center justify-between text-[11px]">
-          <span className="font-semibold text-slate-500">
-            {renewalIsValid ? `Resets ${renewalDate!.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}` : 'Monthly plan'}
-            {daysUntilRenewal !== null ? ` · ${daysUntilRenewal}d left` : ''}
-          </span>
-          <button onClick={() => setActivePage('account')} className="font-bold text-[#2375d8]">Upgrade your plan</button>
-        </div>
-      </section>
 
-      <div className="grid grid-cols-3 rounded-xl bg-stone-100 p-1 text-center text-[11px] font-bold text-stone-500">
-        {[7, 30, 90].map(days => (
-          <button
-            key={days}
-            type="button"
-            onClick={() => setAnalyticsDays(days)}
-            className={`rounded-lg px-2 py-2 transition ${analyticsDays === days ? 'bg-white text-slate-800 shadow-sm' : ''}`}
-          >
-            {days} days
+        {quotaTone(usagePercent) === 'exhausted' && (
+          <div className="border-t border-rose-200 bg-rose-50 px-4 py-3" role="alert">
+            <strong className={`${BANNER_HEADLINE} text-rose-900`}>Event limit reached</strong>
+            <p className={`${BANNER_DETAIL} text-rose-800`}>New events are being rejected. Upgrade to resume tracking.</p>
+          </div>
+        )}
+
+        <div className="grid grid-cols-2 border-y border-slate-100">
+          <div className="min-w-0 border-r border-slate-100 px-4 py-3.5">
+            <span className="block text-[10px] font-semibold text-slate-500">Events this cycle</span>
+            <strong className="mt-1 block truncate text-lg font-black text-slate-900">{compactNumber(profile.eventsUsed)}</strong>
+            <span className="block truncate text-[10px] text-slate-400">of {formatQuotaLimit(profile.eventsQuota)}</span>
+            <div className={METER_TRACK}>
+              <div className={`h-full rounded-full ${QUOTA_BAR[quotaTone(usagePercent)]}`} style={{ width: `${usagePercent}%` }} />
+            </div>
+          </div>
+          <div className="min-w-0 px-4 py-3.5">
+            <span className="block text-[10px] font-semibold text-slate-500">Orders this cycle</span>
+            <strong className="mt-1 block truncate text-lg font-black text-slate-900">{compactNumber(ordersUsed)}</strong>
+            <span className="block truncate text-[10px] text-slate-400">of {formatQuotaLimit(orderQuota)}</span>
+            <div className={METER_TRACK}>
+              <div className={`h-full rounded-full ${orderQuota > 0 ? QUOTA_BAR[quotaTone(orderPercent)] : QUOTA_BAR.ok}`} style={{ width: `${orderPercent}%` }} />
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 divide-x divide-slate-100">
+          <button onClick={() => setActivePage('pending-purchases')} className="flex min-h-14 min-w-0 items-center gap-2.5 px-3.5 py-3 text-left hover:bg-slate-50">
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-orange-50 text-orange-500">
+              <Flag className="h-4 w-4" fill="currentColor" />
+            </span>
+            <span className="min-w-0">
+              <strong className="block truncate text-[11px] text-slate-800">COD review</strong>
+              <span className="mt-0.5 block truncate text-[10px] text-slate-500">{pendingOrderCount} pending</span>
+            </span>
           </button>
-        ))}
-      </div>
-
-      <section className="overflow-hidden rounded-[18px] border border-slate-200 bg-white shadow-[0_4px_14px_rgba(15,23,42,0.03)]">
-        <button onClick={() => setActivePage('pending-purchases')} className="flex w-full items-center gap-3 px-3.5 py-3 text-left">
-          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-orange-50 text-orange-500">
-            <Flag className="h-4 w-4" fill="currentColor" />
-          </span>
-          <span className="min-w-0 flex-1">
-            <strong className="block truncate text-[13px] text-slate-800">
-              {pendingOrderCount > 0 ? `${pendingOrderCount} COD ${pendingOrderCount === 1 ? 'order needs' : 'orders need'} review` : 'COD review queue is clear'}
-            </strong>
-            <span className="mt-0.5 block truncate text-[10px] text-slate-500">Confirm or skip pending events</span>
-          </span>
-          <span className="rounded-lg bg-[#2f80df] px-3 py-2 text-[11px] font-bold text-white">Review</span>
-        </button>
-        <button onClick={() => setActivePage('settings')} className="flex w-full items-center gap-3 border-t border-slate-100 px-3.5 py-3 text-left">
-          <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-50 text-emerald-500">
-            <CheckCircle2 className="h-3.5 w-3.5" />
-          </span>
-          <span className="min-w-0 flex-1 text-[12px] font-bold text-slate-800">
-            {hasDeliveryIssue ? 'Tracking needs attention' : 'Setup & tracking healthy'}
-          </span>
-          <span className="text-[10px] font-bold text-[#2375d8]">View</span>
-        </button>
+          <button onClick={() => setActivePage('account')} className="flex min-h-14 min-w-0 items-center gap-2.5 px-3.5 py-3 text-left hover:bg-slate-50">
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600">
+              <WalletCards className="h-4 w-4" />
+            </span>
+            <span className="min-w-0">
+              <strong className="block truncate text-[11px] text-slate-800">Plan & billing</strong>
+              <span className="mt-0.5 block truncate text-[10px] text-slate-500">
+                {renewalIsValid ? `Renews ${renewalDate!.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}` : '30-day plan'}
+                {daysUntilRenewal !== null ? ` · ${daysUntilRenewal}d` : ''}
+              </span>
+            </span>
+          </button>
+        </div>
       </section>
 
       <section className={CARD}>
@@ -126,21 +146,24 @@ export function MobileDashboard({
           <button onClick={() => setActivePage('settings')} className={SECTION_LINK}>Manage</button>
         </div>
         <div className="mt-1">
-          {platformRows.map((row, index) => {
-            const health = platformHealth(row.total, row.rate);
+          {platformHealthRows.map(({ row, health }, index) => {
+            // Clipped at 360px with no way to recover the text (contract §6 D6).
+            // The line is built once so the visible text and the hover text
+            // cannot drift apart.
+            const syncLine = `${row.total.toLocaleString()} events · ${health.label.toLowerCase()} · synced ${row.lastTime || 'waiting'}`;
             return (
               <button
                 key={row.label}
                 onClick={() => setActivePage('event-logs')}
                 className={`flex w-full items-center gap-2.5 py-2.5 text-left ${index > 0 ? 'border-t border-slate-100' : ''}`}
               >
-                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-stone-100">
-                  <PlatformLogo platform={row.platform} className="h-4 w-4" />
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white">
+                  <PlatformLogo platform={row.platform} className="h-5 w-5" />
                 </span>
                 <span className="min-w-0 flex-1">
                   <strong className="block text-[12px] leading-none text-slate-800">{row.label}</strong>
-                  <span className="mt-1 block truncate text-[10px] leading-none text-slate-400">
-                    {row.total.toLocaleString()} events · {health.label.toLowerCase()} · synced {row.lastTime || 'waiting'}
+                  <span className="mt-1 block truncate text-[10px] leading-none text-slate-400" title={syncLine}>
+                    {syncLine}
                   </span>
                 </span>
                 <span className={`rounded-full px-2 py-1 text-[10px] font-bold ${PLATFORM_HEALTH_PILL[health.tone]}`}>
@@ -165,16 +188,25 @@ export function MobileDashboard({
                 onClick={() => setActivePage('event-logs')}
                 className={`flex w-full items-center gap-2.5 py-2.5 text-left ${index > 0 ? 'border-t border-slate-100' : ''}`}
               >
-                <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${
-                  event.status === 'Success' ? 'bg-emerald-50 text-emerald-500' : event.status === 'Retry' ? 'bg-amber-50 text-amber-500' : 'bg-rose-50 text-rose-500'
-                }`}>
-                  <CheckCircle2 className="h-3.5 w-3.5" />
+                {/* One glyph per state, using the pair the desktop log rows already
+                    use (`DeliveryBadge`). This cell drew CheckCircle2 for every
+                    status, so a failed event showed a tick in a red ring and colour
+                    was the only thing separating "sent" from "lost". The old ternary
+                    also had no arm for `Skipped` or `Fired` and painted both rose —
+                    `Fired` is the browser pixel reporting for itself, not a failure.
+                    `statusStyles` covers all six states; it carries border colours,
+                    so the ring is drawn with `border` rather than left dead. The
+                    circle is this row's only statement of the state, so the word goes
+                    into the button's accessible name instead of nowhere. */}
+                <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border ${statusStyles(event.status)}`}>
+                  <StatusIcon status={event.status} />
+                  <span className="sr-only">{event.status}</span>
                 </span>
                 <span className="min-w-0 flex-1">
                   <strong className="block truncate text-[12px] leading-none text-slate-800">{event.name} · {eventContext(event)}</strong>
                   <span className="mt-1 block text-[10px] leading-none text-slate-400">{relativeEventTime(event.timestamp)}</span>
                 </span>
-                <span className="rounded-md border border-slate-200 bg-stone-50 px-1.5 py-1 text-[9px] font-semibold text-slate-500">
+                <span className="rounded-md border border-slate-200 bg-slate-50 px-1.5 py-1 text-[9px] font-semibold text-slate-500">
                   {shortPlatformName(event.platform)}
                 </span>
               </button>
@@ -188,7 +220,19 @@ export function MobileDashboard({
       <section className={CARD}>
         <div className="flex items-center justify-between">
           <h2 className={SECTION_TITLE}>Event delivery</h2>
-          <span className={SECTION_LINK}>Last {analyticsDays} days</span>
+          <span className="text-[10px] font-bold text-slate-500">{deliveryRate === null ? 'No attempts' : `${deliveryRate}% delivered`}</span>
+        </div>
+        <div className="mt-3 grid grid-cols-3 rounded-lg bg-slate-100 p-1 text-center text-[10px] font-bold text-slate-500">
+          {[7, 30, 90].map(days => (
+            <button
+              key={days}
+              type="button"
+              onClick={() => setAnalyticsDays(days)}
+              className={`min-h-11 rounded-md px-2 transition ${analyticsDays === days ? 'bg-white text-slate-800 shadow-sm' : ''}`}
+            >
+              {days} days
+            </button>
+          ))}
         </div>
         <div className="mt-3 h-[116px]">
           {chartData.length > 0 ? (
@@ -196,13 +240,13 @@ export function MobileDashboard({
               <svg className="h-[90px] w-full" viewBox="0 0 320 86" preserveAspectRatio="none" role="img" aria-label={deliveryRate === null ? 'Event delivery rate: no attempts yet' : `${deliveryRate}% event delivery rate`}>
                 <defs>
                   <linearGradient id="mobileDeliveryGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#2f80df" stopOpacity=".25" />
-                    <stop offset="100%" stopColor="#2f80df" stopOpacity=".03" />
+                    <stop offset="0%" stopColor={SERIES_BLUE} stopOpacity=".25" />
+                    <stop offset="100%" stopColor={SERIES_BLUE} stopOpacity=".03" />
                   </linearGradient>
                 </defs>
-                {[18, 43, 68].map(y => <line key={y} x1="0" x2="320" y1={y} y2={y} stroke="#edf1f6" />)}
+                {[18, 43, 68].map(y => <line key={y} x1="0" x2="320" y1={y} y2={y} stroke={CHART_GRID} />)}
                 <path d={deliveryChart.area} fill="url(#mobileDeliveryGradient)" />
-                <path d={deliveryChart.line} fill="none" stroke="#2580e8" strokeWidth="2.25" strokeLinejoin="round" strokeLinecap="round" />
+                <path d={deliveryChart.line} fill="none" stroke={SERIES_BLUE} strokeWidth="2.25" strokeLinejoin="round" strokeLinecap="round" />
               </svg>
               <div className="flex justify-between text-[9px] text-slate-400">
                 <span>{firstTrendLabel}</span>

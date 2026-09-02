@@ -8,7 +8,9 @@ interface SkeletonProps extends HTMLAttributes<HTMLDivElement> {
 
 const shapeClasses: Record<SkeletonShape, string> = {
   line: 'h-3 rounded',
-  block: 'rounded-lg',
+  // The control radius, so a block standing in for a button, a field or a table
+  // row has the same corner as the thing that replaces it.
+  block: 'rounded-[var(--bk-radius-control)]',
   circle: 'rounded-full',
 };
 
@@ -45,7 +47,13 @@ interface SkeletonCardsProps {
   className?: string;
 }
 
-/** Placeholder grid matching the stat-card row at the top of most pages. */
+/**
+ * Placeholder grid matching the stat-card row at the top of most pages.
+ *
+ * The tile deliberately carries StatCard's exact box — panel radius, panel
+ * border, panel shadow, 20px padding and the 104px minimum — so the summary row
+ * does not resize under the merchant when the numbers land.
+ */
 export function SkeletonCards({ count = 4, className = '' }: SkeletonCardsProps) {
   return (
     <div
@@ -58,7 +66,7 @@ export function SkeletonCards({ count = 4, className = '' }: SkeletonCardsProps)
       {Array.from({ length: count }).map((_, index) => (
         <div
           key={index}
-          className="space-y-3 rounded-xl border border-[var(--bk-console-border)] bg-[var(--bk-console-surface)] p-5"
+          className="min-h-[104px] space-y-3 rounded-[var(--bk-radius-panel)] border border-[var(--bk-panel-border)] bg-[var(--bk-console-surface)] p-5 shadow-[var(--bk-panel-shadow)]"
         >
           <Skeleton className="w-1/2" />
           <Skeleton shape="block" className="h-8 w-3/4" />

@@ -11,6 +11,19 @@ interface DangerZoneSectionProps {
   handleDeleteAccountRequest: () => void;
 }
 
+/**
+ * The "type REVOKE / type DELETE" fields, with no focus utilities of their own.
+ *
+ * Both used to end in `focus:ring-2 focus:ring-amber-100` / `focus:ring-rose-100`.
+ * A Tailwind v4 `ring-*` replaces the base `input:focus` box-shadow in index.css,
+ * so those ~1.2:1 tints *were* the entire focus indicator on the two most
+ * consequential inputs in the portal — the ones that rotate a live plugin key and
+ * request account deletion. Bare, they inherit the base 2px `--bk-console-blue`
+ * accent. The panel around each one already carries the amber/rose warning tone,
+ * so the field itself does not need to repeat it.
+ */
+const CONFIRM_FIELD = 'min-h-11 w-full rounded-lg border border-slate-200 bg-white px-3 font-mono text-xs sm:max-w-xs';
+
 export function DangerZoneSection({
   connection,
   confirmRevokeText,
@@ -43,8 +56,8 @@ export function DangerZoneSection({
           </div>
           <div>
             <div className="flex flex-col gap-3 sm:flex-row">
-              <input type="text" autoComplete="off" placeholder="Type REVOKE to confirm" value={confirmRevokeText} onChange={event => setConfirmRevokeText(event.target.value)} className="min-h-10 w-full rounded-lg border border-slate-200 bg-white px-3 font-mono text-xs outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-100 sm:max-w-xs" />
-              <button type="button" disabled={confirmRevokeText.toUpperCase() !== 'REVOKE'} onClick={handleTokenRevoke} className="min-h-10 rounded-lg bg-amber-600 px-4 text-xs font-bold text-white hover:bg-amber-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400">Rotate key</button>
+              <input type="text" autoComplete="off" placeholder="Type REVOKE to confirm" value={confirmRevokeText} onChange={event => setConfirmRevokeText(event.target.value)} className={CONFIRM_FIELD} />
+              <button type="button" disabled={confirmRevokeText.toUpperCase() !== 'REVOKE'} onClick={handleTokenRevoke} className="min-h-11 rounded-lg bg-amber-600 px-4 text-xs font-bold text-white hover:bg-amber-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400">Rotate key</button>
             </div>
             <p className="mt-1.5 text-[11px] text-slate-400">The button unlocks after you type <code className="rounded bg-slate-100 px-1 font-mono">REVOKE</code>.</p>
           </div>
@@ -68,8 +81,8 @@ export function DangerZoneSection({
           </ul>
           <div>
             <div className="flex flex-col gap-3 sm:flex-row">
-              <input type="text" autoComplete="off" placeholder="Type DELETE to confirm" value={confirmDeleteText} onChange={event => setConfirmDeleteText(event.target.value)} className="min-h-10 w-full rounded-lg border border-slate-200 bg-white px-3 font-mono text-xs outline-none focus:border-rose-500 focus:ring-2 focus:ring-rose-100 sm:max-w-xs" />
-              <button type="button" disabled={confirmDeleteText.toUpperCase() !== 'DELETE'} onClick={handleDeleteAccountRequest} className="min-h-10 rounded-lg bg-rose-600 px-4 text-xs font-bold text-white hover:bg-rose-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400">Submit deletion request</button>
+              <input type="text" autoComplete="off" placeholder="Type DELETE to confirm" value={confirmDeleteText} onChange={event => setConfirmDeleteText(event.target.value)} className={CONFIRM_FIELD} />
+              <button type="button" disabled={confirmDeleteText.toUpperCase() !== 'DELETE'} onClick={handleDeleteAccountRequest} className="min-h-11 rounded-lg bg-rose-600 px-4 text-xs font-bold text-white hover:bg-rose-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400">Submit deletion request</button>
             </div>
             <p className="mt-1.5 text-[11px] text-slate-400">You’ll receive confirmation before anything is deleted.</p>
           </div>

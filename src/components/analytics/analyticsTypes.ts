@@ -9,8 +9,10 @@ export type AdSummary = {
   confirmedRevenue: number;
   spendCurrency: string;
   revenueCurrency: string;
-  returnRate: number;
-  costPerOrder: number;
+  /** Confirmed revenue ÷ spend. null when there is no spend to divide by. */
+  returnRate: number | null;
+  /** Spend ÷ confirmed orders. null when no confirmed order carries the cost. */
+  costPerOrder: number | null;
 };
 
 /** Badge descriptor returned by getAdStatus. */

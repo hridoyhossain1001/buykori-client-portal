@@ -80,7 +80,7 @@ const WordPressSection: React.FC<WordPressSectionProps> = ({
                   type="button"
                   onClick={() => handleCopy(apiAccessKey, 'sett_wp_tok')}
                   disabled={!apiAccessKey}
-                  className="ml-auto inline-flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+                  className="ml-auto inline-flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600"
                   aria-label="Copy API access key"
                   title="Copy API access key"
                 >
@@ -146,7 +146,7 @@ const WordPressSection: React.FC<WordPressSectionProps> = ({
                 .then(() => showToast("WordPress site binding is active.", false))
                 .catch((error) => showToast(error?.message || "WordPress reconnection is required.", true));
             }}
-            className="mb-4 ml-auto mr-5 block min-h-10 rounded-lg border border-slate-200 bg-white px-5 py-2 text-xs font-bold text-slate-700 transition-colors hover:bg-slate-50"
+            className="mb-4 ml-auto mr-5 block min-h-11 rounded-lg border border-slate-200 bg-white px-5 py-2 text-xs font-bold text-slate-700 transition-colors hover:bg-slate-50"
           >
             Test WordPress Connection
           </button>

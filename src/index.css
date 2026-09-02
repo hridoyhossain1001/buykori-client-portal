@@ -2,51 +2,382 @@
 @import "tailwindcss";
 
 @theme {
-  /* Legacy indigo utilities now resolve to the Buykori shield-blue scale. */
-  --color-indigo-50: #f3f7ff;
-  --color-indigo-100: #e2ebff;
-  --color-indigo-200: #c5d7fb;
-  --color-indigo-300: #99b8f1;
-  --color-indigo-400: #6790df;
-  --color-indigo-500: #3e6dce;
-  --color-indigo-600: #285ac7;
-  --color-indigo-700: #1d469f;
-  --color-indigo-800: #173d91;
-  --color-indigo-900: #153476;
-  --color-indigo-950: #102554;
-  --font-sans: "Inter", "Noto Sans Bengali", ui-sans-serif, system-ui, sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
-  --font-display: "Space Grotesk", sans-serif;
+  /* Legacy indigo utilities now resolve to the prototype's teal accent scale.
+     534 indigo-* utilities across 57 files read from here, so the accent moves
+     portal-wide without editing a component. Anchors: 600 = prototype --accent
+     (#176b5b), 50 = prototype --accent-soft (#e8f4f1). */
+  --color-indigo-50: #e8f4f1;
+  --color-indigo-100: #c9e6df;
+  --color-indigo-200: #a3d5ca;
+  --color-indigo-300: #74bfb0;
+  --color-indigo-400: #42a08d;
+  --color-indigo-500: #1c7e6c;
+  --color-indigo-600: #176b5b;
+  --color-indigo-700: #125548;
+  --color-indigo-800: #0f463c;
+  --color-indigo-900: #0d3a32;
+  --color-indigo-950: #062420;
+
+  /* The remaining Tailwind families are remapped onto the prototype's
+     desaturated semantic palette, so the portal reads as one design instead of
+     "teal accent + stock Tailwind everywhere else". Anchors are taken from
+     ui-ux-audit-prototype/portal.css: level 700 is the prototype's text colour
+     for that meaning, 200 its border, 50 its background. Intermediate levels
+     are interpolated in OKLCH and chroma-fitted into sRGB, so each ramp stays
+     monotonic in luminance.
+
+     Checked against every colour pair that actually occurs in src/: the mid
+     levels improve contrast by up to +1.7:1 (the prototype's greys are darker
+     than Tailwind's vivid mid-tones) and nothing lands worse than stock by
+     more than 0.4:1. Several families share one ramp because the prototype
+     genuinely has a single blue and a single green. */
+
+  /* Info — .p-badge.info (#265b84 / #edf5fb / #d2e4f2). blue, sky and cyan all
+     resolve here; the prototype has no separate cyan. */
+  --color-blue-50: #edf5fb;
+  --color-blue-100: #e1edf7;
+  --color-blue-200: #d2e4f2;
+  --color-blue-300: #afc8dc;
+  --color-blue-400: #84a5c0;
+  --color-blue-500: #5983a4;
+  --color-blue-600: #427095;
+  --color-blue-700: #265b84;
+  --color-blue-800: #204b6d;
+  --color-blue-900: #1b3f5b;
+  --color-blue-950: #10283b;
+  --color-sky-50: #edf5fb;
+  --color-sky-100: #e1edf7;
+  --color-sky-200: #d2e4f2;
+  --color-sky-300: #afc8dc;
+  --color-sky-400: #84a5c0;
+  --color-sky-500: #5983a4;
+  --color-sky-600: #427095;
+  --color-sky-700: #265b84;
+  --color-sky-800: #204b6d;
+  --color-sky-900: #1b3f5b;
+  --color-sky-950: #10283b;
+  --color-cyan-50: #edf5fb;
+  --color-cyan-100: #e1edf7;
+  --color-cyan-200: #d2e4f2;
+  --color-cyan-300: #afc8dc;
+  --color-cyan-400: #84a5c0;
+  --color-cyan-500: #5983a4;
+  --color-cyan-600: #427095;
+  --color-cyan-700: #265b84;
+  --color-cyan-800: #204b6d;
+  --color-cyan-900: #1b3f5b;
+  --color-cyan-950: #10283b;
+
+  /* In transit — prototype --state-transit (#2b5b8c). violet and purple land
+     here; the prototype has no purple hue at all. */
+  --color-violet-50: #eef4fa;
+  --color-violet-100: #e2ecf5;
+  --color-violet-200: #d4e2ef;
+  --color-violet-300: #b1c7db;
+  --color-violet-400: #86a5c3;
+  --color-violet-500: #5c82aa;
+  --color-violet-600: #46709c;
+  --color-violet-700: #2b5b8c;
+  --color-violet-800: #244b74;
+  --color-violet-900: #1e3f61;
+  --color-violet-950: #12283e;
+  --color-purple-50: #eef4fa;
+  --color-purple-100: #e2ecf5;
+  --color-purple-200: #d4e2ef;
+  --color-purple-300: #b1c7db;
+  --color-purple-400: #86a5c3;
+  --color-purple-500: #5c82aa;
+  --color-purple-600: #46709c;
+  --color-purple-700: #2b5b8c;
+  --color-purple-800: #244b74;
+  --color-purple-900: #1e3f61;
+  --color-purple-950: #12283e;
+
+  /* Success — .p-badge.success (#176448 / #e9f7ef / #ccebd9), same hue as
+     prototype --state-arrived. emerald and green share it. */
+  --color-emerald-50: #e9f7ef;
+  --color-emerald-100: #dcf2e5;
+  --color-emerald-200: #ccebd9;
+  --color-emerald-300: #aacfba;
+  --color-emerald-400: #7ead95;
+  --color-emerald-500: #528b70;
+  --color-emerald-600: #3a795d;
+  --color-emerald-700: #176448;
+  --color-emerald-800: #15533c;
+  --color-emerald-900: #134532;
+  --color-emerald-950: #0b2c1f;
+  --color-green-50: #e9f7ef;
+  --color-green-100: #dcf2e5;
+  --color-green-200: #ccebd9;
+  --color-green-300: #aacfba;
+  --color-green-400: #7ead95;
+  --color-green-500: #528b70;
+  --color-green-600: #3a795d;
+  --color-green-700: #176448;
+  --color-green-800: #15533c;
+  --color-green-900: #134532;
+  --color-green-950: #0b2c1f;
+
+  /* Warning — .p-badge.warning (#805500 / #fff6dc / #f1dfaa), same hue as
+     prototype --state-held. */
+  --color-amber-50: #fff6dc;
+  --color-amber-100: #f9ecc6;
+  --color-amber-200: #f1dfaa;
+  --color-amber-300: #dac38b;
+  --color-amber-400: #bda065;
+  --color-amber-500: #a17d3d;
+  --color-amber-600: #926b27;
+  --color-amber-700: #805500;
+  --color-amber-800: #6a4705;
+  --color-amber-900: #593b08;
+  --color-amber-950: #392505;
+
+  /* A warmer sibling of the warning ramp, so orange stays distinguishable from
+     amber where both appear. The prototype has no orange of its own. */
+  --color-orange-50: #fff4e2;
+  --color-orange-100: #fae8c9;
+  --color-orange-200: #f3d9ab;
+  --color-orange-300: #debd8b;
+  --color-orange-400: #c49963;
+  --color-orange-500: #a9753c;
+  --color-orange-600: #9b6225;
+  --color-orange-700: #8a4b00;
+  --color-orange-800: #723e05;
+  --color-orange-900: #603407;
+  --color-orange-950: #3e2105;
+
+  /* Danger — .p-badge.danger (#a2231b / #fff0ee / #f3ceca), same hue as
+     prototype --state-failed. rose and red share it. */
+  --color-rose-50: #fff0ee;
+  --color-rose-100: #fae1de;
+  --color-rose-200: #f3ceca;
+  --color-rose-300: #e6aea8;
+  --color-rose-400: #d3867d;
+  --color-rose-500: #be5c52;
+  --color-rose-600: #b1443a;
+  --color-rose-700: #a2231b;
+  --color-rose-800: #861e17;
+  --color-rose-900: #701b14;
+  --color-rose-950: #49100b;
+  --color-red-50: #fff0ee;
+  --color-red-100: #fae1de;
+  --color-red-200: #f3ceca;
+  --color-red-300: #e6aea8;
+  --color-red-400: #d3867d;
+  --color-red-500: #be5c52;
+  --color-red-600: #b1443a;
+  --color-red-700: #a2231b;
+  --color-red-800: #861e17;
+  --color-red-900: #701b14;
+  --color-red-950: #49100b;
+
+  /* Neutrals — the prototype's greys, which carry most of its character.
+     Pinned at 50 = --bk-console-bg, 100 = neutral .p-badge background,
+     200 = --line, 500 = --muted, 900 = --ink. 2247 slate-* utilities read
+     from here, so this is the single largest visual change in the file. */
+  --color-slate-50: #f5f7f7;
+  --color-slate-100: #f0f2f3;
+  --color-slate-200: #dfe4e6;
+  --color-slate-300: #b8c1c5;
+  --color-slate-400: #89959c;
+  --color-slate-500: #5b6a74;
+  --color-slate-600: #47555f;
+  --color-slate-700: #313d47;
+  --color-slate-800: #222d38;
+  --color-slate-900: #17212b;
+  --color-slate-950: #0c1319;
+
+  /* The fill of a chosen option card. The prototype gives selected surfaces their
+     own very light teal, distinct from any of the -50 ramp levels:
+
+       .plan-options > div.selected    { border-color:#8acbb9; background:#f0f8f5 }
+       .recovery-list article.selected { background:#f1f8f6 }
+       .plan-compare-row.selected      { border:1px solid #bfe3d7; background:#f2faf7 }
+
+     The value below is .plan-options's, because that is the selectable option card
+     this token is for. Reaching for --color-indigo-50 instead looks equivalent but
+     is not: at luminance 0.882 against this token's 0.923 it is a visibly deeper
+     wash, and it pushes dark-on-tint text down about 0.15 of a contrast ratio -
+     enough to drop a provider's brand-coloured name below 4.5:1. */
+  --color-surface-selected: #f0f8f5;
+
+  /* Table surfaces. The prototype's data tables sit on three near-white tints
+     that the slate ramp deliberately does not carry, because they are lighter
+     than slate-50 (#f5f7f7, the page background):
+
+       th             { background:#fafbfb }
+       tbody tr:hover { background:#f8faf9 }
+       td             { border-bottom:1px solid #e8ebed }
+
+     Reaching for slate-50/slate-200 instead collapses the design: a slate-50
+     header is the same colour as the page behind the panel, so the header stops
+     reading as part of the table, and a slate-200 cell rule is as strong as the
+     panel's own border, which turns a list of rows into a grid of boxes. */
+  --color-table-head: #fafbfb;
+  --color-row-hover: #f8faf9;
+  --color-cell-line: #e8ebed;
+
+  /* Chart palette — the prototype's own chart colours (.chart-bars i,
+     .chart-bars.green i, .chart-axis, .progress-ring). Deliberately NOT the
+     accent: the accent teal sits 0.152 from the success green in OKLab, so an
+     accent-plus-green chart reads as two shades of one colour. The prototype
+     keeps a separate blue for data and reserves the accent for actions.
+
+     These are duplicated as plain values in src/lib/chartColors.ts, because
+     recharts emits them as SVG presentation attributes where var() is not
+     substituted. The two copies must be kept in sync by hand;
+     src/lib/designTokens.test.ts asserts they match, and also asserts the
+     palette stays legible — so retinting one of these may fail a test even
+     when both copies agree. */
+  --color-chart-blue: #4a83be;
+  --color-chart-blue-deep: #265b84;
+  --color-chart-green: #3c9b82;
+  --color-chart-green-on-dark: #7ead95;
+  --color-chart-grid: #e1e6e8;
+  --color-chart-axis: #5b6a74;
+  --color-ring-track: #d8eee8;
+  --color-ring-fill: #176b5b;
+
+  /* Prototype type stacks (ui-ux-audit-prototype/portal.css --font-body,
+     --font-mono, --font-display). "Noto Sans Bengali" is kept in the sans
+     chain, which the prototype omits: Bengali reaches the portal through live
+     order data (customer names, addresses, store names), so dropping it would
+     leave that text to a system fallback. */
+  --font-sans: "Inter", "Noto Sans Bengali", "Segoe UI", Arial, sans-serif;
+  --font-mono: "IBM Plex Mono", Consolas, "Cascadia Mono", ui-monospace, monospace;
+  --font-display: "Archivo", Bahnschrift, "Segoe UI Variable Display", "Segoe UI", Arial, sans-serif;
+  /* The prototype's --type-label (11px). It is the size the prototype uses for
+     nearly all controls — buttons, badges, table headers and cells, metric
+     labels — so it needs a name rather than a text-[11px] arbitrary value
+     repeated in every primitive. */
+  --text-label: 0.6875rem;
   --text-caption: 0.75rem;
   --text-body-sm: 0.8125rem;
   --text-body: 0.875rem;
   --text-subtitle: 1rem;
   --text-title: 1.25rem;
   --text-display: 1.5rem;
+  /* 29px, the Overview's headline numbers (dashboard/KpiCards, the delivery
+     ring). One step above --text-display because those cards are read as
+     figures, not as headings: the page title is 24px and must stay the largest
+     *title*, while the number it introduces is allowed to be bigger. It is a
+     step rather than a text-[29px] because it now repeats in two files. */
+  --text-metric: 1.8125rem;
 }
 
 @layer base {
   :root {
-    --bk-console-bg: #f8fafc;
-    --bk-console-surface: #ffffff;
-    --bk-console-surface-muted: #f1f5f9;
-    --bk-console-border: #dfe4ea;
-    --bk-console-border-strong: #cbd5e1;
-    --bk-console-text: #202124;
-    --bk-console-text-muted: #5f6368;
-    --bk-console-text-subtle: #70777d;
-    --bk-console-blue: #285ac7;
-    --bk-console-blue-hover: #1d469f;
-    --bk-console-blue-soft: #eaf1ff;
-    --bk-brand-primary: #285ac7;
-    --bk-brand-primary-dark: #173d91;
-    --bk-brand-primary-soft: #eaf1ff;
-    --bk-brand-accent: #12b886;
-    --bk-brand-accent-dark: #087f5b;
-    --bk-brand-ink: #102554;
-    --bk-brand-border: #cfddf8;
-    --bk-console-radius: 8px;
-    --bk-console-sidebar: 288px;
+    /* Prototype design tokens, copied from ui-ux-audit-prototype/portal.css.
+       Names mirror the prototype so ported components can read them directly. */
+    --bk-ink: #17212b;
+    --bk-muted: #5b6a74;
+    --bk-line: #dfe4e6;
+    --bk-panel: #ffffff;
+    --bk-accent: #176b5b;
+    --bk-accent-hover: #125849;
+    --bk-accent-soft: #e8f4f1;
+    --bk-accent-bright: #39b993;
+    /* `.bulk-bar` — the dark bar that appears above a table once rows are ticked.
+       The prototype writes this colour as a literal, not through its accent ramp:
+       it is deeper and greyer than accent-800 (#0f463c) so the bar reads as a
+       temporary state over the table rather than a second brand surface.
+       Its ink is a lighter mint than accent-50 (#e8f4f1), which is a *surface*
+       tint and reads slightly green over this fill. */
+    --bk-selection-bar: #23483f;
+    --bk-selection-bar-ink: #ecf7f4;
+    --bk-info: #315b8a;
+    --bk-danger: #b42318;
+    --bk-warning: #976b00;
+    --bk-state-arrived: #176448;
+    --bk-state-transit: #2b5b8c;
+    --bk-state-held: #805500;
+    --bk-state-failed: #a2231b;
+    --bk-sidebar: #17212b;
+    --bk-sidebar-line: #263542;
+    --bk-sidebar-text: #aeb8c2;
+    --bk-sidebar-text-strong: #eef4f6;
+    --bk-sidebar-label: #8b98a4;
+    --bk-sidebar-hover: #202d39;
+    --bk-sidebar-active: #2a3b48;
+    --bk-sidebar-focus: #7ad6be;
+    /* The sidebar's three raised blocks: the store switcher, the usage meter and
+       the profile chip. The prototype gives the first two the same tint as a nav
+       hover (--bk-sidebar-hover) and the footer a darker one, then borders them
+       with #31414e, #2c3c48 and #2c3945 — three values inside 4% of each other,
+       which is repetition rather than intent, so they collapse to one here. The
+       same goes for its six muted greys (#8e9ba7 #8e9aa5 #96a3ad #91a0aa
+       #8fa0a9 #8b98a4): --bk-sidebar-label already is that colour. */
+    --bk-sidebar-card-border: #31414e;
+    --bk-sidebar-footer: #151f29;
+    --bk-sidebar-track: #111b24;
+    --bk-sidebar-tile: #1b423b;
+    --bk-sidebar-meter-label: #68d3b2;
+    --bk-sidebar-avatar: #b6e4d8;
+    --bk-sidebar-avatar-text: #17463b;
+    /* `.brand-mark`: the letter sits on the mint tile, so it needs the darkest
+       green in the ramp rather than the avatar's mid tone. */
+    --bk-sidebar-brand-mark-text: #12362f;
+    --bk-sidebar-chip: #d8eee8;
+    --bk-sidebar-chip-text: #173a32;
+    --bk-panel-border: #dce1e4;
+    --bk-panel-shadow: 0 2px 7px rgba(25, 39, 51, 0.045);
+    --bk-control-border: #d7dcdf;
+    /* A disabled control is opaque, not faded. `disabled:opacity-50` measured a
+       label at 2.26:1 — below the 3:1 floor even for large text — because it
+       thins the text and its background together. The prototype answers this with
+       one flat grey pair (`button:disabled` in ui-ux-audit-prototype/portal.css),
+       and #5f6c74 on #f7f8f9 measures 5.04:1: still obviously inert, but the
+       label stays readable, so a merchant can see *which* action is unavailable. */
+    --bk-control-disabled-bg: #f7f8f9;
+    --bk-control-disabled-text: #5f6c74;
+    --bk-control-disabled-border: #e6eaec;
+    --bk-radius-panel: 8px;
+    --bk-radius-control: 6px;
+    /* A button is not a field. Fields sit in a stack where a shared 6px keeps the
+       column of edges quiet; a button is a single object the eye lands on, and at
+       6px against a 44px height it reads boxy. 10px is the smallest step that
+       reads as deliberately rounded without turning into a pill — pills are taken,
+       they mean "status" here (--bk-radius-pill). Fields keep 6px on purpose, so
+       these two must not be merged back into one token. */
+    --bk-radius-button: 10px;
+    --bk-radius-pill: 12px;
+
+    /* Existing console tokens re-pointed at the prototype palette. The *-blue
+       names are kept because 22 component usages read them; they now hold the
+       prototype's teal accent. */
+    --bk-console-bg: #f5f7f7;
+    --bk-console-surface: var(--bk-panel);
+    --bk-console-surface-muted: #eef2f2;
+    --bk-console-border: var(--bk-line);
+    --bk-console-border-strong: #c6ced1;
+    --bk-console-text: var(--bk-ink);
+    --bk-console-text-muted: var(--bk-muted);
+    /* The faintest text that is still text - captions, empty-state sentences,
+       "Shows once the first parcel settles". It was #76838b, which measured
+       3.62:1 on the console background and produced every contrast failure the
+       runtime audit found. This value clears 4.5:1 on all five surfaces text
+       ever sits on: #ffffff 5.30, #f5f7f7 4.93, #eef2f2 4.70 (the worst),
+       #fff0ee 4.78, #fef7ed 4.98. Do not lighten it again; #e8ebed nearby is a
+       cell *border*, not a surface, so it is not a fourth constraint. */
+    --bk-console-text-subtle: #626d75;
+    /* The reading ink for dense data rows (portal.css `td`). A shade off full
+       ink, so that within one table cell the prototype's two-line shape still
+       has a top end: the primary line stays --bk-console-text and the row's
+       ordinary text sits just below it. Every cell at full ink flattens that.
+       10:1 on white, so the softening costs no contrast. */
+    --bk-console-text-body: #37444e;
+    --bk-console-blue: var(--bk-accent);
+    --bk-console-blue-hover: var(--bk-accent-hover);
+    --bk-console-blue-soft: var(--bk-accent-soft);
+    --bk-brand-primary: var(--bk-accent);
+    --bk-brand-primary-dark: var(--bk-accent-hover);
+    --bk-brand-primary-soft: var(--bk-accent-soft);
+    --bk-brand-accent: var(--bk-accent-bright);
+    --bk-brand-accent-dark: var(--bk-state-arrived);
+    --bk-brand-ink: #0d3a32;
+    --bk-brand-border: #c9e6df;
+    --bk-console-radius: var(--bk-radius-panel);
+    --bk-console-sidebar: 248px;
     --bk-console-sidebar-collapsed: 72px;
   }
 
@@ -57,6 +388,12 @@
     color: var(--bk-console-text);
     background-color: var(--bk-console-bg);
     background-image: none;
+    /* From the prototype's :root. This is a portal about counts and money: with
+       proportional digits a column of BDT amounts or event totals fails to line
+       up on the decimal, because 1 is narrower than 8. Set here rather than on
+       the table primitive so an amount reads the same inside a table, a metric
+       strip and a drawer. */
+    font-variant-numeric: tabular-nums;
   }
 
   :where(a, button, summary, [role="button"], [tabindex]):focus-visible {
@@ -64,14 +401,28 @@
     outline-offset: 2px;
   }
 
+  /* Inside a horizontally scrolling table the ring goes inward. A ring drawn 2px
+     *outside* its control is clipped by an ancestor with overflow-x: auto, and a
+     table's row actions sit in the last column — flush against the right edge of
+     exactly such a scroller, which is where the clipping is total. Ported from
+     the prototype's P1-1 remediation; the marker class is set by Table.tsx.
+     `:where()` keeps this at one class of specificity, enough to beat the
+     zero-specificity rule above without becoming hard to override. */
+  .bk-table-scroll :where(a, button, input, select, [tabindex]):focus-visible {
+    outline-offset: -2px;
+  }
+
   input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]),
   select,
   textarea {
-    min-height: 40px;
-    background-color: #ffffff;
-    border: 1px solid #cbd5e1;
-    border-radius: 8px;
-    box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.02);
+    /* 44px, not 40px. The prototype raised every control to 44 in a measured
+       pass (.field-search input, .compact-select select), at every viewport
+       rather than only on mobile — WCAG 2.5.5 target size. */
+    min-height: 44px;
+    background-color: var(--bk-panel);
+    border: 1px solid var(--bk-control-border);
+    border-radius: var(--bk-radius-control);
+    box-shadow: inset 0 1px 2px rgba(25, 39, 51, 0.02);
     transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
   }
 
@@ -79,7 +430,12 @@
   select:focus,
   textarea:focus {
     border-color: var(--bk-console-blue);
-    box-shadow: 0 0 0 2px rgba(0, 105, 218, 0.16);
+    /* Solid accent, not a 16% wash of it. Composited over the panel that wash
+       came out at rgb(218,231,229) — 1.27:1 against white, so on a bare input
+       the only thing marking focus was a 1px border change. Every control this
+       rule reaches is forced onto `--bk-panel` two rules up, so the accent is
+       always sitting on a light surface (6.37:1 on white). */
+    box-shadow: 0 0 0 2px var(--bk-console-blue);
     outline: none;
   }
 
@@ -100,12 +456,12 @@
     border-color: var(--bk-brand-primary);
     background: var(--bk-brand-primary-soft);
     color: var(--bk-brand-primary-dark);
-    box-shadow: inset 0 0 0 1px rgb(40 90 199 / 0.08);
+    box-shadow: inset 0 0 0 1px rgb(23 107 91 / 0.08);
   }
 
   .bk-brand-panel {
     border-color: var(--bk-brand-border);
-    background: linear-gradient(135deg, #ffffff 0%, #f7faff 100%);
+    background: linear-gradient(135deg, #ffffff 0%, #f6faf8 100%);
   }
 
   .bk-brand-button {
@@ -124,9 +480,14 @@
 
   .bk-console-sidebar {
     width: var(--bk-console-sidebar);
-    background: #0f172a;
-    border-right: 1px solid #1e293b;
-    box-shadow: 2px 0 12px rgba(15, 23, 42, 0.15);
+    color: var(--bk-sidebar-text-strong);
+    background: var(--bk-sidebar);
+    border-right: 1px solid var(--bk-sidebar-line);
+    box-shadow: 2px 0 12px rgba(23, 33, 43, 0.15);
+  }
+
+  .bk-console-sidebar :focus-visible {
+    outline-color: var(--bk-sidebar-focus);
   }
 
   .bk-console-sidebar.is-collapsed {
@@ -134,59 +495,80 @@
   }
 
   .bk-console-brand {
-    border-bottom: 1px solid #1e293b;
-    min-height: 56px;
-    background: #0f172a;
+    border-bottom: 1px solid var(--bk-sidebar-line);
+    min-height: 68px;
+    background: var(--bk-sidebar);
   }
 
+  /* The store switcher and the usage meter: one raised box, drawn twice. */
+  .bk-console-sidebar-card {
+    background: var(--bk-sidebar-hover);
+    border: 1px solid var(--bk-sidebar-card-border);
+    border-radius: 7px;
+  }
+
+  /* The prototype draws a flat #39b993 tile; the live tile keeps a gradient so
+     brand-logo.png still reads against it. Radius 7px matches .brand-mark. */
   .bk-console-logo {
-    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
-    border-radius: 8px;
-    box-shadow: 0 2px 6px rgba(37, 99, 235, 0.4);
+    background: linear-gradient(135deg, var(--bk-accent-bright) 0%, var(--bk-accent) 100%);
+    border-radius: 7px;
+    box-shadow: 0 2px 6px rgba(23, 107, 91, 0.35);
   }
 
   .bk-console-group-label {
-    color: #a8b4c5;
+    color: var(--bk-sidebar-label);
     font-size: 11px;
-    font-weight: 700;
+    font-weight: 800;
     letter-spacing: 0.05em;
     text-transform: uppercase;
   }
 
+  /* 44px, not 40: thirteen of these are the largest single group of undersized
+     tap targets in the portal, and the nav scrolls (`overflow-y-auto` on the
+     <nav>), so the extra 4px per row costs layout nothing. */
   .bk-console-nav-item {
-    min-height: 40px;
-    border-radius: 8px;
-    color: #b6c2d2;
+    min-height: 44px;
+    border-radius: var(--bk-radius-control);
+    color: var(--bk-sidebar-text);
   }
 
   .bk-console-nav-item:hover {
-    background: #1e293b;
+    background: var(--bk-sidebar-hover);
     color: #ffffff;
   }
 
   .bk-console-nav-item.is-active {
-    background: rgba(99, 102, 241, 0.18);
+    background: var(--bk-sidebar-active);
     color: #ffffff;
     font-weight: 700;
-    box-shadow: inset 3px 0 0 #6366f1;
+    box-shadow: inset 3px 0 0 var(--bk-accent-bright);
   }
 
   .bk-console-nav-icon {
-    color: #8291a8;
+    color: var(--bk-sidebar-label);
   }
 
   .bk-console-nav-item:hover .bk-console-nav-icon {
-    color: #e2e8f0;
+    color: var(--bk-sidebar-text-strong);
   }
 
   .bk-console-nav-item.is-active .bk-console-nav-icon {
-    color: #818cf8;
+    color: var(--bk-accent-bright);
   }
 
+  /* The nav count badge. The prototype draws a borderless mint pill; a border
+     here would read as a second button inside the nav row. */
   .bk-console-chip {
-    border: 1px solid #d2e3fc;
-    background: var(--bk-console-blue-soft);
-    color: var(--bk-console-blue);
+    min-width: 20px;
+    height: 20px;
+    background: var(--bk-sidebar-chip);
+    color: var(--bk-sidebar-chip-text);
+  }
+
+  /* The profile chip closing the rail, on its own darker tint. */
+  .bk-console-sidebar-footer {
+    background: var(--bk-sidebar-footer);
+    border-top: 1px solid var(--bk-sidebar-card-border);
   }
 
   .bk-console-topbar {
@@ -196,13 +578,16 @@
     box-shadow: none;
   }
 
+  /* Every icon button in the top bar - menu, sync, notifications, guide - is
+     drawn from a 16px icon plus padding, which lands at 40. The bar is 56px
+     tall, so 44 still leaves 6px of breathing room above and below. */
   .bk-console-topbar button {
-    min-width: 40px;
-    min-height: 40px;
+    min-width: 44px;
+    min-height: 44px;
   }
 
   .bk-console-search {
-    background: #f1f3f4;
+    background: var(--bk-console-surface-muted);
     border: 1px solid transparent;
     border-radius: 9999px;
     box-shadow: none;
@@ -215,17 +600,22 @@
     box-shadow: none;
   }
 
+  /* The focus border has to be readable against the *unfocused* pill, not just
+     present: `--bk-brand-border` (#c9e6df) against the resting #eef2f2 fill is
+     1.17:1, which is a change nobody can see. The accent is 5.65:1 against that
+     same fill, and 2px of it carries the WCAG 2.4.11 area as well as the colour. */
   .bk-console-search:focus-within {
-    background: #ffffff;
-    border-color: #c6dafc;
-    box-shadow: 0 1px 2px rgba(60, 64, 67, 0.12);
+    background: var(--bk-panel);
+    border-color: var(--bk-accent);
+    box-shadow: 0 0 0 1px var(--bk-accent), 0 1px 2px rgba(25, 39, 51, 0.12);
   }
 
+  /* .p-panel in the prototype carries a faint lift, not a flat border. */
   .bk-console-surface {
     background: var(--bk-console-surface);
-    border: 1px solid var(--bk-console-border);
+    border: 1px solid var(--bk-panel-border);
     border-radius: var(--bk-console-radius);
-    box-shadow: none;
+    box-shadow: var(--bk-panel-shadow);
   }
 
   .bk-console-section {
@@ -234,63 +624,171 @@
     border-bottom: 1px solid var(--bk-console-border);
   }
 
+  /* One content measure for every page, matching the prototype shell
+     (`.portal-main { width: min(1540px, 100%) }`). The prototype has a single
+     container for all pages, so a per-page width is what made the console feel
+     narrower on one screen than the next; the tables here are 1100px+ of columns
+     and need the room. */
   .bk-console-page {
     width: 100%;
     min-width: 0;
-    max-width: 1240px;
+    max-width: min(1540px, 100%);
     margin: 0 auto;
+  }
+
+  /* The prototype narrows the rail on a small laptop (`@media max-width:1100px`)
+     so a 13" screen keeps a usable content column. Redeclaring the token is
+     enough: the rail's width and the page's left offset both read it. */
+  @media (max-width: 1100px) {
+    :root {
+      --bk-console-sidebar: 220px;
+    }
   }
 
   @media (max-width: 767px) {
     .bk-console-sidebar {
-      width: min(84vw, 304px);
-      border-radius: 0 18px 18px 0;
-      box-shadow: 0 12px 32px rgba(15, 23, 42, 0.22);
+      width: min(86vw, 284px);
+      box-shadow: 0 12px 32px rgba(23, 33, 43, 0.22);
     }
   }
 }
 
 /* Plugin update reminder visual system. */
 .bk-plugin-update-overlay {
-  background: rgba(15, 23, 42, 0.58);
+  background: rgba(23, 33, 43, 0.58);
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
 }
 
 .bk-plugin-update-modal {
-  border: 1px solid rgba(199, 210, 254, 0.9);
+  border: 1px solid rgba(163, 213, 202, 0.9);
   border-radius: 18px;
-  box-shadow: 0 24px 70px rgba(15, 23, 42, 0.28);
+  box-shadow: 0 24px 70px rgba(23, 33, 43, 0.28);
 }
 
 .bk-plugin-update-header {
-  background: linear-gradient(135deg, #4338ca 0%, #6d28d9 100%);
+  background: linear-gradient(135deg, #176b5b 0%, #125548 100%);
 }
 
 .bk-plugin-update-primary {
-  background: linear-gradient(135deg, #4f46e5 0%, #2563eb 100%);
-  box-shadow: 0 8px 20px rgba(79, 70, 229, 0.2);
+  background: linear-gradient(135deg, #1c7e6c 0%, #176b5b 100%);
+  box-shadow: 0 8px 20px rgba(23, 107, 91, 0.2);
 }
 
 .bk-plugin-update-primary:hover {
-  background: linear-gradient(135deg, #4338ca 0%, #1d4ed8 100%);
+  background: linear-gradient(135deg, #176b5b 0%, #0f463c 100%);
 }
 
-/* Typography contrast boosts globally in Light Mode */
-.text-slate-400 {
-  color: #64748b; /* High-contrast grey */
-}
+/* Typography contrast boosts globally in Light Mode. The prototype defines only
+   two greys (--ink, --muted), so 400/500 collapse onto muted and 800+ onto ink.
+   Every value below clears WCAG AA on the --bk-console-bg surface.
+
+   WARNING - these six steps are overridden here, in the unlayered tail, so they
+   beat anything in `@theme`. Editing `--color-slate-400` … `--color-slate-950`
+   up in the token block changes nothing you can see; come back and change the
+   value here instead. `slate-300` is deliberately NOT in this list: it stays at
+   its raw token because its real users are dark panels (JsonViewer on
+   `bg-slate-950`, the mobile revenue cards on the slate gradient) and empty-state
+   illustrations, where a boost would wreck the contrast rather than fix it. If
+   you need faint *text* on a light surface, use --bk-console-text-subtle. */
+.text-slate-400,
 .text-slate-500 {
-  color: #4b5563; /* Deeper slate-600 equivalent */
+  color: #5b6a74; /* prototype --muted, 5.2:1 */
 }
 .text-slate-600 {
-  color: #374151; /* Deep charcoal */
+  color: #465661; /* 7.1:1 */
 }
 .text-slate-700 {
-  color: #1f2937; /* Near black */
+  color: #2f3e49; /* 10.2:1 */
 }
 .text-slate-800, .text-slate-900, .text-slate-950 {
-  color: #0f172a; /* Pitch black slate */
+  color: #17212b; /* prototype --ink, 15.2:1 */
+}
+
+/* Those six steps beat `@layer utilities`, and a disabled Button's label lives
+   there: `disabled:text-[var(--bk-control-disabled-text)]` loses to
+   `.text-slate-700` / `-600` / `-400`, which is what `secondary`, `ghost` and
+   `icon` name. Without this rule the fill and border go grey while the label
+   keeps full-strength ink, so a disabled button reads as the most solid thing on
+   the panel — and no test catches it, because the class *is* on the element.
+
+   Scoped to `.bk-button` (components/common/Button.tsx) rather than every
+   `button:disabled`, which is what the prototype's portal.css does: the Orders
+   selection bar sits on the teal header and needs a dim *white* disabled label,
+   and an unlayered global rule would beat that too. Class and rule are a pair —
+   renaming either silently restores the full-ink label. */
+.bk-button:disabled {
+  color: var(--bk-control-disabled-text);
+}
+
+/* Same treatment for the one amber step that carries *text*. `--color-amber-500`
+   (#a17d3d) is 3.81:1 on white — fine for an icon under 1.4.11, short of the
+   4.5:1 that 1.4.3 wants from the plan name beside the crown in
+   dashboard/UsagePanel.tsx. amber-600 (#926b27) is 4.82:1 and reads as the same
+   colour. Every one of the nine `text-amber-500` call sites was checked first:
+   all sit on white, bg-amber-50 or a light card, so darkening cannot invert
+   anywhere. This only moves `color` — `bg-amber-500` and `border-amber-500` keep
+   their token, so no fill or divider shifts. */
+.text-amber-500 {
+  color: #926b27; /* was #a17d3d at 3.81:1, now 4.82:1 */
+}
+
+/* Fully hide a scrollbar on both engines. Tailwind's built-in `scrollbar-none`
+   only sets `scrollbar-width:none` (Firefox/standards); on WebKit the global
+   `::-webkit-scrollbar{width:6px}` rule just below would still paint a 6px bar.
+   The Tabs strip (components/common/Tabs.tsx) puts its underline on the
+   scrolling element, so that bar would sit on top of the underline whenever the
+   tabs overflow. This covers both halves, matching the prototype's
+   .view-tabs::-webkit-scrollbar{display:none}. */
+@utility scrollbar-hidden {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* "There is more to the right" — the prototype's own hint, ported verbatim from
+   portal.css, where it is applied to .metric-strip, .settings-nav, .section-tabs
+   and .view-tabs.
+
+   A horizontal scroller with its scrollbar hidden gives a phone no signal that
+   it scrolls at all: the Orders tab strip is 923px of tabs in a 345px box, so
+   five of the eight views were simply invisible. This paints a 22px shadow at
+   the right edge of the *visible* box. `background-attachment: local` is what
+   makes it a hint rather than decoration — the gradient travels with the content,
+   so it slides away as the merchant reaches the end instead of sitting there
+   permanently. No JS, no scroll listener, and it costs nothing when the content
+   fits, because there is nothing to scroll and the shadow lands off-box.
+
+   Pair it with `scrollbar-hidden`: with a visible scrollbar the hint is noise. */
+@utility scroll-hint-x {
+  background-image: linear-gradient(
+    to right,
+    transparent calc(100% - 22px),
+    rgba(23, 33, 43, 0.12)
+  );
+  background-attachment: local;
+  background-position: right;
+  background-repeat: no-repeat;
+}
+
+/* The 44px touch floor, on a phone only.
+   portal.css raises every control in the prototype to a 44px minimum inside its
+   `max-width:760px` block (`.p-button,.icon-button,.view-tabs button,.row-actions
+   button{min-height:44px}`). Our own primitives mostly do this themselves —
+   Button is min-h-11 at every size — but some controls arrive here as a rendered
+   node from a parent (the fraud verdict cell, the WhatsApp confirm cell), so the
+   only place that can reach them is a rule on their container.
+
+   Scoped to a class, and to the phone, on purpose: applied globally it would add
+   12px to every row of every desktop table. Put `bk-touch-44` on a container
+   whose controls a thumb has to hit and cannot be styled directly. */
+@media (max-width: 767px) {
+  .bk-touch-44 button,
+  .bk-touch-44 select,
+  .bk-touch-44 [role='button'] {
+    min-height: 44px;
+  }
 }
 
 /* Scrollbars styling */
@@ -299,15 +797,15 @@
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: rgba(241, 245, 249, 0.5);
+  background: rgba(238, 242, 242, 0.5);
   border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(148, 163, 184, 0.3);
+  background: rgba(123, 138, 146, 0.3);
   border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(148, 163, 184, 0.5);
+  background: rgba(123, 138, 146, 0.5);
 }
 
 /* Pulse animation */
@@ -342,9 +840,9 @@
 /* Premium Minimal Search Input */
 .orange-glow-capsule-input {
   position: relative;
-  background-color: #ffffff;
-  border: 1px solid #cbd5e1;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.02);
+  background-color: var(--bk-panel);
+  border: 1px solid var(--bk-control-border);
+  box-shadow: 0 1px 2px rgba(25, 39, 51, 0.02);
 }
 
 .orange-glow-capsule-input input {
@@ -358,27 +856,22 @@
 }
 
 .orange-glow-capsule-input input::placeholder {
-  color: #64748b;
+  color: var(--bk-muted);
   font-weight: 500;
 }
 
-/* Active sidebar item styling */
-.sidebar-active-glow {
-  position: relative;
-  background-color: var(--bk-console-blue-soft);
-  border: 1px solid transparent;
-  color: var(--bk-console-blue);
-}
-
-.sidebar-active-indicator {
-  background-color: var(--bk-console-blue);
-  box-shadow: none;
-}
+/* The active nav item is styled by `.bk-console-nav-item.is-active` inside
+   @layer base — a dark pill with a mint bar down its left edge, which is what the
+   prototype draws. Two unlayered rules used to sit here (.sidebar-active-glow and
+   .sidebar-active-indicator) and, being unlayered, silently beat it: they painted
+   the selected item as a *pale mint* pill on the dark rail, left over from the
+   pre-migration palette. The inset box-shadow is the indicator, so the separate
+   3px <span> went with them. */
 
 /* Mark styling */
 mark {
   background-color: #fef08a; /* yellow-200 */
-  color: #0f172a;
+  color: var(--bk-ink);
   border-radius: 2px;
   padding-left: 1px;
   padding-right: 1px;
@@ -404,6 +897,40 @@ mark {
   animation: slideUp 0.18s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
+/* Three more entry animations the markup has always asked for. Tailwind v4 emits
+   nothing for an `animate-*` utility with no matching `--animate-*` theme entry
+   and no hand-written class, so `animate-slide-in-up`, `animate-slide-in-right`
+   and `animate-fade-in-up` resolved to `animation-name: none` at five call sites
+   — including the app's only toast, which appeared with a hard cut. Declaring
+   them here, beside the two that already worked, is what makes the intent in the
+   markup actually run. The reduced-motion blanket below covers all five. */
+@keyframes slideInUp {
+  from { transform: translateY(12px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes slideInRight {
+  from { transform: translateX(16px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes fadeInUp {
+  from { transform: translateY(6px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.animate-slide-in-up {
+  animation: slideInUp 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-slide-in-right {
+  animation: slideInRight 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.18s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
 /* Button hover micro-animations */
 button {
   transition-property: background-color, border-color, box-shadow, color, opacity, transform;
@@ -417,13 +944,19 @@ button {
   top: 1rem;
   z-index: 1000;
   transform: translateY(-200%);
-  border-radius: 8px;
+  border-radius: var(--bk-radius-control);
   background: var(--bk-console-blue);
   color: #ffffff;
+  /* inline-flex, not inline: `min-height` is ignored on a non-replaced inline
+     box, so the padding alone left this at 40px tall. It is the first thing a
+     keyboard reaches on every page. */
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
   padding: 0.65rem 0.9rem;
   font-size: var(--text-body-sm);
   font-weight: 700;
-  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.18);
+  box-shadow: 0 4px 12px rgba(23, 33, 43, 0.18);
 }
 
 .bk-skip-link:focus-visible {
@@ -450,14 +983,28 @@ button {
   }
 }
 
+/* Grows a small control's hit area by 10px on every side without moving anything
+   on screen, for the targets that cannot simply be made bigger: a 44px box would
+   break the row rhythm of a data table. Users: Tooltip.tsx's 24×24 info button
+   (24 + 10 + 10 = 44 on both axes), the fraud verdict toggle and the "Fraud
+   check" pill. The vertical inset was -8px, which left the tooltip 44 wide but
+   only 40 tall - the axis nobody checks, because the button still looks right.
+
+   -10px is sized for a 24px control, so **24px is this helper's floor**: on a
+   16px box it lands on 36, which is why the two order tables' select-checkboxes
+   grow their own -15px halo inline instead of using this. This rule is outside
+   every `@layer`, so a Tailwind `before:-inset-*` utility cannot override it -
+   a caller that needs a different inset has to drop the class, not layer over
+   it. Works on `input` as well as `button`: Chrome does generate `::before` on a
+   checkbox, verified in the browser, not assumed. */
 .btn-touch-expand {
   position: relative;
 }
 .btn-touch-expand::before {
   content: "";
   position: absolute;
-  top: -8px;
-  bottom: -8px;
+  top: -10px;
+  bottom: -10px;
   left: -10px;
   right: -10px;
 }

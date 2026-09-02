@@ -59,7 +59,7 @@ export function PluginUpdateModal({
               <span className="text-xs font-bold uppercase tracking-wide text-slate-400">Installed</span>
               <strong className="mt-0.5 block text-sm text-slate-700">v{installedVersion}</strong>
             </div>
-            <ArrowRight className="h-4 w-4 text-slate-300" />
+            <ArrowRight className="h-4 w-4 text-slate-400" />
             <div className="min-w-0 text-right">
               <span className="text-xs font-bold uppercase tracking-wide text-indigo-500">Latest</span>
               <strong className="mt-0.5 block text-sm text-indigo-700">v{latestVersion}</strong>

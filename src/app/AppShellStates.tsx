@@ -45,6 +45,29 @@ export function ConsoleSkeleton() {
   );
 }
 
+/**
+ * Holds the top bar's 56px while the bootstrap request is still in flight.
+ *
+ * <Header> needs `connection`, so before that response lands there used to be
+ * nothing above <main> — and the moment it arrived, everything already painted
+ * was pushed down by exactly one topbar. Measured on /dashboard that single
+ * shift was 1.0 of a 1.4479 CLS at 360x640 (and ~0.035 at desktop widths), which
+ * on a phone means tapping the wrong row. The height must stay in step with
+ * `.bk-console-topbar` in index.css; the class is reused rather than copied so
+ * it cannot drift, and the breadcrumb's first word is drawn so the bar does not
+ * flash as an empty grey strip.
+ */
+export function TopbarPlaceholder() {
+  return (
+    <div
+      className="bk-console-topbar sticky top-0 z-[35] flex shrink-0 items-center px-4 md:px-6"
+      aria-hidden="true"
+    >
+      <span className="text-caption text-[var(--bk-console-text-subtle)]">Buykori workspace</span>
+    </div>
+  );
+}
+
 /** Suspense fallback for lazily loaded workspace views. */
 export function PageSuspenseFallback() {
   return (

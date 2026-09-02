@@ -13,27 +13,27 @@ export const initialProfile: UserProfile = {
   eventsUsed: 12450,
   eventsQuota: 50000,
   growthFeaturesEnabled: true,
+  // Local preview only. In production this flag comes from the backend, which
+  // enables a client either through `AI_ADS_UI_ENABLED` (general availability)
+  // or by name in `deploy/ai_ads_beta_allowlist.json` — this object is never
+  // served there. Without it the AI Ads pages cannot be looked at on localhost
+  // at all: `/ai-ads` silently falls back to Overview and the sidebar hides the
+  // entry.
+  aiAdsEnabled: true,
   planFeatures: [
     {
-      key: "courier_shipping",
-      label: "Courier shipping",
-      description: "Confirmed orders can be booked with connected courier partners and tracked from the portal.",
-      included: true,
-      minimumPlan: "Starter",
-    },
-    {
       key: "client_alerts",
-      label: "Telegram order alerts",
-      description: "Purchase and recovery notifications can be sent securely to the store owner by Telegram.",
+      label: "WhatsApp order confirmations",
+      description: "Confirmed COD orders can be verified with the customer over WhatsApp from the portal.",
       included: true,
-      minimumPlan: "Starter",
+      minimumPlan: "Growth",
     },
     {
       key: "incomplete_checkout_recovery",
       label: "Incomplete checkout recovery",
       description: "Abandoned checkout leads can be reviewed, contacted, and recovered from the portal.",
       included: true,
-      minimumPlan: "Starter",
+      minimumPlan: "Growth",
     },
   ],
   renewalDate: "2026-06-24",
@@ -130,7 +130,7 @@ export function generateEventData(): CAPIEvent[] {
     const dedupeKey = `did_${800000 + i}`;
     
     // Status bias: mostly success, occasional failure or retry
-    let status: 'Success' | 'Failed' | 'Retry' = 'Success';
+    let status: 'Delivered' | 'Failed' | 'Retry' = 'Delivered';
     let httpCode = 200;
     if (i % 23 === 0) {
       status = 'Failed';
@@ -170,7 +170,7 @@ export function generateEventData(): CAPIEvent[] {
       'User-Agent': 'WordPress/6.4.3; WooCommerce/8.5.2',
     };
 
-    const responseBody = status === 'Success' 
+    const responseBody = status === 'Delivered'
       ? { events_received: 1, status: "accepted", fb_trace_id: `FBT_${Math.random().toString(36).substring(7).toUpperCase()}` }
       : status === 'Retry'
         ? { error: { message: "Server overloaded", code: 503 } }
@@ -201,6 +201,7 @@ export function generateAPILogs(events: CAPIEvent[]): APILog[] {
       'TikTok Events API': 'https://open-api.tiktok.com/v1.3/pixel/track',
       'GA4': 'https://www.google-analytics.com/mp/collect?api_secret=sec_key&measurement_id=id',
       'TikTok Browser Pixel': 'Browser pixel',
+      'Webhook': '/event.sent',
       'Gateway Ingest': '/api/events',
     };
 

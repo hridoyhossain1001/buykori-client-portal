@@ -21,18 +21,22 @@ export function usablePhone(value: unknown): string {
   return /^01\d{9}$/.test(normalized) ? normalized : '';
 }
 
-export function formatHeldAge(ageHours: unknown): string {
+export function formatHeldDuration(ageHours: unknown): string {
   const hours = Math.max(0, Number(ageHours) || 0);
   const minutes = Math.max(1, Math.round(hours * 60));
-  if (minutes < 60) return `${minutes} min ago`;
+  if (minutes < 60) return `${minutes}m`;
   if (hours < 24) {
     const wholeHours = Math.floor(hours);
     const remainingMinutes = Math.round((hours - wholeHours) * 60);
-    return remainingMinutes > 0 ? `${wholeHours}h ${remainingMinutes}m ago` : `${wholeHours}h ago`;
+    return remainingMinutes > 0 ? `${wholeHours}h ${remainingMinutes}m` : `${wholeHours}h`;
   }
   const days = Math.floor(hours / 24);
   const remainingHours = Math.floor(hours % 24);
-  return remainingHours > 0 ? `${days}d ${remainingHours}h ago` : `${days}d ago`;
+  return remainingHours > 0 ? `${days}d ${remainingHours}h` : `${days}d`;
+}
+
+export function formatHeldAge(ageHours: unknown): string {
+  return `${formatHeldDuration(ageHours)} ago`;
 }
 
 export function productMeta(product: DeferredOrderProduct): Array<{ label: string; value: string; category?: boolean }> {

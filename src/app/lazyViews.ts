@@ -32,19 +32,21 @@ export const OrdersView = lazyWithReload(() => import('../components/OrdersView'
 export const IncompleteCheckoutsView = lazyWithReload(() => import('../components/IncompleteCheckoutsView').then(m => ({ default: m.IncompleteCheckoutsView })));
 export const AIAdsView = lazyWithReload(() => import('../components/AIAdsView').then(m => ({ default: m.AIAdsView })));
 
-// Page id -> header title map used by the console shell.
+// Page id -> header title map used by the console shell. The titles are the
+// sidebar's own labels, so the rail and the header agree on what a page is
+// called; see `menuGroups` in components/Sidebar.tsx.
 export const pageTitles: Record<string, string> = {
-  dashboard: 'Dashboard',
-  analytics: 'Insights',
-  'pending-purchases': 'Purchase Event Hold',
-  orders: 'Orders & Shipping',
-  'incomplete-checkouts': 'Incomplete Orders',
-  'campaign-builder': 'Campaign Tools',
-  suggestions: 'Setup Health',
-  'event-logs': 'Event Logs',
-  'api-logs': 'API Logs',
+  dashboard: 'Overview',
+  analytics: 'Ad Insights',
+  'pending-purchases': 'COD review',
+  orders: 'Orders',
+  'incomplete-checkouts': 'Incomplete checkouts',
+  'campaign-builder': 'Campaign tools',
+  suggestions: 'Setup health',
+  'event-logs': 'Event activity',
+  'api-logs': 'Delivery logs',
   settings: 'Settings',
-  'setup-guide': 'Setup Guide',
+  'setup-guide': 'Setup guide',
   account: 'Account',
   'ai-ads': 'AI Ads',
 };

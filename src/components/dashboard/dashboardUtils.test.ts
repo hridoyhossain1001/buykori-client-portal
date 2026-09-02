@@ -2,9 +2,11 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
   compactNumber,
+  cycleResetLabel,
   formatQuotaLimit,
   isUnlimitedQuota,
   quotaPercent,
+  settlementNotice,
 } from './dashboardUtils';
 
 /**
@@ -54,4 +56,61 @@ test('quotaPercent clamps to 0-100 and never divides by an unlimited quota', () 
   assert.equal(quotaPercent(9_999, 0), 0);
   assert.ok(Number.isFinite(quotaPercent(9_999, 0)));
   assert.ok(!Number.isNaN(quotaPercent(0, 0)));
+});
+
+/**
+ * Billing-cycle helpers.
+ *
+ * The plan runs on a rolling 30-day cycle anchored per client, and service keeps
+ * running for a few days after the paid period ends. The merchant cannot see
+ * either fact unless these helpers state it, so the null cases matter as much
+ * as the happy path: a missing or malformed date must produce silence, never a
+ * guessed reset day or a warning with no deadline in it.
+ */
+
+test('cycleResetLabel names the client own reset date and stays silent without one', () => {
+  assert.equal(cycleResetLabel({ quotaResetsAt: '2026-09-16T08:42:45+00:00' }), 'Sep 16');
+  assert.equal(cycleResetLabel({ quotaResetsAt: null }), null);
+  assert.equal(cycleResetLabel({ quotaResetsAt: undefined }), null);
+  assert.equal(cycleResetLabel({ quotaResetsAt: 'not-a-date' }), null);
+});
+
+test('settlementNotice only fires inside the settlement window', () => {
+  assert.equal(settlementNotice({ inGracePeriod: false, graceEndsAt: '2026-09-19T00:00:00+00:00' }), null);
+  assert.equal(settlementNotice({ inGracePeriod: undefined, graceEndsAt: undefined }), null);
+});
+
+test('settlementNotice counts the days left and names the cut-off date', () => {
+  const notice = settlementNotice(
+    { inGracePeriod: true, graceEndsAt: '2026-09-19T00:00:00+00:00' },
+    new Date('2026-09-17T00:00:00+00:00'),
+  );
+  assert.ok(notice);
+  assert.equal(notice!.daysLeft, 2);
+  assert.equal(notice!.endsOn, 'Sep 19');
+  assert.match(notice!.detail, /Sep 19/);
+  assert.match(notice!.detail, /2 days left/);
+});
+
+test('settlementNotice singularises the last day and never goes negative', () => {
+  const lastDay = settlementNotice(
+    { inGracePeriod: true, graceEndsAt: '2026-09-19T00:00:00+00:00' },
+    new Date('2026-09-18T00:00:00+00:00'),
+  );
+  assert.match(lastDay!.detail, /1 day left/);
+
+  // An overdue window must still explain itself instead of showing "-3 days".
+  const overdue = settlementNotice(
+    { inGracePeriod: true, graceEndsAt: '2026-09-19T00:00:00+00:00' },
+    new Date('2026-09-22T00:00:00+00:00'),
+  );
+  assert.equal(overdue!.daysLeft, 0);
+  assert.doesNotMatch(overdue!.detail, /-/);
+});
+
+test('settlementNotice still warns when the cut-off date is missing', () => {
+  const notice = settlementNotice({ inGracePeriod: true, graceEndsAt: null });
+  assert.ok(notice);
+  assert.equal(notice!.endsOn, null);
+  assert.match(notice!.detail, /settlement window/);
 });

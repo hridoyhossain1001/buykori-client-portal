@@ -14,7 +14,9 @@ interface EventLogFiltersProps {
   statusFilters: string[];
   setStatusFilters: Dispatch<SetStateAction<string[]>>;
   handleExportData: (format: 'csv' | 'json', type: 'events' | 'apilogs') => void;
-  successfulGroups: number;
+  acceptedGroups: number;
+  deliveredGroups: number;
+  skippedGroups: number;
   failedGroups: number;
   retryingGroups: number;
   loading: boolean;
@@ -32,7 +34,9 @@ export function EventLogFilters({
   statusFilters,
   setStatusFilters,
   handleExportData,
-  successfulGroups,
+  acceptedGroups,
+  deliveredGroups,
+  skippedGroups,
   failedGroups,
   retryingGroups,
   loading,
@@ -52,7 +56,11 @@ export function EventLogFilters({
             placeholder="Search by event name, ID, product or URL..."
             value={searchFilter}
             onChange={event => setSearchFilter(event.target.value)}
-            className="min-h-11 w-full rounded-xl border-0 bg-slate-100 py-2 pl-9 pr-4 text-sm text-slate-800 outline-none placeholder:text-slate-400 focus:ring-2 focus:ring-indigo-100 md:min-h-10 md:rounded-lg md:border md:border-slate-200 md:bg-white md:text-xs md:focus:border-indigo-500"
+            /* No focus utilities: `focus:ring-2 focus:ring-indigo-100` replaced
+               the base `input:focus` box-shadow with a ~1.2:1 tint, which on the
+               mobile variant (`border-0 bg-slate-100`) left no focus signal at
+               all. Bare, the base 2px `--bk-console-blue` accent applies. */
+            className="min-h-11 w-full rounded-xl border-0 bg-slate-100 py-2 pl-9 pr-4 text-sm text-slate-800 placeholder:text-slate-400 md:min-h-11 md:rounded-lg md:border md:border-slate-200 md:bg-white md:text-xs"
           />
         </div>
 
@@ -108,14 +116,14 @@ export function EventLogFilters({
           <button
             type="button"
             onClick={() => handleExportData('json', 'events')}
-            className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold text-slate-600 hover:bg-slate-50"
+            className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold text-slate-600 hover:bg-slate-50"
           >
             {'{ }'} JSON
           </button>
           <button
             type="button"
             onClick={() => handleExportData('csv', 'events')}
-            className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold text-slate-600 hover:bg-slate-50"
+            className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold text-slate-600 hover:bg-slate-50"
           >
             <Download className="h-3.5 w-3.5" />
             Export CSV
@@ -161,9 +169,9 @@ export function EventLogFilters({
             setStatusFilters([]);
           }}
           aria-pressed={platformFilters.length === 0 && statusFilters.length === 0}
-          className={`min-h-9 shrink-0 rounded-lg border px-3 text-xs font-semibold md:min-h-8 md:rounded-full md:text-[11px] md:font-bold ${
+          className={`min-h-11 shrink-0 rounded-lg border px-3 text-xs font-semibold md:min-h-8 md:rounded-full md:text-[11px] md:font-bold ${
             platformFilters.length === 0 && statusFilters.length === 0
-              ? 'border-sky-300 bg-sky-50 text-sky-700 md:border-slate-900 md:bg-slate-900 md:text-white'
+              ? 'border-blue-300 bg-blue-50 text-blue-700 md:border-slate-900 md:bg-slate-900 md:text-white'
               : 'border-transparent bg-slate-100 text-slate-700 hover:bg-slate-200 md:border-slate-200 md:bg-white md:text-slate-600 md:hover:bg-slate-50'
           }`}
         >
@@ -187,7 +195,7 @@ export function EventLogFilters({
                 )
               }
               aria-pressed={active}
-              className={`inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-lg border px-3 text-xs font-semibold md:min-h-8 md:rounded-full md:text-[11px] md:font-bold ${
+              className={`inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-lg border px-3 text-xs font-semibold md:min-h-8 md:rounded-full md:text-[11px] md:font-bold ${
                 active
                   ? 'border-indigo-300 bg-indigo-50 text-indigo-700'
                   : 'border-transparent bg-slate-100 text-slate-700 hover:bg-slate-200 md:border-slate-200 md:bg-white md:text-slate-600 md:hover:bg-slate-50'
@@ -203,7 +211,9 @@ export function EventLogFilters({
 
         <div className="hidden contents md:contents">
         {[
-          ['Success', successfulGroups],
+          ['Accepted', acceptedGroups],
+          ['Delivered', deliveredGroups],
+          ['Skipped', skippedGroups],
           ['Failed', failedGroups],
           ['Retry', retryingGroups],
         ].map(([status, count]) => {
@@ -227,7 +237,11 @@ export function EventLogFilters({
                     ? 'border-rose-300 bg-rose-50 text-rose-700'
                     : statusName === 'Retry'
                       ? 'border-amber-300 bg-amber-50 text-amber-700'
-                      : 'border-emerald-300 bg-emerald-50 text-emerald-700'
+                      : statusName === 'Delivered'
+                        ? 'border-emerald-300 bg-emerald-50 text-emerald-700'
+                        : statusName === 'Skipped'
+                          ? 'border-slate-300 bg-slate-100 text-slate-700'
+                          : 'border-blue-300 bg-blue-50 text-blue-700'
                   : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
               }`}
             >
@@ -263,7 +277,7 @@ export function EventLogFilters({
           <span className={`h-2 w-2 rounded-full ${liveMode ? 'bg-emerald-500' : 'bg-slate-400'}`} />
           Live updates {liveMode ? 'on' : 'off'}
         </button>
-        <span className="text-slate-500">Failed {failedGroups} · Retry {retryingGroups}</span>
+        <span className="text-slate-500">Skipped {skippedGroups} · Failed {failedGroups}</span>
       </div>
     </section>
   );

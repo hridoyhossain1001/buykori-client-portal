@@ -50,18 +50,24 @@ test('resolves settings section deep links', () => {
   assert.equal(clientPathForPage('settings'), '/settings/store-connection');
 });
 
-test('resolves AI Ads and ChatNow routes', () => {
-  assert.deepEqual(resolveClientRoute('/ai-ads'), {
-    pageId: 'ai-ads',
-    sectionId: 'ai-ads-overview',
-    canonicalPath: '/ai-ads',
-  });
+test('resolves AI Ads section deep links', () => {
   assert.deepEqual(resolveClientRoute('/ai-ads/chat'), {
     pageId: 'ai-ads',
     sectionId: 'ai-ads-chat',
     canonicalPath: '/ai-ads/chat',
   });
-  assert.equal(clientPathForSection('ai-ads', 'ai-ads-chat'), '/ai-ads/chat');
+  assert.equal(clientPathForSection('ai-ads', 'ai-ads-accounts'), '/ai-ads/accounts');
+
+  // Creative and History are the two tabs added in Phase C. Without their route entries they
+  // would render in-page but produce the wrong URL and fail to deep-link or survive a reload,
+  // so both directions are asserted here.
+  for (const [sectionId, path] of [
+    ['ai-ads-creative', '/ai-ads/creative'],
+    ['ai-ads-history', '/ai-ads/history'],
+  ] as const) {
+    assert.equal(clientPathForSection('ai-ads', sectionId), path);
+    assert.deepEqual(resolveClientRoute(path), { pageId: 'ai-ads', sectionId, canonicalPath: path });
+  }
 });
 
 test('rejects unrelated application paths', () => {

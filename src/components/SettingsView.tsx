@@ -1,16 +1,34 @@
 import React, { useState, useEffect } from 'react';
-import { Globe2, Send, Truck, Zap } from 'lucide-react';
-import { AdAccount, Platform, PlatformConfig, EventRule, ClientConnection, PluginReleaseInfo, CustomEventAutomation, CourierSettings } from '../types';
+import { Globe2, MessageCircle, Truck, Zap } from 'lucide-react';
+import { Platform, PlatformConfig, EventRule, ClientConnection, PluginReleaseInfo, CustomEventAutomation, CourierSettings } from '../types';
 import { copyText } from '../lib/clipboard';
+import { useIsWide } from '../lib/useIsWide';
+import { PageHeader } from './common';
 import StoreDomainSection from './settings/StoreDomainSection';
 import AdPlatformsSection from './settings/AdPlatformsSection';
-import AdAccountsSection from './settings/AdAccountsSection';
 import CourierSection from './settings/CourierSection';
 import CodTimingSection from './settings/CodTimingSection';
 import EventRoutingSection from './settings/EventRoutingSection';
 import CustomAutomationsSection from './settings/CustomAutomationsSection';
 import WordPressSection from './settings/WordPressSection';
-import TelegramAlertsSection, { TelegramLinkCode, TelegramNotificationStatus } from './settings/TelegramAlertsSection';
+import WhatsAppConnectSection from './settings/WhatsAppConnectSection';
+import {
+  connectWhatsApp as requestWhatsAppConnect,
+  disconnectWhatsApp as requestWhatsAppDisconnect,
+  fetchWhatsAppStatus,
+  setWhatsAppAutoSend as requestWhatsAppAutoSend,
+  type WhatsAppStatus,
+} from '../services/whatsappApi';
+
+const PATHAO_WEBHOOK_CALLBACK_URL = 'https://api.buykori.app/api/v1/webhook/pathao';
+const STEADFAST_WEBHOOK_CALLBACK_URL = 'https://api.buykori.app/api/v1/webhook/steadfast';
+const REDX_WEBHOOK_CALLBACK_URL = 'https://api.buykori.app/api/v1/webhook/redx';
+/**
+ * A WhatsApp linking QR is only valid for about twenty seconds and the gateway
+ * never caches it, so while the merchant is pairing this page has to ask for a
+ * fresh one every few seconds.
+ */
+const WHATSAPP_QR_POLL_MS = 4000;
 
 interface SettingsViewProps {
   initialSectionId?: string | null;
@@ -88,64 +106,109 @@ export function SettingsView({
   const [eventPresets, setEventPresets] = useState<Array<{ id: string; name: string; description: string; events: string[] }>>([]);
   const [selectedPreset, setSelectedPreset] = useState('');
   const [applyingPreset, setApplyingPreset] = useState(false);
-  const [telegramStatus, setTelegramStatus] = useState<TelegramNotificationStatus | null>(null);
-  const [telegramLinkCode, setTelegramLinkCode] = useState<TelegramLinkCode | null>(null);
-  const [telegramBusy, setTelegramBusy] = useState(false);
+  const [whatsappStatus, setWhatsappStatus] = useState<WhatsAppStatus | null>(null);
+  const [whatsappBusy, setWhatsappBusy] = useState(false);
+  const [whatsappAutoSendBusy, setWhatsappAutoSendBusy] = useState(false);
 
-  const loadTelegramStatus = async (quiet = false) => {
+  const loadWhatsAppStatus = async (quiet = true) => {
     try {
-      const response = await fetch('/api/client/telegram-notifications');
-      const data = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(data.detail || 'Could not load Telegram notification status.');
-      setTelegramStatus(data);
-      if (data.connected) setTelegramLinkCode(null);
-      return Boolean(data.connected);
+      const data = await fetchWhatsAppStatus();
+      setWhatsappStatus(data);
+      return data;
     } catch (error) {
-      if (!quiet) showToast(error instanceof Error ? error.message : 'Could not load Telegram status.', true);
-      return false;
+      // The whole feature is optional, so a failed read must never shout at a
+      // merchant who never asked for it — only a deliberate click reports.
+      if (!quiet) showToast(error instanceof Error ? error.message : 'Could not load WhatsApp status.', true);
+      return null;
     }
   };
 
-  const generateTelegramLinkCode = async () => {
-    setTelegramBusy(true);
+  const startWhatsAppConnect = async () => {
+    setWhatsappBusy(true);
     try {
-      const response = await fetch('/api/client/telegram-notifications/link-code', { method: 'POST' });
-      const data = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(data.detail || 'Could not generate Telegram security code.');
-      setTelegramLinkCode(data);
-      showToast('Secure Telegram code generated.', false);
+      const result = await requestWhatsAppConnect();
+      // Show the QR from this response immediately; the poll below keeps it fresh.
+      setWhatsappStatus((current) => (current
+        ? {
+          ...current,
+          qr: result.qr,
+          connected: result.status === 'connected',
+          session: {
+            ...current.session,
+            status: result.status,
+            phoneNumber: result.phoneNumber || current.session.phoneNumber,
+          },
+        }
+        : current));
+      await loadWhatsAppStatus();
+      if (result.status === 'connected') showToast('WhatsApp is already linked.', false);
+      else showToast('Scan the QR code with the phone that owns this store’s WhatsApp number.', false);
     } catch (error) {
-      showToast(error instanceof Error ? error.message : 'Could not generate Telegram code.', true);
+      showToast(error instanceof Error ? error.message : 'Could not start the WhatsApp connection.', true);
     } finally {
-      setTelegramBusy(false);
+      setWhatsappBusy(false);
     }
   };
 
-  const disconnectTelegram = async () => {
-    if (!window.confirm('Disconnect Telegram alerts for this store?')) return;
-    setTelegramBusy(true);
+  const stopWhatsApp = async () => {
+    if (!window.confirm('Disconnect WhatsApp for this store? You will need to scan the QR code again to send confirmations.')) return;
+    setWhatsappBusy(true);
     try {
-      const response = await fetch('/api/client/telegram-notifications', { method: 'DELETE' });
-      const data = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(data.detail || 'Could not disconnect Telegram.');
-      await loadTelegramStatus(true);
-      showToast('Telegram notifications disconnected.', false);
+      const result = await requestWhatsAppDisconnect();
+      await loadWhatsAppStatus();
+      if (result.gatewayError) {
+        showToast(`WhatsApp service could not be reached: ${result.gatewayError}`, true);
+      } else {
+        showToast('WhatsApp disconnected.', false);
+      }
     } catch (error) {
-      showToast(error instanceof Error ? error.message : 'Could not disconnect Telegram.', true);
+      showToast(error instanceof Error ? error.message : 'Could not disconnect WhatsApp.', true);
     } finally {
-      setTelegramBusy(false);
+      setWhatsappBusy(false);
+    }
+  };
+
+  /**
+   * Turn the automatic confirmation sweep on or off for this store.
+   *
+   * The switch is flipped optimistically so it never feels stuck, then the real
+   * status is re-read — the server can refuse an ON (plan/flag) and the merchant
+   * must see the switch fall back rather than believe it saved.
+   */
+  const changeWhatsAppAutoSend = async (autoSend: boolean) => {
+    setWhatsappAutoSendBusy(true);
+    setWhatsappStatus((current) => (current ? { ...current, autoSend } : current));
+    try {
+      await requestWhatsAppAutoSend(autoSend);
+      await loadWhatsAppStatus();
+      showToast(
+        autoSend
+          ? 'Automatic sending is on. New orders get the confirmation request by themselves.'
+          : 'Automatic sending is off. Send each order by hand from Order Management.',
+        false,
+      );
+    } catch (error) {
+      await loadWhatsAppStatus();
+      showToast(
+        error instanceof Error ? error.message : 'Could not save the automatic sending setting.',
+        true,
+      );
+    } finally {
+      setWhatsappAutoSendBusy(false);
     }
   };
 
   useEffect(() => {
-    loadTelegramStatus(true);
+    void loadWhatsAppStatus();
   }, []);
 
   useEffect(() => {
-    if (!telegramLinkCode || telegramStatus?.connected) return undefined;
-    const timer = window.setInterval(() => loadTelegramStatus(true), 3000);
+    const status = whatsappStatus?.session.status;
+    const pairing = status === 'qr_pending' || status === 'connecting';
+    if (!pairing || whatsappStatus?.connected) return undefined;
+    const timer = window.setInterval(() => { void loadWhatsAppStatus(); }, WHATSAPP_QR_POLL_MS);
     return () => window.clearInterval(timer);
-  }, [telegramLinkCode, telegramStatus?.connected]);
+  }, [whatsappStatus?.session.status, whatsappStatus?.connected]);
 
   const presetEventRoutes = [
     { value: 'ViewContent', label: 'ViewContent - product/details viewed' },
@@ -165,6 +228,9 @@ export function SettingsView({
     {
       id: 'store',
       label: 'Store Connection',
+      /* Three tabs in one phone row: the full labels need two lines each at
+         320px, and the short forms are the same nouns the sections below use. */
+      shortLabel: 'Store',
       sections: [
         { id: 'settings-domain', label: 'Website address' },
         { id: 'settings-wordpress', label: 'WordPress connection' },
@@ -173,6 +239,7 @@ export function SettingsView({
     {
       id: 'conversions',
       label: 'Conversions API',
+      shortLabel: 'Conversions',
       sections: [
         { id: 'settings-platforms', label: 'Ad platforms' },
         { id: 'settings-cod', label: 'COD timing' },
@@ -181,18 +248,12 @@ export function SettingsView({
       ],
     },
     {
-      id: 'ads',
-      label: 'Ad Accounts',
-      sections: [
-        { id: 'settings-ad-accounts', label: 'Connected accounts' },
-      ],
-    },
-    {
       id: 'courier',
       label: 'Courier & Alerts',
+      shortLabel: 'Courier',
       sections: [
         { id: 'settings-courier', label: 'Courier accounts' },
-        { id: 'settings-whatsapp', label: 'Telegram alerts' },
+        { id: 'settings-whatsapp', label: 'WhatsApp confirmations' },
       ],
     },
   ];
@@ -200,6 +261,9 @@ export function SettingsView({
     settingsTabs.find(tab => tab.sections.some(section => section.id === sectionId))?.id || 'store'
   );
   const [activeSettingsTab, setActiveSettingsTab] = useState<string>(() => tabIdForSection(initialSectionId));
+  /* 640px is Tailwind's `sm`, the breakpoint every class in the strip above
+     uses. A tab label is content, not styling, so it is decided here. */
+  const isWide = useIsWide(640);
   const normalizeVersion = (version?: string) => (version || '').replace(/^v/i, '').trim();
   const compareVersions = (left: string, right: string) => {
     const leftParts = left.split('.').map(part => Number.parseInt(part, 10) || 0);
@@ -354,8 +418,10 @@ export function SettingsView({
     steadfast_api_key: '',
     steadfast_secret_key: '',
     steadfast_webhook_token_configured: false,
+    steadfast_webhook_verified_at: '',
     redx_access_token: '',
     redx_webhook_secret_configured: false,
+    redx_webhook_verified_at: '',
     redx_pickup_store_id: '',
     redx_delivery_area_id: '',
     redx_delivery_area_name: '',
@@ -371,110 +437,14 @@ export function SettingsView({
   const [savingCourier, setSavingCourier] = useState<boolean>(false);
   const [copyingPathaoSecret, setCopyingPathaoSecret] = useState<boolean>(false);
   const [copyingCourierSecret, setCopyingCourierSecret] = useState<string>('');
-  const [adAccounts, setAdAccounts] = useState<AdAccount[]>([]);
-  const [loadingAdAccounts, setLoadingAdAccounts] = useState<boolean>(false);
-  const [savingAdAccount, setSavingAdAccount] = useState<boolean>(false);
-  const [deletingAdAccountId, setDeletingAdAccountId] = useState<number | null>(null);
-  const [syncingAdAccountId, setSyncingAdAccountId] = useState<number | null>(null);
 
-  // Form states for ad accounts
-  const [adPlatform, setAdPlatform] = useState<'meta' | 'tiktok'>('meta');
-  const [adAccountId, setAdAccountId] = useState<string>('');
-  const [adAccountName, setAdAccountName] = useState<string>('');
-  const [adAccessToken, setAdAccessToken] = useState<string>('');
-  const [adCurrency, setAdCurrency] = useState<string>('USD');
-  const [adTimezone, setAdTimezone] = useState<string>('Asia/Dhaka');
-  const [discoveredMetaAccounts, setDiscoveredMetaAccounts] = useState<Array<{
-    external_account_id: string;
-    account_name: string;
-    account_status: number | null;
-    account_currency: string;
-    account_timezone: string;
-  }>>([]);
-  const [discoveringMetaAccounts, setDiscoveringMetaAccounts] = useState<boolean>(false);
-
-  const fetchAdAccounts = async () => {
-    setLoadingAdAccounts(true);
-    try {
-      const res = await fetch('/api/v1/ad-accounts');
-      if (res.ok) {
-        const data = await res.json();
-        setAdAccounts(data);
-      } else {
-        showToast("Could not load your ad accounts. Please try again.", true);
-      }
-    } catch (err) {
-      console.error("Failed to load ad accounts", err);
-      showToast("Could not load your ad accounts. Check your connection and try again.", true);
-    } finally {
-      setLoadingAdAccounts(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchAdAccounts();
-  }, []);
-
-  const handleConnectAdAccount = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!adAccountId.trim() || !adAccessToken.trim()) {
-      showToast("Please enter both Ad Account ID and Access Token.", true);
-      return;
-    }
-    setSavingAdAccount(true);
-    try {
-      const res = await fetch('/api/v1/ad-accounts', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          platform: adPlatform,
-          external_account_id: adAccountId.trim(),
-          account_name: adAccountName.trim() || null,
-          access_token: adAccessToken.trim(),
-          account_currency: adCurrency,
-          account_timezone: adTimezone
-        })
-      });
-      if (res.ok) {
-        showToast("Ad account verified and connected successfully.", false);
-        setAdAccountId('');
-        setAdAccountName('');
-        setAdAccessToken('');
-        fetchAdAccounts();
-      } else {
-        const errData = await res.json();
-        showToast(errData.detail || "Failed to connect ad account.", true);
-      }
-    } catch (err) {
-      showToast("Error connecting ad account.", true);
-    } finally {
-      setSavingAdAccount(false);
-    }
-  };
-
-  const handleDisconnectAdAccount = async (id: number) => {
-    if (!window.confirm("Are you sure you want to disconnect this ad account? Daily syncing for this account will stop.")) {
-      return;
-    }
-    setDeletingAdAccountId(id);
-    try {
-      const res = await fetch(`/api/v1/ad-accounts/${id}`, {
-        method: 'DELETE'
-      });
-      if (res.ok) {
-        showToast("Ad account disconnected successfully.", false);
-        fetchAdAccounts();
-      } else {
-        const errData = await res.json();
-        showToast(errData.detail || "Failed to disconnect ad account.", true);
-      }
-    } catch (err) {
-      showToast("Error disconnecting ad account.", true);
-    } finally {
-      setDeletingAdAccountId(null);
-    }
-  };
-
+  /* The "Ad accounts" card that used to live here is gone, and with it the
+     `/api/v1/ad-accounts` form, the Meta account discovery and the manual sync
+     and disconnect buttons. Ad-account linking now belongs to AI Ads, which owns
+     the OAuth return, the token health and the per-account sync it needs; two
+     places to paste the same access token could only disagree. The endpoints
+     themselves are untouched -- AI Ads still calls them through
+     `services/aiAdsApi.ts`. */
 
   useEffect(() => {
     setLoadingCourier(true);
@@ -491,6 +461,17 @@ export function SettingsView({
             pathao_client_secret: data.pathao_client_secret || '',
             pathao_password: data.pathao_password || ''
           });
+          // Keep the provider cards aligned with the saved/live portal state.
+          // A provider is shown as enabled when its credential set is present;
+          // an entirely empty response preserves the default SteadFast card.
+          const savedEnabled = {
+            steadfast: Boolean(data.steadfast_api_key || data.steadfast_secret_key),
+            pathao: Boolean(data.pathao_client_id || data.pathao_email || data.pathao_store_id),
+            redx: Boolean(data.redx_access_token),
+          };
+          if (savedEnabled.steadfast || savedEnabled.pathao || savedEnabled.redx) {
+            setEnabledCouriers(savedEnabled);
+          }
         } else {
           showToast("Could not load your courier settings. Please refresh to try again.", true);
         }
@@ -572,17 +553,31 @@ export function SettingsView({
         showToast(data.detail || `Failed to generate ${provider} webhook secret.`, true);
         return;
       }
-      const value = provider === 'redx'
-        ? data.callback_url
-        : `Callback URL: ${data.callback_url}\nAuth Token: ${data.secret}`;
+      const value = provider === 'redx' ? data.callback_url : data.secret;
+      if (typeof value !== 'string' || !value) {
+        showToast(`Failed to prepare ${provider} webhook setup.`, true);
+        return;
+      }
       const copied = await copyText(value);
+      const configuredField = provider === 'steadfast'
+        ? 'steadfast_webhook_token_configured'
+        : 'redx_webhook_secret_configured';
+      const verifiedField = provider === 'steadfast'
+        ? 'steadfast_webhook_verified_at'
+        : 'redx_webhook_verified_at';
       setCourierSettings((prev) => ({
         ...prev,
-        [`${provider === 'steadfast' ? 'steadfast_webhook_token' : 'redx_webhook_secret'}_configured`]: true
+        [configuredField]: true,
+        [verifiedField]: data.verified_at || ''
       }));
       const providerLabel = provider === 'steadfast' ? 'SteadFast' : 'RedX';
       if (copied) {
-        showToast(`${providerLabel} webhook setup copied.`, false);
+        showToast(
+          provider === 'steadfast'
+            ? 'SteadFast authorization token copied. Add it as an Authorization: Bearer header in the courier webhook setup.'
+            : 'RedX secure callback URL copied. Paste the complete URL into the RedX callback field.',
+          false,
+        );
       } else {
         showToast(`${providerLabel} webhook setup generated but could not be copied. Generate it again to retry the copy.`, true);
       }
@@ -627,43 +622,6 @@ export function SettingsView({
     return missing;
   };
 
-  const handleDiscoverMetaAccounts = async () => {
-    if (!adAccessToken.trim()) {
-      showToast("Paste your Meta reporting token first, then choose the ad account from the list.", true);
-      return;
-    }
-    setDiscoveringMetaAccounts(true);
-    try {
-      const res = await fetch('/api/v1/ad-accounts/discover/meta', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ access_token: adAccessToken.trim() })
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        showToast(typeof data.detail === 'string' ? data.detail : "Could not list Meta ad accounts.", true);
-        return;
-      }
-      setDiscoveredMetaAccounts(Array.isArray(data) ? data : []);
-      if (!data.length) {
-        showToast("This token cannot access any Meta ad accounts yet.", true);
-      }
-    } catch (err) {
-      showToast("Could not list Meta ad accounts. Please try again.", true);
-    } finally {
-      setDiscoveringMetaAccounts(false);
-    }
-  };
-
-  const handleSelectDiscoveredMetaAccount = (externalAccountId: string) => {
-    const selected = discoveredMetaAccounts.find((account) => account.external_account_id === externalAccountId);
-    if (!selected) return;
-    setAdAccountId(selected.external_account_id);
-    setAdAccountName(selected.account_name);
-    setAdCurrency(selected.account_currency || 'USD');
-    setAdTimezone(selected.account_timezone || 'UTC');
-  };
-
   const updateAutomationDraft = (index: number, fields: Partial<CustomEventAutomation>) => {
     setAutomationDrafts(prev => prev.map((item, itemIndex) => itemIndex === index ? { ...item, ...fields } : item));
   };
@@ -700,29 +658,6 @@ export function SettingsView({
     }
   };
 
-  const handleSyncAdAccount = async (id: number) => {
-    setSyncingAdAccountId(id);
-    try {
-      const res = await fetch(`/api/v1/ad-accounts/${id}/sync`, { method: 'POST' });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        showToast(typeof data.detail === 'string' ? data.detail : "Ad account sync failed.", true);
-        return;
-      }
-      const count = Number(data.synced_rows || 0);
-      showToast(
-        count > 0
-          ? `Synced ${count} campaign insight rows.`
-          : "Sync completed. No campaign data was available for the last 7 days.",
-        false,
-      );
-      await fetchAdAccounts();
-    } catch (err) {
-      showToast("Could not reach the ad account sync service.", true);
-    } finally {
-      setSyncingAdAccountId(null);
-    }
-  };
   const platformStatusRows = platformOrder.map((platform) => {
     const config = credentials[platform];
     const destination = String(config?.pixelIdOrMeasurementId || '').trim();
@@ -771,9 +706,9 @@ export function SettingsView({
       : selectedCourierProvider === 'redx'
         ? Boolean(courierSettings.redx_access_token)
         : Boolean(courierSettings.steadfast_api_key && courierSettings.steadfast_secret_key);
-  const telegramStatusLabel = telegramStatus?.connected
+  const whatsappStatusLabel = whatsappStatus?.connected
     ? 'Connected'
-    : telegramStatus?.available === false
+    : whatsappStatus?.available === false
       ? 'Unavailable'
       : 'Needs setup';
   const autoConfirmLabel = autoConfirmDays > 0
@@ -784,75 +719,89 @@ export function SettingsView({
     : 'Completed';
 
   return (
-    <div className="mx-auto max-w-6xl space-y-5">
-      <header>
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900">Settings</h1>
-        <p className="mt-1 text-sm text-slate-500">Configure tracking, integrations and alerts for {storeDomain || 'your store'}.</p>
-      </header>
-
-      <section className="w-fit max-w-full rounded-xl border border-slate-200 bg-white p-1 shadow-sm">
-        <div className="flex gap-1 overflow-x-auto">
+    <div className="mx-auto max-w-6xl">
+      {/* PageHeader carries its own bottom margin (12px on a phone, 24px from
+          sm up), so it sits outside the space-y-5 column rather than inside it —
+          otherwise the two stack and the head costs 44px of gap alone. */}
+      <PageHeader
+        title="Settings"
+        description={`Configure tracking, integrations and alerts for ${storeDomain || 'your store'}.`}
+      />
+      <div className="space-y-5">
+      <section className="w-full rounded-xl border border-slate-200 bg-white p-1 shadow-sm sm:w-fit sm:max-w-full">
+        {/* Three tabs in a two-column grid left an orphan on the second row and
+            spent 102px on the strip. One row of thirds with the short labels is
+            44px, and the whole strip is reachable without a gesture. */}
+        <div className="grid grid-cols-3 gap-1 sm:flex">
           {settingsTabs.map((tab) => (
             <button
               key={tab.id}
               type="button"
               onClick={() => openSettingsTab(tab.id)}
-              className={`min-h-10 min-w-fit rounded-lg px-4 py-2 text-xs font-bold transition-colors ${
+              className={`min-h-11 min-w-0 rounded-lg px-1 py-2 text-[11px] font-bold transition-colors sm:min-w-fit sm:px-4 sm:text-xs ${
                 activeSettingsTab === tab.id
                   ? 'bg-indigo-600 text-white shadow-sm'
                   : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
               }`}
             >
-              {tab.label}
+              {isWide ? tab.label : tab.shortLabel}
             </button>
           ))}
         </div>
       </section>
       {activeSettingsTab === 'store' && (
-        <section className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <section className="grid grid-cols-2 gap-2 sm:gap-3 xl:grid-cols-4">
             <button
               type="button"
               onClick={() => openSettingsTab('conversions')}
-              className="rounded-xl border border-slate-200 bg-white p-4 text-left shadow-sm transition-colors hover:border-indigo-200"
+              className="min-w-0 rounded-xl border border-slate-200 bg-white p-3 text-left shadow-sm transition-colors hover:border-indigo-200 sm:p-4"
             >
-              <span className="flex items-center justify-between text-xs font-bold uppercase tracking-wider text-slate-400">
-                Events routing <Zap className="h-4 w-4 text-emerald-500" />
+              <span className="flex items-center justify-between gap-2 text-[10px] font-bold uppercase tracking-wider text-slate-400 sm:text-xs">
+                <span>Events routing</span><Zap className="h-4 w-4 shrink-0 text-emerald-500" />
               </span>
-              <p className="mt-4 text-base font-bold text-slate-900">{configuredPlatformCount} / {platformStatusRows.length} ready</p>
-              <p className="mt-1 text-xs text-slate-500">{enabledPlatformCount} platforms · {enabledRouteCount} events on</p>
+              <p className="mt-2 text-sm font-bold text-slate-900 sm:mt-4 sm:text-base">{configuredPlatformCount} / {platformStatusRows.length} ready</p>
+              {/* These four subtitles are the only line on the tile that says
+                  *what* the number means, and a 2-across grid gives each one
+                  134px on a 360px phone — enough for "3 platforms · 8 events on"
+                  and not for "steadfast default · manual booking" (166px) or
+                  "Order confirmations to your customers" (183px, and still
+                  clipped at 1280 where the grid goes 4-across). `truncate` is a
+                  promise to clip, so each one now carries the full sentence as a
+                  `title`. */}
+              <p title={`${enabledPlatformCount} platforms · ${enabledRouteCount} events on`} className="mt-1 truncate text-[10px] text-slate-500 sm:text-xs">{enabledPlatformCount} platforms · {enabledRouteCount} events on</p>
             </button>
             <button
               type="button"
               onClick={() => openSettingsTab('courier')}
-              className="rounded-xl border border-slate-200 bg-white p-4 text-left shadow-sm transition-colors hover:border-indigo-200"
+              className="min-w-0 rounded-xl border border-slate-200 bg-white p-3 text-left shadow-sm transition-colors hover:border-indigo-200 sm:p-4"
             >
-              <span className="flex items-center justify-between text-xs font-bold uppercase tracking-wider text-slate-400">
-                Courier setup <Truck className="h-4 w-4 text-amber-500" />
+              <span className="flex items-center justify-between gap-2 text-[10px] font-bold uppercase tracking-wider text-slate-400 sm:text-xs">
+                <span>Courier setup</span><Truck className="h-4 w-4 shrink-0 text-amber-500" />
               </span>
-              <p className="mt-4 text-base font-bold text-slate-900">{courierProviderConfigured ? 'Ready' : 'Setup needed'}</p>
-              <p className="mt-1 text-xs capitalize text-slate-500">{selectedCourierProvider} default · manual booking</p>
+              <p className="mt-2 text-sm font-bold text-slate-900 sm:mt-4 sm:text-base">{courierProviderConfigured ? 'Ready' : 'Setup needed'}</p>
+              <p title={`${selectedCourierProvider} default · manual booking`} className="mt-1 truncate text-[10px] capitalize text-slate-500 sm:text-xs">{selectedCourierProvider} default · manual booking</p>
             </button>
             <button
               type="button"
               onClick={() => openSettingsTab('courier')}
-              className="rounded-xl border border-slate-200 bg-white p-4 text-left shadow-sm transition-colors hover:border-indigo-200"
+              className="min-w-0 rounded-xl border border-slate-200 bg-white p-3 text-left shadow-sm transition-colors hover:border-indigo-200 sm:p-4"
             >
-              <span className="flex items-center justify-between text-xs font-bold uppercase tracking-wider text-slate-400">
-                Telegram alerts <Send className="h-4 w-4 text-emerald-500" />
+              <span className="flex items-center justify-between gap-2 text-[10px] font-bold uppercase tracking-wider text-slate-400 sm:text-xs">
+                <span>WhatsApp confirmations</span><MessageCircle className="h-4 w-4 shrink-0 text-emerald-500" />
               </span>
-              <p className="mt-4 text-base font-bold text-slate-900">{telegramStatusLabel}</p>
-              <p className="mt-1 text-xs text-slate-500">Private order and recovery alerts</p>
+              <p className="mt-2 text-sm font-bold text-slate-900 sm:mt-4 sm:text-base">{whatsappStatusLabel}</p>
+              <p title="Order confirmations to your customers" className="mt-1 truncate text-[10px] text-slate-500 sm:text-xs">Order confirmations to your customers</p>
             </button>
             <button
               type="button"
               onClick={() => openSettingsTab('store')}
-              className="rounded-xl border border-slate-200 bg-white p-4 text-left shadow-sm transition-colors hover:border-indigo-200"
+              className="min-w-0 rounded-xl border border-slate-200 bg-white p-3 text-left shadow-sm transition-colors hover:border-indigo-200 sm:p-4"
             >
-              <span className="flex items-center justify-between text-xs font-bold uppercase tracking-wider text-slate-400">
-                WordPress plugin <Globe2 className="h-4 w-4 text-emerald-500" />
+              <span className="flex items-center justify-between gap-2 text-[10px] font-bold uppercase tracking-wider text-slate-400 sm:text-xs">
+                <span>WordPress plugin</span><Globe2 className="h-4 w-4 shrink-0 text-emerald-500" />
               </span>
-              <p className="mt-4 text-base font-bold text-slate-900">{pluginVersionStatus}</p>
-              <p className="mt-1 text-xs text-slate-500">{updateAvailable ? 'Plugin update available' : pluginVersionHelp}</p>
+              <p className="mt-2 text-sm font-bold text-slate-900 sm:mt-4 sm:text-base">{pluginVersionStatus}</p>
+              <p title={updateAvailable ? 'Plugin update available' : pluginVersionHelp} className="mt-1 truncate text-[10px] text-slate-500 sm:text-xs">{updateAvailable ? 'Plugin update available' : pluginVersionHelp}</p>
             </button>
         </section>
       )}
@@ -893,34 +842,6 @@ export function SettingsView({
           platformMissingCredentials={platformMissingCredentials}
         />
 
-        {/* Ad Sync Integration Settings Card */}
-        <AdAccountsSection
-          adPlatform={adPlatform}
-          setAdPlatform={setAdPlatform}
-          adAccountId={adAccountId}
-          setAdAccountId={setAdAccountId}
-          adAccountName={adAccountName}
-          setAdAccountName={setAdAccountName}
-          adAccessToken={adAccessToken}
-          setAdAccessToken={setAdAccessToken}
-          adCurrency={adCurrency}
-          setAdCurrency={setAdCurrency}
-          adTimezone={adTimezone}
-          setAdTimezone={setAdTimezone}
-          savingAdAccount={savingAdAccount}
-          handleConnectAdAccount={handleConnectAdAccount}
-          discoveringMetaAccounts={discoveringMetaAccounts}
-          discoveredMetaAccounts={discoveredMetaAccounts}
-          handleDiscoverMetaAccounts={handleDiscoverMetaAccounts}
-          handleSelectDiscoveredMetaAccount={handleSelectDiscoveredMetaAccount}
-          loadingAdAccounts={loadingAdAccounts}
-          adAccounts={adAccounts}
-          syncingAdAccountId={syncingAdAccountId}
-          deletingAdAccountId={deletingAdAccountId}
-          handleSyncAdAccount={handleSyncAdAccount}
-          handleDisconnectAdAccount={handleDisconnectAdAccount}
-        />
-
         {/* Masterwork Courier & Logistics Settings Panel */}
         <CourierSection
           enabledCouriers={enabledCouriers}
@@ -934,6 +855,13 @@ export function SettingsView({
           handleCopyCourierWebhookSetup={handleCopyCourierWebhookSetup}
           copyingPathaoSecret={copyingPathaoSecret}
           handleCopyPathaoWebhookSecret={handleCopyPathaoWebhookSecret}
+          pathaoWebhookCallbackUrl={PATHAO_WEBHOOK_CALLBACK_URL}
+          pathaoCallbackCopied={Boolean(copiedStates.pathaoWebhookCallbackUrl)}
+          handleCopyPathaoCallbackUrl={() => handleCopy(PATHAO_WEBHOOK_CALLBACK_URL, 'pathaoWebhookCallbackUrl')}
+          steadfastWebhookCallbackUrl={STEADFAST_WEBHOOK_CALLBACK_URL}
+          steadfastCallbackCopied={Boolean(copiedStates.steadfastWebhookCallbackUrl)}
+          handleCopySteadfastCallbackUrl={() => handleCopy(STEADFAST_WEBHOOK_CALLBACK_URL, 'steadfastWebhookCallbackUrl')}
+          redxWebhookCallbackUrl={REDX_WEBHOOK_CALLBACK_URL}
         />
 
         {/* WordPress Custom tracking rules */}
@@ -999,20 +927,21 @@ export function SettingsView({
           refreshWPHeartbeat={refreshWPHeartbeat}
         />
 
-        {/* Telegram Notification Settings Card */}
-        <TelegramAlertsSection
-          telegramStatus={telegramStatus}
-          telegramLinkCode={telegramLinkCode}
-          telegramBusy={telegramBusy}
-          handleCopy={handleCopy}
-          loadTelegramStatus={loadTelegramStatus}
-          generateTelegramLinkCode={generateTelegramLinkCode}
-          disconnectTelegram={disconnectTelegram}
+        {/* Per-store WhatsApp "reply 1 to confirm" linking */}
+        <WhatsAppConnectSection
+          status={whatsappStatus}
+          busy={whatsappBusy}
+          autoSendBusy={whatsappAutoSendBusy}
+          connectWhatsApp={() => { void startWhatsAppConnect(); }}
+          disconnectWhatsApp={() => { void stopWhatsApp(); }}
+          refreshWhatsApp={() => { void loadWhatsAppStatus(false); }}
+          setAutoSend={(autoSend) => { void changeWhatsAppAutoSend(autoSend); }}
         />
 
       </div>
       </div>
 
+      </div>
     </div>
   );
 }

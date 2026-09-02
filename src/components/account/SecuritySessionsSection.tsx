@@ -10,7 +10,7 @@ export function TwoStepVerificationCard() {
           <p className="mt-0.5 text-xs text-slate-500">Add a one-time code when signing in to protect your account and billing.</p>
         </div>
       </div>
-      <button type="button" disabled title="Two-step verification is coming soon" className="min-h-10 shrink-0 rounded-lg border border-slate-200 px-4 text-xs font-bold text-slate-600 disabled:cursor-not-allowed">Enable</button>
+      <button type="button" disabled title="Two-step verification is coming soon" className="min-h-11 shrink-0 rounded-lg border border-slate-200 px-4 text-xs font-bold text-slate-600 disabled:cursor-not-allowed">Enable</button>
     </section>
   );
 }
@@ -51,7 +51,7 @@ export function ActiveSessionsCard() {
       </div>
       <div className="flex flex-col gap-3 border-t border-slate-200 bg-slate-50/50 px-5 py-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-[11px] text-slate-400">Signing out ends dashboard access on that device only.</p>
-        <button type="button" disabled title="No other active devices" className="min-h-10 rounded-lg border border-rose-200 bg-white px-4 text-xs font-bold text-rose-600 disabled:cursor-not-allowed disabled:opacity-50">Log out all other devices</button>
+        <button type="button" disabled title="No other active devices" className="min-h-11 rounded-lg border border-rose-200 bg-white px-4 text-xs font-bold text-rose-600 disabled:cursor-not-allowed disabled:opacity-50">Log out all other devices</button>
       </div>
     </section>
   );

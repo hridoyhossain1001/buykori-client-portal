@@ -1,33 +1,45 @@
-﻿import React from 'react';
-import { Download, AlertTriangle, Activity, CheckCircle2, Clock3 } from 'lucide-react';
+/**
+ * Container for the Delivery logs page.
+ *
+ * Three things stay here rather than moving into the workspace:
+ *  - the `/delivery/health` fetch (the page's own request, aborted on unmount),
+ *  - the single redaction boundary, and
+ *  - the two-state-machine reconciliation, because health and history load from
+ *    separate requests and their disagreement has to be stated, not inferred.
+ *
+ * All presentation lives in `apiLogs/DeliveryLogsWorkspace.tsx`.
+ */
+import React from 'react';
 import { APILog } from '../types';
-import { EmptyState, ErrorState } from './common';
 import { describeFetchError, describeResponseError, isAbortError } from '../lib/http';
-import { PlatformBadge, PlatformLogo } from './common/PlatformLogo';
+import { redactApiLogs } from '../lib/redact';
+import { DeliveryLogsWorkspace } from './apiLogs/DeliveryLogsWorkspace';
+import type { PlatformHealth } from './apiLogs/DeliveryLogsWorkspace';
 
 interface ApiLogsViewProps {
   filteredApiLogsForTable: APILog[];
+  /** Delivery history loads separately from platform health — see `partialNote` below. */
+  logsLoading: boolean;
+  logsError: string | null;
+  onRetryLogs: () => void;
   expandedApiLogId: string | null;
   setExpandedApiLogId: (id: string | null) => void;
   handleExportData: (format: 'csv' | 'json', type: 'events' | 'apilogs') => void;
+  /** Retry plumbing: `/api-logs` rows already carry `outboxId` + `retryable`. */
+  retryingOutboxIds: number[];
+  handleRetryOutbox: (id: number) => void;
 }
-
-type PlatformHealth = {
-  platform: string;
-  configured: boolean;
-  successful: number;
-  failed: number;
-  queued: number;
-  dead: number;
-  successRate: number | null;
-  state: 'healthy' | 'retrying' | 'action_required' | 'no_data';
-};
 
 export function ApiLogsView({
   filteredApiLogsForTable,
+  logsLoading,
+  logsError,
+  onRetryLogs,
   expandedApiLogId,
   setExpandedApiLogId,
-  handleExportData
+  handleExportData,
+  retryingOutboxIds,
+  handleRetryOutbox,
 }: ApiLogsViewProps) {
   const [platformHealth, setPlatformHealth] = React.useState<PlatformHealth[]>([]);
   const [healthError, setHealthError] = React.useState<string | null>(null);
@@ -58,213 +70,53 @@ export function ApiLogsView({
     return () => controller.abort();
   }, [loadPlatformHealth]);
 
+  // Every log is redacted once, here, before anything renders or is exported: `endpoint` carries a GA4
+  // `api_secret` in its query string, so the raw record must not reach the table, the row tooltip, or
+  // an expanded body panel.
+  //
+  // The old 40-row slice is gone. It capped the table without saying so while the export stayed
+  // uncapped, so the two disagreed in silence; the workspace pages the whole list instead.
+  const rows = React.useMemo(() => redactApiLogs(filteredApiLogsForTable), [filteredApiLogsForTable]);
+
+  // Platform health and delivery history are two separate requests, and before this only health had a
+  // loading state — so the page could render a rose "action required · 3 failed" card above a table
+  // reading "No API logs yet". Nothing said the alert and the empty table were describing different
+  // things, and the natural reading is that the failing requests are being hidden. The two states are
+  // now tracked apart and their disagreement is stated rather than left to inference.
+  const healthState = healthLoading && platformHealth.length === 0 ? 'loading' : healthError && platformHealth.length === 0 ? 'error' : platformHealth.length === 0 ? 'empty' : 'ready';
+  const historyState = logsLoading && rows.length === 0 ? 'loading' : logsError && rows.length === 0 ? 'error' : rows.length === 0 ? 'empty' : 'ready';
+  const partialNote =
+    healthState === 'ready' && historyState === 'loading' ? 'Delivery health above has loaded. The request history below is still loading, so the two are not describing the same requests yet.'
+      : healthState === 'ready' && historyState === 'error' ? 'Delivery health above has loaded, but the request history below could not. The percentages are not backed by anything currently on this screen.'
+        : healthState === 'error' && historyState === 'ready' ? 'The request history below has loaded. Delivery health could not, so no health verdict is being shown for these requests.'
+          : healthState === 'loading' && historyState === 'ready' ? 'The request history below has loaded. Delivery health is still loading.'
+            : '';
+
+  const refreshAll = React.useCallback(() => {
+    onRetryLogs();
+    void loadPlatformHealth();
+  }, [onRetryLogs, loadPlatformHealth]);
+
   return (
-    <div className="space-y-6">
-
-      {healthError && platformHealth.length === 0 && (
-        <section className="rounded-xl border border-slate-200 bg-white shadow-sm" aria-label="Platform delivery health">
-          <ErrorState
-            compact
-            title="Couldn't load delivery health"
-            description={healthError}
-            onRetry={() => { void loadPlatformHealth(); }}
-            retrying={healthLoading}
-          />
-        </section>
-      )}
-
-      {platformHealth.length > 0 && (
-        <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4" aria-label="Platform delivery health">
-          {platformHealth.map((item) => {
-            const needsAction = item.state === 'action_required';
-            const retrying = item.state === 'retrying';
-            const noData = item.state === 'no_data';
-            const noDataLabel = item.configured ? 'Waiting for first delivery' : 'Not enabled';
-            return (
-              <div key={item.platform} className={`rounded-xl border p-4 shadow-sm ${needsAction ? 'border-rose-200 bg-rose-50' : retrying ? 'border-amber-200 bg-amber-50' : noData && item.configured ? 'border-indigo-200 bg-indigo-50/50' : 'border-slate-200 bg-white'}`}>
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <PlatformBadge platform={item.platform} label={item.platform} />
-                    <p className="mt-1 text-xs text-slate-500">{item.configured ? 'Configured' : 'Not configured'}</p>
-                  </div>
-                  {needsAction ? <AlertTriangle className="h-4 w-4 text-rose-600" /> : retrying ? <Clock3 className="h-4 w-4 text-amber-600" /> : noData ? <Activity className="h-4 w-4 text-slate-400" /> : <CheckCircle2 className="h-4 w-4 text-emerald-600" />}
-                </div>
-                <p className={`mt-4 font-bold text-slate-900 ${noData ? 'text-base' : 'text-2xl'}`}>{noData ? noDataLabel : `${item.successRate}%`}</p>
-                <p className="mt-1 text-xs text-slate-500">{noData ? 'No delivery attempts in the last 7 days' : `${item.successful} successful · ${item.failed} failed`}</p>
-                {(item.queued > 0 || item.dead > 0) && (
-                  <p className={`mt-2 text-xs font-bold ${item.dead ? 'text-rose-700' : 'text-amber-700'}`}>{item.queued} retrying · {item.dead} needs manual retry</p>
-                )}
-              </div>
-            );
-          })}
-        </section>
-      )}
-
-      {/* Sub controls & export bar */}
-      <div className="flex justify-between items-center">
-        <h2 id="api-logs-title" className="font-bold text-slate-800 text-xs uppercase tracking-widest text-slate-500 ">Platform delivery history</h2>
-        
-        <div className="flex items-center gap-2">
-          <button 
-            onClick={() => handleExportData('json', 'apilogs')}
-            className="flex min-h-10 items-center gap-1.5 rounded border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-slate-600 hover:bg-slate-50 cursor-pointer"
-          >
-            <Download className="w-3.5 h-3.5" /> Export Logs
-          </button>
-        </div>
-      </div>
-
-      {/* Outbound logs table */}
-      <section aria-labelledby="api-logs-title" className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-x-auto  ">
-        <div className="space-y-3 p-4 md:hidden">
-          {filteredApiLogsForTable.length === 0 ? (
-            <EmptyState
-              icon={Activity}
-              title="No API logs yet"
-              description="Outbound requests to Meta, TikTok and GA4 appear here once tracking starts."
-              compact
-            />
-          ) : filteredApiLogsForTable.slice(0, 40).map(l => {
-            const isExpanded = expandedApiLogId === l.id;
-            const hasErr = l.statusCode >= 400;
-            const endpointHost = (() => {
-              try { return new URL(l.endpoint).hostname; } catch { return l.endpoint; }
-            })();
-            return (
-              <div key={l.id} className={`rounded-xl border bg-white p-4 shadow-sm  ${hasErr ? 'border-rose-200' : 'border-slate-200 '}`}>
-                <button type="button" onClick={() => setExpandedApiLogId(isExpanded ? null : l.id)} className="w-full text-left">
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <span className="flex items-center gap-1.5 text-sm font-bold text-slate-900"><PlatformLogo platform={l.platform} className="h-4 w-4" />{l.platform}</span>
-                      <p className="mt-1 font-mono text-xs text-slate-500">{endpointHost}</p>
-                    </div>
-                    <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-mono text-xs font-bold ${hasErr ? 'bg-rose-50 text-rose-700' : 'bg-emerald-50 text-emerald-700'}`}>
-                      {hasErr ? <AlertTriangle className="h-3 w-3" /> : null}
-                      {l.statusCode}
-                    </span>
-                  </div>
-                  <div className="mt-3 grid grid-cols-3 gap-2 text-xs text-slate-500">
-                    <span className="font-mono">{new Date(l.timestamp).toLocaleTimeString()}</span>
-                    <span className="text-center font-mono">{l.method}</span>
-                    <span className="text-right font-mono">{l.retryCount > 0 ? `${l.retryCount} retries` : 'No retry'}</span>
-                  </div>
-                  {l.retryCount > 0 && <p className="mt-2 text-xs font-bold text-amber-600">{l.retryCount} retried</p>}
-                </button>
-                {isExpanded && (
-                  <div className="mt-4 grid gap-3 border-t border-slate-100 pt-3 ">
-                    <div className="rounded-lg bg-slate-900 p-3 font-mono text-xs text-slate-200">
-                      <p className="mb-2 font-bold uppercase tracking-wider text-indigo-400">Data Sent</p>
-                      <pre tabIndex={0} aria-label={`Request body for API log ${l.id}`} className="max-h-52 overflow-auto whitespace-pre-wrap break-all outline-none focus:ring-2 focus:ring-indigo-400">{l.requestBody}</pre>
-                    </div>
-                    <div className="rounded-lg bg-slate-900 p-3 font-mono text-xs text-slate-200">
-                      <p className="mb-2 font-bold uppercase tracking-wider text-emerald-400">Reply From Platform</p>
-                      <pre tabIndex={0} aria-label={`Response body for API log ${l.id}`} className="max-h-52 overflow-auto whitespace-pre-wrap break-all outline-none focus:ring-2 focus:ring-indigo-400">{l.responseBody}</pre>
-                    </div>
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-
-        <div tabIndex={0} aria-label="Scrollable API logs table" className="hidden overflow-x-auto overflow-y-auto max-h-[calc(100vh-320px)] min-h-[300px] outline-none focus:ring-2 focus:ring-indigo-400 md:block">
-          <table className="w-full text-left text-xs divide-y divide-slate-100  min-w-[850px]">
-            <thead className="bg-slate-50  text-xs font-bold uppercase tracking-wider text-slate-500  sticky top-0 z-10">
-              <tr>
-                <th className="px-6 py-3">Timestamp</th>
-                <th className="px-6 py-3">Platform</th>
-                <th className="px-6 py-3">Sent to</th>
-                <th className="px-6 py-3">Method</th>
-                <th className="px-6 py-3">Status code</th>
-                <th className="px-6 py-3 text-right">Retries</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 ">
-              {filteredApiLogsForTable.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="px-6 py-4">
-                    <EmptyState
-                      icon={Activity}
-                      title="No API logs yet"
-                      description="Logs will appear after tracking events are sent to Meta, TikTok, or GA4."
-                      compact
-                    />
-                  </td>
-                </tr>
-              ) : (
-                filteredApiLogsForTable.slice(0, 40).map(l => {
-                  const isExpanded = expandedApiLogId === l.id;
-                  const hasErr = l.statusCode >= 400;
-                  const hasRetry = l.retryCount > 0;
-
-                  return (
-                    <React.Fragment key={l.id}>
-                      <tr 
-                        onClick={() => setExpandedApiLogId(isExpanded ? null : l.id)}
-                        className="hover:bg-slate-50/50  cursor-pointer transition-colors"
-                      >
-                        <td className={`px-6 py-3.5 font-mono text-slate-400  ${
-                          hasErr ? 'border-l-4 border-l-rose-500 pl-5' : 
-                          hasRetry ? 'border-l-4 border-l-amber-500 pl-5' : ''
-                        }`}>
-                          {new Date(l.timestamp).toLocaleTimeString()}
-                        </td>
-                        <td className="px-6 py-3.5 font-medium text-slate-800 ">
-                          <span className="flex items-center gap-1.5"><PlatformLogo platform={l.platform} className="h-4 w-4" />{l.platform}</span>
-                        </td>
-                        <td className="px-6 py-3.5 font-mono text-xs max-w-xs truncate text-slate-500 " title={l.endpoint}>
-                          {l.endpoint}
-                        </td>
-                        <td className="px-6 py-3.5">
-                          <span className="px-1.5 py-0.5 rounded text-xs bg-slate-100 text-slate-700 font-mono font-semibold  ">
-                            {l.method}
-                          </span>
-                        </td>
-                        <td className="px-6 py-3.5">
-                          <span className={`inline-flex items-center gap-1 font-mono font-bold ${
-                            hasErr ? 'text-rose-600' : 'text-emerald-600'
-                          }`}>
-                            {hasErr ? <AlertTriangle className="w-3.5 h-3.5 shrink-0" /> : null}
-                            {l.statusCode}
-                          </span>
-                        </td>
-                        <td className="px-6 py-3.5 text-right font-mono font-medium">
-                          {l.retryCount > 0 ? (
-                            <span className="text-amber-600 font-bold bg-amber-50 px-1.5 py-0.5 rounded border border-amber-100 whitespace-nowrap   ">
-                              {l.retryCount} retried
-                            </span>
-                          ) : (
-                            <span className="text-slate-400">0</span>
-                          )}
-                        </td>
-                      </tr>
-
-                      {isExpanded && (
-                        <tr>
-                          <td colSpan={6} className="bg-slate-50  border-t border-slate-100  px-6 py-4">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                              <div tabIndex={0} aria-label={`Expanded request body for API log ${l.id}`} className="bg-slate-900 text-slate-200 text-xs font-mono p-4 rounded-lg overflow-auto max-h-60 outline-none focus:ring-2 focus:ring-indigo-400">
-                                <p className="text-xs font-bold text-indigo-400 uppercase tracking-wider mb-2">Data Sent</p>
-                                <pre className="whitespace-pre-wrap break-all">{l.requestBody}</pre>
-                              </div>
-
-                              <div tabIndex={0} aria-label={`Expanded response body for API log ${l.id}`} className="bg-slate-900 text-slate-300 text-xs font-mono p-4 rounded-lg overflow-auto max-h-60 outline-none focus:ring-2 focus:ring-indigo-400">
-                                <p className="text-xs font-bold text-emerald-400 uppercase tracking-wider mb-2">Reply from platform</p>
-                                <pre className="whitespace-pre-wrap break-all">{l.responseBody}</pre>
-                              </div>
-                            </div>
-                          </td>
-                        </tr>
-                      )}
-                    </React.Fragment>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
-      </section>
-
-    </div>
+    <DeliveryLogsWorkspace
+      rows={rows}
+      totalRowCount={filteredApiLogsForTable.length}
+      historyState={historyState}
+      logsLoading={logsLoading}
+      logsError={logsError}
+      onRetryLogs={onRetryLogs}
+      health={platformHealth}
+      healthState={healthState}
+      healthLoading={healthLoading}
+      healthError={healthError}
+      onRetryHealth={() => { void loadPlatformHealth(); }}
+      onRefreshAll={refreshAll}
+      partialNote={partialNote}
+      expandedApiLogId={expandedApiLogId}
+      setExpandedApiLogId={setExpandedApiLogId}
+      handleExportData={handleExportData}
+      retryingOutboxIds={retryingOutboxIds}
+      handleRetryOutbox={handleRetryOutbox}
+    />
   );
 }

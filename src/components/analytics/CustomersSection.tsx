@@ -95,7 +95,7 @@ export function CustomersSection({
                   key={days}
                   type="button"
                   onClick={() => setAnalyticsDays(days)}
-                  className={`rounded-lg px-4 py-2 transition ${analyticsDays === days ? 'bg-white text-[#193b68] shadow-sm' : ''}`}
+                  className={`rounded-lg px-4 py-2 transition ${analyticsDays === days ? 'bg-white text-slate-900 shadow-sm' : ''}`}
                 >
                   {days} days
                 </button>
@@ -105,7 +105,7 @@ export function CustomersSection({
               type="button"
               onClick={exportCustomerInsights}
               disabled={!analyticsAudience}
-              className="inline-flex h-10 items-center gap-2 rounded-lg bg-[#285ac7] px-4 text-xs font-bold text-white shadow-sm transition hover:bg-[#214fae] disabled:cursor-not-allowed disabled:opacity-50"
+              className="inline-flex h-11 items-center gap-2 rounded-lg bg-indigo-600 px-4 text-xs font-bold text-white shadow-sm transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
             >
               <Download className="h-4 w-4" />
               Export
@@ -113,7 +113,7 @@ export function CustomersSection({
           </div>
         </div>
 
-        <div className="grid grid-cols-3 rounded-xl bg-stone-100 p-1 text-center text-[11px] font-bold text-stone-500 md:hidden">
+        <div className="grid grid-cols-3 rounded-xl bg-slate-100 p-1 text-center text-[11px] font-bold text-slate-500 md:hidden">
           {[7, 30, 90].map(days => (
             <button
               key={days}
@@ -182,7 +182,7 @@ export function CustomersSection({
               <p className="text-[9px] font-bold uppercase tracking-[0.08em] text-slate-500 md:text-[10px]">{metric.title}</p>
               <div className="mt-1 flex flex-wrap items-center gap-1.5">
                 <p className="text-xl font-black leading-none tracking-tight text-slate-900 md:text-2xl">{metric.value}</p>
-                {metric.badge && <span className="rounded-full bg-blue-50 px-1.5 py-1 text-[8px] font-bold text-[#285ac7] md:text-[9px]">{metric.badge}</span>}
+                {metric.badge && <span className="rounded-full bg-blue-50 px-1.5 py-1 text-[8px] font-bold text-indigo-600 md:text-[9px]">{metric.badge}</span>}
               </div>
               <p className="mt-2 text-[9px] text-slate-400 md:text-[10px]">{metric.note}</p>
             </section>
@@ -211,9 +211,9 @@ export function CustomersSection({
                       <span className="ml-auto font-bold text-slate-700">{numberText(row.count)}</span>
                       <span className="w-10 text-right text-slate-400">{Number(row.percentage || 0)}%</span>
                     </div>
-                    <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-stone-100">
+                    <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-slate-100">
                       <div
-                        className={`h-full rounded-full ${unknown ? 'bg-orange-400' : 'bg-[#2f80df]'}`}
+                        className={`h-full rounded-full ${unknown ? 'bg-orange-400' : 'bg-indigo-600'}`}
                         style={{ width: `${Math.max(Number(row.percentage || 0), Number(row.count || 0) > 0 ? 2 : 0)}%` }}
                       />
                     </div>
@@ -221,7 +221,7 @@ export function CustomersSection({
                 );
               }) : <p className="py-8 text-center text-[11px] text-slate-400">Location data will appear after tracking starts.</p>}
               {!showAllCustomerAreas && customerAreas.length > 6 && (
-                <button type="button" onClick={() => setShowAllCustomerAreas(true)} className="text-[10px] font-bold text-[#285ac7]">
+                <button type="button" onClick={() => setShowAllCustomerAreas(true)} className="text-[10px] font-bold text-indigo-600">
                   Show {customerAreas.length - 6} more areas
                 </button>
               )}
@@ -245,8 +245,8 @@ export function CustomersSection({
                     <span className="ml-auto font-bold text-slate-800">{numberText(row.count)}</span>
                     <span className="w-10 text-right text-slate-400">{Number(row.percentage || 0)}%</span>
                   </div>
-                  <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-stone-100">
-                    <div className="h-full rounded-full bg-[#2f80df]" style={{ width: `${Math.max(Number(row.percentage || 0), 2)}%` }} />
+                  <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-slate-100">
+                    <div className="h-full rounded-full bg-indigo-600" style={{ width: `${Math.max(Number(row.percentage || 0), 2)}%` }} />
                   </div>
                 </div>
               )) : <p className="py-8 text-center text-[11px] text-slate-400">Device data is not available yet.</p>}
@@ -277,8 +277,8 @@ export function CustomersSection({
                       <span className="ml-auto font-bold text-slate-800">{numberText(row.count)}</span>
                       <span className="w-10 text-right text-slate-400">{Number(row.percentage || 0)}%</span>
                     </div>
-                    <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-stone-100">
-                      <div className={`h-full rounded-full ${unknown ? 'bg-orange-400' : 'bg-[#2f80df]'}`} style={{ width: `${Math.max(Number(row.percentage || 0), 2)}%` }} />
+                    <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-slate-100">
+                      <div className={`h-full rounded-full ${unknown ? 'bg-orange-400' : 'bg-indigo-600'}`} style={{ width: `${Math.max(Number(row.percentage || 0), 2)}%` }} />
                     </div>
                     {index === 1 && <div className="mt-0" />}
                   </div>
@@ -311,8 +311,8 @@ export function CustomersSection({
                   <span className="ml-auto font-bold text-slate-800">{numberText(row.count)}</span>
                   <span className="w-10 text-right text-slate-400">{Number(row.percentage || 0)}%</span>
                 </div>
-                <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-stone-100">
-                  <div className="h-full rounded-full bg-[#2f80df]" style={{ width: `${Math.max(Number(row.percentage || 0), 2)}%` }} />
+                <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-slate-100">
+                  <div className="h-full rounded-full bg-indigo-600" style={{ width: `${Math.max(Number(row.percentage || 0), 2)}%` }} />
                 </div>
               </div>
             ))}
@@ -326,8 +326,8 @@ export function CustomersSection({
                     <span className="ml-auto font-bold text-slate-800">{numberText(row.count)}</span>
                     <span className="w-10 text-right text-slate-400">{Number(row.percentage || 0)}%</span>
                   </div>
-                  <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-stone-100">
-                    <div className={`h-full rounded-full ${unknown ? 'bg-orange-400' : 'bg-[#2f80df]'}`} style={{ width: `${Math.max(Number(row.percentage || 0), 2)}%` }} />
+                  <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-slate-100">
+                    <div className={`h-full rounded-full ${unknown ? 'bg-orange-400' : 'bg-indigo-600'}`} style={{ width: `${Math.max(Number(row.percentage || 0), 2)}%` }} />
                   </div>
                 </div>
               );
@@ -364,9 +364,9 @@ export function CustomersSection({
               <h3 className="text-[13px] font-bold text-slate-900">Actions by area</h3>
               <p className="text-[10px] text-slate-500">Product view → order · repeated actions removed</p>
             </div>
-            <div className="inline-flex rounded-lg bg-stone-100 p-1 text-[9px] font-bold">
-              <button type="button" onClick={() => setDistrictFunnelMode('events')} className={`rounded-md px-3 py-1.5 ${districtFunnelMode === 'events' ? 'bg-white text-[#193b68] shadow-sm' : 'text-slate-500'}`}>Events</button>
-              <button type="button" onClick={() => setDistrictFunnelMode('visitors')} className={`rounded-md px-3 py-1.5 ${districtFunnelMode === 'visitors' ? 'bg-white text-[#193b68] shadow-sm' : 'text-slate-500'}`}>Visitors</button>
+            <div className="inline-flex rounded-lg bg-slate-100 p-1 text-[9px] font-bold">
+              <button type="button" onClick={() => setDistrictFunnelMode('events')} className={`rounded-md px-3 py-1.5 ${districtFunnelMode === 'events' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'}`}>Events</button>
+              <button type="button" onClick={() => setDistrictFunnelMode('visitors')} className={`rounded-md px-3 py-1.5 ${districtFunnelMode === 'visitors' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'}`}>Visitors</button>
             </div>
           </header>
 
@@ -414,7 +414,7 @@ export function CustomersSection({
               </div>
             )}
             {districtFunnel.length > 1 && (
-              <button type="button" onClick={() => setShowAllCustomerAreas(value => !value)} className="text-left text-[10px] font-bold text-[#285ac7]">
+              <button type="button" onClick={() => setShowAllCustomerAreas(value => !value)} className="text-left text-[10px] font-bold text-indigo-600">
                 {showAllCustomerAreas ? 'Show fewer areas' : `Show all ${districtFunnel.length} areas →`}
               </button>
             )}
@@ -444,7 +444,7 @@ export function CustomersSection({
                       <td className="px-4 py-3">
                         <div className="flex h-8 items-end gap-1" aria-label={`Seen ${row.page_view}, cart ${row.add_to_cart}, checkout ${row.initiate_checkout}, orders ${row.purchase}`}>
                           {[row.page_view, row.add_to_cart, row.initiate_checkout, row.purchase].map((value, index) => (
-                            <span key={index} className="w-4 rounded-t bg-[#5a9ce6]" style={{ height: `${Math.max(4, Math.min(30, Number(value || 0) * 2))}px` }} />
+                            <span key={index} className="w-4 rounded-t bg-chart-blue" style={{ height: `${Math.max(4, Math.min(30, Number(value || 0) * 2))}px` }} />
                           ))}
                         </div>
                         <p className="mt-1 text-[9px] text-slate-400">{numberText(row.page_view)} · {numberText(row.add_to_cart)} · {numberText(row.initiate_checkout)} · {numberText(row.purchase)}</p>
@@ -456,8 +456,8 @@ export function CustomersSection({
                         <strong className="text-slate-800">{formatMoney(row.revenue, row.currency || 'BDT')}</strong>
                       </td>
                       <td className="px-4 py-3">
-                        <div className="h-1.5 overflow-hidden rounded-full bg-stone-100">
-                          <div className="h-full rounded-full bg-[#2f80df]" style={{ width: `${Math.max(salesShare, salesShare > 0 ? 2 : 0)}%` }} />
+                        <div className="h-1.5 overflow-hidden rounded-full bg-slate-100">
+                          <div className="h-full rounded-full bg-indigo-600" style={{ width: `${Math.max(salesShare, salesShare > 0 ? 2 : 0)}%` }} />
                         </div>
                         <p className="mt-1 text-[9px] text-slate-400">{salesShare}% of sales</p>
                       </td>

@@ -1,0 +1,46 @@
+# Vercel deploy scope for the client portal.
+#
+# NOTE: when a .vercelignore exists it REPLACES the .gitignore-based filtering,
+# so every rule from .gitignore that still matters is repeated here.
+#
+# The build runs remotely (`npm run vercel-build` = vite build + the SPA route
+# generator), so only the build INPUTS need to be uploaded.
+
+# VCS, CI and Vercel metadata.
+.git
+.github
+.vercel
+
+# Dependencies and build output — regenerated remotely.
+node_modules
+dist
+build
+coverage
+
+# Secrets / env. .env.example is not needed for the build either.
+.env
+.env.*
+
+# Logs (.codex-dev.log, .codex-dev-error.log, .codex-eventlogs-dev.log).
+*.log
+
+# Local worktree leftovers. `client-portal/` is a ~193 MB doubled-path copy of
+# this same directory — uploading it would balloon the deployment.
+/client-portal/
+/tmp/
+.playwright-cli
+
+# Abandoned prototypes — not referenced by index.html or src/.
+/dist-prototype/
+/ui-ux-audit-prototype/
+/ui-ux-audit-prototype.bak/
+
+# Scaffolding leftovers from the original template.
+README.txt
+metadata.json
+project.json
+
+# This project uses npm/package-lock.json on Vercel. Shipping a pnpm lockfile
+# would let Vercel pick pnpm instead and diverge from the npm-based build.
+pnpm-lock.yaml
+pnpm-workspace.yaml

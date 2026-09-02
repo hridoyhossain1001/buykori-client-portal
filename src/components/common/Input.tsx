@@ -9,28 +9,44 @@ interface FieldShellProps {
   children: ReactNode;
 }
 
+/**
+ * The prototype's `.form-grid label input`. Three of these values also appear in
+ * the base `input, select, textarea` rule in index.css, and the point of naming
+ * them here is that they now *agree*: before this, the component's `rounded-lg`
+ * and `border-strong` silently overrode the base rule's 6px radius and lighter
+ * control border, so a bare `<input>` and an `<Input>` on the same form did not
+ * match. The height comes from that base rule (44px) rather than from here.
+ *
+ * `focus:ring-*` is the whole focus indicator, not a decoration on top of one:
+ * Tailwind v4's ring utility outranks the `input:focus` box-shadow in index.css,
+ * so the accent is named here rather than `--bk-console-blue-soft`, which was
+ * 1.13:1 against white — invisible, and a WCAG 2.4.11 failure.
+ */
 const controlClasses = (hasError: boolean) =>
-  `w-full rounded-lg border bg-white px-3 py-2 text-sm text-[var(--bk-console-text)] transition-colors placeholder:text-slate-400 focus:outline-none focus:ring-2 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400 ${
+  `w-full rounded-[var(--bk-radius-control)] border bg-white px-2.5 py-2 text-label font-medium text-[var(--bk-console-text)] transition-colors placeholder:text-slate-400 focus:outline-none focus:ring-2 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400 ${
     hasError
-      ? 'border-red-300 focus:border-red-400 focus:ring-red-100'
-      : 'border-[var(--bk-console-border-strong)] focus:border-[var(--bk-console-blue)] focus:ring-[var(--bk-console-blue-soft)]'
+      ? 'border-rose-300 focus:border-rose-400 focus:ring-rose-500'
+      : 'border-[var(--bk-control-border)] focus:border-[var(--bk-console-blue)] focus:ring-[var(--bk-console-blue)]'
   }`;
 
 function FieldShell({ id, label, hint, error, className = '', children }: FieldShellProps) {
   return (
     <div className={`space-y-1.5 ${className}`}>
       {label && (
-        <label htmlFor={id} className="block text-xs font-semibold text-[var(--bk-console-text)]">
+        // 11px at weight 800 in muted ink, not 12px semibold in full ink. The
+        // prototype makes field labels small and heavy so they read as a
+        // caption over the control rather than competing with it.
+        <label htmlFor={id} className="block text-label font-extrabold text-[var(--bk-console-text-muted)]">
           {label}
         </label>
       )}
       {children}
       {error ? (
-        <p id={`${id}-error`} className="text-[11px] font-medium text-red-600" role="alert">
+        <p id={`${id}-error`} className="text-label font-medium text-rose-600" role="alert">
           {error}
         </p>
       ) : hint ? (
-        <p id={`${id}-hint`} className="text-[11px] leading-relaxed text-[var(--bk-console-text-muted)]">
+        <p id={`${id}-hint`} className="text-label leading-relaxed text-[var(--bk-console-text-muted)]">
           {hint}
         </p>
       ) : null}

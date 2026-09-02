@@ -1,101 +1,139 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import {
-  beginAiAdsOAuth,
-  fetchAiAdsConversationMessages,
-  fetchAiAdsConversations,
-  requestAiAdsEmailStepUp,
-  sendAiAdsChat,
-  verifyAiAdsEmailStepUp,
-} from './aiAdsApi';
+import { fetchAiAdsLiveAnalytics, parseSseFrames } from './aiAdsApi';
 
-test('ChatNow sends the message and conversation id to the backend only', async () => {
-  const originalFetch = globalThis.fetch;
-  let captured: { input?: string; init?: RequestInit } = {};
-  globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
-    captured = { input: String(input), init };
-    return new Response(JSON.stringify({ conversation_id: 91, message: 'Connection confirmed.' }), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' },
-    });
-  }) as typeof fetch;
+const frame = (value: unknown) => `data: ${JSON.stringify(value)}\n\n`;
 
-  try {
-    const response = await sendAiAdsChat('Help me plan an ad.', 90);
-    assert.equal(captured.input, '/api/ai-ads/chat');
-    assert.equal(captured.init?.method, 'POST');
-    assert.deepEqual(JSON.parse(String(captured.init?.body)), {
-      message: 'Help me plan an ad.',
-      conversation_id: 90,
-    });
-    assert.deepEqual(response, { conversation_id: 91, message: 'Connection confirmed.' });
-  } finally {
-    globalThis.fetch = originalFetch;
-  }
+test('parses complete SSE events and keeps the trailing partial as rest', () => {
+  const { frames, rest } = parseSseFrames(
+    `${frame({ type: 'delta', text: 'Hel' })}${frame({ type: 'delta', text: 'lo' })}data: {"type":"del`,
+  );
+  assert.deepEqual(frames, [
+    { type: 'delta', text: 'Hel' },
+    { type: 'delta', text: 'lo' },
+  ]);
+  assert.equal(rest, 'data: {"type":"del');
 });
 
-test('ChatNow renders a safe backend error and never requires a provider secret', async () => {
-  const originalFetch = globalThis.fetch;
-  globalThis.fetch = (async () => new Response(JSON.stringify({ detail: 'Chat is temporarily unavailable.' }), {
-    status: 503,
-    headers: { 'Content-Type': 'application/json' },
-  })) as typeof fetch;
-
-  try {
-    await assert.rejects(() => sendAiAdsChat('Hello'), /Chat is temporarily unavailable/);
-  } finally {
-    globalThis.fetch = originalFetch;
-  }
+// A frame split across two network reads must not be lost or double-counted: the caller feeds
+// `rest` back in with the next chunk, which is the whole reason this returns a remainder.
+test('a frame split across two reads is emitted once the remainder arrives', () => {
+  const first = parseSseFrames('data: {"type":"delta","te');
+  assert.deepEqual(first.frames, []);
+  const second = parseSseFrames(`${first.rest}xt":"ok"}\n\n`);
+  assert.deepEqual(second.frames, [{ type: 'delta', text: 'ok' }]);
+  assert.equal(second.rest, '');
 });
 
-test('ChatNow can restore the latest persisted conversation after refresh', async () => {
-  const originalFetch = globalThis.fetch;
-  const requests: string[] = [];
+test('keepalive comments, blank events and malformed payloads never break the stream', () => {
+  const { frames } = parseSseFrames(
+    `: ping\n\n\n\ndata: not json\n\n${frame({ type: 'delta', text: 'still here' })}${frame({ type: 'mystery' })}`,
+  );
+  assert.deepEqual(frames, [{ type: 'delta', text: 'still here' }]);
+});
+
+// The activity trail is the client's only evidence that the assistant actually ran checks, so a
+// step frame has to survive the parser — including a refused check, which must keep its status
+// rather than being reported as a success.
+test('step frames are parsed with their status, including refusals', () => {
+  const { frames } = parseSseFrames(
+    `${frame({ type: 'step', label: 'Reading your campaigns', status: 'completed' })}${frame({ type: 'step', label: 'That part of your account is not available to this login', status: 'denied' })}${frame({ type: 'step' })}`,
+  );
+  assert.deepEqual(frames, [
+    { type: 'step', label: 'Reading your campaigns', status: 'completed' },
+    { type: 'step', label: 'That part of your account is not available to this login', status: 'denied' },
+  ]);
+});
+
+test('the done frame carries the authoritative message, structured payload and conversation', () => {
+  const { frames } = parseSseFrames(frame({
+    type: 'done',
+    conversation_id: 42,
+    message: 'Final sanitized answer.',
+    structured: { proposal: { id: 7 } },
+    usage: { input_tokens: 10, output_tokens: 3 },
+  }));
+  assert.equal(frames.length, 1);
+  const done = frames[0];
+  assert.equal(done.type, 'done');
+  if (done.type !== 'done') return;
+  assert.equal(done.conversation_id, 42);
+  assert.equal(done.message, 'Final sanitized answer.');
+  assert.deepEqual(done.structured, { proposal: { id: 7 } });
+  assert.deepEqual(done.usage, { input_tokens: 10, output_tokens: 3 });
+});
+
+test('a done frame without structured content normalizes to null, not undefined', () => {
+  const { frames } = parseSseFrames(frame({ type: 'done', conversation_id: 1, message: 'ok' }));
+  const done = frames[0];
+  if (done.type !== 'done') throw new Error('expected a done frame');
+  assert.equal(done.structured, null);
+});
+
+test('an error frame keeps its detail and falls back to a safe message when absent', () => {
+  const { frames } = parseSseFrames(`${frame({ type: 'error', detail: 'AI Ads is read-only.' })}${frame({ type: 'error' })}`);
+  assert.deepEqual(frames, [
+    { type: 'error', detail: 'AI Ads is read-only.' },
+    { type: 'error', detail: 'The assistant could not respond.' },
+  ]);
+});
+
+test('CRLF line endings and multi-line data payloads are handled', () => {
+  const { frames } = parseSseFrames('data: {"type":"delta",\r\ndata: "text":"joined"}\r\n\r\n');
+  assert.deepEqual(frames, [{ type: 'delta', text: 'joined' }]);
+});
+
+/**
+ * The live Analytics read is the one request whose query string decides *whose* money is reported.
+ * Omitting `account_id` is a deliberate state — the backend then ranks the client's own accounts —
+ * so the two shapes are asserted separately: a missing account must not become `account_id=null`
+ * or `account_id=undefined`, both of which the backend would reject as a bad int rather than treat
+ * as "you choose".
+ */
+const captureUrl = async (call: () => Promise<unknown>): Promise<string> => {
+  const original = globalThis.fetch;
+  let seen = '';
   globalThis.fetch = (async (input: RequestInfo | URL) => {
-    requests.push(String(input));
-    if (String(input) === '/api/ai-ads/conversations') {
-      return new Response(JSON.stringify([{ id: 91, title: 'AI Ads conversation', status: 'active', summary: null, updated_at: '2026-08-22T00:00:00Z' }]), { status: 200 });
-    }
-    return new Response(JSON.stringify([{ id: 1, role: 'user', content: 'How are you?', structured: null, created_at: '2026-08-22T00:00:00Z' }, { id: 2, role: 'assistant', content: 'I am ready to help.', structured: null, created_at: '2026-08-22T00:00:01Z' }]), { status: 200 });
+    seen = String(input);
+    return { ok: true, status: 200, json: async () => ({}) } as unknown as Response;
   }) as typeof fetch;
-
   try {
-    const conversations = await fetchAiAdsConversations();
-    const messages = await fetchAiAdsConversationMessages(conversations[0].id);
-    assert.deepEqual(messages.map(item => item.content), ['How are you?', 'I am ready to help.']);
-    assert.deepEqual(requests, ['/api/ai-ads/conversations', '/api/ai-ads/conversations/91/messages']);
+    await call();
   } finally {
-    globalThis.fetch = originalFetch;
+    globalThis.fetch = original;
   }
+  return seen;
+};
+
+test('the live analytics read asks for one ad account when the merchant has chosen one', async () => {
+  assert.equal(
+    await captureUrl(() => fetchAiAdsLiveAnalytics(14, 13)),
+    '/api/ai-ads/performance/live?days=14&account_id=13',
+  );
 });
 
-test('email step-up uses server routes and forwards only the short-lived grant to OAuth', async () => {
-  const originalFetch = globalThis.fetch;
-  const requests: Array<{ input: string; init?: RequestInit }> = [];
-  globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
-    requests.push({ input: String(input), init });
-    if (String(input).endsWith('/start')) {
-      return new Response(JSON.stringify({ status: 'sent', expires_in: 600, email_masked: 'a***@example.com' }), { status: 200 });
-    }
-    if (String(input).endsWith('/verify')) {
-      return new Response(JSON.stringify({ step_up_grant: 'short-lived-grant', challenge_id: 41, scope: 'CREDENTIAL_CHANGE', expires_in: 600 }), { status: 200 });
-    }
-    return new Response(JSON.stringify({ authorization_url: 'https://provider.example/authorize' }), { status: 200 });
-  }) as typeof fetch;
+test('no chosen account sends no account_id at all, leaving the server to pick', async () => {
+  assert.equal(await captureUrl(() => fetchAiAdsLiveAnalytics(7)), '/api/ai-ads/performance/live?days=7');
+  assert.equal(await captureUrl(() => fetchAiAdsLiveAnalytics(7, null)), '/api/ai-ads/performance/live?days=7');
+  assert.equal(await captureUrl(() => fetchAiAdsLiveAnalytics(7, Number.NaN)), '/api/ai-ads/performance/live?days=7');
+});
 
-  try {
-    await requestAiAdsEmailStepUp();
-    const verified = await verifyAiAdsEmailStepUp('123456');
-    await beginAiAdsOAuth('meta', { grant: verified.step_up_grant, challengeId: verified.challenge_id });
-
-    assert.equal(requests[0].input, '/api/ai-ads/step-up/email/start');
-    assert.equal(requests[1].input, '/api/ai-ads/step-up/email/verify');
-    assert.deepEqual(JSON.parse(String(requests[1].init?.body)), { code: '123456' });
-    assert.equal(new Headers(requests[2].init?.headers).get('X-Client-Step-Up'), 'short-lived-grant');
-    assert.equal(new Headers(requests[2].init?.headers).get('X-Client-Step-Up-Id'), '41');
-    assert.ok(!JSON.stringify(requests).includes('api_key'));
-  } finally {
-    globalThis.fetch = originalFetch;
-  }
+/**
+ * The per-ad ranking is the slow half of this call — two extra Graph round trips, 6–7 s against
+ * 1.31 s without them, measured in production — so every tab that does not render it asks for the
+ * account half alone. The opt-out has to be spelled `include_ads=false`: the backend reads it as a
+ * plain bool query param, and anything it cannot parse as false leaves the expensive default in
+ * place, which would make the whole speed fix silently do nothing.
+ *
+ * Asking for the ranking sends no parameter at all, because `true` is already the server's default
+ * and an existing caller's URL must not change.
+ */
+test('the ad ranking is opted out of explicitly, and opted in to by saying nothing', async () => {
+  assert.equal(await captureUrl(() => fetchAiAdsLiveAnalytics(7, null, false)), '/api/ai-ads/performance/live?days=7&include_ads=false');
+  assert.equal(
+    await captureUrl(() => fetchAiAdsLiveAnalytics(30, 13, false)),
+    '/api/ai-ads/performance/live?days=30&account_id=13&include_ads=false',
+  );
+  assert.equal(await captureUrl(() => fetchAiAdsLiveAnalytics(7, null, true)), '/api/ai-ads/performance/live?days=7');
 });

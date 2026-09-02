@@ -3,38 +3,59 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import {
-  LayoutDashboard,
-  ListChecks,
-  Megaphone,
-  Lightbulb,
-  Settings2,
-  LogOut,
+  Activity,
+  BookOpen,
+  BriefcaseBusiness,
   ChevronLeft,
   ChevronRight,
-  ShieldCheck,
-  TrendingUp,
-  Terminal,
-  X,
-  Truck,
-  BookOpen,
-  ChevronDown,
-  Plus,
-  Store,
-  Check,
-  PhoneCall,
+  ClipboardList,
+  LayoutDashboard,
   LockKeyhole,
+  LogOut,
+  MessageSquareText,
+  Send,
+  Settings,
+  ShieldCheck,
+  Target,
+  TrendingUp,
   UserRound,
-  Bot,
+  X,
+  Zap,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import { StoreInfo, UserProfile } from '../types';
+import { UserProfile } from '../types';
 import { Button } from './common/Button';
 import { Modal } from './common/Modal';
 import { LockedFeatureModal, resolveLockedFeature, type LockedFeature } from './LockedFeatureModal';
-import { compactNumber, formatQuotaLimit, isUnlimitedQuota, quotaPercent } from './dashboard/dashboardUtils';
+import {
+  compactNumber,
+  formatQuotaLimit,
+  isUnlimitedQuota,
+  quotaPercent,
+  quotaTone,
+} from './dashboard/dashboardUtils';
 import { clientPageAllowed } from '../lib/aiAdsFeatureGate';
+
+/** The prototype's `.portal-nav button`: a 22px / 1fr / auto row at 39px. */
+const NAV_ROW = 'bk-console-nav-item group grid w-full items-center text-left transition-colors duration-150';
+const NAV_ROW_WIDE = 'grid-cols-[22px_minmax(0,1fr)_auto] gap-2 px-2.5';
+
+/** The prototype's `.profile-chip`, on its 34px leading column. */
+const CHIP_GRID = 'grid min-h-[62px] items-center gap-[9px]';
+
+/**
+ * The rail shows the real logo file, not the prototype's hand-drawn letter tile.
+ * Which path serves that file depends on which origin is serving the portal: the
+ * Vercel bundle carries it at the web root (`client-portal/public`), while the
+ * API origin serves the same image out of `/static/css`. Try them in order, and
+ * only fall back to the prototype's tile if neither loads — the old rail asked
+ * for the `/static/css` path unconditionally and drew a broken-image glyph on
+ * every host that is not the API origin.
+ */
+const BRAND_LOGO_SOURCES = ['/brand-logo.png', '/static/css/brand-logo.png'];
+
 
 interface SidebarItem {
   id: string;
@@ -65,16 +86,13 @@ interface SidebarProps {
   orderVerificationCount: number;
   deliveryBadgeCount: number;
   incompleteCheckoutCount: number;
-  stores?: StoreInfo[];
-  onSwitchStore?: (clientId: number) => Promise<void>;
-  onCreateStore?: () => void;
 }
 
 export function Sidebar({
   activePage,
   setActivePage,
   profile,
-  collapsed,
+  collapsed: collapsedRail,
   setCollapsed,
   mobileOpen,
   setMobileOpen,
@@ -84,242 +102,195 @@ export function Sidebar({
   orderVerificationCount,
   deliveryBadgeCount,
   incompleteCheckoutCount,
-  stores = [],
-  onSwitchStore,
-  onCreateStore,
 }: SidebarProps) {
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [lockedFeature, setLockedFeature] = useState<LockedFeature | null>(null);
   const logoutTriggerRef = useRef<HTMLButtonElement>(null);
-  const [storeSwitcherOpen, setStoreSwitcherOpen] = useState(false);
-  const [switchingStore, setSwitchingStore] = useState<number | null>(null);
-  // Keep section links visible by default so clients can discover every
-  // destination without having to expand each navigation item first.
-  const [openSubmenus, setOpenSubmenus] = useState<Record<string, boolean>>({
-    analytics: true,
-    orders: true,
-    'campaign-builder': true,
-    'setup-guide': true,
-    settings: true,
-  });
-  const [activeSubsection, setActiveSubsection] = useState<string | null>(null);
-  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({
-    'YOUR STORE': true,
-    'YOUR ORDERS': true,
-    GROW: true,
-    SYSTEM: true,
-  });
-  const storeSwitcherRef = useRef<HTMLDivElement>(null);
+  const [brandLogoAttempt, setBrandLogoAttempt] = useState(0);
+  const brandLogoSrc: string | undefined = BRAND_LOGO_SOURCES[brandLogoAttempt];
 
-  useEffect(() => {
-    const handleClick = (e: MouseEvent) => {
-      if (storeSwitcherRef.current && !storeSwitcherRef.current.contains(e.target as Node)) {
-        setStoreSwitcherOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClick);
-    return () => document.removeEventListener('mousedown', handleClick);
-  }, []);
+  /**
+   * Collapsing is a *desktop rail* state: it trades labels for a 72px strip.
+   * The mobile drawer is 284px wide, so honouring it there gives a full-width
+   * panel showing nothing but icons. While the drawer is open, the rail is a
+   * drawer and always renders in full.
+   */
+  const collapsed = collapsedRail && !mobileOpen;
 
-  const currentStore = stores.find(s => s.is_current);
-  const subNavSections: Record<string, { id: string; label: string }[]> = {
-    analytics: [
-      { id: 'analytics-overview', label: 'Summary' },
-      { id: 'analytics-ad-performance', label: 'Ad Results' },
-      { id: 'analytics-campaigns', label: 'Sales Source' },
-      { id: 'analytics-audience', label: 'Customers' },
-    ],
-    orders: [
-      { id: 'orders-pending', label: 'Order Manage' },
-      { id: 'orders-shipped', label: 'Courier Status' },
-    ],
-    'campaign-builder': [
-      { id: 'campaign-url-builder', label: 'URL builder' },
-      { id: 'campaign-event-tester', label: 'Event tester' },
-      { id: 'campaign-data-preview', label: 'Data preview' },
-    ],
-    'setup-guide': [
-      { id: 'setup-wordpress', label: 'WordPress' },
-      { id: 'setup-shopify', label: 'Shopify' },
-      { id: 'setup-custom', label: 'Custom website' },
-    ],
-    settings: [
-      { id: 'settings-domain', label: 'Store Connection' },
-      { id: 'settings-platforms', label: 'Conversions API' },
-      { id: 'settings-ad-accounts', label: 'Ad Accounts' },
-      { id: 'settings-courier', label: 'Courier & Alerts' },
-    ],
-  };
-
-  useEffect(() => {
-    if (subNavSections[activePage]) {
-      setOpenSubmenus(prev => ({ ...prev, [activePage]: true }));
-      setActiveSubsection(subNavSections[activePage][0]?.id || null);
-    } else {
-      setActiveSubsection(null);
-    }
-  }, [activePage]);
-
-  useEffect(() => {
-    const sections = subNavSections[activePage];
-    if (!sections?.length || typeof IntersectionObserver === 'undefined') return;
-
-    let observer: IntersectionObserver | null = null;
-    const connectObserver = () => {
-      const elements = sections
-        .map(section => document.getElementById(section.id))
-        .filter((element): element is HTMLElement => Boolean(element));
-      if (!elements.length) return;
-
-      observer = new IntersectionObserver(entries => {
-        const visible = entries
-          .filter(entry => entry.isIntersecting)
-          .sort((a, b) => {
-            const ratioDifference = b.intersectionRatio - a.intersectionRatio;
-            return ratioDifference || Math.abs(a.boundingClientRect.top) - Math.abs(b.boundingClientRect.top);
-          });
-        if (visible[0]) setActiveSubsection(visible[0].target.id);
-      }, {
-        root: null,
-        rootMargin: '-96px 0px -55% 0px',
-        threshold: [0.05, 0.25, 0.6],
-      });
-      elements.forEach(element => observer?.observe(element));
-    };
-
-    const timer = window.setTimeout(connectObserver, 120);
-    return () => {
-      window.clearTimeout(timer);
-      observer?.disconnect();
-    };
-  }, [activePage]);
-
-  const jumpToPageSection = (pageId: string, sectionId: string) => {
-    setActivePage(pageId);
-    setOpenSubmenus(prev => ({ ...prev, [pageId]: true }));
-    setActiveSubsection(sectionId);
-    window.setTimeout(() => {
-      window.dispatchEvent(new CustomEvent('buykori:page-section', { detail: { pageId, sectionId } }));
-    }, 80);
-  };
-
-  const handleSwitch = async (clientId: number) => {
-    if (!onSwitchStore) return;
-    setSwitchingStore(clientId);
-    try {
-      await onSwitchStore(clientId);
-    } finally {
-      setSwitchingStore(null);
-      setStoreSwitcherOpen(false);
-    }
-  };
-
+  /**
+   * The prototype's four groups, in its order and its wording — see `groups` in
+   * `ui-ux-audit-prototype/portal.tsx`. Two rows depart from it, both because
+   * the prototype is a design study over a smaller page set than the live one:
+   *
+   *  - "Delivery logs" is the live `api-logs` page, whose own heading is already
+   *    "Platform delivery history". It had a route and no way to reach it, so
+   *    until now a client could only land on it by typing the URL. The
+   *    prototype's TRACKING group is exactly where it belongs.
+   *  - "Ad Insights" has no prototype counterpart at all — the study has no
+   *    analytics page. Dropping the row to match would strand a working page, so
+   *    it leads GROWTH, next to the other two ad surfaces.
+   *
+   * The counts stay on the live sources rather than the prototype's. Its Orders
+   * badge counts *every* order this month while its own screen-reader text reads
+   * "Pending:", so the number contradicts its label; `deliveryBadgeCount` is the
+   * one that actually needs action.
+   */
   const menuGroups: SidebarGroup[] = [
     {
-      label: 'YOUR STORE',
+      label: 'OPERATIONS',
       items: [
-        { id: 'dashboard', name: 'Dashboard', icon: LayoutDashboard },
-        { id: 'analytics', name: 'Ad Insights', icon: TrendingUp },
-      ],
-    },
-    {
-      label: 'YOUR ORDERS',
-      items: [
-        {
-          id: 'pending-purchases',
-          name: 'Purchase Event Hold',
-          icon: ShieldCheck,
-          subtitle: 'Verify COD orders before sending Purchase events',
-          count: orderVerificationCount,
-        },
+        { id: 'dashboard', name: 'Overview', icon: LayoutDashboard },
         {
           id: 'orders',
-          name: 'Orders & Shipping',
-          icon: Truck,
+          name: 'Orders',
+          icon: ClipboardList,
           count: deliveryBadgeCount,
           locked: !profile.growthFeaturesEnabled,
         },
         {
+          id: 'pending-purchases',
+          name: 'COD review',
+          icon: ShieldCheck,
+          count: orderVerificationCount,
+        },
+        {
           id: 'incomplete-checkouts',
-          name: 'Incomplete Orders',
-          icon: PhoneCall,
-          subtitle: 'Recover abandoned checkouts with a phone number',
+          name: 'Incomplete checkouts',
+          icon: MessageSquareText,
           count: incompleteCheckoutCount,
           locked: !profile.growthFeaturesEnabled,
         },
       ],
     },
     {
-      label: 'GROW',
+      label: 'TRACKING',
       items: [
-        { id: 'campaign-builder', name: 'Campaign Tools', icon: Megaphone },
-        { id: 'ai-ads', name: 'AI Ads', icon: Bot },
-        { id: 'suggestions', name: 'Setup Health', icon: Lightbulb, count: suggestionsCount },
+        { id: 'event-logs', name: 'Event activity', icon: Activity },
+        { id: 'api-logs', name: 'Delivery logs', icon: Send },
+        { id: 'suggestions', name: 'Setup health', icon: Zap, count: suggestionsCount },
       ],
     },
     {
-      label: 'SYSTEM',
+      label: 'GROWTH',
       items: [
-        { id: 'setup-guide', name: 'Setup Guide', icon: BookOpen },
-        { id: 'event-logs', name: 'Event Logs', icon: ListChecks },
-        { id: 'api-logs', name: 'API Logs', icon: Terminal },
-        { id: 'settings', name: 'Settings', icon: Settings2 },
+        { id: 'analytics', name: 'Ad Insights', icon: TrendingUp },
+        { id: 'campaign-builder', name: 'Campaign tools', icon: Target },
+        { id: 'ai-ads', name: 'AI Ads', icon: BriefcaseBusiness },
+      ],
+    },
+    {
+      label: 'ADMINISTRATION',
+      items: [
+        { id: 'setup-guide', name: 'Setup guide', icon: BookOpen },
+        { id: 'settings', name: 'Settings', icon: Settings },
         { id: 'account', name: 'Account', icon: UserRound },
       ],
     },
   ];
 
   const usagePercent = quotaPercent(profile.eventsUsed, profile.eventsQuota);
-  const eventsUnlimited = isUnlimitedQuota(profile.eventsQuota);
-  const quotaColor = usagePercent >= 85
-    ? 'bg-gradient-to-r from-orange-500 to-rose-600'
-    : usagePercent >= 60
-      ? 'bg-gradient-to-r from-amber-400 to-orange-500'
-      : 'bg-gradient-to-r from-emerald-400 to-emerald-600';
-  const textQuotaColor = usagePercent >= 85
-    ? 'text-rose-700'
-    : usagePercent >= 60
-      ? 'text-amber-700'
-      : 'text-emerald-700';
-  const usageCardColor = usagePercent >= 85
-    ? 'border-rose-200 bg-gradient-to-br from-rose-50 to-orange-50'
-    : usagePercent >= 60
-      ? 'border-amber-200 bg-gradient-to-br from-amber-50 to-orange-50'
-      : 'border-emerald-200 bg-gradient-to-br from-emerald-50 to-teal-50';
+  const unlimited = isUnlimitedQuota(profile.eventsQuota);
+  /**
+   * The prototype's meter is always mint, because its sample store is at 25%.
+   * A real store can be at 96%, and a bar that stays mint there tells the owner
+   * nothing — so the fill keeps the same tones the dashboard's usage panel uses,
+   * from the same shared threshold function. The steps are the light end of each
+   * ramp because the track behind them is nearly black.
+   */
+  const tone = quotaTone(usagePercent);
+  const meterFill = tone === 'ok'
+    ? 'bg-[var(--bk-accent-bright)]'
+    : tone === 'warning'
+      ? 'bg-amber-300'
+      : 'bg-rose-400';
   const rawProfileName = String(profile.name || '').trim() || 'User';
   const profileInitial = rawProfileName.charAt(0).toUpperCase();
   const displayProfileName = `${profileInitial}${rawProfileName.slice(1)}`;
+  /** The prototype's avatar holds two letters; a one-word name supplies one. */
+  const avatarInitials = rawProfileName
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map(word => word.charAt(0).toUpperCase())
+    .join('');
 
   return (
     <>
+    {/* The closed mobile drawer is pushed off-screen, and off-screen is not the
+        same as gone: it kept 17 tab stops — "Log out" among them — so a keyboard
+        user tabbed into a rail they could not see. `invisible` takes it out of
+        both the tab order and the accessibility tree, and because `visibility`
+        interpolates discretely it stays visible for the whole slide-out and only
+        flips at the end, so the drawer is not cut off mid-slide. `md:visible`
+        keeps the desktop rail, which is never "closed".
+
+        The transition names `translate`, not `transform`: Tailwind v4 compiles
+        `-translate-x-full` to the standalone `translate: -100%` property, so a
+        `transition-transform` here transitioned a property nothing was changing
+        and the drawer snapped instead of sliding (measured: fully off-screen
+        70ms into a 200ms close). Do not "tidy" this back to transform. */}
     <aside
-      className={`bk-console-sidebar fixed top-0 bottom-0 left-0 z-50 flex flex-col transition-transform duration-200 md:transition-all ${
+      className={`bk-console-sidebar fixed top-0 bottom-0 left-0 z-50 flex flex-col transition-[translate,visibility] duration-200 md:transition-all ${
         collapsed ? 'is-collapsed' : ''
       } ${
-        mobileOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
+        mobileOpen ? 'translate-x-0' : 'invisible -translate-x-full md:visible md:translate-x-0'
       }`}
     >
       {/* Brand Header */}
-      <div data-guide="brand" className={`bk-console-brand flex items-center ${
-        collapsed ? 'justify-center px-2 gap-1' : 'justify-between px-5'
+      <div data-guide="brand" className={`bk-console-brand flex items-center gap-[11px] ${
+        collapsed ? 'justify-center px-2' : 'px-[18px]'
       }`}>
-        <div className="flex items-center gap-2.5 overflow-hidden">
-          <img src="/static/css/brand-logo.png" alt="Buykori Logo" className="h-8 w-8 object-contain shrink-0 drop-shadow-sm" />
-          {!collapsed && (
-            <span className="truncate font-sans text-[18px] font-bold tracking-tight text-white">
-              Buykori AdSync
+        {/* The prototype draws the mark itself — a 32px mint tile holding the
+            letter, `.brand-mark` — rather than loading one. The live rail has a
+            real logo file and keeps using it; the tile is only the last-resort
+            fallback when no origin can serve that image. See
+            BRAND_LOGO_SOURCES. */}
+        {brandLogoSrc ? (
+          <img
+            src={brandLogoSrc}
+            alt="Buykori"
+            className="h-8 w-8 shrink-0 object-contain drop-shadow-sm"
+            onError={() => setBrandLogoAttempt(attempt => attempt + 1)}
+          />
+        ) : (
+          <span
+            aria-hidden="true"
+            className="grid h-8 w-8 shrink-0 select-none place-items-center rounded-[7px] bg-[var(--bk-accent-bright)] text-[18px] font-extrabold leading-none text-[var(--bk-sidebar-brand-mark-text)]"
+          >
+            B
+          </span>
+        )}
+        {!collapsed && (
+          /* The prototype stacks the name over the product, which is what lets a
+             248px rail carry both without truncating either. */
+          <span className="min-w-0 flex-1">
+            <strong className="block truncate text-[16px] font-bold leading-tight text-[var(--bk-sidebar-text-strong)]">
+              Buykori
+            </strong>
+            <span className="mt-px block truncate text-label font-bold uppercase tracking-[0.05em] text-[var(--bk-sidebar-label)]">
+              AdSync
             </span>
-          )}
-        </div>
+          </span>
+        )}
+        {/* One button, two jobs: the drawer's close on a phone and the rail's
+            collapse toggle on a desktop. It was 28×28 on both — `p-1.5` around a
+            16px icon — which is the prototype's chevron, right for a mouse and
+            too small for the thumb that has to dismiss a full-height drawer. So
+            the phone gets a real 44px box (the brand row is 68px tall and the
+            drawer 248px wide, so nothing moves) and the desktop keeps the 28px
+            chevron, with `btn-touch-expand` carrying its hit area to 48px the
+            way Tooltip's 24×24 button does. The collapsed 72px rail is
+            desktop-only — `collapsed` is `collapsedRail && !mobileOpen` — so the
+            larger box never has to fit in it. */}
         <button
           onClick={() => {
             if (window.innerWidth < 768) {
               setMobileOpen(false);
             } else {
-              setCollapsed(!collapsed);
+              setCollapsed(!collapsedRail);
             }
           }}
-          className="rounded-full p-1.5 text-slate-400 transition-colors hover:bg-slate-800 hover:text-white"
+          className="btn-touch-expand grid h-11 w-11 shrink-0 place-items-center rounded-full text-[var(--bk-sidebar-text)] transition-colors hover:bg-[var(--bk-sidebar-hover)] hover:text-[var(--bk-sidebar-text-strong)] md:h-auto md:w-auto md:p-1.5"
           title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         >
           <span className="md:hidden"><X className="w-4 h-4" /></span>
@@ -329,243 +300,86 @@ export function Sidebar({
         </button>
       </div>
 
-      {/* Store Switcher (expanded mode) */}
-      {!collapsed && stores.length > 0 && (
-        <div className="px-3 pt-3 pb-1" ref={storeSwitcherRef}>
-          <p className="bk-console-group-label mb-1.5 px-1 text-[11px] font-bold uppercase tracking-wider text-slate-400">Active store</p>
-          <div className="relative">
-            <button
-              onClick={() => setStoreSwitcherOpen(prev => !prev)}
-              data-guide="active-store"
-              className="flex w-full cursor-pointer items-center gap-2.5 rounded-lg border border-slate-800 bg-slate-800/80 px-3 py-2 text-left transition-colors hover:bg-slate-800 hover:border-slate-700"
-            >
-              <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-indigo-950/80 border border-indigo-500/30">
-                <Store className="h-3.5 w-3.5 text-indigo-400" />
-              </div>
-              <div className="flex-1 min-w-0 text-left">
-                <p className="text-xs font-bold text-white truncate leading-tight">
-                  {currentStore?.name || profile.name}
-                </p>
-                <p className="text-xs text-slate-400 truncate leading-tight">
-                  {currentStore?.domain || 'No domain set'}
-                </p>
-              </div>
-              <ChevronDown className={`w-3.5 h-3.5 text-slate-400 shrink-0 transition-transform duration-200 ${storeSwitcherOpen ? 'rotate-180' : ''}`} />
-            </button>
-
-            {storeSwitcherOpen && (
-              <div className="absolute left-0 right-0 top-full z-50 mt-1.5 overflow-hidden rounded-lg border border-slate-800 bg-slate-900 shadow-2xl">
-                <div className="py-1 max-h-48 overflow-y-auto">
-                  {stores.map(store => (
-                    <button
-                      key={store.client_id}
-                      onClick={() => !store.is_current && handleSwitch(store.client_id)}
-                      disabled={store.is_current || switchingStore === store.client_id}
-                      className={`w-full flex items-center gap-2.5 px-3 py-2 text-left transition-colors cursor-pointer ${
-                        store.is_current
-                          ? 'bg-indigo-950/70 border-l-2 border-indigo-500 cursor-default'
-                          : 'hover:bg-slate-800/80'
-                      }`}
-                    >
-                      <div className={`flex items-center justify-center w-6 h-6 rounded-md shrink-0 ${
-                        store.is_current ? 'bg-indigo-900/60' : 'bg-slate-800'
-                      }`}>
-                        <Store className={`w-3.5 h-3.5 ${store.is_current ? 'text-indigo-400' : 'text-slate-400'}`} />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className={`text-xs font-semibold truncate leading-tight ${store.is_current ? 'text-indigo-300 font-bold' : 'text-slate-300'}`}>
-                          {store.name}
-                        </p>
-                        <p className="text-xs text-slate-400 truncate leading-tight">
-                          {store.domain || 'No domain'}
-                        </p>
-                      </div>
-                      {store.is_current && <Check className="w-3.5 h-3.5 text-indigo-400 shrink-0" />}
-                      {switchingStore === store.client_id && (
-                        <div className="w-3.5 h-3.5 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin shrink-0" />
-                      )}
-                    </button>
-                  ))}
-                </div>
-                <div className="border-t border-slate-800">
-                  <button
-                    onClick={() => { setStoreSwitcherOpen(false); onCreateStore?.(); }}
-                    className="flex w-full cursor-pointer items-center gap-2 px-3 py-2.5 text-xs font-semibold text-indigo-400 transition-colors hover:bg-slate-800"
-                  >
-                    <Plus className="w-4 h-4" />
-                    Add New Store
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Store icon for collapsed mode */}
-      {collapsed && stores.length > 0 && (
-        <div className="flex justify-center pt-2">
-          <button
-            onClick={() => { setCollapsed(false); setTimeout(() => setStoreSwitcherOpen(true), 310); }}
-            className="group relative cursor-pointer rounded-full p-2 transition-colors hover:bg-slate-800"
-            title="Switch Store"
-          >
-            <Store className="w-4 h-4 text-indigo-400" />
-            <div className="pointer-events-none absolute left-full z-50 ml-3 whitespace-nowrap rounded-md bg-slate-900 px-2 py-1 text-xs text-white opacity-0 shadow-md transition-opacity duration-150 group-hover:opacity-100">
-              Switch Store
-            </div>
-          </button>
-        </div>
-      )}
+      {/* The "Active store" card used to sit here, between the brand header and
+          the nav. It moved to the topbar (see StoreSwitcher in Header.tsx): the
+          rail is the place you go to *navigate*, and a card naming the store —
+          repeated on every page, directly under a logo that already says whose
+          workspace this is — was the one block of the rail that was never
+          clicked for navigation. The switching itself is not lost; it is the
+          topbar's domain chip now, which is also where the merchant reads the
+          store's address. */}
 
       {/* Primary Navigation Links */}
-      <nav className="min-h-0 flex-1 overflow-y-auto py-2.5 pr-3">
+      <nav className={`min-h-0 flex-1 overflow-y-auto pb-3.5 pt-[3px] ${collapsed ? 'px-2' : 'px-2.5'}`}>
         {menuGroups.map((group, groupIndex) => {
           const visibleItems = group.items.filter(
-            (item) => (!item.requireOrderMgmt || orderManagementEnabled)
-              && clientPageAllowed(item.id, profile)
+            (item) => (!item.requireOrderMgmt || orderManagementEnabled) &&
+              clientPageAllowed(item.id, profile)
           );
           if (visibleItems.length === 0) return null;
 
           return (
-            <div key={group.label} className={groupIndex === 0 ? '' : 'mt-3'}>
+            <div key={group.label}>
               {!collapsed && (
-                <button
-                  type="button"
-                  onClick={() => setOpenGroups(prev => ({ ...prev, [group.label]: !prev[group.label] }))}
-                  aria-expanded={Boolean(openGroups[group.label])}
-                  aria-controls={`sidebar-group-${groupIndex}`}
-                  className="mb-1 flex w-full items-center gap-2 rounded-full px-5 py-1.5 text-left transition-colors hover:bg-slate-800/80"
-                >
-                  <span className="bk-console-group-label">
-                    {group.label}
-                  </span>
-                  <span className="h-px flex-1 bg-slate-700" />
-                  <ChevronDown className={`h-3.5 w-3.5 text-slate-400 transition-transform ${openGroups[group.label] ? 'rotate-180' : ''}`} />
-                </button>
+                /* The prototype's group label is a plain caption with margins —
+                   no rule beside it, which is what keeps three groups from
+                   reading as three separate panels. */
+                <p className={`bk-console-group-label mx-[9px] mb-1.5 ${groupIndex === 0 ? 'mt-2.5' : 'mt-4'}`}>
+                  {group.label}
+                </p>
               )}
 
-              <div id={`sidebar-group-${groupIndex}`} className={`space-y-1 ${!collapsed && !openGroups[group.label] ? 'hidden' : ''}`}>
+              <div id={`sidebar-group-${groupIndex}`} className={collapsed ? 'space-y-1' : ''}>
                 {visibleItems.map((item) => {
                   const Icon = item.icon;
                   const isActive = activePage === item.id;
-                  const subSections = subNavSections[item.id];
-                  const hasSubmenu = Boolean(subSections?.length);
-                  const submenuOpen = Boolean(openSubmenus[item.id]);
                   return (
-                    <div key={item.id} className="group/nav relative">
-                      <div className="flex items-stretch">
-                      <button
-                        aria-current={isActive ? 'page' : undefined}
-                        data-guide={`nav-${item.id}`}
-                        onClick={() => {
-                          if (item.locked) {
-                            setLockedFeature(resolveLockedFeature(item.id, item.name, profile.planFeatures));
-                            setMobileOpen(false);
-                            return;
-                          }
-                          setActivePage(item.id);
+                    <button
+                      key={item.id}
+                      aria-current={isActive ? 'page' : undefined}
+                      data-guide={`nav-${item.id}`}
+                      /* A collapsed row shows an icon and nothing else, so the
+                         name has to come from somewhere. It cannot be the styled
+                         tooltip the rest of the rail uses: this <nav> scrolls, and
+                         `overflow-y: auto` forces `overflow-x` to `auto` too, which
+                         clips anything positioned past the 72px edge. Making the
+                         tooltip `fixed` escapes the clip but then stops tracking
+                         the row once the nav is scrolled, which is worse. The
+                         native tooltip is never clipped and always correct. */
+                      title={collapsed ? item.name : undefined}
+                      onClick={() => {
+                        if (item.locked) {
+                          setLockedFeature(resolveLockedFeature(item.id, item.name));
                           setMobileOpen(false);
-                        }}
-                        className={`bk-console-nav-item group relative flex min-w-0 flex-1 overflow-visible text-sm transition-colors duration-150 ${
-                          isActive
-                            ? 'is-active sidebar-active-glow'
-                            : 'font-medium'
-                        } ${collapsed ? 'justify-center px-0 py-2' : 'items-center gap-3 py-2 pl-5 pr-3'}`}
-                      >
-                        {isActive && (
-                          <span className="sidebar-active-indicator absolute left-0 top-1/2 h-6 w-[3px] -translate-y-1/2 rounded-r-full" />
-                        )}
+                          return;
+                        }
+                        setActivePage(item.id);
+                        setMobileOpen(false);
+                      }}
+                      className={`${NAV_ROW} ${isActive ? 'is-active' : 'font-medium'} ${
+                        collapsed ? 'justify-items-center px-0' : NAV_ROW_WIDE
+                      }`}
+                    >
+                      <Icon
+                        strokeWidth={isActive ? 2.5 : 2}
+                        className="bk-console-nav-icon h-[18px] w-[18px] shrink-0 transition-colors"
+                      />
 
-                        <Icon
-                          strokeWidth={isActive ? 2.5 : 2}
-                          className="bk-console-nav-icon h-[18px] w-[18px] shrink-0 transition-colors"
-                        />
-
-                        {!collapsed && (
-                          <span className="min-w-0 flex-1 text-left">
-                            <span className="block truncate">{item.name}</span>
-                            {item.subtitle && (
-                              <span className="block max-h-0 overflow-hidden text-xs font-medium leading-4 text-slate-400 opacity-0 transition-all duration-200 group-hover:max-h-4 group-hover:opacity-100 ">
-                                {item.subtitle}
-                              </span>
-                            )}
-                          </span>
-                        )}
-
-                        {Boolean(item.count) && !collapsed && !hasSubmenu && (
-                          <span className="bk-console-chip ml-auto rounded-full px-1.5 py-0.5 text-xs font-bold">
-                            {item.count}
-                          </span>
-                        )}
-
-                        {item.locked && !collapsed && (
-                          <LockKeyhole className="ml-auto h-3.5 w-3.5 shrink-0 text-amber-500" />
-                        )}
-
-                        {collapsed && (
-                          <div className="pointer-events-none absolute left-full z-50 ml-3 whitespace-nowrap rounded-md bg-slate-900 px-2 py-1 text-xs text-white opacity-0 shadow-md transition-opacity duration-150 group-hover:opacity-100">
-                            {item.name}
-                          </div>
-                        )}
-                      </button>
-                      {hasSubmenu && !collapsed && (
-                        <button
-                          type="button"
-                          aria-expanded={submenuOpen}
-                          aria-controls={`sidebar-submenu-${item.id}`}
-                          aria-label={`${submenuOpen ? 'Collapse' : 'Expand'} ${item.name} sections`}
-                          onClick={() => setOpenSubmenus(prev => ({ ...prev, [item.id]: !prev[item.id] }))}
-                          className="mr-2 flex w-8 shrink-0 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-700 hover:text-white focus-visible:bg-slate-700 focus-visible:text-white"
-                        >
-                          <ChevronDown className={`h-3.5 w-3.5 transition-transform ${submenuOpen ? 'rotate-180' : ''}`} />
-                        </button>
-                      )}
-                      </div>
-
-                      {hasSubmenu && collapsed && (
-                        <div className="pointer-events-none absolute left-full top-0 z-50 ml-3 w-52 rounded-lg border border-slate-200 bg-white p-2 opacity-0 shadow-xl shadow-slate-900/15 transition-opacity duration-150 group-hover/nav:pointer-events-auto group-hover/nav:opacity-100 group-focus-within/nav:pointer-events-auto group-focus-within/nav:opacity-100">
-                          <p className="px-2 py-1 text-xs font-black uppercase tracking-wide text-slate-400">{item.name}</p>
-                          <div className="mt-1 space-y-0.5">
-                            {subSections.map((section) => (
-                              <button
-                                key={section.id}
-                                type="button"
-                                onClick={() => {
-                                  jumpToPageSection(item.id, section.id);
-                                  setMobileOpen(false);
-                                }}
-                                aria-current={activeSubsection === section.id ? 'location' : undefined}
-                                className={`block w-full rounded-md px-2 py-1.5 text-left text-xs font-semibold transition-colors ${activeSubsection === section.id ? 'bg-[#eaf1ff] text-[#285ac7]' : 'text-slate-600 hover:bg-[#f3f7ff] hover:text-[#285ac7]'}`}
-                              >
-                                {section.label}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
+                      {!collapsed && (
+                        <span className="min-w-0 truncate text-body-sm font-semibold">{item.name}</span>
                       )}
 
-                      {hasSubmenu && !collapsed && submenuOpen && (
-                        <div id={`sidebar-submenu-${item.id}`} className="relative ml-8 mt-1 space-y-0.5 pl-3">
-                          <span aria-hidden="true" className="absolute bottom-4 left-0 top-4 w-px bg-slate-700/90" />
-                          {subSections.map((section) => (
-                            <button
-                              key={section.id}
-                              type="button"
-                              onClick={() => {
-                                jumpToPageSection(item.id, section.id);
-                                setMobileOpen(false);
-                              }}
-                              aria-current={activeSubsection === section.id ? 'location' : undefined}
-                              className={`group/sub relative flex min-h-8 w-full items-center rounded-md px-3 py-1.5 text-left text-[13px] font-semibold leading-5 transition-colors ${activeSubsection === section.id ? 'bg-[#18345f] text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white focus-visible:bg-slate-800 focus-visible:text-white'}`}
-                            >
-                              <span className={`absolute -left-[17px] h-1.5 w-1.5 rounded-full ring-2 ring-slate-900 transition-colors ${activeSubsection === section.id ? 'bg-[#6790df]' : 'bg-slate-600 group-hover/sub:bg-[#6790df] group-focus-visible/sub:bg-[#6790df]'}`} />
-                              {section.label}
-                            </button>
-                          ))}
-                        </div>
+                      {Boolean(item.count) && !collapsed && (
+                        <b className="bk-console-chip grid place-items-center rounded-[10px] px-[5px] text-label font-bold">
+                          <span className="sr-only">Pending: </span>
+                          {item.count}
+                        </b>
                       )}
-                    </div>
+
+                      {item.locked && !collapsed && (
+                        <LockKeyhole className="h-3.5 w-3.5 shrink-0 text-amber-300" />
+                      )}
+                    </button>
                   );
                 })}
               </div>
@@ -574,100 +388,122 @@ export function Sidebar({
         })}
       </nav>
 
-      {/* Usage Indicator */}
-      <div className={`shrink-0 border-t border-slate-800 bg-slate-900 px-3 pt-3 ${collapsed ? 'hidden pb-3 md:block' : 'pb-2'}`}>
+      {/* Usage Indicator — the prototype's `.usage-mini`, a card in the rail
+          rather than a bordered strip pinned to the bottom of it. */}
+      <div className={`shrink-0 px-3 pb-2.5 ${collapsed ? 'hidden md:block' : ''}`}>
         {collapsed ? (
-          <div className="flex flex-col items-center gap-1.5 rounded-xl border border-slate-800 bg-slate-800/60 px-1.5 py-2 shadow-sm" title="Monthly Event Usage">
-            <span className={`text-xs font-mono font-bold leading-none ${textQuotaColor}`}>
+          <div className="bk-console-sidebar-card flex flex-col items-center gap-1.5 px-1.5 py-2" title="Event usage this billing cycle">
+            <span className="font-mono text-label font-bold leading-none text-[var(--bk-sidebar-meter-label)]">
               {compactNumber(profile.eventsUsed)}
             </span>
-            {!eventsUnlimited && <div className="h-1.5 w-10 overflow-hidden rounded-full bg-slate-900 ring-1 ring-white/10">
-              <div className={`h-full rounded-full ${quotaColor}`} style={{ width: `${usagePercent}%` }} />
-            </div>}
+            {!unlimited && (
+              <span className="h-[5px] w-10 overflow-hidden rounded bg-[var(--bk-sidebar-track)]">
+                <i className={`block h-full rounded ${meterFill}`} style={{ width: `${usagePercent}%` }} />
+              </span>
+            )}
           </div>
         ) : (
-          <div className="rounded-xl border border-slate-800 bg-slate-800/60 px-3 py-2.5 shadow-sm">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-emerald-400">Events usage</p>
-                <p className="mt-0.5 text-xs text-slate-300">
-                  {compactNumber(profile.eventsUsed)} of {formatQuotaLimit(profile.eventsQuota)} events
-                </p>
+          <div className="bk-console-sidebar-card p-3">
+            <span className="block text-label font-extrabold uppercase tracking-[0.05em] text-[var(--bk-sidebar-meter-label)]">
+              Events usage
+            </span>
+            <strong className="mt-1 block text-body-sm font-bold text-[var(--bk-sidebar-text-strong)]">
+              {profile.eventsUsed.toLocaleString('en-US')}{' '}
+              <small className="text-caption font-medium text-[var(--bk-sidebar-label)]">
+                / {unlimited ? formatQuotaLimit(profile.eventsQuota) : profile.eventsQuota.toLocaleString('en-US')} events
+              </small>
+            </strong>
+            {/* An unlimited plan has no bar to fill and no percentage to quote,
+                so it says so instead of showing a permanently empty meter. */}
+            {!unlimited && (
+              <div className="mt-[9px] h-[5px] overflow-hidden rounded bg-[var(--bk-sidebar-track)]">
+                <i
+                  className={`block h-full rounded transition-all duration-500 ${meterFill}`}
+                  style={{ width: `${usagePercent}%` }}
+                />
               </div>
-              {!eventsUnlimited && <span className="rounded-full bg-emerald-500/20 px-2 py-0.5 text-xs font-black text-emerald-300 ring-1 ring-emerald-500/40">
-                {usagePercent.toFixed(1)}%
-              </span>}
-            </div>
-            {!eventsUnlimited && <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-slate-900 shadow-inner ring-1 ring-white/10">
-              <div className={`h-full rounded-full transition-all duration-500 ${quotaColor}`} style={{ width: `${usagePercent}%` }} />
-            </div>}
-            <div className="mt-2 flex justify-end text-xs leading-none text-slate-400">
-              {profile.renewalDate ? (() => {
-                const resetDate = new Date(profile.renewalDate);
-                const today = new Date();
-                const daysLeft = Math.ceil((resetDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-                const label = resetDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-                return (
-                  <span className={daysLeft <= 5 ? 'font-bold text-rose-400' : ''}>
-                    Resets {label} · {daysLeft}d left
-                  </span>
-                );
-              })() : <span>Resets monthly</span>}
-            </div>
+            )}
+            {/* The prototype's caption is the percentage and nothing else. The
+                reset date it replaces is still on the Account page ("Renews …")
+                and in the dashboard's usage panel, which is where a merchant
+                looks when the quota actually matters. */}
+            <em className="mt-[7px] block text-label not-italic leading-[1.4] text-[var(--bk-sidebar-label)]">
+              {unlimited ? 'Unlimited on this plan' : `${usagePercent.toFixed(1)}% used`}
+            </em>
           </div>
         )}
       </div>
 
-      {/* User Profile & Logout */}
-      <div className="shrink-0 bg-slate-900 p-3 pt-1 border-t border-slate-800/60">
+      {/* User Profile & Logout — the prototype's `.profile-chip`. It draws the
+          whole chip as one button ending in an overflow glyph; the live rail has
+          a real logout action, so that trailing slot is the logout button and the
+          two sit side by side (a button cannot nest inside a button). */}
+      <div className={`bk-console-sidebar-footer shrink-0 ${collapsed ? 'px-2 py-2.5' : 'px-[15px] py-2.5'}`}>
         {collapsed ? (
           <div className="flex flex-col items-center gap-2">
             <button
               onClick={() => setActivePage('account')}
-              className="flex h-9 w-9 cursor-pointer select-none items-center justify-center rounded-full border border-indigo-500/40 bg-gradient-to-br from-indigo-600 to-purple-600 text-base font-black text-white shadow-sm transition-transform hover:scale-105"
+              className="flex h-[34px] w-[34px] cursor-pointer select-none items-center justify-center rounded-full bg-[var(--bk-sidebar-avatar)] text-label font-extrabold text-[var(--bk-sidebar-avatar-text)] transition-transform hover:scale-105"
               title="Account Settings"
+              aria-label="Open account settings"
             >
-              {profileInitial}
+              {avatarInitials}
             </button>
             <button
               ref={logoutTriggerRef}
               onClick={() => setShowLogoutConfirm(true)}
-              className="group flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-rose-950/60 hover:text-rose-400"
+              className="group flex h-9 w-9 items-center justify-center rounded-[var(--bk-radius-control)] text-[var(--bk-sidebar-label)] transition-colors hover:bg-[var(--bk-sidebar-hover)] hover:text-rose-300"
               title="Log Out"
             >
               <LogOut className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-[minmax(0,1fr)_84px] items-stretch gap-2">
+          <div className={`${CHIP_GRID} grid-cols-[minmax(0,1fr)_44px]`}>
             <button
               onClick={() => setActivePage('account')}
-              className="flex min-w-0 cursor-pointer items-center gap-2.5 rounded-xl border border-slate-800 bg-slate-800/70 px-2.5 py-2 text-left transition-all hover:border-indigo-500/60 hover:bg-slate-800"
+              className="grid min-w-0 cursor-pointer grid-cols-[34px_minmax(0,1fr)] items-center gap-[9px] rounded-[var(--bk-radius-control)] py-1 text-left"
               title="Account Settings"
+              aria-label="Open account settings"
             >
-              <div className="flex h-8 w-8 shrink-0 select-none items-center justify-center rounded-full border border-indigo-500/40 bg-gradient-to-br from-indigo-600 to-purple-600 text-sm font-black text-white shadow-sm">
-                {profileInitial}
-              </div>
-              <div className="min-w-0 flex-1 leading-tight">
-                <span className="block truncate text-xs font-bold text-white">{displayProfileName}</span>
-                <span className="mt-0.5 inline-flex max-w-full truncate rounded-full bg-indigo-500/20 px-2 py-0.5 text-[10px] font-bold text-indigo-300 ring-1 ring-inset ring-indigo-500/40">
-                  {profile.plan}
-                </span>
-              </div>
+              <span className="flex h-[34px] w-[34px] shrink-0 select-none items-center justify-center rounded-full bg-[var(--bk-sidebar-avatar)] text-label font-extrabold text-[var(--bk-sidebar-avatar-text)]">
+                {avatarInitials}
+              </span>
+              <span className="min-w-0">
+                <strong
+                  className="block truncate text-body-sm font-bold text-[var(--bk-sidebar-text-strong)]"
+                  title={displayProfileName}
+                >
+                  {displayProfileName}
+                </strong>
+                {/* The deployed prototype's line is `{plan} · Owner`, not its
+                    fixture's `{plan} plan · Owner` — every real label from
+                    plan_service already ends in "Plan" or "Trial", so the extra
+                    word read "Growth Plan plan". "Owner" is a constant there and
+                    here: the client portal has one login per tenant and no role
+                    field, so whoever is reading this line is the account owner. */}
+                <small
+                  className="mt-[3px] block truncate text-caption text-[var(--bk-sidebar-label)]"
+                  title={`${profile.plan} · Owner`}
+                >
+                  {profile.plan} · Owner
+                </small>
+              </span>
             </button>
 
             <button
               ref={logoutTriggerRef}
               onClick={() => setShowLogoutConfirm(true)}
-              className="group flex items-center justify-center gap-1.5 rounded-xl border border-slate-800 bg-slate-800/70 px-2 py-2 text-xs font-bold text-slate-400 transition-all hover:border-rose-800 hover:bg-rose-950/60 hover:text-rose-400"
+              className="group flex h-11 w-11 items-center justify-center rounded-[var(--bk-radius-control)] text-[var(--bk-sidebar-label)] transition-colors hover:bg-[var(--bk-sidebar-hover)] hover:text-rose-300"
               title="Log Out"
+              aria-label="Log out"
             >
-              <LogOut className="h-3.5 w-3.5 shrink-0 transition-transform group-hover:translate-x-0.5" />
-              <span>Log out</span>
+              <LogOut className="h-[17px] w-[17px] shrink-0 transition-transform group-hover:translate-x-0.5" />
             </button>
           </div>
         )}
       </div>
+
     </aside>
     {showLogoutConfirm && (
       <Modal

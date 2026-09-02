@@ -140,6 +140,18 @@ export function CourierLabelModal({
       return;
     }
 
+    // The stylesheet below is a hand-written subset of the Tailwind utilities the
+    // on-screen label preview uses, because the print window is a fresh document
+    // that does not load the app stylesheet. Every rule here has a counterpart in
+    // the preview markup further down this file, and the two must agree or a
+    // printed label will not match what the client approved on screen.
+    //
+    // So the colours are copies of the @theme tokens in src/index.css, chosen to
+    // match the preview's own classes: #17212b is slate-900 (text-slate-900,
+    // border-slate-900), #b8c1c5 is slate-300 (border-slate-300), #5b6a74 is
+    // slate-500 (text-slate-500). If one of those tokens changes there, change it
+    // here too. Unlike the invoice sheet's INVOICE_PRINT_STYLES this cannot move
+    // to its own constant, because it interpolates the selected label size.
     printWindow.document.write(`<!doctype html>
 <html lang="en">
 <head>
@@ -148,7 +160,7 @@ export function CourierLabelModal({
   <style>
     @page { size: ${dimensions.width}in ${dimensions.height}in; margin: 0; }
     * { box-sizing: border-box; }
-    body { margin: 0; color: #111827; background: #fff; font-family: Arial, sans-serif; }
+    body { margin: 0; color: #17212b; background: #fff; font-family: Arial, sans-serif; }
     .courier-label-sheet {
       width: ${dimensions.width}in;
       height: ${dimensions.height}in;
@@ -161,21 +173,21 @@ export function CourierLabelModal({
       gap: 4px;
     }
     .courier-label-sheet:last-child { page-break-after: auto; break-after: auto; }
-    .courier-label-header { display: flex; align-items: center; justify-content: space-between; gap: 6px; border-bottom: 1.5px solid #111827; padding-bottom: 4px; }
+    .courier-label-header { display: flex; align-items: center; justify-content: space-between; gap: 6px; border-bottom: 1.5px solid #17212b; padding-bottom: 4px; }
     .courier-label-brand { font-size: ${labelSize === '3x3' ? '14px' : '11px'}; font-weight: 800; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .courier-label-provider { font-size: 9px; font-weight: 800; text-transform: uppercase; }
     .courier-label-barcode { width: 100%; height: ${labelSize === '3x3' ? '50px' : '42px'}; object-fit: fill; }
-    .courier-label-grid { display: grid; grid-template-columns: ${labelSize === '3x3' ? '68px 1fr' : '54px 1fr'}; gap: 5px; align-items: center; border-bottom: 1px solid #d1d5db; padding-bottom: 4px; }
+    .courier-label-grid { display: grid; grid-template-columns: ${labelSize === '3x3' ? '68px 1fr' : '54px 1fr'}; gap: 5px; align-items: center; border-bottom: 1px solid #b8c1c5; padding-bottom: 4px; }
     .courier-label-qr { width: ${labelSize === '3x3' ? '66px' : '52px'}; height: ${labelSize === '3x3' ? '66px' : '52px'}; }
     .courier-label-meta { display: grid; grid-template-columns: auto 1fr; gap: 2px 5px; font-size: ${labelSize === '3x3' ? '9px' : '7px'}; }
-    .courier-label-meta span:nth-child(odd), .courier-label-row span:first-child { color: #64748b; font-weight: 800; text-transform: uppercase; }
+    .courier-label-meta span:nth-child(odd), .courier-label-row span:first-child { color: #5b6a74; font-weight: 800; text-transform: uppercase; }
     .courier-label-meta span:nth-child(even) { text-align: right; font-weight: 800; }
     .courier-label-recipient { display: grid; gap: 2px; font-size: ${labelSize === '3x3' ? '10px' : '8px'}; line-height: 1.1; }
     .courier-label-row { display: grid; grid-template-columns: ${labelSize === '3x3' ? '54px' : '42px'} 1fr; gap: 4px; }
     .courier-label-row span:last-child { font-weight: 800; overflow-wrap: anywhere; }
-    .courier-label-cod { margin-top: auto; display: flex; align-items: center; justify-content: space-between; border: 1.5px solid #111827; padding: ${labelSize === '3x3' ? '4px 6px' : '3px 4px'}; font-size: ${labelSize === '3x3' ? '10px' : '8px'}; font-weight: 800; }
+    .courier-label-cod { margin-top: auto; display: flex; align-items: center; justify-content: space-between; border: 1.5px solid #17212b; padding: ${labelSize === '3x3' ? '4px 6px' : '3px 4px'}; font-size: ${labelSize === '3x3' ? '10px' : '8px'}; font-weight: 800; }
     .courier-label-cod strong { font-size: ${labelSize === '3x3' ? '15px' : '12px'}; }
-    .courier-label-footer { display: flex; justify-content: space-between; gap: 4px; font-size: ${labelSize === '3x3' ? '7px' : '6px'}; color: #64748b; }
+    .courier-label-footer { display: flex; justify-content: space-between; gap: 4px; font-size: ${labelSize === '3x3' ? '7px' : '6px'}; color: #5b6a74; }
   </style>
 </head>
 <body>${printMarkup}</body>

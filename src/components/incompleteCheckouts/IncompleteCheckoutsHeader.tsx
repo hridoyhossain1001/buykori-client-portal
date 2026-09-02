@@ -67,7 +67,7 @@ export function IncompleteCheckoutsHeader({ onRefresh, displayCounts, rawCounts 
           </h2>
           <p className="mt-1 text-xs text-slate-500">{HEADER_SUBTITLE}</p>
         </div>
-        <button onClick={onRefresh} className="min-h-10 rounded-lg border border-slate-200 px-3 py-2 text-xs font-bold hover:bg-slate-50  ">
+        <button onClick={onRefresh} className="min-h-11 rounded-lg border border-slate-200 px-3 py-2 text-xs font-bold hover:bg-slate-50  ">
           Refresh list
         </button>
       </div>

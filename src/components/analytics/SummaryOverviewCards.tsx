@@ -1,6 +1,19 @@
 import type { AnalyticsOverview, SignalDoctor } from '../../types';
 import type { AdSummary } from './analyticsTypes';
-import { formatMoney, numberText, percentText } from './analyticsFormat';
+import {
+  attemptedEvents,
+  countText,
+  dailyAverageEvents,
+  dataQualityScore,
+  deliveryBasisText,
+  deliverySuccessRate,
+  formatMoney,
+  moneyMetricText,
+  multipleMetricText,
+  numberText,
+  percentMetricText,
+  scoreText,
+} from './analyticsFormat';
 
 type SummaryOverviewCardsProps = {
   analyticsOverview: AnalyticsOverview | null | undefined;
@@ -21,22 +34,27 @@ export function SummaryOverviewCards({
   adPerformanceError,
   adSummary,
 }: SummaryOverviewCardsProps) {
+  const totalEvents = attemptedEvents(analyticsOverview);
+  const successRate = deliverySuccessRate(analyticsOverview);
+  const dailyAverage = dailyAverageEvents(analyticsOverview, analyticsDays);
+  const qualityScore = dataQualityScore(signalDoctor?.score);
+
   return (
     <>
       {analyticsOverview && (
         <div id="analytics-overview" role="tabpanel" aria-labelledby="ad-insights-tab-summary" className={`${activeInsightTab === 'summary' ? 'hidden md:grid' : 'hidden'} scroll-mt-24 grid-cols-2 gap-3 lg:grid-cols-4`}>
           {[
-            { title: 'Total events', value: numberText(analyticsOverview.total_events), note: 'Tracked in this period' },
-            { title: 'Success rate', value: percentText(analyticsOverview.success_rate), note: 'Delivery performance' },
-            { title: 'Daily average', value: numberText(analyticsOverview.avg_daily_events), note: 'Events per day' },
-            { title: 'Data quality', value: signalDoctor ? `${signalDoctor.score}/100` : '—', note: signalDoctor?.grade || 'Waiting for data' },
-          ].map((metric, index) => (
+            { title: 'Total events', value: countText(totalEvents), note: 'Tracked in this period', positive: false },
+            { title: 'Success rate', value: percentMetricText(successRate), note: deliveryBasisText(analyticsOverview), positive: successRate !== null },
+            { title: 'Daily average', value: countText(dailyAverage), note: `Events per day · last ${analyticsDays} days`, positive: false },
+            { title: 'Data quality', value: scoreText(qualityScore), note: signalDoctor?.grade || 'Waiting for data', positive: qualityScore !== null },
+          ].map((metric) => (
             <section key={metric.title} className="min-h-36 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
               <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500">{metric.title}</p>
               <p className="mt-2 text-2xl font-black tracking-tight text-slate-900">{metric.value}</p>
               <div className="mt-3 flex items-end justify-between gap-3">
-                <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${index === 1 || index === 3 ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-600'}`}>{metric.note}</span>
-                <span className="flex h-6 items-end gap-0.5" aria-hidden="true">
+                <span className={`min-w-0 truncate rounded-full px-2.5 py-1 text-[11px] font-semibold ${metric.positive ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-600'}`}>{metric.note}</span>
+                <span className="flex h-6 shrink-0 items-end gap-0.5" aria-hidden="true">
                   {[7, 11, 9, 15, 13, 18].map((height, barIndex) => <span key={barIndex} className="w-1 rounded-t bg-indigo-500" style={{ height }} />)}
                 </span>
               </div>
@@ -60,8 +78,8 @@ export function SummaryOverviewCards({
             { title: 'Ad cost', value: formatMoney(adSummary.spend, adSummary.spendCurrency), note: adSummary.spend ? 'Synced ad spend' : 'No spend synced yet' },
             { title: 'New orders', value: numberText(adSummary.placedPurchases), note: 'COD pending included' },
             { title: 'Confirmed sales', value: formatMoney(adSummary.confirmedRevenue, adSummary.revenueCurrency), note: `${numberText(adSummary.confirmedPurchases)} confirmed` },
-            { title: 'Return', value: adSummary.spend ? `${adSummary.returnRate.toFixed(2)}x` : '—', note: 'Needs spend + sales' },
-            { title: 'Cost / order', value: adSummary.placedPurchases ? formatMoney(adSummary.costPerOrder, adSummary.spendCurrency) : '—', note: 'Needs spend + orders' },
+            { title: 'Return', value: multipleMetricText(adSummary.returnRate), note: 'Confirmed sales ÷ ad spend' },
+            { title: 'Cost / order', value: moneyMetricText(adSummary.costPerOrder, adSummary.spendCurrency), note: 'Ad spend ÷ confirmed orders' },
           ].map(metric => (
             <div key={metric.title} className="border-b border-slate-200 px-5 py-4 last:border-b-0 lg:border-b-0">
               <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500">{metric.title}</p>
@@ -70,7 +88,7 @@ export function SummaryOverviewCards({
             </div>
           ))}
         </div>
-        <footer className="border-t border-slate-200 bg-slate-50/50 px-5 py-3 text-xs text-slate-500">No ad spend recorded? Connect your ad account spend sync in Settings to see Return and Cost/order.</footer>
+        <footer className="border-t border-slate-200 bg-slate-50/50 px-5 py-3 text-xs text-slate-500">No ad spend recorded? Connect your ad account in AI Ads → Connected Accounts to see Return and Cost/order.</footer>
       </section>
     </>
   );

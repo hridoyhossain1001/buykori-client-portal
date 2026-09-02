@@ -33,7 +33,7 @@ export function ProfileSummaryCard({ profile, usagePercent }: ProfileSummaryCard
           <span className="shrink-0 text-[10px] font-bold tabular-nums text-indigo-600">{unlimited ? 'Unlimited' : `${usagePercent.toFixed(2)}%`}</span>
         </div>
         <p className="mt-1 text-sm font-bold tabular-nums text-slate-900">{profile.eventsUsed.toLocaleString()} / {formatQuotaLimit(profile.eventsQuota)} events</p>
-        {!unlimited && <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-100"><div className="h-full rounded-full bg-indigo-600 transition-[width]" style={{ width: `${meterWidth}%` }} /></div>}
+        <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-100"><div className="h-full rounded-full bg-indigo-600 transition-[width]" style={{ width: `${meterWidth}%` }} /></div>
       </div>
     </section>
   );

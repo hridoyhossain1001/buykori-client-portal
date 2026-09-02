@@ -19,6 +19,18 @@ interface ProfileFormProps {
   submitProfileSave: (e: React.FormEvent) => Promise<boolean>;
 }
 
+/**
+ * One class list for all five fields, and deliberately no focus utilities in it.
+ *
+ * These inputs used to carry `outline-none focus:border-indigo-500 focus:ring-2
+ * focus:ring-indigo-100`. A Tailwind v4 `ring-*` replaces the base `input:focus`
+ * box-shadow in index.css, so `ring-indigo-100` (about 1.2:1 on white) *was* the
+ * whole focus indicator, leaving a 1px border swap as the only real
+ * signal — half the perimeter WCAG 2.4.11 asks for. Left bare, each field gets
+ * the base layer's 2px `--bk-console-blue` accent like every other control.
+ */
+const FIELD = 'w-full rounded-lg border border-slate-200 bg-white p-2.5 text-xs';
+
 export function ProfileForm({
   profile,
   profName,
@@ -55,7 +67,7 @@ export function ProfileForm({
                 type="text"
                 value={profName}
                 onChange={(e) => setProfName(e.target.value)}
-                className="w-full rounded-lg border border-slate-200 bg-white p-2.5 text-xs outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+                className={FIELD}
               />
             </div>
 
@@ -71,7 +83,7 @@ export function ProfileForm({
                   value={profEmail}
                   onChange={(e) => setProfEmail(e.target.value)}
                   autoComplete="email"
-                  className="w-full rounded-lg border border-slate-200 bg-white p-2.5 pr-9 text-xs outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+                  className={`${FIELD} pr-9`}
                 />
                 <Mail className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
               </div>
@@ -89,7 +101,7 @@ export function ProfileForm({
                   onChange={(e) => setProfEmailCode(e.target.value)}
                   inputMode="numeric"
                   autoComplete="one-time-code"
-                  className="w-full rounded-lg border border-slate-200 bg-white p-2.5 text-xs outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+                  className={FIELD}
                 />
               </div>
               <div>
@@ -100,7 +112,7 @@ export function ProfileForm({
                   value={profEmailCurrentPassword}
                   onChange={(e) => setProfEmailCurrentPassword(e.target.value)}
                   autoComplete="current-password"
-                  className="w-full rounded-lg border border-slate-200 bg-white p-2.5 text-xs outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+                  className={FIELD}
                 />
               </div>
             </div>
@@ -113,7 +125,7 @@ export function ProfileForm({
               type="email"
               value={profNotifEmail}
               onChange={(e) => setProfNotifEmail(e.target.value)}
-              className="w-full rounded-lg border border-slate-200 bg-white p-2.5 text-xs outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+              className={FIELD}
             />
             <p className="mt-1 text-[11px] text-slate-400">Order alerts, weekly reports and billing receipts are sent here.</p>
           </div>
@@ -123,7 +135,7 @@ export function ProfileForm({
           <button
             type="submit"
             disabled={profUpdating}
-            className="min-h-10 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white text-xs font-bold rounded-lg transition-colors shadow-sm cursor-pointer"
+            className="min-h-11 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white text-xs font-bold rounded-lg transition-colors shadow-sm cursor-pointer"
           >
             {profUpdating
               ? 'Saving…'

@@ -1,4 +1,4 @@
-import type { CAPIEvent } from '../../types';
+import type { CAPIEvent, UserProfile } from '../../types';
 
 export const panelClass = 'rounded-2xl border border-slate-200/90 bg-white shadow-[0_8px_30px_rgba(15,23,42,0.04)]';
 
@@ -146,7 +146,7 @@ export function quotaTone(percent: number): QuotaTone {
 }
 
 export const QUOTA_BAR: Record<QuotaTone, string> = {
-  ok: 'bg-gradient-to-r from-[#285ac7] to-[#12b886]',
+  ok: 'bg-gradient-to-r from-chart-blue to-chart-green',
   warning: 'bg-gradient-to-r from-amber-400 to-orange-500',
   critical: 'bg-gradient-to-r from-orange-500 to-rose-500',
   exhausted: 'bg-rose-600',
@@ -158,6 +158,60 @@ export const QUOTA_TEXT: Record<QuotaTone, string> = {
   critical: 'text-rose-600',
   exhausted: 'text-rose-700',
 };
+
+/**
+ * When the quota counters go back to zero, as a short date.
+ *
+ * The plan is a rolling 30-day cycle anchored to the day the client was put on
+ * it, so there is no shared "1st of the month" to name — every merchant resets
+ * on their own date. `null` means the backend sent nothing usable, and the
+ * caller must then say nothing rather than guess a date.
+ */
+export function cycleResetLabel(profile: Pick<UserProfile, 'quotaResetsAt'>): string | null {
+  if (!profile.quotaResetsAt) return null;
+  const resetsAt = new Date(profile.quotaResetsAt);
+  if (Number.isNaN(resetsAt.getTime())) return null;
+  return resetsAt.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+}
+
+export interface SettlementNotice {
+  /** Days left in the settlement window, floored at 0. */
+  daysLeft: number;
+  /** The date service stops if the plan is not renewed, or null when unknown. */
+  endsOn: string | null;
+  headline: string;
+  detail: string;
+}
+
+/**
+ * Warning for a merchant whose paid period has ended but whose service is still
+ * running inside the settlement window.
+ *
+ * Tracking deliberately keeps working here — cutting a paying merchant off the
+ * hour their period ends would silently lose their events — so the only thing
+ * that protects them is being told, plainly, that payment is due and by when.
+ * Returns `null` whenever the plan is not in that window.
+ */
+export function settlementNotice(
+  profile: Pick<UserProfile, 'inGracePeriod' | 'graceEndsAt'>,
+  now: Date = new Date(),
+): SettlementNotice | null {
+  if (!profile.inGracePeriod) return null;
+  const graceEnd = profile.graceEndsAt ? new Date(profile.graceEndsAt) : null;
+  const validEnd = graceEnd && !Number.isNaN(graceEnd.getTime()) ? graceEnd : null;
+  const daysLeft = validEnd
+    ? Math.max(0, Math.ceil((validEnd.getTime() - now.getTime()) / 86_400_000))
+    : 0;
+  const endsOn = validEnd ? validEnd.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : null;
+  return {
+    daysLeft,
+    endsOn,
+    headline: 'Your plan period has ended',
+    detail: endsOn
+      ? `Tracking keeps running until ${endsOn}${daysLeft > 0 ? ` (${daysLeft} day${daysLeft === 1 ? '' : 's'} left)` : ''}. Renew before then to avoid any interruption.`
+      : 'Tracking is still running during the settlement window. Renew now to avoid any interruption.',
+  };
+}
 
 export function chartGeometry(values: number[], width = 320, height = 86) {
   const safeValues = values.length > 0 ? values : [0, 0];

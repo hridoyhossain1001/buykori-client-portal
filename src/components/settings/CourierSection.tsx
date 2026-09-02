@@ -1,5 +1,5 @@
 import React from 'react';
-import { Copy } from 'lucide-react';
+import { AlertTriangle, Check, CircleCheck, Copy, ShieldCheck } from 'lucide-react';
 import { CourierSettings } from '../../types';
 
 export interface EnabledCouriers {
@@ -7,6 +7,24 @@ export interface EnabledCouriers {
   pathao: boolean;
   redx: boolean;
 }
+
+const courierPartners: Array<{
+  id: keyof EnabledCouriers;
+  name: string;
+  description: string;
+  logo: string;
+  logoAlt: string;
+}> = [
+  { id: 'steadfast', name: 'SteadFast', description: 'Express courier', logo: '/couriers/steadfast.svg', logoAlt: 'SteadFast Courier' },
+  { id: 'pathao', name: 'Pathao Courier', description: 'Nationwide shipping', logo: '/couriers/pathao.svg', logoAlt: 'Pathao Courier' },
+  { id: 'redx', name: 'RedX Logistics', description: 'Doorstep delivery', logo: '/couriers/redx.svg', logoAlt: 'RedX Logistics' },
+];
+
+const providerLabels: Record<keyof EnabledCouriers, string> = {
+  steadfast: 'SteadFast Express',
+  pathao: 'Pathao Courier',
+  redx: 'RedX Logistics',
+};
 
 interface CourierSectionProps {
   enabledCouriers: EnabledCouriers;
@@ -20,7 +38,58 @@ interface CourierSectionProps {
   handleCopyCourierWebhookSetup: (provider: 'steadfast' | 'redx') => void;
   copyingPathaoSecret: boolean;
   handleCopyPathaoWebhookSecret: () => void;
+  pathaoWebhookCallbackUrl: string;
+  pathaoCallbackCopied: boolean;
+  handleCopyPathaoCallbackUrl: () => void;
+  steadfastWebhookCallbackUrl: string;
+  steadfastCallbackCopied: boolean;
+  handleCopySteadfastCallbackUrl: () => void;
+  redxWebhookCallbackUrl: string;
 }
+
+const WebhookStatusBadge: React.FC<{ configured?: boolean; verifiedAt?: string }> = ({ configured, verifiedAt }) => {
+  const status = verifiedAt ? 'verified' : configured ? 'waiting' : 'not-configured';
+  const styles = {
+    verified: 'bg-emerald-100 text-emerald-700',
+    waiting: 'bg-amber-100 text-amber-700',
+    'not-configured': 'bg-slate-200 text-slate-600',
+  };
+  const labels = {
+    verified: 'Verified',
+    waiting: 'Waiting for callback',
+    'not-configured': 'Not configured',
+  };
+
+  return <span className={`rounded-full px-2 py-1 text-xs font-bold uppercase ${styles[status]}`}>{labels[status]}</span>;
+};
+
+const CallbackUrlField: React.FC<{
+  id: string;
+  value: string;
+  copied: boolean;
+  onCopy: () => void;
+  ariaLabel: string;
+}> = ({ id, value, copied, onCopy, ariaLabel }) => (
+  <div className="flex min-w-0 overflow-hidden rounded-lg border border-slate-300 bg-white focus-within:border-indigo-500 focus-within:ring-2 focus-within:ring-indigo-500/20">
+    <input
+      id={id}
+      type="text"
+      readOnly
+      value={value}
+      onFocus={(event) => event.currentTarget.select()}
+      className="h-10 min-w-0 flex-1 bg-transparent px-3 font-mono text-xs text-slate-700 outline-none"
+    />
+    <button
+      type="button"
+      onClick={onCopy}
+      aria-label={ariaLabel}
+      title="Copy callback URL"
+      className={`flex h-11 w-11 shrink-0 items-center justify-center border-l transition-colors ${copied ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-indigo-600'}`}
+    >
+      {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+    </button>
+  </div>
+);
 
 const CourierSection: React.FC<CourierSectionProps> = ({
   enabledCouriers,
@@ -34,7 +103,30 @@ const CourierSection: React.FC<CourierSectionProps> = ({
   handleCopyCourierWebhookSetup,
   copyingPathaoSecret,
   handleCopyPathaoWebhookSecret,
+  pathaoWebhookCallbackUrl,
+  pathaoCallbackCopied,
+  handleCopyPathaoCallbackUrl,
+  steadfastWebhookCallbackUrl,
+  steadfastCallbackCopied,
+  handleCopySteadfastCallbackUrl,
+  redxWebhookCallbackUrl,
 }) => {
+  const configured = {
+    steadfast: Boolean(courierSettings.steadfast_api_key && courierSettings.steadfast_secret_key),
+    pathao: Boolean(
+      courierSettings.pathao_client_id &&
+      courierSettings.pathao_client_secret &&
+      courierSettings.pathao_email &&
+      courierSettings.pathao_password &&
+      courierSettings.pathao_store_id,
+    ),
+    redx: Boolean(courierSettings.redx_access_token),
+  };
+  const enabledProviderIds = (Object.keys(enabledCouriers) as Array<keyof EnabledCouriers>)
+    .filter((provider) => enabledCouriers[provider]);
+  const connectedProviderIds = enabledProviderIds.filter((provider) => configured[provider]);
+  const setupNeeded = enabledProviderIds.filter((provider) => !configured[provider]);
+
   return (
         <section id="settings-courier" aria-labelledby="settings-courier-title" className="scroll-mt-28 space-y-5">
           <div className="flex flex-col items-start justify-between gap-4 rounded-xl border border-slate-200 bg-white p-5 shadow-sm sm:flex-row sm:items-center">
@@ -55,64 +147,91 @@ const CourierSection: React.FC<CourierSectionProps> = ({
             <h3 className="mb-1 text-xs font-bold uppercase tracking-wider text-slate-700">Available courier services</h3>
             <p className="mb-4 text-xs text-slate-500">Your existing courier logos and saved integrations stay unchanged.</p>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              {/* SteadFast Toggle Box */}
-              <div className={`flex items-center justify-between p-3.5 rounded-xl border transition-all ${enabledCouriers.steadfast ? 'border-indigo-500 bg-indigo-50/40 shadow-xs' : 'border-slate-200 bg-white'}`}>
-                <div className="flex items-center gap-3">
-                  {/* Real SteadFast Brand Logo */}
-                  <img src="/couriers/steadfast.svg" alt="SteadFast Courier" className="h-10 w-auto object-contain shrink-0" />
-                  <div>
-                    <h4 className="text-xs font-bold text-slate-900">SteadFast</h4>
-                    <span className="text-[10px] font-semibold text-slate-500">Express Courier</span>
+            <div className="grid grid-cols-1 gap-3 lg:grid-cols-2 xl:grid-cols-3">
+              {courierPartners.map(partner => {
+                const enabled = enabledCouriers[partner.id];
+                return (
+                  <div
+                    key={partner.id}
+                    className={`grid min-h-[72px] grid-cols-[48px_minmax(0,1fr)_44px] items-center gap-3 rounded-xl border p-3 transition-all ${enabled ? 'border-indigo-500 bg-indigo-50/40 shadow-xs' : 'border-slate-200 bg-white'}`}
+                  >
+                      <span className="flex h-10 w-12 items-center justify-center overflow-hidden rounded-lg border border-slate-200 bg-white p-1.5">
+                      <img src={partner.logo} alt={partner.logoAlt} className="h-full w-full object-contain" onError={(event) => { event.currentTarget.style.display = 'none'; }} />
+                    </span>
+                    <div className="min-w-0">
+                      <h4 className="truncate text-xs font-bold text-slate-900">{partner.name}</h4>
+                      <span className="mt-0.5 block truncate text-[10px] font-semibold text-slate-500">{partner.description}</span>
+                      <span className={`mt-1 inline-flex items-center gap-1 text-[10px] font-bold ${configured[partner.id] ? 'text-emerald-700' : 'text-amber-700'}`}>
+                        {configured[partner.id] ? <CircleCheck className="h-3 w-3" /> : <AlertTriangle className="h-3 w-3" />}
+                        {configured[partner.id] ? 'Credentials saved' : 'Setup needed'}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={enabled}
+                      aria-label={`${enabled ? 'Disable' : 'Enable'} ${partner.name}`}
+                      onClick={() => setEnabledCouriers(prev => ({ ...prev, [partner.id]: !prev[partner.id] }))}
+                      className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 ${enabled ? 'bg-indigo-600' : 'bg-slate-300'}`}
+                    >
+                      <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${enabled ? 'translate-x-5' : 'translate-x-0'}`} />
+                    </button>
                   </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setEnabledCouriers(prev => ({ ...prev, steadfast: !prev.steadfast }))}
-                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${enabledCouriers.steadfast ? 'bg-indigo-600' : 'bg-slate-300'}`}
-                >
-                  <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${enabledCouriers.steadfast ? 'translate-x-5' : 'translate-x-0'}`} />
-                </button>
-              </div>
-
-              {/* Pathao Toggle Box */}
-              <div className={`flex items-center justify-between p-3.5 rounded-xl border transition-all ${enabledCouriers.pathao ? 'border-indigo-500 bg-indigo-50/40 shadow-xs' : 'border-slate-200 bg-white'}`}>
-                <div className="flex items-center gap-3">
-                  {/* Real Pathao Brand Logo */}
-                  <img src="/couriers/pathao.svg" alt="Pathao Courier" className="h-10 w-auto object-contain shrink-0" />
-                  <div>
-                    <h4 className="text-xs font-bold text-slate-900">Pathao Courier</h4>
-                    <span className="text-[10px] font-semibold text-slate-500">Nationwide Shipping</span>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setEnabledCouriers(prev => ({ ...prev, pathao: !prev.pathao }))}
-                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${enabledCouriers.pathao ? 'bg-indigo-600' : 'bg-slate-300'}`}
-                >
-                  <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${enabledCouriers.pathao ? 'translate-x-5' : 'translate-x-0'}`} />
-                </button>
-              </div>
-
-              {/* RedX Toggle Box */}
-              <div className={`flex items-center justify-between p-3.5 rounded-xl border transition-all ${enabledCouriers.redx ? 'border-indigo-500 bg-indigo-50/40 shadow-xs' : 'border-slate-200 bg-white'}`}>
-                <div className="flex items-center gap-3">
-                  {/* Real RedX Brand Logo */}
-                  <img src="/couriers/redx.svg" alt="RedX Logistics" className="h-10 w-auto object-contain shrink-0" />
-                  <div>
-                    <h4 className="text-xs font-bold text-slate-900">RedX Logistics</h4>
-                    <span className="text-[10px] font-semibold text-slate-500">Doorstep Delivery</span>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setEnabledCouriers(prev => ({ ...prev, redx: !prev.redx }))}
-                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${enabledCouriers.redx ? 'bg-indigo-600' : 'bg-slate-300'}`}
-                >
-                  <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${enabledCouriers.redx ? 'translate-x-5' : 'translate-x-0'}`} />
-                </button>
-              </div>
+                );
+              })}
             </div>
+          </div>
+
+          <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-start gap-3">
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-emerald-50 text-emerald-700">
+                  <ShieldCheck className="h-5 w-5" />
+                </span>
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900">Connection health</h3>
+                  <p className="mt-1 text-xs text-slate-500">Credentials, webhook verification, and the latest delivery callback are tracked separately.</p>
+                </div>
+              </div>
+              <span className={`w-fit rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase ${setupNeeded.length ? 'border-amber-200 bg-amber-50 text-amber-700' : 'border-emerald-200 bg-emerald-50 text-emerald-700'}`}>
+                {setupNeeded.length ? `${setupNeeded.length} setup needed` : 'All enabled connected'}
+              </span>
+            </div>
+            <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-3">
+              {(['steadfast', 'pathao', 'redx'] as Array<keyof EnabledCouriers>).map((provider) => {
+                const isEnabled = enabledCouriers[provider];
+                const isConfigured = configured[provider];
+                const verifiedAt = provider === 'pathao'
+                  ? courierSettings.pathao_webhook_verified_at
+                  : provider === 'steadfast'
+                    ? courierSettings.steadfast_webhook_verified_at
+                    : courierSettings.redx_webhook_verified_at;
+                const webhookConfigured = provider === 'pathao'
+                  ? courierSettings.pathao_webhook_secret_configured
+                  : provider === 'steadfast'
+                    ? courierSettings.steadfast_webhook_token_configured
+                    : courierSettings.redx_webhook_secret_configured;
+                return (
+                  <div key={provider} className="rounded-lg border border-slate-200 bg-slate-50/60 p-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-xs font-bold text-slate-800">{providerLabels[provider]}</span>
+                      <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${!isEnabled ? 'bg-slate-200 text-slate-600' : isConfigured ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
+                        {!isEnabled ? 'Disabled' : isConfigured ? 'Connected' : 'Not connected'}
+                      </span>
+                    </div>
+                    <p className="mt-2 text-[11px] text-slate-500">
+                      {!isEnabled ? 'Enable this provider to configure it.' : !isConfigured ? 'Add the required credentials below.' : webhookConfigured ? (verifiedAt ? `Webhook verified ${new Date(verifiedAt).toLocaleString()}` : 'Webhook configured; waiting for callback') : 'Webhook not configured'}
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+            {connectedProviderIds.length === 0 && enabledProviderIds.length > 0 && (
+              <div className="mt-3 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                <p>Connect at least one enabled courier before booking shipments. Save credentials first, then configure its webhook callback.</p>
+              </div>
+            )}
           </div>
 
           {loadingCourier ? (
@@ -128,14 +247,12 @@ const CourierSection: React.FC<CourierSectionProps> = ({
                 {/* SteadFast API Card */}
                 {enabledCouriers.steadfast && (
                   <div className="space-y-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
-                    <div className="flex items-center justify-between pb-2 border-b border-indigo-100">
-                      <div className="flex items-center gap-2">
+                    <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3 border-b border-indigo-100 pb-3">
+                      <div className="flex min-w-0 items-center gap-2">
                         <span className="flex h-6 w-6 items-center justify-center rounded-md bg-blue-600 text-xs font-bold text-white">S</span>
-                        <h4 className="font-bold text-xs text-indigo-700 uppercase tracking-wider">
-                          SteadFast Courier API Integration
-                        </h4>
+                        <h4 className="min-w-0 text-sm font-bold text-slate-900">SteadFast integration</h4>
                       </div>
-                      <span className="text-[11px] font-semibold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-200">Active Form</span>
+                      <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700">Enabled</span>
                     </div>
                     <p className="text-xs leading-relaxed text-slate-600">Copy the API Key and Secret Key from your SteadFast Merchant Panel &gt; API Settings.</p>
                     
@@ -166,13 +283,48 @@ const CourierSection: React.FC<CourierSectionProps> = ({
                         />
                       </div>
                     </div>
-                    <div className="rounded-lg border border-indigo-200 bg-indigo-50/80 p-3">
-                      <p className="text-xs font-bold uppercase tracking-wider text-indigo-900">SteadFast Webhook Setup</p>
-                      <p className="mt-1 text-xs text-slate-600">Copy the Webhook Callback URL to receive realtime shipment status updates from SteadFast.</p>
-                      <button type="button" onClick={() => handleCopyCourierWebhookSetup('steadfast')} disabled={copyingCourierSecret === 'steadfast'} className="mt-3 inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-3.5 py-2 text-xs font-bold text-white hover:bg-indigo-700 disabled:opacity-50 shadow-xs">
-                        <Copy className="h-3.5 w-3.5" />
-                        {copyingCourierSecret === 'steadfast' ? 'Preparing...' : courierSettings.steadfast_webhook_token_configured ? 'Copy Setup Again' : 'Copy Setup Secret'}
-                      </button>
+                    <div className="border-t border-slate-200 pt-4">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div>
+                          <p className="text-xs font-bold uppercase tracking-wider text-slate-800">SteadFast webhook setup</p>
+                          <p className="mt-1 text-xs leading-relaxed text-slate-500">Set the callback URL and Authorization header in your SteadFast webhook configuration.</p>
+                        </div>
+                        <WebhookStatusBadge
+                          configured={courierSettings.steadfast_webhook_token_configured}
+                          verifiedAt={courierSettings.steadfast_webhook_verified_at}
+                        />
+                      </div>
+                      <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
+                        <div className="min-w-0">
+                          <label htmlFor="steadfast-webhook-callback-url" className="mb-1.5 flex items-center gap-2 text-xs font-bold text-slate-700">
+                            <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-indigo-600 text-[10px] text-white">1</span>
+                            Callback URL
+                          </label>
+                          <CallbackUrlField
+                            id="steadfast-webhook-callback-url"
+                            value={steadfastWebhookCallbackUrl}
+                            copied={steadfastCallbackCopied}
+                            onCopy={handleCopySteadfastCallbackUrl}
+                            ariaLabel="Copy SteadFast callback URL"
+                          />
+                          <p className="mt-1.5 text-xs text-slate-500">Paste this URL into SteadFast's callback URL field.</p>
+                        </div>
+                        <div className="min-w-0">
+                          <p className="mb-1.5 flex items-center gap-2 text-xs font-bold text-slate-700">
+                            <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-indigo-600 text-[10px] text-white">2</span>
+                            Authorization token
+                          </p>
+                          <button type="button" onClick={() => handleCopyCourierWebhookSetup('steadfast')} disabled={copyingCourierSecret === 'steadfast'} className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-indigo-600 px-3.5 text-xs font-bold text-white shadow-xs transition-colors hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto">
+                            <Copy className="h-3.5 w-3.5" />
+                            {copyingCourierSecret === 'steadfast'
+                              ? 'Preparing token...'
+                              : courierSettings.steadfast_webhook_token_configured
+                                ? 'Copy token again'
+                                : 'Generate & copy token'}
+                          </button>
+                          <p className="mt-1.5 text-xs text-slate-500">Use it as <span className="font-mono">Authorization: Bearer &lt;token&gt;</span>.</p>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 )}
@@ -180,14 +332,12 @@ const CourierSection: React.FC<CourierSectionProps> = ({
                 {/* Pathao API Card */}
                 {enabledCouriers.pathao && (
                   <div className="space-y-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
-                    <div className="flex items-center justify-between pb-2 border-b border-indigo-100">
-                      <div className="flex items-center gap-2">
+                    <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3 border-b border-indigo-100 pb-3">
+                      <div className="flex min-w-0 items-center gap-2">
                         <span className="flex h-6 w-6 items-center justify-center rounded-md bg-rose-600 text-xs font-bold text-white">P</span>
-                        <h4 className="font-bold text-xs text-indigo-700 uppercase tracking-wider">
-                          Pathao Courier API Integration
-                        </h4>
+                        <h4 className="min-w-0 text-sm font-bold text-slate-900">Pathao integration</h4>
                       </div>
-                      <span className="text-[11px] font-semibold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-200">Active Form</span>
+                      <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700">Enabled</span>
                     </div>
                     <p className="text-xs leading-relaxed text-slate-600">Enter your Client ID, Client Secret, Store ID, and registered account credentials from Pathao Merchant Panel.</p>
                     
@@ -270,11 +420,11 @@ const CourierSection: React.FC<CourierSectionProps> = ({
                       </div>
                     </div>
 
-                    <div className="rounded-lg border border-indigo-200 bg-indigo-50/80 p-3">
+                    <div className="border-t border-slate-200 pt-4">
                       <div className="flex flex-wrap items-center justify-between gap-2">
                         <div>
-                          <p className="text-xs font-bold uppercase tracking-wider text-indigo-900">Pathao Webhook Setup Secret</p>
-                          <p className="mt-1 text-xs leading-relaxed text-slate-600">Copy the generated secret and paste it into your Pathao Merchant Panel Webhook Integration.</p>
+                          <p className="text-xs font-bold uppercase tracking-wider text-slate-800">Pathao webhook setup</p>
+                          <p className="mt-1 text-xs leading-relaxed text-slate-500">Pathao Merchant Panel &gt; Developer API &gt; Webhook Integration</p>
                         </div>
                         <span className={`rounded-full px-2 py-1 text-xs font-bold uppercase ${
                           courierSettings.pathao_webhook_verified_at
@@ -290,15 +440,56 @@ const CourierSection: React.FC<CourierSectionProps> = ({
                               : 'Not configured'}
                         </span>
                       </div>
-                      <button
-                        type="button"
-                        onClick={handleCopyPathaoWebhookSecret}
-                        disabled={copyingPathaoSecret}
-                        className="mt-3 inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-3.5 py-2 text-xs font-bold text-white hover:bg-indigo-700 disabled:opacity-50 shadow-xs"
-                      >
-                        <Copy className="h-3.5 w-3.5" />
-                        {copyingPathaoSecret ? 'Preparing secret...' : 'Copy Setup Secret'}
-                      </button>
+
+                      <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
+                        <div className="min-w-0">
+                          <label htmlFor="pathao-webhook-callback-url" className="mb-1.5 flex items-center gap-2 text-xs font-bold text-slate-700">
+                            <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-indigo-600 text-[10px] text-white">1</span>
+                            Callback URL
+                          </label>
+                          <div className="flex min-w-0 overflow-hidden rounded-lg border border-slate-300 bg-white focus-within:border-indigo-500 focus-within:ring-2 focus-within:ring-indigo-500/20">
+                            <input
+                              id="pathao-webhook-callback-url"
+                              type="text"
+                              readOnly
+                              value={pathaoWebhookCallbackUrl}
+                              onFocus={(event) => event.currentTarget.select()}
+                              className="h-10 min-w-0 flex-1 bg-transparent px-3 font-mono text-xs text-slate-700 outline-none"
+                            />
+                            <button
+                              type="button"
+                              onClick={handleCopyPathaoCallbackUrl}
+                              aria-label="Copy Pathao callback URL"
+                              title="Copy callback URL"
+                              className={`flex h-11 w-11 shrink-0 items-center justify-center border-l transition-colors ${pathaoCallbackCopied ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-indigo-600'}`}
+                            >
+                              {pathaoCallbackCopied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                            </button>
+                          </div>
+                          <p className="mt-1.5 text-xs text-slate-500">Paste this into Pathao's Callback URL field.</p>
+                        </div>
+
+                        <div className="min-w-0">
+                          <p className="mb-1.5 flex items-center gap-2 text-xs font-bold text-slate-700">
+                            <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-indigo-600 text-[10px] text-white">2</span>
+                            Webhook secret
+                          </p>
+                          <button
+                            type="button"
+                            onClick={handleCopyPathaoWebhookSecret}
+                            disabled={copyingPathaoSecret}
+                            className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-indigo-600 px-3.5 text-xs font-bold text-white shadow-xs transition-colors hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
+                          >
+                            <Copy className="h-3.5 w-3.5" />
+                            {copyingPathaoSecret
+                              ? 'Preparing secret...'
+                              : courierSettings.pathao_webhook_secret_configured
+                                ? 'Copy secret again'
+                                : 'Generate & copy secret'}
+                          </button>
+                          <p className="mt-1.5 text-xs text-slate-500">Paste it into Pathao's Secret field, select the events, then click Update.</p>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 )}
@@ -306,14 +497,12 @@ const CourierSection: React.FC<CourierSectionProps> = ({
                 {/* RedX API Card */}
                 {enabledCouriers.redx && (
                   <div className="space-y-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
-                    <div className="flex items-center justify-between pb-2 border-b border-indigo-100">
-                      <div className="flex items-center gap-2">
-                        <span className="flex h-6 w-6 items-center justify-center rounded-md bg-red-600 text-xs font-bold text-white">R</span>
-                        <h4 className="font-bold text-xs text-indigo-700 uppercase tracking-wider">
-                          RedX Logistics API Integration
-                        </h4>
+                    <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3 border-b border-indigo-100 pb-3">
+                      <div className="flex min-w-0 items-center gap-2">
+                        <span className="flex h-6 w-6 items-center justify-center rounded-md bg-rose-600 text-xs font-bold text-white">R</span>
+                        <h4 className="min-w-0 text-sm font-bold text-slate-900">RedX integration</h4>
                       </div>
-                      <span className="text-[11px] font-semibold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-200">Active Form</span>
+                      <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700">Enabled</span>
                     </div>
                     <p className="text-xs leading-relaxed text-slate-600">Copy your OpenAPI Access Token from your RedX Merchant Panel &gt; API Settings.</p>
                     
@@ -361,13 +550,49 @@ const CourierSection: React.FC<CourierSectionProps> = ({
                         />
                       </div>
                     </div>
-                    <div className="rounded-lg border border-indigo-200 bg-indigo-50/80 p-3">
-                      <p className="text-xs font-bold uppercase tracking-wider text-indigo-900">RedX Webhook Setup</p>
-                      <p className="mt-1 text-xs text-slate-600">Copy the Callback URL with dedicated token to paste into your RedX merchant portal.</p>
-                      <button type="button" onClick={() => handleCopyCourierWebhookSetup('redx')} disabled={copyingCourierSecret === 'redx'} className="mt-3 inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-3.5 py-2 text-xs font-bold text-white hover:bg-indigo-700 disabled:opacity-50 shadow-xs">
-                        <Copy className="h-3.5 w-3.5" />
-                        {copyingCourierSecret === 'redx' ? 'Preparing...' : courierSettings.redx_webhook_secret_configured ? 'Copy Callback URL Again' : 'Copy Callback URL'}
-                      </button>
+                    <div className="border-t border-slate-200 pt-4">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div>
+                          <p className="text-xs font-bold uppercase tracking-wider text-slate-800">RedX callback setup</p>
+                          <p className="mt-1 text-xs leading-relaxed text-slate-500">RedX uses one secure callback URL. Generate it below and paste the complete URL into the RedX callback field.</p>
+                        </div>
+                        <WebhookStatusBadge
+                          configured={courierSettings.redx_webhook_secret_configured}
+                          verifiedAt={courierSettings.redx_webhook_verified_at}
+                        />
+                      </div>
+                      <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
+                        <div className="min-w-0">
+                          <label htmlFor="redx-webhook-callback-url" className="mb-1.5 flex items-center gap-2 text-xs font-bold text-slate-700">
+                            <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-indigo-600 text-[10px] text-white">1</span>
+                            Callback endpoint
+                          </label>
+                          <input
+                            id="redx-webhook-callback-url"
+                            type="text"
+                            readOnly
+                            value={redxWebhookCallbackUrl}
+                            onFocus={(event) => event.currentTarget.select()}
+                            className="h-10 w-full rounded-lg border border-slate-300 bg-white px-3 font-mono text-xs text-slate-700 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
+                          />
+                          <p className="mt-1.5 text-xs text-slate-500">Reference endpoint only. Use the generated secure URL in the next step.</p>
+                        </div>
+                        <div className="min-w-0">
+                          <p className="mb-1.5 flex items-center gap-2 text-xs font-bold text-slate-700">
+                            <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-indigo-600 text-[10px] text-white">2</span>
+                            Secure callback URL
+                          </p>
+                          <button type="button" onClick={() => handleCopyCourierWebhookSetup('redx')} disabled={copyingCourierSecret === 'redx'} className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-indigo-600 px-3.5 text-xs font-bold text-white shadow-xs transition-colors hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto">
+                            <Copy className="h-3.5 w-3.5" />
+                            {copyingCourierSecret === 'redx'
+                              ? 'Preparing secure URL...'
+                              : courierSettings.redx_webhook_secret_configured
+                                ? 'Copy secure URL again'
+                                : 'Generate & copy secure URL'}
+                          </button>
+                          <p className="mt-1.5 text-xs text-slate-500">The secure token is included in the copied URL and is not displayed on screen.</p>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 )}
@@ -392,11 +617,11 @@ const CourierSection: React.FC<CourierSectionProps> = ({
               </div>
 
               {/* Submit Button */}
-              <div className="flex justify-end rounded-xl border border-slate-200 bg-slate-50/60 p-4">
+              <div className="flex justify-stretch rounded-xl border border-slate-200 bg-slate-50/60 p-4 sm:justify-end">
                 <button
                   type="submit"
                   disabled={savingCourier}
-                  className="min-h-10 rounded-lg bg-indigo-600 px-5 py-2.5 text-xs font-bold text-white transition-colors hover:bg-indigo-700 disabled:opacity-50"
+                  className="min-h-11 w-full rounded-lg bg-indigo-600 px-5 py-2.5 text-xs font-bold text-white transition-colors hover:bg-indigo-700 disabled:opacity-50 sm:w-auto"
                 >
                   {savingCourier ? 'Updating settings...' : 'Save courier settings'}
                 </button>

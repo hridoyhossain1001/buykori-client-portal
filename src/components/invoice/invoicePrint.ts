@@ -8,7 +8,7 @@ import { INVOICE_PRINT_STYLES } from './invoicePrintStyles';
 const FONTS_ORIGIN = 'https://' + 'fonts.googleapis.com';
 const FONT_STYLESHEET_HREF =
   FONTS_ORIGIN +
-  '/css2?family=Inter:wght@400;600;700;900&family=JetBrains+Mono:wght@500;700&display=swap';
+  '/css2?family=Inter:wght@400;600;700;900&family=IBM+Plex+Mono:wght@500;600&display=swap';
 
 function buildPrintDocument(printContent: string): string {
   return (

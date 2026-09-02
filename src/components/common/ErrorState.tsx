@@ -25,6 +25,11 @@ interface ErrorStateProps {
  *
  * `role="alert"` announces the failure to assistive tech, since these states
  * appear after an interaction rather than on first paint.
+ *
+ * Geometry and type follow EmptyState's port of the prototype's `.empty-state`
+ * so the two keep occupying the same box. The one divergence is the title, which
+ * stays at full ink where the empty state's is muted: an empty account is a
+ * quiet fact, a failure is not.
  */
 export function ErrorState({
   icon: Icon = AlertTriangle,
@@ -39,15 +44,15 @@ export function ErrorState({
   return (
     <div
       role="alert"
-      className={`flex flex-col items-center justify-center text-center ${compact ? 'gap-2 px-4 py-8' : 'gap-3 px-6 py-14'} ${className}`}
+      className={`flex flex-col items-center justify-center gap-2 text-center ${compact ? 'min-h-[120px] p-2' : 'min-h-[160px] px-6 py-8'} ${className}`}
     >
       <span
         className={`flex items-center justify-center rounded-full bg-rose-50 ${compact ? 'h-10 w-10' : 'h-12 w-12'}`}
       >
         <Icon className={`text-rose-500 ${compact ? 'h-5 w-5' : 'h-6 w-6'}`} />
       </span>
-      <h4 className="text-sm font-bold text-[var(--bk-console-text)]">{title}</h4>
-      <p className="max-w-sm text-xs leading-relaxed text-[var(--bk-console-text-muted)]">{description}</p>
+      <h4 className="text-label font-bold text-[var(--bk-console-text)]">{title}</h4>
+      <p className="max-w-sm text-label leading-relaxed text-[var(--bk-console-text-muted)]">{description}</p>
       {onRetry && (
         <div className="mt-2">
           <Button variant="secondary" size="sm" onClick={onRetry} loading={retrying} disabled={retrying}>

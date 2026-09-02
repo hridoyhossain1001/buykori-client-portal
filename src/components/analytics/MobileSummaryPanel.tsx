@@ -1,10 +1,28 @@
 import React from 'react';
 import { AlertTriangle } from 'lucide-react';
 import type { AnalyticsOverview, SignalDoctor } from '../../types';
+import { SERIES_GREEN_ON_DARK } from '../../lib/chartColors';
 import type { AdSummary } from './analyticsTypes';
-import { formatMoney, numberText, percentText, stepLabel } from './analyticsFormat';
+import {
+  attemptedEvents,
+  barWidthPercent,
+  countText,
+  dailyAverageEvents,
+  deliveryBasisText,
+  deliverySuccessRate,
+  formatMoney,
+  funnelStepRate,
+  moneyMetricText,
+  multipleMetricText,
+  numberText,
+  percentMetricText,
+  scoreText,
+  signalHealthText,
+  NOT_AVAILABLE,
+  stepLabel,
+} from './analyticsFormat';
 
-type MobileSignal = { name: string; rate: number };
+type MobileSignal = { name: string; rate: number | null };
 type MobileFix = { id: string; title: string; description: string; action: string; page: string };
 type FunnelStep = { step: string; count: number };
 
@@ -15,7 +33,7 @@ type MobileSummaryPanelProps = {
   analyticsOverview: AnalyticsOverview | null | undefined;
   signalDoctor: SignalDoctor | null | undefined;
   adSummary: AdSummary;
-  qualityScore: number;
+  qualityScore: number | null;
   mobileSignalEntries: MobileSignal[];
   healthyMobileSignals: MobileSignal[];
   attentionMobileSignals: MobileSignal[];
@@ -54,9 +72,15 @@ export function MobileSummaryPanel({
   return (
       <div
         aria-hidden={activeInsightTab !== 'summary'}
-        className={`${activeInsightTab === 'summary' ? 'space-y-3' : 'hidden'} md:hidden`}
+        /* `bk-touch-44` on the root, because this whole panel is the phone view
+           (`md:hidden`) and the utility's own range is `max-width:767px` — the
+           same window. It lifts all four of the panel's buttons to the 44px
+           floor: the 7/30/90 range pill (32px), the Review/Later pair (33px) and
+           the healthy-signals toggle (23px). One rule on the container is the
+           idiom index.css documents for exactly this case. */
+        className={`bk-touch-44 ${activeInsightTab === 'summary' ? 'space-y-3' : 'hidden'} md:hidden`}
       >
-        <div className="grid grid-cols-3 rounded-xl bg-stone-100 p-1 text-center text-[11px] font-bold text-stone-500">
+        <div className="grid grid-cols-3 rounded-xl bg-slate-100 p-1 text-center text-[11px] font-bold text-slate-500">
           {[7, 30, 90].map(days => (
             <button
               key={days}
@@ -69,25 +93,26 @@ export function MobileSummaryPanel({
           ))}
         </div>
 
-        <section className="relative overflow-hidden rounded-[18px] bg-gradient-to-br from-[#17314f] via-[#1b416e] to-[#15385f] px-4 py-4 text-white shadow-[0_10px_24px_rgba(15,49,86,.16)]">
+        <section className="relative overflow-hidden rounded-[18px] bg-gradient-to-br from-slate-900 via-slate-800 to-slate-950 px-4 py-4 text-white shadow-[0_10px_24px_rgba(25,39,51,.16)]">
           <span className="absolute -right-10 -top-14 h-40 w-40 rounded-full bg-white/[0.06]" />
           <div className="relative flex items-center gap-4">
             <div
               className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full"
-              style={{ background: `conic-gradient(#7dd3a7 ${qualityScore * 3.6}deg, rgba(255,255,255,.18) 0deg)` }}
+              style={{ background: `conic-gradient(${SERIES_GREEN_ON_DARK} ${(qualityScore ?? 0) * 3.6}deg, rgba(255,255,255,.18) 0deg)` }}
             >
-              <span className="h-10 w-10 rounded-full bg-[#183b64]" />
+              {/* Matches the card gradient's middle stop, so the disc punches a
+                  hole in the ring instead of reading as another arc. */}
+              <span className="h-10 w-10 rounded-full bg-slate-800" />
             </div>
             <div className="min-w-0">
               <p className="text-[9px] font-bold uppercase tracking-[0.14em] text-slate-300">Data quality score</p>
               <div className="mt-0.5 flex flex-wrap items-baseline gap-1.5">
-                <strong className="text-[25px] font-black leading-none">{qualityScore}<span className="text-xs text-slate-300">/100</span></strong>
+                {qualityScore === null
+                  ? <strong className="text-[17px] font-black leading-none">{NOT_AVAILABLE}</strong>
+                  : <strong className="text-[25px] font-black leading-none">{qualityScore}<span className="text-xs text-slate-300">/100</span></strong>}
                 <span className="text-[12px] font-bold text-emerald-200">· {signalDoctor?.grade || 'Waiting'}</span>
               </div>
-              <p className="mt-2 text-[10px] text-slate-300">
-                {healthyMobileSignals.length} of {mobileSignalEntries.length || 7} signals healthy
-                {attentionMobileSignals.length > 0 ? ` · ${attentionMobileSignals.length} need attention` : ''}
-              </p>
+              <p className="mt-2 text-[10px] text-slate-300">{signalHealthText(mobileSignalEntries)}</p>
             </div>
           </div>
         </section>
@@ -97,17 +122,17 @@ export function MobileSummaryPanel({
             {[
               {
                 title: 'Total events',
-                value: numberText(analyticsOverview.total_events),
+                value: countText(attemptedEvents(analyticsOverview)),
                 note: `Last ${analyticsDays} days`,
               },
               {
                 title: 'Delivery',
-                value: percentText(analyticsOverview.success_rate),
-                note: `${Math.round(Number(analyticsOverview.total_events || 0) * Number(analyticsOverview.success_rate || 0) / 100).toLocaleString()} of ${numberText(analyticsOverview.total_events)} delivered`,
+                value: percentMetricText(deliverySuccessRate(analyticsOverview)),
+                note: deliveryBasisText(analyticsOverview),
               },
               {
                 title: 'Daily average',
-                value: numberText(analyticsOverview.avg_daily_events),
+                value: countText(dailyAverageEvents(analyticsOverview, analyticsDays)),
                 note: `Across ${analyticsDays} days`,
               },
               {
@@ -118,7 +143,7 @@ export function MobileSummaryPanel({
             ].map(metric => (
               <section key={metric.title} className="rounded-[14px] border border-slate-200 bg-white px-3 py-3 shadow-[0_3px_12px_rgba(15,23,42,.03)]">
                 <p className="text-[9px] font-bold uppercase tracking-[0.08em] text-slate-500">{metric.title}</p>
-                <p className="mt-1 text-xl font-black leading-none tracking-tight text-slate-900">{metric.value}</p>
+                <p className={`mt-1 font-black tracking-tight text-slate-900 ${metric.value === NOT_AVAILABLE ? 'text-[13px] leading-tight' : 'text-xl leading-none'}`}>{metric.value}</p>
                 <p className="mt-2 truncate text-[9px] text-slate-400">{metric.note}</p>
               </section>
             ))}
@@ -147,7 +172,7 @@ export function MobileSummaryPanel({
                       <button
                         type="button"
                         onClick={() => setActivePage?.(fix.page)}
-                        className="rounded-lg bg-[#2f80df] px-3 py-2 text-[10px] font-bold text-white"
+                        className="rounded-lg bg-indigo-600 px-3 py-2 text-[10px] font-bold text-white"
                       >
                         {fix.action}
                       </button>
@@ -179,28 +204,20 @@ export function MobileSummaryPanel({
           <div className="mt-2">
             {mobileFunnel.length > 0 ? mobileFunnel.map((step, index) => {
               const currentCount = Number(step.count || 0);
-              const previousCount = index > 0 ? Number(mobileFunnel[index - 1]?.count || 0) : currentCount;
-              const hasGap = index > 0 && currentCount > previousCount;
-              const storeVisitCount = Number(mobileFunnel[0]?.count || 0);
-              const rate = index === 0
-                ? 100
-                : hasGap
-                  ? (storeVisitCount > 0 ? Number(((currentCount / storeVisitCount) * 100).toFixed(1)) : 0)
-                  : previousCount > 0
-                    ? Number(((currentCount / previousCount) * 100).toFixed(1))
-                    : 0;
+              const { percent, hasGap } = funnelStepRate(mobileFunnel, index);
+              const needsAttention = hasGap || (index > 0 && percent !== null && percent < 25);
               return (
                 <div key={step.step} className="py-2">
                   <div className="flex items-center gap-2">
                     <strong className="text-[11px] text-slate-800">{stepLabel(step.step)}</strong>
                     <span className="text-[9px] text-slate-400">{numberText(currentCount)} {index === 0 ? 'sessions' : 'events'}</span>
-                    <span className={`ml-auto text-[11px] font-bold ${hasGap || (index > 0 && rate < 25) ? 'text-orange-600' : 'text-slate-800'}`}>
-                      {rate}%
+                    <span className={`ml-auto shrink-0 text-[11px] font-bold ${needsAttention ? 'text-orange-600' : 'text-slate-800'}`}>
+                      {percentMetricText(percent)}
                     </span>
                   </div>
-                  <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-stone-100">
+                  <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-slate-100">
                     <div
-                      className={`h-full rounded-full ${hasGap || (index > 0 && rate < 25) ? 'bg-orange-300' : 'bg-[#4b9aeb]'}`}
+                      className={`h-full rounded-full ${needsAttention ? 'bg-orange-300' : 'bg-chart-blue'}`}
                       style={{ width: `${Math.max((currentCount / mobileFunnelMax) * 100, currentCount > 0 ? 3 : 0)}%` }}
                     />
                   </div>
@@ -212,7 +229,7 @@ export function MobileSummaryPanel({
             )}
           </div>
           {mobileTrackingGaps > 0 && (() => {
-            const gapIndex = mobileFunnel.findIndex((step, index) => index > 0 && Number(step.count || 0) > Number(mobileFunnel[index - 1]?.count || 0));
+            const gapIndex = mobileFunnel.findIndex((_step, index) => funnelStepRate(mobileFunnel, index).hasGap);
             const before = mobileFunnel[gapIndex - 1];
             const after = mobileFunnel[gapIndex];
             return before && after ? (
@@ -230,7 +247,7 @@ export function MobileSummaryPanel({
               <h3 className="text-[13px] font-bold text-slate-800">Data quality by signal</h3>
               <p className="text-[10px] text-slate-500">Worst first</p>
             </div>
-            <span className="rounded-full bg-emerald-50 px-2 py-1 text-[9px] font-bold text-emerald-600">{qualityScore} / 100</span>
+            <span className="rounded-full bg-emerald-50 px-2 py-1 text-[9px] font-bold text-emerald-600">{scoreText(qualityScore)}</span>
           </div>
           {visibleMobileSignals.length > 0 ? (
             <div className="mt-2 space-y-2">
@@ -238,19 +255,27 @@ export function MobileSummaryPanel({
                 <div key={signal.name} className="grid grid-cols-[92px_1fr_40px] items-center gap-2">
                   <span className="truncate text-[10px] font-bold text-slate-700">
                     {signal.name}
-                    {signal.rate < 80 && <em className="ml-1 rounded bg-rose-50 px-1 py-0.5 not-italic text-[8px] text-rose-500">FIX</em>}
+                    {signal.rate !== null && signal.rate < 80 && <em className="ml-1 rounded bg-rose-50 px-1 py-0.5 not-italic text-[8px] text-rose-500">FIX</em>}
                   </span>
-                  <div className="h-1.5 overflow-hidden rounded-full bg-stone-100">
-                    <div
-                      className={`h-full rounded-full ${signal.rate < 30 ? 'bg-rose-500' : signal.rate < 80 ? 'bg-orange-400' : 'bg-emerald-500'}`}
-                      style={{ width: `${signal.rate}%` }}
-                    />
-                  </div>
-                  <span className={`text-right text-[9px] font-bold ${signal.rate < 80 ? 'text-rose-500' : 'text-slate-800'}`}>{signal.rate}%</span>
+                  {signal.rate === null ? (
+                    // The 40px value track cannot hold "Not available", so an unmeasured
+                    // signal takes the bar's room instead of being clipped to "Not…".
+                    <span className="col-span-2 text-[9px] font-bold text-slate-400">{NOT_AVAILABLE}</span>
+                  ) : (
+                    <>
+                      <div className="h-1.5 overflow-hidden rounded-full bg-slate-100">
+                        <div
+                          className={`h-full rounded-full ${signal.rate < 30 ? 'bg-rose-500' : signal.rate < 80 ? 'bg-orange-400' : 'bg-emerald-500'}`}
+                          style={{ width: `${signal.rate}%` }}
+                        />
+                      </div>
+                      <span className={`text-right text-[9px] font-bold ${signal.rate < 80 ? 'text-rose-500' : 'text-slate-800'}`}>{percentMetricText(signal.rate)}</span>
+                    </>
+                  )}
                 </div>
               ))}
               {mobileSignalEntries.length > 4 && (
-                <button type="button" onClick={() => setShowAllMobileSignals(value => !value)} className="pt-2 text-[10px] font-bold text-[#2375d8]">
+                <button type="button" onClick={() => setShowAllMobileSignals(value => !value)} className="flex w-full items-center text-[10px] font-bold text-indigo-600">
                   {showAllMobileSignals ? '▴ Show fewer signals' : `▾ Show ${mobileSignalEntries.length - 4} healthy signals`}
                 </button>
               )}
@@ -271,10 +296,10 @@ export function MobileSummaryPanel({
             </div>
             <div className="pl-3">
               <p className="text-[9px] font-bold uppercase tracking-[0.08em] text-slate-500">Return · Cost/order</p>
-              <p className="mt-1 text-base font-black text-slate-400">
-                {adSummary.spend > 0 ? `${adSummary.returnRate.toFixed(2)}x` : '—'}
+              <p className={`mt-1 font-black text-slate-400 ${adSummary.returnRate === null ? 'text-[13px] leading-tight' : 'text-base'}`}>
+                {multipleMetricText(adSummary.returnRate)}
               </p>
-              <p className="mt-1 text-[9px] text-slate-400">{adSummary.spend > 0 ? formatMoney(adSummary.costPerOrder, adSummary.spendCurrency) : 'Needs ad spend'}</p>
+              <p className="mt-1 text-[9px] text-slate-400">{moneyMetricText(adSummary.costPerOrder, adSummary.spendCurrency)}</p>
             </div>
           </div>
         </section>
